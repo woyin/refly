@@ -1,4 +1,4 @@
-import { useMemo, useEffect, useCallback, useState } from 'react';
+import React, { useMemo, useEffect, useCallback, useState } from 'react';
 import { Avatar, Button, Divider, Layout } from 'antd';
 import {
   useLocation,
@@ -37,6 +37,86 @@ import defaultAvatar from '@refly-packages/ai-workspace-common/assets/refly_defa
 
 const Sider = Layout.Sider;
 
+// User avatar component for displaying user profile
+const UserAvatar = React.memo(
+  ({
+    showName = true,
+    userProfile,
+    avatarAlign,
+  }: {
+    showName?: boolean;
+    userProfile?: any;
+    avatarAlign: 'left' | 'right';
+  }) => (
+    <div
+      className={
+        // biome-ignore lint/style/useTemplate: <explanation>
+        'flex items-center gap-2 flex-shrink min-w-0 cursor-pointer ' +
+        (avatarAlign === 'left' ? 'mr-2' : 'ml-2')
+      }
+      title={userProfile?.nickname}
+    >
+      <Avatar
+        size={36}
+        src={userProfile?.avatar || defaultAvatar}
+        icon={<Account />}
+        className="flex-shrink-0 "
+      />
+      {showName && (
+        <span className={cn('inline-block truncate font-semibold text-refly-text-0')}>
+          {userProfile?.nickname}
+        </span>
+      )}
+    </div>
+  ),
+);
+
+// Subscription info component for displaying credit balance and upgrade button
+const SubscriptionInfo = React.memo(
+  ({
+    creditBalance,
+    userProfile,
+    onCreditClick,
+    onSubscriptionClick,
+    t,
+  }: {
+    creditBalance: number | string;
+    userProfile?: any;
+    onCreditClick: (e: React.MouseEvent) => void;
+    onSubscriptionClick: (e: React.MouseEvent) => void;
+    t: (key: string) => string;
+  }) => {
+    if (!subscriptionEnabled) return null;
+
+    return (
+      <div
+        onClick={onCreditClick}
+        className="h-8 p-2 flex items-center gap-1.5 text-refly-text-0 text-xs cursor-pointer
+        rounded-[80px] border-[1px] border-solid border-refly-Card-Border bg-refly-bg-content-z2 whitespace-nowrap flex-shrink-0
+      "
+      >
+        <div className="flex items-center gap-1 min-w-0 flex-1">
+          <Subscription size={14} className="text-[#1C1F23] dark:text-white flex-shrink-0" />
+          <span className="font-medium truncate">{creditBalance}</span>
+        </div>
+
+        {(!userProfile?.subscription?.planType ||
+          userProfile?.subscription?.planType === 'free') && (
+          <>
+            <Divider type="vertical" className="m-0" />
+            <div
+              onClick={onSubscriptionClick}
+              className="text-refly-primary-default text-xs font-semibold leading-4 whitespace-nowrap truncate"
+            >
+              {t('common.upgrade')}
+            </div>
+          </>
+        )}
+      </div>
+    );
+  },
+);
+
 // Reusable section header component
 const SiderSectionHeader = ({
   icon,
@@ -59,9 +139,9 @@ const SiderSectionHeader = ({
       )}
       onClick={!actionIcon ? onActionClick : undefined}
     >
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 min-w-0 flex-1">
         {icon}
-        <span className={cn(isActive ? 'font-semibold' : 'font-normal')}>{title}</span>
+        <span className={cn('truncate', isActive ? 'font-semibold' : 'font-normal')}>{title}</span>
       </div>
       {actionIcon && onActionClick && (
         <Button
@@ -94,92 +174,94 @@ export const SiderLogo = (props: {
   );
 };
 
-const SettingItem = () => {
-  const { userProfile } = useUserStoreShallow((state) => ({
-    userProfile: state.userProfile,
-  }));
+export const SettingItem = React.memo(
+  ({
+    showName = true,
+    avatarAlign = 'left',
+  }: { showName?: boolean; avatarAlign?: 'left' | 'right' }) => {
+    const { userProfile } = useUserStoreShallow((state) => ({
+      userProfile: state.userProfile,
+    }));
 
-  const { t } = useTranslation();
+    const { t } = useTranslation();
 
-  const { creditBalance, isBalanceSuccess } = useSubscriptionUsage();
+    const { creditBalance, isBalanceSuccess } = useSubscriptionUsage();
 
-  const { setSubscribeModalVisible } = useSubscriptionStoreShallow((state) => ({
-    setSubscribeModalVisible: state.setSubscribeModalVisible,
-  }));
+    const { setSubscribeModalVisible } = useSubscriptionStoreShallow((state) => ({
+      setSubscribeModalVisible: state.setSubscribeModalVisible,
+    }));
 
-  const { setShowSettingModal, setSettingsModalActiveTab } = useSiderStoreShallow((state) => ({
-    setShowSettingModal: state.setShowSettingModal,
-    setSettingsModalActiveTab: state.setSettingsModalActiveTab,
-  }));
+    const { setShowSettingModal, setSettingsModalActiveTab } = useSiderStoreShallow((state) => ({
+      setShowSettingModal: state.setShowSettingModal,
+      setSettingsModalActiveTab: state.setSettingsModalActiveTab,
+    }));
 
-  const handleSubscriptionClick = useCallback(
-    (e: React.MouseEvent) => {
-      e.stopPropagation();
-      setSubscribeModalVisible(true);
-    },
-    [setSubscribeModalVisible],
-  );
+    const handleSubscriptionClick = useCallback(
+      (e: React.MouseEvent) => {
+        e.stopPropagation();
+        setSubscribeModalVisible(true);
+      },
+      [setSubscribeModalVisible],
+    );
 
-  const handleCreditClick = useCallback(
-    (e: React.MouseEvent) => {
-      e.stopPropagation();
-      setSettingsModalActiveTab(SettingsModalActiveTab.Subscription);
-      setShowSettingModal(true);
-    },
-    [setSubscribeModalVisible],
-  );
+    const handleCreditClick = useCallback(
+      (e: React.MouseEvent) => {
+        e.stopPropagation();
+        setSettingsModalActiveTab(SettingsModalActiveTab.Subscription);
+        setShowSettingModal(true);
+      },
+      [setShowSettingModal, setSettingsModalActiveTab],
+    );
 
-  return (
-    <div className="group w-full">
-      <SiderMenuSettingList creditBalance={creditBalance}>
-        <div className="flex flex-1 items-center justify-between">
-          <div
-            className="flex items-center gap-2 mr-2 flex-shrink min-w-0"
-            title={userProfile?.nickname}
-          >
-            <Avatar
-              size={36}
-              src={userProfile?.avatar || defaultAvatar}
-              icon={<Account />}
-              className="flex-shrink-0"
-            />
-            <span className={cn('inline-block truncate font-semibold text-refly-text-0')}>
-              {userProfile?.nickname}
-            </span>
+    const renderSubscriptionInfo = useMemo(() => {
+      if (!subscriptionEnabled || !isBalanceSuccess) return null;
+
+      return (
+        <SubscriptionInfo
+          creditBalance={creditBalance}
+          userProfile={userProfile}
+          onCreditClick={handleCreditClick}
+          onSubscriptionClick={handleSubscriptionClick}
+          t={t}
+        />
+      );
+    }, [
+      creditBalance,
+      userProfile,
+      handleCreditClick,
+      handleSubscriptionClick,
+      t,
+      isBalanceSuccess,
+    ]);
+
+    const renderUserAvatar = useMemo(
+      () => <UserAvatar showName={showName} userProfile={userProfile} avatarAlign={avatarAlign} />,
+      [showName, userProfile],
+    );
+
+    return (
+      <div className="group w-full">
+        <SiderMenuSettingList creditBalance={creditBalance}>
+          <div className="flex flex-1 items-center justify-between">
+            {avatarAlign === 'left' && (
+              <>
+                {renderUserAvatar}
+                {renderSubscriptionInfo}
+              </>
+            )}
+
+            {avatarAlign === 'right' && (
+              <>
+                {renderSubscriptionInfo}
+                {renderUserAvatar}
+              </>
+            )}
           </div>
-
-          {subscriptionEnabled && isBalanceSuccess && (
-            <div
-              onClick={handleCreditClick}
-              className="h-8 p-2 flex items-center gap-1.5 text-refly-text-0 text-xs cursor-pointer
-            rounded-[80px] border-[1px] border-solid border-refly-Card-Border bg-refly-bg-content-z2 whitespace-nowrap flex-shrink-0
-            "
-            >
-              <div className="flex items-center gap-1">
-                <Subscription size={14} className="text-[#1C1F23] dark:text-white" />
-                <span className="font-medium">{creditBalance}</span>
-              </div>
-
-              {(!userProfile?.subscription?.planType ||
-                userProfile?.subscription?.planType === 'free') && (
-                <>
-                  <Divider type="vertical" className="m-0" />
-
-                  <div
-                    onClick={handleSubscriptionClick}
-                    className="text-refly-primary-default text-xs font-semibold leading-4 whitespace-nowrap"
-                  >
-                    {t('common.upgrade')}
-                  </div>
-                </>
-              )}
-            </div>
-          )}
-        </div>
-      </SiderMenuSettingList>
-    </div>
-  );
-};
+        </SiderMenuSettingList>
+      </div>
+    );
+  },
+);
 
 const SiderLoggedIn = (props: { source: 'sider' | 'popover' }) => {
   const { source = 'sider' } = props;
