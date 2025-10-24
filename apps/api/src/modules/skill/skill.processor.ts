@@ -4,7 +4,7 @@ import { Job } from 'bullmq';
 
 import { SkillService } from './skill.service';
 import { QUEUE_SKILL, QUEUE_CHECK_STUCK_ACTIONS } from '../../utils/const';
-import { InvokeSkillJobData, CheckStuckActionsJobData } from './skill.dto';
+import { InvokeSkillJobData } from './skill.dto';
 
 @Processor(QUEUE_SKILL)
 export class SkillProcessor extends WorkerHost {
@@ -34,9 +34,7 @@ export class CheckStuckActionsProcessor extends WorkerHost {
     super();
   }
 
-  async process(job: Job<CheckStuckActionsJobData>) {
-    this.logger.log(`[handleCheckStuckActions] job: ${JSON.stringify(job.id)}`);
-
+  async process() {
     try {
       await this.skillService.checkStuckActions();
     } catch (error) {
