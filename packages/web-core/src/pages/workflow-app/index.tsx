@@ -112,6 +112,10 @@ const WorkflowAppPage: React.FC = () => {
       .filter((nodeExecution: WorkflowNodeExecution) => nodeExecution.status === 'finish');
   }, [nodeExecutions]);
 
+  useEffect(() => {
+    products.length > 0 && setActiveTab('products');
+  }, [products?.length]);
+
   const logs = useMemo(() => {
     return nodeExecutions.filter((nodeExecution: WorkflowNodeExecution) =>
       ['skillResponse'].includes(nodeExecution.nodeType as CanvasNodeType),
