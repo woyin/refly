@@ -19,6 +19,7 @@ import {
 } from '@refly/stores';
 import { CanvasProvider } from '@refly-packages/ai-workspace-common/context/canvas';
 import { useIsLogin } from '@refly-packages/ai-workspace-common/hooks/use-is-login';
+import { useSubscriptionUsage } from '@refly-packages/ai-workspace-common/hooks/use-subscription-usage';
 import { logEvent } from '@refly/telemetry-web';
 import { Helmet } from 'react-helmet';
 import FooterSection from '@refly-packages/ai-workspace-common/components/workflow-app/FooterSection';
@@ -66,6 +67,9 @@ const WorkflowAppPage: React.FC = () => {
   // Check user login status
   const { isLoggedRef } = useIsLogin();
 
+  // Get subscription usage hook for refreshing credits
+  const { refetchUsage } = useSubscriptionUsage();
+
   // Use shareId to directly access static JSON file
   const { data: workflowApp, loading: isLoading } = useFetchShareData(shareId);
 
@@ -95,6 +99,9 @@ const WorkflowAppPage: React.FC = () => {
       setExecutionId(null);
       // Reset running state when workflow completes
       setIsRunning(false);
+
+      // Refresh credit balance after workflow completion
+      refetchUsage();
 
       if (status === 'finish') {
         notification.success({
