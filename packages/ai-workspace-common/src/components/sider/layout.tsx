@@ -51,7 +51,8 @@ const UserAvatar = React.memo(
     <div
       className={
         // biome-ignore lint/style/useTemplate: <explanation>
-        'flex items-center gap-2 flex-shrink min-w-0 ' + avatarAlign === 'left' ? 'mr-2' : 'ml-2'
+        'flex items-center gap-2 flex-shrink min-w-0 cursor-pointer ' +
+        (avatarAlign === 'left' ? 'mr-2' : 'ml-2')
       }
       title={userProfile?.nickname}
     >
@@ -59,7 +60,7 @@ const UserAvatar = React.memo(
         size={36}
         src={userProfile?.avatar || defaultAvatar}
         icon={<Account />}
-        className="flex-shrink-0"
+        className="flex-shrink-0 "
       />
       {showName && (
         <span className={cn('inline-block truncate font-semibold text-refly-text-0')}>
@@ -94,9 +95,9 @@ const SubscriptionInfo = React.memo(
         rounded-[80px] border-[1px] border-solid border-refly-Card-Border bg-refly-bg-content-z2 whitespace-nowrap flex-shrink-0
       "
       >
-        <div className="flex items-center gap-1">
-          <Subscription size={14} className="text-[#1C1F23] dark:text-white" />
-          <span className="font-medium">{creditBalance}</span>
+        <div className="flex items-center gap-1 min-w-0 flex-1">
+          <Subscription size={14} className="text-[#1C1F23] dark:text-white flex-shrink-0" />
+          <span className="font-medium truncate">{creditBalance}</span>
         </div>
 
         {(!userProfile?.subscription?.planType ||
@@ -105,7 +106,7 @@ const SubscriptionInfo = React.memo(
             <Divider type="vertical" className="m-0" />
             <div
               onClick={onSubscriptionClick}
-              className="text-refly-primary-default text-xs font-semibold leading-4 whitespace-nowrap"
+              className="text-refly-primary-default text-xs font-semibold leading-4 whitespace-nowrap truncate"
             >
               {t('common.upgrade')}
             </div>
@@ -138,9 +139,9 @@ const SiderSectionHeader = ({
       )}
       onClick={!actionIcon ? onActionClick : undefined}
     >
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 min-w-0 flex-1">
         {icon}
-        <span className={cn(isActive ? 'font-semibold' : 'font-normal')}>{title}</span>
+        <span className={cn('truncate', isActive ? 'font-semibold' : 'font-normal')}>{title}</span>
       </div>
       {actionIcon && onActionClick && (
         <Button
