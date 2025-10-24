@@ -8,7 +8,6 @@ import { useCanvasStoreShallow } from '@refly/stores';
 import { Helmet } from 'react-helmet';
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
 import { CanvasTitle, ReadonlyCanvasTitle, type CanvasTitleMode } from './canvas-title';
-import { ToolbarButtons } from './buttons';
 import ShareSettings from './share-settings';
 import { useUserStoreShallow } from '@refly/stores';
 import './index.scss';
@@ -171,8 +170,6 @@ export const TopToolbar: FC<TopToolbarProps> = memo(({ canvasId }) => {
               <ShareSettings canvasId={canvasId} canvasTitle={canvasTitle} />
             </>
           )}
-
-          <ToolbarButtons />
         </div>
       </div>
     </>

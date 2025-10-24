@@ -68,7 +68,7 @@ export const WorkflowRun = () => {
   );
 
   return (
-    <div className="flex flex-col w-full h-[calc(100vh-16px)] bg-refly-bg-content-z2 rounded-xl border-solid border border-refly-Card-Border shadow-refly-m">
+    <div className="flex flex-col w-full h-[calc(100vh-56px)] bg-refly-bg-content-z2 rounded-xl border-solid border border-refly-Card-Border shadow-refly-m">
       <div className="w-full h-[65px] flex gap-2 items-center justify-between p-3 border-solid border-refly-Card-Border border-[1px] border-x-0 border-t-0">
         <div className="flex items-center gap-1 min-w-0 flex-1">
           <Tooltip title={t('canvas.toolbar.closeResourcesPanel')} arrow={false}>

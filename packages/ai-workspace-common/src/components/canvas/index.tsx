@@ -66,7 +66,8 @@ import { Pilot } from '@refly-packages/ai-workspace-common/components/pilot';
 import SessionHeader from '@refly-packages/ai-workspace-common/components/pilot/session-header';
 import { CanvasResources, CanvasResourcesWidescreenModal } from './canvas-resources';
 import { ResourceOverview } from './canvas-resources/share/resource-overview';
-import { NodePreviewContainer } from '@refly-packages/ai-workspace-common/components/canvas/node-preview';
+import { ToolbarButtons } from './top-toolbar/toolbar-buttons';
+// import { NodePreviewContainer } from '@refly-packages/ai-workspace-common/components/canvas/node-preview';
 import { useHandleOrphanNode } from '@refly-packages/ai-workspace-common/hooks/use-handle-orphan-node';
 import { WorkflowRun } from './workflow-run';
 import { useMatch } from '@refly-packages/ai-workspace-common/utils/router';
@@ -1041,6 +1042,7 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
           extra={t('canvas.connectionTimeout.extra')}
         />
       </Modal>
+
       <div className="w-full h-full relative flex flex-col overflow-hidden border-[1px] border-solid border-refly-Card-Border rounded-xl shadow-sm">
         {!readonly && (
           <AnimatePresence mode="wait">
@@ -1186,8 +1188,9 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
 
         {/* Display the not found overlay when shareNotFound is true */}
         {readonly && shareNotFound && <NotFoundOverlay />}
+        <ToolbarButtons />
 
-        <div
+        {/* <div
           className="absolute top-[64px] bottom-0 right-2 overflow-x-auto preview-container z-20"
           style={{
             maxWidth: 'calc(100% - 12px)',
@@ -1196,7 +1199,7 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
           <div className="relative h-full overflow-y-hidden">
             <NodePreviewContainer canvasId={canvasId} />
           </div>
-        </div>
+        </div> */}
 
         <UnifiedContextMenu
           open={contextMenu.open}
