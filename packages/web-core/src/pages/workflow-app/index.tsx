@@ -267,32 +267,42 @@ const WorkflowAppPage: React.FC = () => {
         <style>
           {`
             .refly.ant-layout {
-              background-color: #ffffff;
+              background-color: var(--refly-bg-content-z2);
               margin: 0px;
               border-radius: 0px;
               height: 100vh
             }
             .dark .refly.ant-layout {
-              background-color: #0a0a0a;
+              background-color: var(--refly-bg-content-z2);
             }
           `}
         </style>
-        <div className="bg-white dark:bg-refly-bg-0">
+        <div className="bg-[var(--refly-bg-content-z2)]">
           <div
-            className="relative flex flex-col shrink-0 h-[300px] bg-cover bg-center bg-no-repeat bg-white dark:bg-refly-bg-0"
-            style={{
-              backgroundImage: `url(${workflowApp?.coverUrl})`,
-            }}
+            className={`relative flex flex-col shrink-0 h-[300px] ${
+              workflowApp?.coverUrl
+                ? 'bg-cover bg-center bg-no-repeat'
+                : 'bg-[var(--refly-bg-content-z2)]'
+            }`}
+            style={
+              workflowApp?.coverUrl
+                ? {
+                    backgroundImage: `url(${workflowApp.coverUrl})`,
+                  }
+                : {}
+            }
           >
-            {/* 渐变叠加层 */}
-            <div className="absolute inset-0 bg-gradient-to-b from-white/30 to-white dark:from-black/30 dark:to-black backdrop-blur-[20px] pointer-events-none" />
+            {/* Gradient overlay - only shown when cover image exists */}
+            {workflowApp?.coverUrl && (
+              <div className="absolute inset-0 bg-gradient-to-b from-white/30 to-white dark:from-black/30 dark:to-black backdrop-blur-[20px] pointer-events-none" />
+            )}
 
             <Helmet>
               <title>{workflowApp?.title ?? ''}</title>
             </Helmet>
 
             {/* Header - Fixed at top with full transparency */}
-            <div className=" top-0 left-0 right-0 z-50 border-b border-white/20 dark:border-gray-800/20 h-[64px]">
+            <div className=" top-0 left-0 right-0 z-50 border-b border-white/20 dark:border-[var(--refly-semi-color-border)] h-[64px]">
               <div className="relative mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="flex items-center justify-between h-16">
                   <div className="flex items-center gap-3">
@@ -313,10 +323,10 @@ const WorkflowAppPage: React.FC = () => {
                   <>
                     {/* Hero Section */}
                     <div className="text-center mb-6 sm:mb-8">
-                      <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-refly-text-0 dark:text-white drop-shadow-sm">
+                      <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-[var(--refly-text-0)] dark:text-[var(--refly-text-StaticWhite)] drop-shadow-sm">
                         {workflowApp?.title ?? ''}
                       </h1>
-                      <p className="mt-3 sm:mt-4 text-base sm:text-lg text-refly-text-1 dark:text-gray-300 max-w-2xl mx-auto drop-shadow-sm">
+                      <p className="mt-3 sm:mt-4 text-base sm:text-lg text-[var(--refly-text-1)] dark:text-[var(--refly-text-2)] max-w-2xl mx-auto drop-shadow-sm">
                         {workflowApp?.description ?? ''}
                       </p>
                     </div>
@@ -332,7 +342,7 @@ const WorkflowAppPage: React.FC = () => {
                         onCopyShareLink={handleCopyShareLink}
                         isRunning={isRunning}
                         templateContent={workflowApp?.templateContent}
-                        className="max-h-[500px] sm:max-h-[600px] bg-refly-bg-float-z3 dark:bg-gray-800/90 border border-refly-Card-Border dark:border-gray-700 shadow-[0_2px_20px_4px_rgba(0,0,0,0.04)] dark:shadow-[0_2px_20px_4px_rgba(0,0,0,0.2)] px-4 py-3 rounded-2xl"
+                        className="max-h-[500px] sm:max-h-[600px] bg-[var(--refly-bg-float-z3)] dark:bg-[var(--refly-bg-content-z2)] border border-[var(--refly-Card-Border)] dark:border-[var(--refly-semi-color-border)] shadow-[0_2px_20px_4px_rgba(0,0,0,0.04)] dark:shadow-[0_2px_20px_4px_rgba(0,0,0,0.2)] px-4 py-3 rounded-2xl"
                       />
                     </div>
 
@@ -352,7 +362,7 @@ const WorkflowAppPage: React.FC = () => {
                         )}
 
                         {/* Content Area */}
-                        <div className="bg-refly-bg-float-z3 dark:bg-gray-800/90 rounded-lg border border-refly-Card-Border dark:border-gray-700 relative z-20">
+                        <div className="bg-[var(--refly-bg-float-z3)] dark:bg-[var(--refly-bg-content-z2)] rounded-lg border border-[var(--refly-Card-Border)] dark:border-[var(--refly-semi-color-border)] relative z-20">
                           {activeTab === 'products' ? (
                             <WorkflowAppProducts products={products || []} />
                           ) : activeTab ===
