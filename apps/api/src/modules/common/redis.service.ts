@@ -1,7 +1,7 @@
-import { isDesktop } from '../../utils/runtime';
-import { Injectable, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
+import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import Redis from 'ioredis';
+import { isDesktop } from '../../utils/runtime';
 
 interface InMemoryItem {
   value: string;
@@ -184,6 +184,101 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
 
     item.expiresAt = Date.now() + seconds * 1000;
     return true;
+  }
+
+  async del(key: string): Promise<void> {
+    if (this.client) {
+      await this.client.del(key);
+      return;
+    }
+    this.inMemoryStore.delete(key);
+  }
+
+  async exists(key: string): Promise<number> {
+    if (this.client) {
+      try {
+        return await this.client.exists(key);
+      } catch (error) {
+        this.logger.error(`Redis EXISTS failed: key=${key}, error=${error}`);
+        throw error;
+      }
+    }
+
+    // In-memory implementation
+    const item = this.inMemoryStore.get(key);
+    if (!item || this.isExpired(item)) {
+      if (item && this.isExpired(item)) {
+        this.inMemoryStore.delete(key);
+      }
+      return 0;
+    }
+    return 1;
+  }
+
+  /**
+   * Store a JSON-serializable value in Redis with a TTL
+   * @param key - Redis key
+   * @param value - Value to store (will be JSON serialized)
+   * @param ttlSeconds - Time to live in seconds (default: 180 seconds)
+   */
+  async setJSON<T>(key: string, value: T, ttlSeconds = 180): Promise<void> {
+    try {
+      await this.setex(key, ttlSeconds, JSON.stringify(value));
+    } catch (error) {
+      this.logger.warn(
+        `Failed to write JSON to Redis for key "${key}": ${error instanceof Error ? error.message : error}`,
+      );
+    }
+  }
+
+  /**
+   * Retrieve a JSON-serialized value from Redis
+   * @param key - Redis key
+   * @returns The parsed value or null if not found or invalid
+   */
+  async getJSON<T>(key: string): Promise<T | null> {
+    const serialized = await this.get(key);
+    if (!serialized) {
+      return null;
+    }
+
+    try {
+      return JSON.parse(serialized) as T;
+    } catch (error) {
+      this.logger.warn(`Failed to parse JSON from Redis for key "${key}"`, error);
+      return null;
+    }
+  }
+
+  /**
+   * Delete multiple keys from Redis
+   * @param keys - Array of Redis keys
+   */
+  async delMany(keys: string[]): Promise<void> {
+    if (keys.length === 0) {
+      return;
+    }
+
+    try {
+      await Promise.all(keys.map((key) => this.del(key)));
+    } catch (error) {
+      this.logger.warn('Failed to delete multiple keys from Redis', error);
+    }
+  }
+
+  /**
+   * Check if a key exists in Redis (returns boolean)
+   * @param key - Redis key
+   * @returns true if the key exists, false otherwise
+   */
+  async existsBoolean(key: string): Promise<boolean> {
+    try {
+      const result = await this.exists(key);
+      return result > 0;
+    } catch (error) {
+      this.logger.warn(`Failed to check existence of key "${key}" in Redis`, error);
+      return false;
+    }
   }
 
   /**

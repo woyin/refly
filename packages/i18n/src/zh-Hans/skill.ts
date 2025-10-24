@@ -37,6 +37,10 @@ const translations = {
         name: '问题回答',
         description: '生成答案中...',
       },
+      start: {
+        name: '开始',
+        description: '分析需求中...',
+      },
     },
   },
   customPrompt: {

@@ -14,7 +14,6 @@ import {
   ProviderItem,
   SkillEvent,
   TokenUsageItem,
-  ToolCallResult,
   User,
 } from '@refly/openapi-schema';
 import {
@@ -51,11 +50,13 @@ import { SyncPilotStepJobData } from '../pilot/pilot.processor';
 import { projectPO2DTO } from '../project/project.dto';
 import { ProviderService } from '../provider/provider.service';
 import { SkillEngineService } from '../skill/skill-engine.service';
+import { StepService } from '../step/step.service';
 import { SyncRequestUsageJobData, SyncTokenUsageJobData } from '../subscription/subscription.dto';
 import { ToolCallService, ToolCallStatus } from '../tool-call/tool-call.service';
 import { ToolService } from '../tool/tool.service';
 import { SyncWorkflowJobData } from '../workflow/workflow.dto';
 import { InvokeSkillJobData } from './skill.dto';
+import { ToolCallResult } from '../../generated/client';
 
 @Injectable()
 export class SkillInvokerService {
@@ -73,6 +74,7 @@ export class SkillInvokerService {
     private readonly toolCallService: ToolCallService,
     private readonly skillEngineService: SkillEngineService,
     private readonly actionService: ActionService,
+    private readonly stepCacheService: StepService,
     @Optional()
     @InjectQueue(QUEUE_SYNC_REQUEST_USAGE)
     private requestUsageQueue?: Queue<SyncRequestUsageJobData>,
@@ -396,7 +398,7 @@ export class SkillInvokerService {
       }
     };
 
-    const resultAggregator = new ResultAggregator();
+    const resultAggregator = new ResultAggregator(this.stepCacheService, resultId, version);
 
     // Initialize structuredData with original query if available
     const originalQuery = data.input?.originalQuery;
@@ -845,17 +847,10 @@ export class SkillInvokerService {
         artifact.connection?.disconnect();
       }
 
-      const steps = resultAggregator.getSteps({ resultId, version });
+      const steps = await resultAggregator.getSteps({ resultId, version });
       const status = result.errors.length > 0 ? 'failed' : 'finish';
 
       await this.prisma.$transaction([
-        this.prisma.actionResult.updateMany({
-          where: { resultId, version },
-          data: {
-            status,
-            errors: JSON.stringify(result.errors),
-          },
-        }),
         this.prisma.actionStep.createMany({ data: steps }),
         ...(result.pilotStepId
           ? [
@@ -865,6 +860,13 @@ export class SkillInvokerService {
               }),
             ]
           : []),
+        this.prisma.actionResult.updateMany({
+          where: { resultId, version },
+          data: {
+            status,
+            errors: JSON.stringify(result.errors),
+          },
+        }),
       ]);
 
       if (result.workflowNodeExecutionId) {
@@ -930,6 +932,8 @@ export class SkillInvokerService {
         });
       }
 
+      await resultAggregator.clearCache();
+
       // Process credit billing for all steps after skill completion
       if (this.creditUsageReportQueue && !result.errors.length) {
         await this.processCreditUsageReport(user, resultId, version, resultAggregator);
@@ -951,7 +955,7 @@ export class SkillInvokerService {
     version: number,
     resultAggregator: ResultAggregator,
   ): Promise<void> {
-    const steps = resultAggregator.getSteps({ resultId, version });
+    const steps = await resultAggregator.getSteps({ resultId, version });
 
     // Collect all model names used in token usage
     const modelNames = new Set<string>();

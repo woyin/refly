@@ -11,6 +11,7 @@ export const useFetchShareData = <T = any>(shareId?: string) => {
   const [data, setData] = useState<T | null>(null);
   const [loading, setLoading] = useState<boolean>(!!shareId);
   const [error, setError] = useState<Error | null>(null);
+  const [dataForShareId, setDataForShareId] = useState<string | null>(null);
 
   // Function to fetch share data
   const fetchShareData = useCallback(async (id: string) => {
@@ -31,19 +32,24 @@ export const useFetchShareData = <T = any>(shareId?: string) => {
     // Reset state when shareId changes
     setData(null);
     setError(null);
+    setDataForShareId(null);
+
+    // Immediately reflect loading state based on shareId presence
+    const hasShareId = !!shareId?.trim();
+    setLoading(hasShareId);
 
     // Only fetch if shareId is provided and non-empty
-    if (!shareId?.trim()) {
+    if (!hasShareId) {
       return;
     }
 
     let isMounted = true;
     const fetchData = async () => {
-      setLoading(true);
       try {
         const result = await fetchShareData(shareId);
         if (isMounted) {
           setData(result);
+          setDataForShareId(shareId);
         }
       } catch (err) {
         if (isMounted) {
@@ -65,14 +71,20 @@ export const useFetchShareData = <T = any>(shareId?: string) => {
   }, [shareId, fetchShareData]);
 
   // Memoize the return value to maintain referential equality
+  const normalizedShareId = useMemo(() => shareId?.trim() ?? null, [shareId]);
+  const effectiveData = useMemo<T | null>(
+    () => (dataForShareId === normalizedShareId ? data : null),
+    [dataForShareId, normalizedShareId, data],
+  );
+
   const returnValue = useMemo(
     () => ({
-      data,
+      data: effectiveData,
       loading,
       error,
       fetchShareData,
     }),
-    [data, loading, error, fetchShareData],
+    [effectiveData, loading, error, fetchShareData],
   );
 
   return returnValue;

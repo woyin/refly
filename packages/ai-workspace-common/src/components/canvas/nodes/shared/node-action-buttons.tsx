@@ -21,14 +21,15 @@ import {
   AddContext,
 } from 'refly-icons';
 import cn from 'classnames';
-import { useReactFlow, useStore } from '@xyflow/react';
+import { useReactFlow } from '@xyflow/react';
 import { copyToClipboard } from '@refly-packages/ai-workspace-common/utils';
 import { useGetNodeContent } from '@refly-packages/ai-workspace-common/hooks/canvas/use-get-node-content';
+import { useInitializeWorkflow } from '@refly-packages/ai-workspace-common/hooks/use-initialize-workflow';
 import { nodeOperationsEmitter } from '@refly-packages/ai-workspace-common/events/nodeOperations';
-import { useCanvasStoreShallow } from '@refly/stores';
-import { useShallow } from 'zustand/react/shallow';
+import { useActionResultStoreShallow, useCanvasStoreShallow } from '@refly/stores';
 import CommonColorPicker from './color-picker';
 import { logEvent } from '@refly/telemetry-web';
+import { useRealtimeCanvasData } from '@refly-packages/ai-workspace-common/hooks/canvas/use-realtime-canvas-data';
 
 type ActionButtonType = {
   key: string;
@@ -56,7 +57,8 @@ type NodeActionButtonsProps = {
 export const NodeActionButtons: FC<NodeActionButtonsProps> = memo(
   ({ nodeId, nodeType, isNodeHovered, bgColor, onChangeBackground, isExtracting }) => {
     const { t } = useTranslation();
-    const { readonly, canvasId, workflowRun } = useCanvasContext();
+    const { readonly, canvasId } = useCanvasContext();
+    const workflowRun = useInitializeWorkflow(canvasId);
     const { getNode } = useReactFlow();
     const node = useMemo(() => getNode(nodeId), [nodeId, getNode]);
     const { fetchNodeContent } = useGetNodeContent(node);
@@ -64,8 +66,8 @@ export const NodeActionButtons: FC<NodeActionButtonsProps> = memo(
     const buttonContainerRef = useRef<HTMLDivElement>(null);
 
     // Shared workflow state from CanvasProvider
-    const initializing = workflowRun?.loading ?? false;
-    const isPolling = workflowRun?.isPolling ?? false;
+    const initializing = workflowRun.loading;
+    const isPolling = workflowRun.isPolling;
 
     const showMoreButton = useMemo(() => {
       return !['skill', 'mediaSkill', 'mediaSkillResponse', 'video', 'audio', 'image'].includes(
@@ -73,12 +75,7 @@ export const NodeActionButtons: FC<NodeActionButtonsProps> = memo(
       );
     }, [nodeType]);
 
-    const { nodes } = useStore(
-      useShallow((state) => ({
-        nodes: state.nodes,
-        edges: state.edges,
-      })),
-    );
+    const { nodes } = useRealtimeCanvasData();
 
     const selectedNodes = nodes.filter((node) => node.selected) || [];
     const isMultiSelected = selectedNodes.length > 1;
@@ -90,6 +87,13 @@ export const NodeActionButtons: FC<NodeActionButtonsProps> = memo(
     const { activeExecutionId } = useCanvasStoreShallow((state) => ({
       activeExecutionId: canvasId ? (state.canvasExecutionId[canvasId] ?? null) : null,
     }));
+
+    const resultId = nodeType === 'skillResponse' ? String(node?.data?.entityId) : '';
+    const result = useActionResultStoreShallow((state) => state.resultMap[resultId]);
+    const isRunningAction = useMemo(() => {
+      return result && (result.status === 'waiting' || result.status === 'executing');
+    }, [result]);
+
     const isRunningWorkflow = useMemo(
       () => !!(initializing || isPolling || activeExecutionId),
       [initializing, isPolling, activeExecutionId],
@@ -200,7 +204,10 @@ export const NodeActionButtons: FC<NodeActionButtonsProps> = memo(
         nodeId,
       });
 
-      workflowRun?.initialize?.([nodeId]);
+      workflowRun.initializeWorkflow({
+        canvasId,
+        startNodes: [nodeId],
+      });
     }, [canvasId, nodeId, isRunningWorkflow, workflowRun]);
 
     const actionButtons = useMemo(() => {
@@ -246,16 +253,17 @@ export const NodeActionButtons: FC<NodeActionButtonsProps> = memo(
             icon: Reload,
             tooltip: t('canvas.nodeActions.rerun'),
             onClick: () => nodeActionEmitter.emit(createNodeEventName(nodeId, 'rerun')),
+            disabled: isRunningAction || isRunningWorkflow,
           });
 
           buttons.push({
-            key: 'rouWorkflow',
+            key: 'runWorkflow',
             icon: PlayOutline,
             tooltip: t(
               `canvas.nodeActions.${isRunningWorkflow ? 'existWorkflowRunning' : 'runWorkflow'}`,
             ),
             onClick: handleRunWorkflow,
-            disabled: isRunningWorkflow,
+            disabled: isRunningAction || isRunningWorkflow,
           });
 
           buttons.push({
@@ -283,6 +291,7 @@ export const NodeActionButtons: FC<NodeActionButtonsProps> = memo(
             icon: Reload,
             tooltip: t('canvas.nodeActions.rerun'),
             onClick: () => nodeActionEmitter.emit(createNodeEventName(nodeId, 'rerun')),
+            disabled: isRunningAction || isRunningWorkflow,
           });
           break;
 
@@ -331,6 +340,7 @@ export const NodeActionButtons: FC<NodeActionButtonsProps> = memo(
         onClick: () => nodeActionEmitter.emit(createNodeEventName(nodeId, 'delete')),
         danger: true,
         color: 'var(--refly-func-danger-default)',
+        disabled: isRunningAction || isRunningWorkflow,
       });
 
       if (['resource', 'document'].includes(nodeType)) {
@@ -352,6 +362,7 @@ export const NodeActionButtons: FC<NodeActionButtonsProps> = memo(
       nodeId,
       nodeType,
       t,
+      result,
       handleCloneAskAI,
       cloneAskAIRunning,
       handleCopy,

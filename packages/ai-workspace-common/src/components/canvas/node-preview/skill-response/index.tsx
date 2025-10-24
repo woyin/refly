@@ -1,5 +1,4 @@
 import { EditChatInput } from '@refly-packages/ai-workspace-common/components/canvas/node-preview/skill-response/edit-chat-input';
-import { IconLoading } from '@refly-packages/ai-workspace-common/components/common/icon';
 import { SourceListModal } from '@refly-packages/ai-workspace-common/components/source-list/source-list-modal';
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
 import { actionEmitter } from '@refly-packages/ai-workspace-common/events/action';
@@ -26,7 +25,7 @@ import {
 import { cn } from '@refly/utils/cn';
 import { sortSteps } from '@refly/utils/step';
 import { useReactFlow } from '@xyflow/react';
-import { Button, Divider, Result, Skeleton, Spin } from 'antd';
+import { Button, Divider, Result, Skeleton } from 'antd';
 import { memo, useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Thinking } from 'refly-icons';
@@ -80,23 +79,28 @@ const SkillResponseNodePreviewComponent = ({ node, resultId }: SkillResponseNode
   }, [nodeSelectedToolsets]);
 
   useEffect(() => {
-    if (shareData && !result) {
+    if (shareData && !result && shareData.resultId === resultId) {
       updateActionResult(resultId, shareData);
       setLoading(false);
     }
   }, [shareData, result, resultId, updateActionResult]);
 
-  const fetchActionResult = async (resultId: string) => {
+  const fetchActionResult = async (resultId: string, options?: { silent?: boolean }) => {
+    const silent = options?.silent ?? false;
     const { isLogin } = useUserStore.getState();
     if (!isLogin) {
       return;
     }
 
-    setLoading(true);
+    if (!silent) {
+      setLoading(true);
+    }
     const { data, error } = await getClient().getActionResult({
       query: { resultId },
     });
-    setLoading(false);
+    if (!silent) {
+      setLoading(false);
+    }
 
     if (error || !data?.success) {
       return;
@@ -125,12 +129,13 @@ const SkillResponseNodePreviewComponent = ({ node, resultId }: SkillResponseNode
     if (isStreaming) {
       return;
     }
-    if (!result && !shareId) {
-      fetchActionResult(resultId);
+    if (!shareId) {
+      // Always refresh in background to keep store up-to-date
+      fetchActionResult(resultId, { silent: !!result });
     } else if (result) {
       setLoading(false);
     }
-  }, [resultId, result, shareId, isStreaming]);
+  }, [resultId, shareId, isStreaming]);
 
   const scrollToBottom = useCallback(
     (event: { resultId: string; payload: ActionResult }) => {
@@ -321,13 +326,7 @@ const SkillResponseNodePreviewComponent = ({ node, resultId }: SkillResponseNode
             />
           </div>
         ) : (
-          <Spin
-            spinning={!isStreaming && result?.status === 'executing'}
-            indicator={<IconLoading className="animate-spin" />}
-            size="large"
-            tip={t('canvas.skillResponse.generating')}
-            wrapperClassName="h-full w-full flex flex-col"
-          >
+          <div className="h-full w-full flex flex-col">
             <div
               className={cn(
                 'h-full overflow-auto preview-container transition-opacity duration-500',
@@ -363,7 +362,7 @@ const SkillResponseNodePreviewComponent = ({ node, resultId }: SkillResponseNode
                 <FailureNotice result={result} handleRetry={handleRetry} />
               )}
             </div>
-          </Spin>
+          </div>
         )}
       </div>
 

@@ -42,11 +42,13 @@ import { usePilotRecovery } from '@refly-packages/ai-workspace-common/hooks/pilo
 import { useSkillError } from '@refly-packages/ai-workspace-common/hooks/use-skill-error';
 import { useUpdateNodeTitle } from '@refly-packages/ai-workspace-common/hooks/use-update-node-title';
 import { useGetPilotSessionDetail } from '@refly-packages/ai-workspace-common/queries/queries';
-import { truncateContent } from '@refly-packages/ai-workspace-common/utils/content';
+import {
+  processContentPreview,
+  truncateContent,
+} from '@refly-packages/ai-workspace-common/utils/content';
 import { usePilotStoreShallow } from '@refly/stores';
 import cn from 'classnames';
 import { NodeActionButtons } from './shared/node-action-buttons';
-import { NodeExecutionOverlay } from './shared/node-execution-overlay';
 import { NodeExecutionStatus } from './shared/node-execution-status';
 
 import { MultimodalContentPreview } from '@refly-packages/ai-workspace-common/components/canvas/nodes/shared/multimodal-content-preview';
@@ -271,10 +273,23 @@ export const SkillResponseNode = memo(
 
     // Sync node status with action result status
     useEffect(() => {
-      if (result && result.status !== data?.metadata?.status) {
+      if (!result || !data) return;
+
+      const nodePreview = data.contentPreview;
+      const resultPreview = processContentPreview(result.steps?.map((s) => s?.content || ''));
+
+      const needsStatusUpdate = result.status !== data.metadata?.status;
+      const needsPreviewUpdate = nodePreview !== resultPreview;
+
+      if (needsStatusUpdate || needsPreviewUpdate) {
         setNodeData(id, {
           ...data,
-          metadata: { ...data?.metadata, status: result.status },
+          ...(needsStatusUpdate && {
+            metadata: { ...data.metadata, status: result.status },
+          }),
+          ...(needsPreviewUpdate && {
+            contentPreview: resultPreview,
+          }),
         });
       }
     }, [result, data, id, setNodeData]);
@@ -809,8 +824,6 @@ export const SkillResponseNode = memo(
             />
           </>
         )}
-
-        <NodeExecutionOverlay status={executionStatus} />
 
         <div
           style={nodeStyle}

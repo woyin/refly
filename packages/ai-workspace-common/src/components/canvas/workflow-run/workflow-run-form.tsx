@@ -537,7 +537,9 @@ export const WorkflowRunForm = ({
     <div className={cn('w-full h-full gap-3 flex flex-col rounded-2xl', className)}>
       {
         <>
-          {templateContent ? (
+          {/* default show Form */}
+          {/* biome-ignore lint/correctness/noConstantCondition: <explanation> */}
+          {false ? (
             <div className="space-y-4">
               <div className="bg-refly-bg-content-z2 rounded-2xl shadow-[0px_2px_20px_4px_rgba(0,0,0,0.04)] p-4">
                 <MixedTextEditor
@@ -560,14 +562,23 @@ export const WorkflowRunForm = ({
             <div className="p-3 sm:p-4 flex-1 overflow-y-auto">
               {/* Show loading state when loading */}
               {workflowVariables.length > 0 ? (
-                <Form
-                  form={form}
-                  layout="vertical"
-                  className="space-y-3 sm:space-y-4"
-                  initialValues={variableValues}
-                >
-                  {workflowVariables.map((variable) => renderFormField(variable))}
-                </Form>
+                <>
+                  <Form
+                    form={form}
+                    layout="horizontal"
+                    className="space-y-3 sm:space-y-4"
+                    initialValues={variableValues}
+                  >
+                    {workflowVariables.map((variable) => renderFormField(variable))}
+                  </Form>
+
+                  {/* Tools Dependency Form */}
+                  {workflowApp?.canvasData && (
+                    <div className="mt-5 ">
+                      <ToolsDependencyChecker canvasData={workflowApp?.canvasData} />
+                    </div>
+                  )}
+                </>
               ) : loading ? null : (
                 <EmptyContent />
               )}
