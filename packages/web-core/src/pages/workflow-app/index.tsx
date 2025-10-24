@@ -264,113 +264,116 @@ const WorkflowAppPage: React.FC = () => {
   return (
     <ReactFlowProvider>
       <CanvasProvider readonly={true} canvasId={workflowApp?.canvasData?.canvasId ?? ''}>
-        <div
-          className="flex flex-col h-[100%]"
-          // style={{
-          //   backgroundImage: `url(${bgImage})`,
-          //   backgroundSize: '100% auto',
-          //   backgroundPosition: 'center top',
-          //   backgroundRepeat: 'no-repeat',
-          // }}
-        >
-          <Helmet>
-            <title>{workflowApp?.title ?? ''}</title>
-          </Helmet>
-          {/* Header */}
-          <div className="border-b border-refly-line relative h-[64px]">
-            {/* Background overlay for better text readability */}
-            <div
-              className="absolute inset-0 backdrop-blur-sm"
-              // style={{
-              //   backgroundImage: `url(${bgImage})`,
-              //   backgroundSize: '100% auto',
-              //   backgroundPosition: 'center top',
-              //   backgroundRepeat: 'no-repeat',
-              // }}
-            />
-            <div className="relative mx-auto px-4 sm:px-6 lg:px-8 ">
-              <div className="flex items-center justify-between h-16">
-                <div className="flex items-center gap-3">
-                  <Logo onClick={() => navigate?.('/')} />
-                  <GithubStar />
+        <style>
+          {`
+            .refly.ant-layout {
+              background-color: #ffffff;
+            }
+            .dark .refly.ant-layout {
+              background-color: #0a0a0a;
+            }
+          `}
+        </style>
+        <div className="bg-white dark:bg-refly-bg-0">
+          <div
+            className="relative flex flex-col shrink-0 h-[300px] bg-cover bg-center bg-no-repeat bg-white dark:bg-refly-bg-0"
+            style={{
+              backgroundImage: `url(${workflowApp?.coverUrl})`,
+            }}
+          >
+            {/* 渐变叠加层 */}
+            <div className="absolute inset-0 bg-gradient-to-b from-white/30 to-white dark:from-black/30 dark:to-black backdrop-blur-[20px] pointer-events-none" />
+
+            <Helmet>
+              <title>{workflowApp?.title ?? ''}</title>
+            </Helmet>
+
+            {/* Header - Fixed at top with full transparency */}
+            <div className=" top-0 left-0 right-0 z-50 border-b border-white/20 dark:border-gray-800/20 h-[64px]">
+              <div className="relative mx-auto px-4 sm:px-6 lg:px-8">
+                <div className="flex items-center justify-between h-16">
+                  <div className="flex items-center gap-3">
+                    <Logo onClick={() => navigate?.('/')} />
+                    <GithubStar />
+                  </div>
+                  <UserAvatar />
                 </div>
-                <UserAvatar />
               </div>
             </div>
-          </div>
 
-          {/* Main Content - flex-1 to take remaining space */}
-          <div className="flex-1">
-            <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
-              {isLoading ? (
-                <LoadingContent />
-              ) : (
-                <>
-                  {/* Hero Section */}
-                  <div className="text-center mb-6 sm:mb-8">
-                    <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-refly-text-0">
-                      {workflowApp?.title ?? ''}
-                    </h1>
-                    <p className="mt-3 sm:mt-4 text-base sm:text-lg text-refly-text-1 max-w-2xl mx-auto">
-                      {workflowApp?.description ?? ''}
-                    </p>
-                  </div>
+            {/* Main Content - flex-1 to take remaining space with top padding for fixed header */}
+            <div className="flex-1 pt-16 relative z-10">
+              <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+                {isLoading ? (
+                  <LoadingContent />
+                ) : (
+                  <>
+                    {/* Hero Section */}
+                    <div className="text-center mb-6 sm:mb-8">
+                      <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-refly-text-0 dark:text-white drop-shadow-sm">
+                        {workflowApp?.title ?? ''}
+                      </h1>
+                      <p className="mt-3 sm:mt-4 text-base sm:text-lg text-refly-text-1 dark:text-gray-300 max-w-2xl mx-auto drop-shadow-sm">
+                        {workflowApp?.description ?? ''}
+                      </p>
+                    </div>
 
-                  {/* Workflow Form */}
-                  <div className="mb-6 sm:mb-8">
-                    <WorkflowRunForm
-                      workflowApp={workflowApp}
-                      workflowVariables={workflowVariables}
-                      onSubmitVariables={onSubmit}
-                      loading={isLoading}
-                      onCopyWorkflow={handleCopyWorkflow}
-                      onCopyShareLink={handleCopyShareLink}
-                      isRunning={isRunning}
-                      templateContent={workflowApp?.templateContent}
-                      className="max-h-[500px] sm:max-h-[600px] bg-refly-bg-float-z3 border border-refly-Card-Border shadow-sm"
-                    />
-                  </div>
+                    {/* Workflow Form */}
+                    <div className="mb-6 sm:mb-8 relative z-20">
+                      <WorkflowRunForm
+                        workflowApp={workflowApp}
+                        workflowVariables={workflowVariables}
+                        onSubmitVariables={onSubmit}
+                        loading={isLoading}
+                        onCopyWorkflow={handleCopyWorkflow}
+                        onCopyShareLink={handleCopyShareLink}
+                        isRunning={isRunning}
+                        templateContent={workflowApp?.templateContent}
+                        className="max-h-[500px] sm:max-h-[600px] bg-refly-bg-float-z3 dark:bg-gray-800/90 border border-refly-Card-Border dark:border-gray-700 shadow-[0_2px_20px_4px_rgba(0,0,0,0.04)] dark:shadow-[0_2px_20px_4px_rgba(0,0,0,0.2)] px-4 py-3 rounded-2xl"
+                      />
+                    </div>
 
-                  {logs.length > 0 && (
-                    <>
-                      {/* Tabs */}
-                      {products.length > 0 && (
-                        <div className="mb-4 sm:mb-6 flex justify-center">
-                          <Segmented
-                            className="max-w-sm sm:max-w-md mx-auto"
-                            shape="round"
-                            options={segmentedOptions}
-                            value={activeTab}
-                            onChange={(value) => setActiveTab(value)}
-                          />
+                    {logs.length > 0 && (
+                      <>
+                        {/* Tabs */}
+                        {products.length > 0 && (
+                          <div className="mb-4 sm:mb-6 flex justify-center relative z-20">
+                            <Segmented
+                              className="max-w-sm sm:max-w-md mx-auto"
+                              shape="round"
+                              options={segmentedOptions}
+                              value={activeTab}
+                              onChange={(value) => setActiveTab(value)}
+                            />
+                          </div>
+                        )}
+
+                        {/* Content Area */}
+                        <div className="bg-refly-bg-float-z3 dark:bg-gray-800/90 rounded-lg border border-refly-Card-Border dark:border-gray-700 relative z-20">
+                          {activeTab === 'products' ? (
+                            <WorkflowAppProducts products={products || []} />
+                          ) : activeTab ===
+                            'runLogs' ? // <WorkflowAppRunLogs nodeExecutions={logs || []} />
+
+                          null : null}
                         </div>
-                      )}
-
-                      {/* Content Area */}
-                      <div className="bg-refly-bg-float-z3 rounded-lg border border-refly-Card-Border">
-                        {activeTab === 'products' ? (
-                          <WorkflowAppProducts products={products || []} />
-                        ) : activeTab ===
-                          'runLogs' ? // <WorkflowAppRunLogs nodeExecutions={logs || []} />
-
-                        null : null}
-                      </div>
-                    </>
-                  )}
-                </>
-              )}
+                      </>
+                    )}
+                  </>
+                )}
+              </div>
             </div>
+
+            {/* Why Choose Refly Section */}
+            <WhyChooseRefly />
+
+            {/* Footer Section - always at bottom */}
+            <FooterSection />
           </div>
 
-          {/* Why Choose Refly Section */}
-          <WhyChooseRefly />
-
-          {/* Footer Section - always at bottom */}
-          <FooterSection />
+          {/* Settings Modal */}
+          <SettingModal visible={showSettingModal} setVisible={setShowSettingModal} />
         </div>
-
-        {/* Settings Modal */}
-        <SettingModal visible={showSettingModal} setVisible={setShowSettingModal} />
       </CanvasProvider>
     </ReactFlowProvider>
   );
