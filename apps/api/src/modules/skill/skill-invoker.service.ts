@@ -35,7 +35,6 @@ import {
   QUEUE_SYNC_REQUEST_USAGE,
   QUEUE_SYNC_TOKEN_CREDIT_USAGE,
   QUEUE_SYNC_TOKEN_USAGE,
-  QUEUE_SYNC_WORKFLOW,
 } from '../../utils/const';
 import { genBaseRespDataFromError } from '../../utils/exception';
 import { extractChunkContent } from '../../utils/llm';
@@ -54,7 +53,6 @@ import { StepService } from '../step/step.service';
 import { SyncRequestUsageJobData, SyncTokenUsageJobData } from '../subscription/subscription.dto';
 import { ToolCallService, ToolCallStatus } from '../tool-call/tool-call.service';
 import { ToolService } from '../tool/tool.service';
-import { SyncWorkflowJobData } from '../workflow/workflow.dto';
 import { InvokeSkillJobData } from './skill.dto';
 import { ToolCallResult } from '../../generated/client';
 
@@ -90,9 +88,6 @@ export class SkillInvokerService {
     @Optional()
     @InjectQueue(QUEUE_SYNC_PILOT_STEP)
     private pilotStepQueue?: Queue<SyncPilotStepJobData>,
-    @Optional()
-    @InjectQueue(QUEUE_SYNC_WORKFLOW)
-    private syncWorkflowQueue?: Queue<SyncWorkflowJobData>,
   ) {
     this.skillEngine = this.skillEngineService.getEngine();
     this.skillInventory = createSkillInventory(this.skillEngine);
@@ -860,6 +855,14 @@ export class SkillInvokerService {
               }),
             ]
           : []),
+        ...(result.workflowNodeExecutionId
+          ? [
+              this.prisma.workflowNodeExecution.updateMany({
+                where: { nodeExecutionId: result.workflowNodeExecutionId },
+                data: { status, endTime: new Date() },
+              }),
+            ]
+          : []),
         this.prisma.actionResult.updateMany({
           where: { resultId, version },
           data: {
@@ -868,20 +871,6 @@ export class SkillInvokerService {
           },
         }),
       ]);
-
-      if (result.workflowNodeExecutionId) {
-        try {
-          await this.prisma.workflowNodeExecution.updateMany({
-            where: { nodeExecutionId: result.workflowNodeExecutionId },
-            data: { status, endTime: new Date() },
-          });
-        } catch (error) {
-          this.logger.error(
-            `Failed to update workflow node execution ${result.workflowNodeExecutionId}:`,
-            error,
-          );
-        }
-      }
 
       writeSSEResponse(res, { event: 'end', resultId, version });
 
@@ -920,15 +909,6 @@ export class SkillInvokerService {
         await this.pilotStepQueue.add('syncPilotStep', {
           user: { uid: user.uid },
           stepId: result.pilotStepId,
-        });
-      }
-
-      // Sync workflow if needed
-      if (result.workflowNodeExecutionId && this.syncWorkflowQueue) {
-        this.logger.log(`Sync workflow for nodeExecutionId ${result.workflowNodeExecutionId}`);
-        await this.syncWorkflowQueue.add('syncWorkflow', {
-          user: { uid: user.uid },
-          nodeExecutionId: result.workflowNodeExecutionId,
         });
       }
 

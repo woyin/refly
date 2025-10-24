@@ -3,6 +3,18 @@ import { useGetWorkflowDetail } from '@refly-packages/ai-workspace-common/querie
 import { WorkflowExecutionStatus } from '@refly/openapi-schema';
 import { useCanvasStoreShallow } from '@refly/stores';
 
+// Global poller management per executionId to prevent concurrent polling across components
+type WorkflowPollerRecord = {
+  timer: ReturnType<typeof setTimeout> | null;
+  inFlight: boolean;
+  running: boolean;
+  refCount: number;
+  interval: number;
+  refetchFn: (() => Promise<unknown>) | null;
+};
+
+const workflowExecutionPollers = new Map<string, WorkflowPollerRecord>();
+
 interface UseWorkflowExecutionPollingOptions {
   executionId: string | null;
   canvasId?: string;
@@ -34,7 +46,6 @@ export const useWorkflowExecutionPolling = ({
 }: UseWorkflowExecutionPollingOptions): UseWorkflowExecutionPollingReturn => {
   const [isPolling, setIsPolling] = useState(false);
   const [status, setStatus] = useState<WorkflowExecutionStatus | null>(null);
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const isPollingRef = useRef(false);
 
   // Read executionId from canvas store (persisted) and provide a way to clear it when done
@@ -59,6 +70,30 @@ export const useWorkflowExecutionPolling = ({
       refetchOnMount: false,
     },
   );
+  const pollOnce = useCallback(async (execId: string) => {
+    const record = workflowExecutionPollers.get(execId);
+    if (!record || !record.running) {
+      return;
+    }
+    if (record.inFlight) {
+      // Already fetching, schedule next tick
+      record.timer = setTimeout(() => {
+        void pollOnce(execId);
+      }, record.interval);
+      return;
+    }
+    record.inFlight = true;
+    try {
+      await (record.refetchFn?.() ?? Promise.resolve());
+    } finally {
+      record.inFlight = false;
+    }
+    if (record.running) {
+      record.timer = setTimeout(() => {
+        void pollOnce(execId);
+      }, record.interval);
+    }
+  }, []);
 
   const startPolling = useCallback(() => {
     if (!currentExecutionId || isPollingRef.current) {
@@ -68,26 +103,59 @@ export const useWorkflowExecutionPolling = ({
     setIsPolling(true);
     isPollingRef.current = true;
 
-    // Initial fetch
-    refetch();
+    const existing = workflowExecutionPollers.get(currentExecutionId);
+    const effectiveInterval = Math.min(existing?.interval ?? interval, interval);
 
-    // Set up interval for polling
-    intervalRef.current = setInterval(() => {
-      if (isPollingRef.current && currentExecutionId) {
-        refetch();
+    if (existing) {
+      existing.refCount += 1;
+      existing.interval = effectiveInterval;
+      existing.refetchFn = async () => {
+        await refetch();
+      };
+      // Ensure one loop is running
+      if (!existing.running) {
+        existing.running = true;
+        void pollOnce(currentExecutionId);
       }
-    }, interval);
-  }, [currentExecutionId, interval, refetch]);
+      return;
+    }
+
+    const record: WorkflowPollerRecord = {
+      timer: null,
+      inFlight: false,
+      running: true,
+      refCount: 1,
+      interval: effectiveInterval,
+      refetchFn: async () => {
+        await refetch();
+      },
+    };
+    workflowExecutionPollers.set(currentExecutionId, record);
+    void pollOnce(currentExecutionId);
+  }, [currentExecutionId, interval, refetch, pollOnce]);
 
   const stopPolling = useCallback(() => {
     setIsPolling(false);
     isPollingRef.current = false;
 
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current);
-      intervalRef.current = null;
+    if (!currentExecutionId) {
+      return;
     }
-  }, []);
+
+    const record = workflowExecutionPollers.get(currentExecutionId);
+    if (!record) {
+      return;
+    }
+    record.refCount = Math.max(0, (record.refCount ?? 0) - 1);
+    if (record.refCount === 0) {
+      record.running = false;
+      if (record.timer) {
+        clearTimeout(record.timer);
+        record.timer = null;
+      }
+      workflowExecutionPollers.delete(currentExecutionId);
+    }
+  }, [currentExecutionId]);
 
   // Extract status from the response data
   const currentStatus = data?.data?.status as WorkflowExecutionStatus | undefined;
@@ -113,6 +181,14 @@ export const useWorkflowExecutionPolling = ({
 
     // If finished or failed, stop polling and clear executionId and nodeExecutions from store
     if (currentStatus === 'finish' || currentStatus === 'failed') {
+      // Force stop global poller for this executionId
+      if (currentExecutionId) {
+        const record = workflowExecutionPollers.get(currentExecutionId);
+        if (record?.timer) {
+          clearTimeout(record.timer);
+        }
+        workflowExecutionPollers.delete(currentExecutionId);
+      }
       stopPolling();
       if (canvasId) {
         setCanvasExecutionId(canvasId, null);
@@ -127,6 +203,7 @@ export const useWorkflowExecutionPolling = ({
     onComplete,
     data,
     canvasId,
+    currentExecutionId,
     setCanvasExecutionId,
     setCanvasNodeExecutions,
     stopPolling,

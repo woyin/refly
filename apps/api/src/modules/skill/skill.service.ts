@@ -40,7 +40,7 @@ import { purgeContextForActionResult, purgeToolsets } from '@refly/canvas-common
 import { genActionResultID, genSkillID, genSkillTriggerID, safeParseJSON } from '@refly/utils';
 import { PrismaService } from '../common/prisma.service';
 import { QUEUE_SKILL, pick, QUEUE_CHECK_STUCK_ACTIONS } from '../../utils';
-import { InvokeSkillJobData, CheckStuckActionsJobData } from './skill.dto';
+import { InvokeSkillJobData } from './skill.dto';
 import { documentPO2DTO, resourcePO2DTO } from '../knowledge/knowledge.dto';
 import { CreditService } from '../credit/credit.service';
 import {
@@ -96,7 +96,7 @@ export class SkillService implements OnModuleInit {
     private skillQueue?: Queue<InvokeSkillJobData>,
     @Optional()
     @InjectQueue(QUEUE_CHECK_STUCK_ACTIONS)
-    private checkStuckActionsQueue?: Queue<CheckStuckActionsJobData>,
+    private checkStuckActionsQueue?: Queue,
   ) {
     this.skillInventory = this.skillInvokerService.getSkillInventory();
     this.logger.log(`Skill inventory initialized: ${this.skillInventory.length}`);
