@@ -502,10 +502,30 @@ export const CreateVariablesModal: React.FC<CreateVariablesModalProps> = React.m
       onCancel(false);
     }, [onCancel]);
 
+    const handleInputBlur = useCallback(
+      (fieldName: keyof VariableFormData) => {
+        const value = form.getFieldValue(fieldName);
+        if (Array.isArray(value) && value.length > 0) {
+          const trimmedValue = value[0]?.text?.trim();
+          if (trimmedValue !== value[0]?.text) {
+            form.setFieldValue(fieldName, [{ text: trimmedValue }]);
+          }
+        } else {
+          if (value) {
+            const trimmedValue = value.trim();
+            if (trimmedValue !== value) {
+              form.setFieldValue(fieldName, trimmedValue);
+            }
+          }
+        }
+      },
+      [form],
+    );
+
     const renderForm = useCallback(() => {
       switch (variableType) {
         case 'string':
-          return <StringTypeForm />;
+          return <StringTypeForm onBlur={() => handleInputBlur('value')} />;
         case 'resource':
           return (
             <ResourceTypeForm
@@ -624,12 +644,6 @@ export const CreateVariablesModal: React.FC<CreateVariablesModalProps> = React.m
                         return Promise.resolve();
                       }
 
-                      if (value && value.trim() === '') {
-                        return Promise.reject(
-                          new Error(t('canvas.workflow.variables.valueNotMeaningful')),
-                        );
-                      }
-
                       // Check for duplicate names in workflowVariables array
                       const trimmedName = value.trim();
                       const duplicateVariable = workflowVariables?.find(
@@ -652,6 +666,7 @@ export const CreateVariablesModal: React.FC<CreateVariablesModalProps> = React.m
               >
                 <Input
                   placeholder={t('canvas.workflow.variables.inputPlaceholder') || 'Please enter'}
+                  onBlur={() => handleInputBlur('name')}
                 />
               </Form.Item>
               {renderForm()}

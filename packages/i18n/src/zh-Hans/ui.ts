@@ -1322,7 +1322,6 @@ const translations = {
         descriptionPlaceholder: '例如：工作流中的用户姓名',
         nameRequired: '变量名称是必填项',
         valueRequired: '变量值是必填项',
-        valueNotMeaningful: '请输入有意义的内容',
         namePattern: '无效的变量名称格式',
         duplicateName: '变量名称已存在',
         loadError: '加载变量失败',

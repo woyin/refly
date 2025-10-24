@@ -2,7 +2,7 @@ import React from 'react';
 import { Form, Input } from 'antd';
 import { useTranslation } from 'react-i18next';
 
-export const StringTypeForm: React.FC = React.memo(() => {
+export const StringTypeForm: React.FC<{ onBlur: () => void }> = React.memo(({ onBlur }) => {
   const { t } = useTranslation();
 
   return (
@@ -15,17 +15,12 @@ export const StringTypeForm: React.FC = React.memo(() => {
           required: true,
           message: t('canvas.workflow.variables.valueRequired') || 'Variable value is required',
         },
-        {
-          validator: (_, value) => {
-            if (value && value.trim() === '') {
-              return Promise.reject(new Error(t('canvas.workflow.variables.valueNotMeaningful')));
-            }
-            return Promise.resolve();
-          },
-        },
       ]}
     >
-      <Input placeholder={t('canvas.workflow.variables.inputPlaceholder') || 'Please enter'} />
+      <Input
+        placeholder={t('canvas.workflow.variables.inputPlaceholder') || 'Please enter'}
+        onBlur={onBlur}
+      />
     </Form.Item>
   );
 });
