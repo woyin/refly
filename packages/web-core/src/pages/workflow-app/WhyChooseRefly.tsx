@@ -36,7 +36,7 @@ const WhyChooseRefly: React.FC = memo(() => {
 
   return (
     <div
-      className="w-full max-w-[800px] mx-auto my-[40px]
+      className="w-full max-w-[800px] mx-auto mt-[160px] mb-[50px]
     
     "
     >

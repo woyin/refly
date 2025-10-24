@@ -12,13 +12,35 @@ import { WorkflowRunForm } from '@refly-packages/ai-workspace-common/components/
 import { useWorkflowExecutionPolling } from '@refly-packages/ai-workspace-common/hooks/use-workflow-execution-polling';
 import { ReactFlowProvider } from '@refly-packages/ai-workspace-common/components/canvas';
 import SettingModal from '@refly-packages/ai-workspace-common/components/settings';
-import { useSiderStoreShallow, useCanvasOperationStoreShallow } from '@refly/stores';
+import {
+  useSiderStoreShallow,
+  useCanvasOperationStoreShallow,
+  useUserStoreShallow,
+} from '@refly/stores';
 import { CanvasProvider } from '@refly-packages/ai-workspace-common/context/canvas';
 import { useIsLogin } from '@refly-packages/ai-workspace-common/hooks/use-is-login';
 import { logEvent } from '@refly/telemetry-web';
 import { Helmet } from 'react-helmet';
 import FooterSection from '@refly-packages/ai-workspace-common/components/workflow-app/FooterSection';
 import WhyChooseRefly from './WhyChooseRefly';
+import { SettingItem } from '@refly-packages/ai-workspace-common/components/sider/layout';
+
+// User Avatar component for header
+const UserAvatar = () => {
+  const { userProfile } = useUserStoreShallow((state) => ({
+    userProfile: state.userProfile,
+  }));
+
+  if (!userProfile?.uid) {
+    return null;
+  }
+
+  return (
+    <div className="group relative">
+      <SettingItem showName={false} avatarAlign={'right'} />
+    </div>
+  );
+};
 
 const WorkflowAppPage: React.FC = () => {
   const { t } = useTranslation();
@@ -265,6 +287,7 @@ const WorkflowAppPage: React.FC = () => {
                   <Logo onClick={() => navigate?.('/')} />
                   <GithubStar />
                 </div>
+                <UserAvatar />
               </div>
             </div>
           </div>
