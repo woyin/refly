@@ -2,7 +2,7 @@ import React from 'react';
 import { Form, Input } from 'antd';
 import { useTranslation } from 'react-i18next';
 
-export const StringTypeForm: React.FC = React.memo(() => {
+export const StringTypeForm: React.FC<{ onBlur: () => void }> = React.memo(({ onBlur }) => {
   const { t } = useTranslation();
 
   return (
@@ -19,8 +19,7 @@ export const StringTypeForm: React.FC = React.memo(() => {
     >
       <Input
         placeholder={t('canvas.workflow.variables.inputPlaceholder') || 'Please enter'}
-        maxLength={200}
-        showCount
+        onBlur={onBlur}
       />
     </Form.Item>
   );
