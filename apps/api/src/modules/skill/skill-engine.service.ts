@@ -21,6 +21,7 @@ import { CodeArtifactService } from '../code-artifact/code-artifact.service';
 import { codeArtifactPO2DTO } from '../code-artifact/code-artifact.dto';
 import { ResourceService } from '../knowledge/resource.service';
 import { DocumentService } from '../knowledge/document.service';
+import { MiscService } from '../misc/misc.service';
 
 @Injectable()
 export class SkillEngineService implements OnModuleInit {
@@ -38,6 +39,7 @@ export class SkillEngineService implements OnModuleInit {
   private internalToolService: InternalToolService;
   private notificationService: NotificationService;
   private codeArtifactService: CodeArtifactService;
+  private miscService: MiscService;
   private engine: SkillEngine;
 
   constructor(
@@ -58,6 +60,7 @@ export class SkillEngineService implements OnModuleInit {
     this.internalToolService = this.moduleRef.get(InternalToolService, { strict: false });
     this.notificationService = this.moduleRef.get(NotificationService, { strict: false });
     this.codeArtifactService = this.moduleRef.get(CodeArtifactService, { strict: false });
+    this.miscService = this.moduleRef.get(MiscService, { strict: false });
   }
 
   /**
@@ -201,6 +204,10 @@ export class SkillEngineService implements OnModuleInit {
       },
       batchProcessURL: async (urls) => {
         const result = await this.notificationService.batchProcessURL(urls);
+        return result;
+      },
+      downloadFileFromUrl: async (url) => {
+        const result = await this.miscService.downloadFileFromUrl(url);
         return result;
       },
     };

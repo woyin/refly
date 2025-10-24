@@ -49,9 +49,9 @@ export const ApifyToolsetDefinition: ToolsetDefinition = {
     {
       name: 'searchActors',
       descriptionDict: {
-        en: 'Search the Apify Store for Actors using keywords. Use this tool FIRST to find relevant Actors and obtain their names (format: username/actor-name, e.g., apify/rag-web-browser). Extract the actor names from URLs like https://apify.com/clockworks/tiktok-scraper to get "clockworks/tiktok-scraper".',
+        en: 'Search Apify Store for Actors by data source/platform name. Use ONLY the target data source name (e.g., "instagram", "booking") - keep it brief and generic. Use this tool FIRST to find Actors, then use fetchActorDetails to get input schema.',
         'zh-CN':
-          '使用关键词搜索 Apify Store 中的 Actors。这是工作流的第一步，用于查找相关 Actors 并获取它们的名称（格式：username/actor-name，例如：apify/rag-web-browser）。从类似 https://apify.com/clockworks/tiktok-scraper 的 URL 中提取 actor 名称，得到 "clockworks/tiktok-scraper"。',
+          '按数据源/平台名称搜索 Apify Store 中的 Actors。只使用目标数据源名称（例如："instagram"、"booking"）- 保持简洁通用。这是第一步找到 Actors，然后使用 fetchActorDetails 获取输入模式。',
       },
     },
     {
@@ -60,6 +60,14 @@ export const ApifyToolsetDefinition: ToolsetDefinition = {
         en: 'Get detailed information about an Apify Actor, especially the Input Schema. Use this tool SECOND in the workflow - after finding actor names with searchActors. This will provide the exact input parameters and their types that you need for running the Actor.',
         'zh-CN':
           '获取 Apify Actor 的详细信息，特别是输入模式（Input Schema）。这是工作流的第二步 - 在使用 searchActors 找到 actor 名称后使用。这将提供运行 Actor 所需的准确输入参数及其类型。',
+      },
+    },
+    {
+      name: 'getDatasetItems',
+      descriptionDict: {
+        en: 'Retrieve dataset items with pagination, sorting, and field selection. Use clean=true to skip empty items and hidden fields. Include or omit fields using comma-separated lists. For nested objects, first flatten them (e.g., flatten="metadata"), then reference nested fields via dot notation (e.g., fields="metadata.url").',
+        'zh-CN':
+          '使用分页、排序和字段选择检索数据集项目。使用 clean=true 跳过空项目和隐藏字段。使用逗号分隔列表包含或排除字段。对于嵌套对象，首先扁平化它们（例如，flatten="metadata"），然后通过点符号引用嵌套字段（例如，fields="metadata.url"）。',
       },
     },
   ],
@@ -148,7 +156,7 @@ export class ApifySearchActors extends AgentBaseTool<ApifyToolParams> {
       .string()
       .default('')
       .describe(
-        'A string to search for in the Actor\'s title, name, description, username, and readme. Use simple space-separated keywords, such as "web scraping", "data extraction", or "playwright browser". Do not use complex queries, AND/OR operators, or other advanced syntax, as this tool uses full-text search only.',
+        'Data source keywords to search for Apify Actors. Use ONLY the target data source/platform names (e.g., "instagram", "tiktok", "linkedin", "airbnb", "booking"). Keep it extremely brief - just the data source name. DO NOT include specific search parameters or queries - those go in the input schema when running the Actor.',
       ),
     limit: z
       .number()
@@ -165,24 +173,24 @@ export class ApifySearchActors extends AgentBaseTool<ApifyToolParams> {
       .describe('The number of elements to skip at the start. The default value is 0.'),
   });
 
-  description = `Search the Apify Store for Actors using keywords. Use this tool FIRST to find relevant Actors and obtain their names (format: username/actor-name, e.g., apify/rag-web-browser). Extract the actor names from URLs like https://apify.com/clockworks/tiktok-scraper to get "clockworks/tiktok-scraper".
+  description = `Search Apify Store for Actors by data source/platform. Use this tool FIRST in the workflow.
 
-Apify Store features solutions for web scraping, automation, and AI agents (e.g., Instagram, TikTok, LinkedIn, flights, bookings).
+IMPORTANT: Search parameter should ONLY contain the data source name (e.g., "instagram", "tiktok", "booking"). Keep it extremely brief and generic - do NOT include specific search terms, URLs, or queries.
 
-The results will include curated Actor cards with title, description, pricing model, usage statistics, and ratings.
-For best results, use simple space-separated keywords (e.g., "instagram posts", "twitter profile", "playwright mcp").
-After finding actors, use fetchActorDetails to get the Input Schema before running any Actor.
+WORKFLOW (3 steps):
+1. Use searchActors with ONLY data source name to find relevant Actors
+2. Use fetchActorDetails to get the Actor's input schema and requirements
+3. Use runActor with proper input parameters from the schema
 
-WORKFLOW:
-1. Use searchActors to find relevant Actors and extract their names
-2. Use fetchActorDetails with the actor name to get Input Schema
-3. Use runActor with the proper input parameters from the schema
+The search parameter is for finding data source Actors only. Specific search parameters (URLs, keywords, dates, etc.) are provided later when running the Actor.
 
-USAGE EXAMPLES:
-- user_input: Find Actors for scraping e-commerce
-- user_input: Find browserbase MCP server
-- user_input: I need to scrape instagram profiles and comments
-- user_input: I need to get flights and airbnb data`;
+EXAMPLES:
+- For Instagram data: search="instagram"
+- For flight bookings: search="booking" or search="amadeus"
+- For LinkedIn profiles: search="linkedin"
+- For TikTok videos: search="tiktok"
+
+After finding Actors, always use fetchActorDetails next to understand the input requirements.`;
 
   protected params: ApifyToolParams;
 
@@ -331,7 +339,135 @@ USAGE EXAMPLES:
   }
 }
 
+// getDatasetItems
+export class ApifyGetDatasetItems extends AgentBaseTool<ApifyToolParams> {
+  name = 'getDatasetItems';
+  toolsetKey = ApifyToolsetDefinition.key;
+
+  schema = z.object({
+    datasetId: z.string().min(1).describe('Dataset ID or username~dataset-name.'),
+    clean: z
+      .boolean()
+      .optional()
+      .describe(
+        'If true, returns only non-empty items and skips hidden fields (starting with #). Shortcut for skipHidden=true and skipEmpty=true.',
+      ),
+    offset: z.number().optional().describe('Number of items to skip at the start. Default is 0.'),
+    limit: z
+      .number()
+      .optional()
+      .describe('Maximum number of items to return. No limit by default.'),
+    fields: z
+      .string()
+      .optional()
+      .describe(
+        'Comma-separated list of fields to include in results. ' +
+          'Fields in output are sorted as specified. ' +
+          'For nested objects, use dot notation (e.g. "metadata.url") after flattening.',
+      ),
+    omit: z.string().optional().describe('Comma-separated list of fields to exclude from results.'),
+    desc: z
+      .boolean()
+      .optional()
+      .describe('If true, results are returned in reverse order (newest to oldest).'),
+    flatten: z
+      .string()
+      .optional()
+      .describe(
+        'Comma-separated list of fields which should transform nested objects into flat structures. ' +
+          'For example, with flatten="metadata" the object {"metadata":{"url":"hello"}} becomes {"metadata.url":"hello"}. ' +
+          'This is required before accessing nested fields with the fields parameter.',
+      ),
+  });
+
+  description = `Retrieve dataset items with pagination, sorting, and field selection.
+Use clean=true to skip empty items and hidden fields. Include or omit fields using comma-separated lists.
+For nested objects, first flatten them (e.g., flatten="metadata"), then reference nested fields via dot notation (e.g., fields="metadata.url").
+
+The results will include items along with pagination info (limit, offset) and total count.
+
+USAGE:
+- Use when you need to read data from a dataset (all items or only selected fields).
+
+USAGE EXAMPLES:
+- user_input: Get first 100 items from dataset abd123
+- user_input: Get only metadata.url and title from dataset username~my-dataset (flatten metadata)`;
+
+  protected params: ApifyToolParams;
+
+  constructor(params: ApifyToolParams) {
+    super(params);
+    this.params = params;
+  }
+
+  async _call(input: z.infer<typeof this.schema>): Promise<ToolCallResult> {
+    try {
+      const client = new ApifyClient({
+        token: this.params?.apiToken ?? '',
+      });
+
+      // Convert comma-separated strings to arrays
+      const fields = parseCommaSeparatedList(input.fields);
+      const omit = parseCommaSeparatedList(input.omit);
+      const flatten = parseCommaSeparatedList(input.flatten);
+
+      const v = await client.dataset(input.datasetId).listItems({
+        clean: input.clean,
+        offset: input.offset,
+        limit: input.limit,
+        fields,
+        omit,
+        desc: input.desc,
+        flatten,
+      });
+
+      if (!v) {
+        return {
+          status: 'error',
+          error: 'Dataset not found',
+          summary: `Dataset '${input.datasetId}' not found.`,
+        };
+      }
+
+      return {
+        status: 'success',
+        data: v,
+        summary: `Successfully retrieved ${v.items.length} items from dataset "${input.datasetId}"`,
+      };
+    } catch (error) {
+      return {
+        status: 'error',
+        error: 'Error retrieving dataset items',
+        summary:
+          error instanceof Error
+            ? error.message
+            : 'Unknown error occurred while retrieving dataset items',
+      };
+    }
+  }
+}
+
 // Helper functions for searching actors
+/**
+ * Parses a comma-separated string into an array of trimmed strings.
+ * Empty strings are filtered out after trimming.
+ *
+ * @param input - The comma-separated string to parse. If undefined, returns an empty array.
+ * @returns An array of trimmed, non-empty strings.
+ * @example
+ * parseCommaSeparatedList("a, b, c"); // ["a", "b", "c"]
+ * parseCommaSeparatedList("a, , b"); // ["a", "b"]
+ */
+function parseCommaSeparatedList(input?: string): string[] {
+  if (!input) {
+    return [];
+  }
+  return input
+    .split(',')
+    .map((s) => s.trim())
+    .filter((s) => s.length > 0);
+}
+
 export async function searchActorsByKeywords(
   search: string,
   apifyToken: string,
@@ -443,5 +579,6 @@ export class ApifyToolset extends AgentBaseToolset<ApifyToolParams> {
     ApifyRunActor,
     ApifySearchActors,
     ApifyFetchActorDetails,
+    ApifyGetDatasetItems,
   ] satisfies readonly AgentToolConstructor<ApifyToolParams>[];
 }

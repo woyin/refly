@@ -6,7 +6,7 @@ import {
   type ToolCallResult,
 } from '../base';
 import { ToolsetDefinition } from '@refly/openapi-schema';
-import { Sandbox, CodeInterpreter } from '@scalebox/sdk';
+import { Sandbox, CodeInterpreter, type WriteInfo } from '@scalebox/sdk';
 
 /**
  * Toolset definition for Scalebox SDK.
@@ -397,9 +397,14 @@ export class ScaleboxFilesWrite extends AgentBaseTool<ScaleboxToolParams> {
   name = 'filesWrite';
   toolsetKey = ScaleboxToolsetDefinition.key;
 
-  schema = z.object({ sandboxId: z.string(), path: z.string(), content: z.string() });
+  schema = z.object({
+    sandboxId: z.string(),
+    path: z.string(),
+    content: z.string().optional(),
+    url: z.string().optional().describe('URL to fetch file content from'),
+  });
 
-  description = 'Write a file to sandbox';
+  description = 'Write a file to sandbox, optionally fetching content from a URL';
   protected params: ScaleboxToolParams;
 
   constructor(params: ScaleboxToolParams) {
@@ -413,14 +418,71 @@ export class ScaleboxFilesWrite extends AgentBaseTool<ScaleboxToolParams> {
       const sbx = await Sandbox.connect(input?.sandboxId ?? '', {
         apiKey: this.params?.apiKey ?? '',
       });
-      await sbx?.files?.write?.(input?.path ?? '', input?.content ?? '');
-      return { status: 'success', data: { written: true }, summary: 'File written successfully' };
+
+      let content: string | ArrayBuffer | Blob | ReadableStream;
+
+      // If URL is provided, fetch content from URL
+      if (input?.url) {
+        content = await this.fetchContentFromUrl(input.url);
+      } else if (input?.content) {
+        content = input.content;
+      } else {
+        throw new Error('Either content or url must be provided');
+      }
+
+      const writeInfo: WriteInfo = await sbx?.files?.write?.(input?.path ?? '', content);
+
+      return {
+        status: 'success',
+        data: {
+          writeInfo: {
+            name: writeInfo?.name ?? '',
+            type: writeInfo?.type ?? 'file',
+            path: writeInfo?.path ?? input?.path ?? '',
+          },
+        },
+        summary: 'File written successfully',
+      };
     } catch (error) {
       return {
         status: 'error',
         error: 'Failed to write file',
         summary: error instanceof Error ? error.message : 'Unknown error during files.write',
       };
+    }
+  }
+
+  /**
+   * Fetch content from URL and return appropriate data type for Scalebox write method
+   */
+  private async fetchContentFromUrl(
+    url: string,
+  ): Promise<string | ArrayBuffer | Blob | ReadableStream> {
+    try {
+      const response = await fetch(url);
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch from URL: ${response.status} ${response.statusText}`);
+      }
+
+      // For binary files, return ArrayBuffer
+      const contentType = response.headers.get('content-type') ?? '';
+      if (
+        contentType.includes('application/') ||
+        contentType.includes('image/') ||
+        contentType.includes('audio/') ||
+        contentType.includes('video/') ||
+        contentType.includes('font/')
+      ) {
+        return await response.arrayBuffer();
+      }
+
+      // For text files, return string
+      return await response.text();
+    } catch (error) {
+      throw new Error(
+        `Failed to fetch content from URL ${url}: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
     }
   }
 }
@@ -698,7 +760,7 @@ export class ScaleboxRunCode extends AgentBaseTool<ScaleboxToolParams> {
       const stderr = res?.logs?.stderr ?? '';
       return {
         status: 'success',
-        data: { logs: { stdout, stderr } },
+        data: { logs: { stdout, stderr }, result: res ?? {} },
         summary: 'Code executed',
       };
     } catch (error) {

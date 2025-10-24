@@ -304,6 +304,76 @@ export class MiscService implements OnModuleInit {
   }
 
   /**
+   * Download file directly from URL
+   * @param url - The file URL to download from
+   * @returns Buffer containing the file data
+   */
+  async downloadFileFromUrl(url: string): Promise<Buffer> {
+    if (!url) {
+      throw new ParamsError('URL is required');
+    }
+
+    const storageKey = this.extractStorageKeyFromUrl(url);
+    if (!storageKey) {
+      throw new ParamsError('Invalid file URL format');
+    }
+
+    const visibility = this.determineVisibilityFromUrl(url);
+    const fileObject: FileObject = { storageKey, visibility };
+
+    return this.downloadFile(fileObject);
+  }
+
+  /**
+   * Extract storage key from file URL
+   * @param url - The file URL
+   * @returns The storage key or null if invalid
+   */
+  private extractStorageKeyFromUrl(url: string): string | null {
+    if (!url) return null;
+
+    // Remove query parameters
+    const cleanUrl = url.split('?')[0];
+
+    const publicEndpoint = this.config.get<string>('static.public.endpoint')?.replace(/\/$/, '');
+    const privateEndpoint = this.config.get<string>('static.private.endpoint')?.replace(/\/$/, '');
+
+    // Try public endpoint first
+    if (publicEndpoint && cleanUrl.startsWith(publicEndpoint)) {
+      return cleanUrl.replace(`${publicEndpoint}/`, '');
+    }
+
+    // Try private endpoint
+    if (privateEndpoint && cleanUrl.startsWith(privateEndpoint)) {
+      return cleanUrl.replace(`${privateEndpoint}/`, '');
+    }
+
+    return null;
+  }
+
+  /**
+   * Determine file visibility from URL
+   * @param url - The file URL
+   * @returns FileVisibility ('public' or 'private')
+   */
+  private determineVisibilityFromUrl(url: string): FileVisibility {
+    if (!url) return 'private';
+
+    // Remove query parameters
+    const cleanUrl = url.split('?')[0];
+
+    const publicEndpoint = this.config.get<string>('static.public.endpoint')?.replace(/\/$/, '');
+
+    // Check if it's a public URL
+    if (publicEndpoint && cleanUrl.startsWith(publicEndpoint)) {
+      return 'public';
+    }
+
+    // Default to private
+    return 'private';
+  }
+
+  /**
    * Publish a private file to the public bucket
    * @param storageKey - The storage key of the file to publish
    */
