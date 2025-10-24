@@ -5,15 +5,40 @@ import {
   CanvasTransaction,
   CanvasData,
 } from '@refly/openapi-schema';
-import { genCanvasVersionId } from '@refly/utils';
-import deepmerge from 'deepmerge';
-import { deduplicateNodes, deduplicateEdges } from './utils';
+import { genCanvasVersionId, genStartID, genNodeID, genSkillID, deepmerge } from '@refly/utils';
+import { deduplicateNodes, deduplicateEdges, prepareAddNode } from './utils';
 import { MAX_STATE_TX_COUNT, MAX_VERSION_AGE } from './constants';
 
 export const initEmptyCanvasState = (): CanvasState => {
+  // Create a start node for the initial canvas
+  const startNode: CanvasNode = {
+    id: genNodeID(),
+    type: 'start',
+    position: { x: 0, y: 0 },
+    data: {
+      title: 'Start',
+      entityId: genStartID(),
+    },
+    selected: false,
+    dragging: false,
+  };
+
+  // Create a skill node positioned horizontally to the right of the start node
+  const skillNode: CanvasNode = {
+    id: genNodeID(),
+    type: 'skill',
+    position: { x: 400, y: 0 },
+    data: {
+      title: 'Skill',
+      entityId: genSkillID(),
+    },
+    selected: false,
+    dragging: false,
+  };
+
   return {
     version: genCanvasVersionId(),
-    nodes: [],
+    nodes: [startNode, skillNode],
     edges: [],
     transactions: [],
     history: [],
@@ -85,16 +110,27 @@ export const applyCanvasTransaction = (
     switch (nodeDiff.type) {
       case 'add':
         if (nodeDiff.to) {
-          newNodes.push(nodeDiff.to);
+          const nodeToAdd = nodeDiff.to as CanvasNode;
+          // Check if node has parentResultId and auto-connect to parent
+          const parentResultId = nodeToAdd.data?.metadata?.parentResultId;
+          if (parentResultId && typeof parentResultId === 'string') {
+            const { newEdges: parentEdges } = prepareAddNode({
+              node: nodeToAdd,
+              nodes: newNodes,
+              edges: newEdges,
+              connectTo: [{ type: 'skillResponse', entityId: parentResultId }],
+              autoLayout: true,
+            });
+            newEdges.push(...parentEdges);
+          }
+          newNodes.push(nodeToAdd);
         }
         break;
       case 'update':
         newNodes = newNodes.map((node) => {
           if (node.id === nodeDiff.id && nodeDiff.to) {
-            const updatedNode = deepmerge(node, nodeDiff.to, {
-              arrayMerge: (_target, source) => source,
-            });
-            return updatedNode;
+            const updatedNode = deepmerge(node, nodeDiff.to);
+            return updatedNode as CanvasNode;
           }
           return node;
         });
@@ -116,9 +152,7 @@ export const applyCanvasTransaction = (
       case 'update':
         newEdges = newEdges.map((edge) => {
           if (edge.id === edgeDiff.id && edgeDiff.to) {
-            const updatedEdge = deepmerge(edge, edgeDiff.to, {
-              arrayMerge: (_target, source) => source,
-            });
+            const updatedEdge = deepmerge(edge, edgeDiff.to);
             return updatedEdge;
           }
           return edge;
@@ -195,9 +229,14 @@ export const getCanvasDataFromState = (state: CanvasState): CanvasData => {
   // Ensure parentId is set and parents come before children
   const sortedNodes = sortNodesByParent(currentData.nodes ?? []);
 
+  // Ensure hover and selected for edges are reset
+  const normalizedEdges = (currentData.edges ?? []).map((edge) =>
+    deepmerge(edge, { data: { hover: false, selected: false } }),
+  );
+
   return {
     nodes: sortedNodes,
-    edges: currentData.edges,
+    edges: normalizedEdges,
   };
 };
 
@@ -339,7 +378,7 @@ export const mergeCanvasStates = (local: CanvasState, remote: CanvasState): Canv
       if (tx) {
         const nodeDiff = tx.nodeDiffs.find((diff) => diff.id === conflictingId);
         if (nodeDiff) {
-          localItem = nodeDiff.to || nodeDiff.from;
+          localItem = (nodeDiff.to as CanvasNode) || (nodeDiff.from as CanvasNode);
           conflictType = 'node';
           break;
         }
@@ -358,7 +397,7 @@ export const mergeCanvasStates = (local: CanvasState, remote: CanvasState): Canv
       if (tx) {
         const nodeDiff = tx.nodeDiffs.find((diff) => diff.id === conflictingId);
         if (nodeDiff) {
-          remoteItem = nodeDiff.to || nodeDiff.from;
+          remoteItem = (nodeDiff.to as CanvasNode) || (nodeDiff.from as CanvasNode);
           break;
         }
         const edgeDiff = tx.edgeDiffs.find((diff) => diff.id === conflictingId);

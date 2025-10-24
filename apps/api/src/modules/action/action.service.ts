@@ -1,13 +1,15 @@
-import { ActionDetail } from '../action/action.dto';
-import { PrismaService } from '../common/prisma.service';
 import { Injectable, Logger } from '@nestjs/common';
 import { ActionResultNotFoundError } from '@refly/errors';
-import { ActionResult } from '../../generated/client';
 import { AbortActionRequest, EntityType, GetActionResultData, User } from '@refly/openapi-schema';
 import { batchReplaceRegex, genActionResultID, pick } from '@refly/utils';
 import pLimit from 'p-limit';
-import { ProviderService } from '../provider/provider.service';
+import { ActionResult } from '../../generated/client';
+import { ActionDetail } from '../action/action.dto';
+import { PrismaService } from '../common/prisma.service';
 import { providerItem2ModelInfo } from '../provider/provider.dto';
+import { ProviderService } from '../provider/provider.service';
+import { StepService } from '../step/step.service';
+import { ToolCallService } from '../tool-call/tool-call.service';
 
 @Injectable()
 export class ActionService {
@@ -22,6 +24,8 @@ export class ActionService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly providerService: ProviderService,
+    private readonly toolCallService: ToolCallService,
+    private readonly stepService: StepService,
   ) {}
 
   async getActionResult(user: User, param: GetActionResultData['query']): Promise<ActionDetail> {
@@ -49,16 +53,15 @@ export class ActionService {
         : null);
     const modelInfo = item ? providerItem2ModelInfo(item) : null;
 
-    const steps = await this.prisma.actionStep.findMany({
-      where: {
-        resultId: result.resultId,
-        version: result.version,
-        deletedAt: null,
-      },
-      orderBy: { order: 'asc' },
-    });
+    const steps = await this.stepService.getSteps(result.resultId, result.version);
+    const toolCalls = await this.toolCallService.fetchToolCalls(result.resultId, result.version);
 
-    return { ...result, steps, modelInfo };
+    if (!steps || steps.length === 0) {
+      return { ...result, steps: [], modelInfo };
+    }
+
+    const stepsWithToolCalls = this.toolCallService.attachToolCallsToSteps(steps, toolCalls);
+    return { ...result, steps: stepsWithToolCalls, modelInfo };
   }
 
   async duplicateActionResults(

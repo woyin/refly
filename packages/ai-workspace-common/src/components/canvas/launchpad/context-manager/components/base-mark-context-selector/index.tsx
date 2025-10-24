@@ -6,12 +6,15 @@ import classNames from 'classnames';
 import { Command } from 'cmdk';
 
 import { Home } from './home';
-import { getContextItemIcon } from '../../utils/icon';
 import { CanvasNodeType } from '@refly/openapi-schema';
 import { ReloadOutlined } from '@ant-design/icons';
 import { IContextItem } from '@refly/common-types';
 import { useContextPanelStoreShallow } from '@refly/stores';
 import { useCanvasData } from '@refly-packages/ai-workspace-common/hooks/canvas/use-canvas-data';
+import { useListResources } from '@refly-packages/ai-workspace-common/queries/queries';
+import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
+import { useGetProjectCanvasId } from '@refly-packages/ai-workspace-common/hooks/use-get-project-canvasId';
+import { CONTEXT_FILTER_NODE_TYPES } from '@refly/canvas-common';
 
 import './index.scss';
 import '@refly-packages/ai-workspace-common/components/canvas/common/node-selector/index.scss';
@@ -73,7 +76,16 @@ export const BaseMarkContextSelector = (props: BaseMarkContextSelectorProps) => 
   }, [onClickOutside]);
 
   const { nodes } = useCanvasData();
-  const targetNodes = nodes.filter((node) => !['skill', 'group'].includes(node?.type));
+  const { canvasId } = useCanvasContext();
+  const { projectId } = useGetProjectCanvasId();
+  const { data: resourcesData } = useListResources({
+    query: {
+      canvasId,
+      projectId,
+    },
+  });
+  const resources = resourcesData?.data ?? [];
+  const targetNodes = nodes.filter((node) => !CONTEXT_FILTER_NODE_TYPES.includes(node?.type));
 
   const handleClear = () => {
     if (onClear) {
@@ -83,7 +95,7 @@ export const BaseMarkContextSelector = (props: BaseMarkContextSelectorProps) => 
     }
   };
 
-  // Memoize the filtered and sorted nodes to prevent unnecessary recalculations
+  // Memoize the filtered and sorted nodes and resources to prevent unnecessary recalculations
   const processedNodes = useMemo(() => {
     // First get unselected nodes and reverse them to show most recent first
     const unselectedNodes =
@@ -104,21 +116,45 @@ export const BaseMarkContextSelector = (props: BaseMarkContextSelectorProps) => 
           metadata: node.data?.metadata,
         })) ?? [];
 
-    // Filter based on search value
-    const filteredUnselectedNodes = unselectedNodes.filter((item) =>
-      item?.title?.toLowerCase().includes(searchValue.toLowerCase()),
-    );
+    // Process unselected resources
+    const unselectedResources =
+      resources
+        ?.filter(
+          (resource) =>
+            !selectedItems.some((selected) => selected.entityId === resource.resourceId),
+        )
+        .map((resource) => ({
+          title: resource.title,
+          entityId: resource.resourceId,
+          type: 'resource',
+          metadata: {
+            resourceType: resource.resourceType,
+            resourceMeta: resource.data,
+            storageKey: resource.storageKey,
+            rawFileKey: resource.rawFileKey,
+            downloadURL: resource.downloadURL,
+          },
+        })) ?? [];
 
-    // Return selected items first, followed by filtered & reversed unselected nodes
-    return [...(selectedItems ?? []), ...filteredUnselectedNodes];
-  }, [targetNodes, searchValue, selectedItems]);
+    // Combine nodes and resources
+    const combinedUnselectedItems = [...unselectedNodes, ...unselectedResources];
+
+    // Filter based on search value
+    const normalizedSearch = searchValue.toLowerCase();
+    const filteredUnselectedItems = combinedUnselectedItems.filter((item) => {
+      const normalizedTitle = item?.title?.toLowerCase() ?? '';
+      return normalizedTitle.includes(normalizedSearch);
+    });
+
+    // Return selected items first, followed by filtered unselected items
+    return [...(selectedItems ?? []), ...filteredUnselectedItems];
+  }, [targetNodes, resources, searchValue, selectedItems]);
 
   // Memoize the render data transformation
   const sortedRenderData = useMemo(() => {
     return processedNodes.map((item) => ({
       data: { ...item, title: item?.title || t(`canvas.nodeTypes.${item?.type}`) },
       type: item?.type as CanvasNodeType,
-      icon: getContextItemIcon(item.type as any, { width: 12, height: 12 }),
       isSelected: selectedItems?.some((selected) => selected?.entityId === item?.entityId),
       onItemClick: (item: IContextItem) => {
         onSelect?.(item);

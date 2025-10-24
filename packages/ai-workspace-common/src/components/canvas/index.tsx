@@ -5,20 +5,17 @@ import { useTranslation } from 'react-i18next';
 import {
   ReactFlow,
   Background,
-  MiniMap,
   ReactFlowProvider,
   useReactFlow,
   Node,
   Edge,
   useStore,
-  useStoreApi,
+  SelectionMode,
 } from '@xyflow/react';
 import { useShallow } from 'zustand/react/shallow';
 import { CanvasNode } from '@refly/canvas-common';
 import { nodeTypes } from './nodes';
 import { TopToolbar } from './top-toolbar';
-import { ContextMenu } from './context-menu';
-import { NodeContextMenu } from './node-context-menu';
 import { useNodeOperations } from '@refly-packages/ai-workspace-common/hooks/canvas/use-node-operations';
 import { useNodeSelection } from '@refly-packages/ai-workspace-common/hooks/canvas/use-node-selection';
 import { useAddNode } from '@refly-packages/ai-workspace-common/hooks/canvas/use-add-node';
@@ -38,7 +35,7 @@ import {
 } from '@refly/stores';
 import { Spin } from '@refly-packages/ai-workspace-common/components/common/spin';
 import { locateToNodePreviewEmitter } from '@refly-packages/ai-workspace-common/events/locateToNodePreview';
-import { MenuPopper } from './menu-popper';
+import { UnifiedContextMenu } from './unified-context-menu';
 import { useNodePreviewControl } from '@refly-packages/ai-workspace-common/hooks/canvas/use-node-preview-control';
 import {
   EditorPerformanceProvider,
@@ -49,13 +46,11 @@ import { useEdgeOperations } from '@refly-packages/ai-workspace-common/hooks/can
 import { MultiSelectionMenus } from './multi-selection-menu';
 import { CustomEdge } from './edges/custom-edge';
 import NotFoundOverlay from './NotFoundOverlay';
-import { NODE_MINI_MAP_COLORS } from './nodes/shared/colors';
 import { useDragToCreateNode } from '@refly-packages/ai-workspace-common/hooks/canvas/use-drag-create-node';
 import { useDragDropPaste } from '@refly-packages/ai-workspace-common/hooks/canvas/use-drag-drop-paste';
 
 import '@xyflow/react/dist/style.css';
 import './index.scss';
-import { SelectionContextMenu } from '@refly-packages/ai-workspace-common/components/canvas/selection-context-menu';
 import {
   useGetPilotSessionDetail,
   useUpdateSettings,
@@ -77,6 +72,11 @@ import SessionHeader from '@refly-packages/ai-workspace-common/components/pilot/
 import { CanvasResources, CanvasResourcesWidescreenModal } from './canvas-resources';
 import { ResourceOverview } from './canvas-resources/share/resource-overview';
 import { NodePreviewContainer } from '@refly-packages/ai-workspace-common/components/canvas/node-preview';
+import { useHandleOrphanNode } from '@refly-packages/ai-workspace-common/hooks/use-handle-orphan-node';
+import { WorkflowRun } from './workflow-run';
+import { useMatch } from '@refly-packages/ai-workspace-common/utils/router';
+import { Logo } from '@refly-packages/ai-workspace-common/components/common/logo';
+import { UploadNotification } from '@refly-packages/ai-workspace-common/components/common/upload-notification';
 
 const GRID_SIZE = 10;
 
@@ -90,12 +90,30 @@ const selectionStyles = `
     background: rgba(0, 150, 143, 0.03) !important;
     border: 0.5px solid #0E9F77 !important;
   }
+  
+  /* Prevent text selection outside canvas during drag */
+  .react-flow__pane.selecting {
+    user-select: none;
+  }
+  
+  .react-flow__pane.selecting * {
+    user-select: none !important;
+  }
+  
+  /* Ensure canvas selection works properly */
+  .react-flow__pane {
+    user-select: auto;
+  }
+`;
+
+const SessionContainerClassName = `
+  absolute bottom-2 left-[calc(50%-284px)] transform -translate-x-1/2 z-20 w-[568px] overflow-hidden rounded-[20px] shadow-refly-xl border-[1px] border-solid border-refly-Card-Border bg-refly-bg-glass-content backdrop-blur-[20px]
 `;
 
 interface ContextMenuState {
   open: boolean;
   position: { x: number; y: number };
-  type: 'canvas' | 'node' | 'selection';
+  type: 'canvas' | 'node' | 'selection' | 'doubleClick';
   nodeId?: string;
   nodeType?: CanvasNodeType;
   isSelection?: boolean;
@@ -105,68 +123,11 @@ interface ContextMenuState {
 
 // Add new memoized components
 const MemoizedBackground = memo(Background);
-const MemoizedMiniMap = memo(MiniMap);
-
-const MiniMapNode = (props: any) => {
-  const { x, y, width, height, style, className, id: nodeId } = props;
-  const nodes = useStoreApi().getState().nodes;
-  const node = nodes.find((n) => n.id === nodeId);
-
-  const getMiniMapNodeColor = useCallback((node: Node) => {
-    if (node.type === 'memo') {
-      const data = node.data as any;
-      return data?.metadata?.bgColor ?? '#FFFEE7';
-    }
-    if (node.type === 'group') {
-      return 'transparent';
-    }
-
-    return NODE_MINI_MAP_COLORS[node.type as CanvasNodeType] ?? '#6172F3';
-  }, []);
-
-  const getMiniMapNodeStrokeColor = useCallback((node: Node) => {
-    return node.type === 'group' ? '#363434' : 'transparent';
-  }, []);
-
-  if (!node || node.type !== 'image' || !(node.data as any)?.metadata?.imageUrl) {
-    return (
-      <rect
-        x={x}
-        y={y}
-        width={width}
-        height={height}
-        rx={12}
-        ry={12}
-        style={{
-          fill: node ? getMiniMapNodeColor(node) : '#6172F3',
-          stroke: node ? getMiniMapNodeStrokeColor(node) : 'transparent',
-          strokeWidth: 10,
-          opacity: 0.5,
-          strokeDasharray: node?.type === 'group' ? '10,10' : 'none',
-        }}
-      />
-    );
-  }
-
-  return (
-    <image
-      href={(node.data as any)?.metadata?.imageUrl}
-      x={x}
-      y={y}
-      width={width}
-      height={height}
-      className={`minimap-node-image ${className || ''}`}
-      style={{
-        ...style,
-        objectFit: 'cover',
-        borderRadius: '12px',
-      }}
-    />
-  );
-};
 
 const Flow = memo(({ canvasId }: { canvasId: string }) => {
   const { t } = useTranslation();
+
+  useHandleOrphanNode();
 
   useCanvasInitialActions(canvasId);
   // useFollowPilotSteps();
@@ -223,7 +184,7 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
       isPilotOpen: state.isPilotOpen,
       setIsPilotOpen: state.setIsPilotOpen,
       setActiveSessionId: state.setActiveSessionId,
-      activeSessionId: state.activeSessionId,
+      activeSessionId: state.activeSessionIdByCanvas?.[canvasId] ?? null,
     }),
   );
 
@@ -245,6 +206,11 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
     showSlideshow: state.showSlideshow,
     setShowSlideshow: state.setShowSlideshow,
     setContextMenuOpenedCanvasId: state.setContextMenuOpenedCanvasId,
+  }));
+
+  const { showWorkflowRun, setShowWorkflowRun } = useCanvasResourcesPanelStoreShallow((state) => ({
+    setShowWorkflowRun: state.setShowWorkflowRun,
+    showWorkflowRun: state.showWorkflowRun,
   }));
 
   const { handleNodePreview } = useNodePreviewControl({ canvasId });
@@ -272,6 +238,7 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
           },
         });
       }
+      message.success(t(`canvas.toolbar.modeChangeSuccess.${mode}`));
     },
     [setLocalSettings, isLogin, updateSettings],
   );
@@ -330,10 +297,97 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
     [defaultEdgeOptions],
   );
 
-  const [menuPosition, setMenuPosition] = useState({ x: 0, y: 0 });
-  const [menuOpen, setMenuOpen] = useState(false);
   const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null);
   const [lastClickTime, setLastClickTime] = useState(0);
+
+  // Handle selection state to prevent text selection outside canvas
+  useEffect(() => {
+    let isDragging = false;
+    let dragStartTime = 0;
+    let hasStartedDrag = false;
+
+    const resetDragState = () => {
+      if (isDragging || hasStartedDrag) {
+        isDragging = false;
+        hasStartedDrag = false;
+        // Re-enable text selection
+        document.body.style.userSelect = '';
+      }
+    };
+
+    const handleMouseDown = (event: MouseEvent) => {
+      // Only handle left mouse button
+      if (event.button !== 0) return;
+
+      // Check if clicking on interactive elements (don't start selection)
+      const target = event.target as HTMLElement;
+      const isInteractiveElement = target.closest(
+        'input, textarea, [contenteditable="true"], [role="textbox"], .chat-composer, .rich-input, [data-cy="chat-input"], [data-cy="rich-chat-input"], .ProseMirror',
+      );
+
+      if (isInteractiveElement) return;
+
+      isDragging = false;
+      hasStartedDrag = false;
+      dragStartTime = Date.now();
+    };
+
+    const handleMouseMove = (event: MouseEvent) => {
+      // Only handle left mouse button
+      if (event.buttons !== 1) return;
+
+      // Check if we've moved enough to consider it a drag
+      const timeSinceStart = Date.now() - dragStartTime;
+      const hasMovedEnough = timeSinceStart > 10;
+
+      if (!isDragging && hasMovedEnough && !hasStartedDrag) {
+        isDragging = true;
+        hasStartedDrag = true;
+        // Temporarily disable text selection on the document
+        document.body.style.userSelect = 'none';
+      }
+    };
+
+    const handleMouseUp = () => {
+      resetDragState();
+    };
+
+    const handleMouseLeave = () => {
+      resetDragState();
+    };
+
+    // Global mouse up handler to ensure state reset
+    const handleGlobalMouseUp = () => {
+      resetDragState();
+    };
+
+    // Listen for ReactFlow selection events
+    const canvasContainer = document.querySelector('.react-flow');
+    if (canvasContainer) {
+      canvasContainer.addEventListener('mousedown', handleMouseDown);
+      canvasContainer.addEventListener('mousemove', handleMouseMove);
+      canvasContainer.addEventListener('mouseup', handleMouseUp);
+      canvasContainer.addEventListener('mouseleave', handleMouseLeave);
+    }
+
+    // Add global event listeners for cleanup
+    document.addEventListener('mouseup', handleGlobalMouseUp);
+
+    return () => {
+      if (canvasContainer) {
+        canvasContainer.removeEventListener('mousedown', handleMouseDown);
+        canvasContainer.removeEventListener('mousemove', handleMouseMove);
+        canvasContainer.removeEventListener('mouseup', handleMouseUp);
+        canvasContainer.removeEventListener('mouseleave', handleMouseLeave);
+      }
+
+      // Remove global event listeners
+      document.removeEventListener('mouseup', handleGlobalMouseUp);
+
+      // Ensure text selection is re-enabled on cleanup
+      document.body.style.userSelect = '';
+    };
+  }, []);
 
   const { onConnectEnd: temporaryEdgeOnConnectEnd, onConnectStart: temporaryEdgeOnConnectStart } =
     useDragToCreateNode();
@@ -364,24 +418,33 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
         setSelectedEdgeId(null);
       }
 
-      if (readonly) return;
-
+      // Handle double click detection
       const currentTime = new Date().getTime();
       const timeDiff = currentTime - lastClickTime;
 
-      if (timeDiff < 300) {
+      if (timeDiff < 300 && !readonly) {
         const flowPosition = reactFlowInstance.screenToFlowPosition({
           x: event.clientX,
           y: event.clientY,
         });
 
-        setMenuPosition(flowPosition);
-        setMenuOpen(true);
+        setContextMenu({
+          open: true,
+          position: flowPosition,
+          type: 'doubleClick',
+        });
       }
 
       setLastClickTime(currentTime);
     },
-    [lastClickTime, setOperatingNodeId, reactFlowInstance, selectedEdgeId, cleanupTemporaryEdges],
+    [
+      lastClickTime,
+      setOperatingNodeId,
+      reactFlowInstance,
+      selectedEdgeId,
+      cleanupTemporaryEdges,
+      readonly,
+    ],
   );
 
   // Add scroll position state and handler
@@ -485,8 +548,8 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
       setShowSlideshow(false);
     }
 
-    if (isPilotOpen) {
-      setActiveSessionId(null);
+    if (showWorkflowRun) {
+      setShowWorkflowRun(false);
     }
 
     const unsubscribe = locateToNodePreviewEmitter.on(
@@ -523,6 +586,47 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
       setContextMenuOpenedCanvasId(contextMenu.open ? (contextMenu.nodeId ?? null) : null);
     }
   }, [contextMenu, setContextMenuOpenedCanvasId]);
+
+  // Global menu close logic
+  useEffect(() => {
+    const isInsideMenu = (target: HTMLElement) => {
+      return (
+        target.closest('[data-unified-menu]') ||
+        target.closest('.canvas-search-list') ||
+        target.closest('.menu-popper')
+      );
+    };
+
+    const handleGlobalClick = (event: MouseEvent) => {
+      if (contextMenu.open) {
+        // Check if click is inside any menu
+        const target = event.target as HTMLElement;
+        if (!isInsideMenu(target)) {
+          setContextMenu((prev) => ({ ...prev, open: false }));
+        }
+      }
+    };
+
+    const handleGlobalMouseDown = (event: MouseEvent) => {
+      if (contextMenu.open && event.button === 0) {
+        // Left mouse button - check if click is inside menu before closing
+        const target = event.target as HTMLElement;
+        if (!isInsideMenu(target)) {
+          setContextMenu((prev) => ({ ...prev, open: false }));
+        }
+      }
+    };
+
+    if (contextMenu.open) {
+      document.addEventListener('click', handleGlobalClick);
+      document.addEventListener('mousedown', handleGlobalMouseDown);
+    }
+
+    return () => {
+      document.removeEventListener('click', handleGlobalClick);
+      document.removeEventListener('mousedown', handleGlobalMouseDown);
+    };
+  }, [contextMenu.open]);
 
   const onPaneContextMenu = useCallback(
     (event: React.MouseEvent) => {
@@ -598,6 +702,9 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
         case 'video':
           menuNodeType = 'video';
           break;
+        case 'start':
+          menuNodeType = 'start';
+          break;
         default:
           return; // Don't show context menu for unknown node types
       }
@@ -626,7 +733,6 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
         return;
       }
 
-      const { operatingNodeId } = useCanvasStore.getState();
       setContextMenu((prev) => ({ ...prev, open: false }));
 
       if (event.metaKey || event.shiftKey) {
@@ -678,30 +784,8 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
   const memoizedNodes = useMemo(() => nodes, [nodes]);
   const memoizedEdges = useMemo(() => edges, [edges]);
 
-  // Memoize MiniMap styles
-  const miniMapStyles = useMemo(
-    () => ({
-      border: '1px solid rgba(16, 24, 40, 0.0784)',
-      boxShadow: '0px 4px 6px 0px rgba(16, 24, 40, 0.03)',
-    }),
-    [],
-  );
-
-  // Memoize the Background and MiniMap components
+  // Memoize the Background component
   const memoizedBackground = useMemo(() => <MemoizedBackground />, []);
-  const memoizedMiniMap = useMemo(
-    () => (
-      <MemoizedMiniMap
-        position="bottom-left"
-        style={miniMapStyles}
-        className="bg-white/80 dark:bg-gray-900/80 w-[140px] h-[92px] !mb-2 !ml-2 rounded-lg shadow-refly-m p-2 [&>svg]:w-full [&>svg]:h-full"
-        zoomable={false}
-        pannable={false}
-        nodeComponent={MiniMapNode}
-      />
-    ),
-    [miniMapStyles],
-  );
 
   // Memoize the node types configuration
   const memoizedNodeTypes = useMemo(() => nodeTypes, []);
@@ -810,7 +894,7 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
     [],
   );
 
-  // Update handleKeyDown to handle edge deletion
+  // Handle keyboard shortcuts for edge deletion and zoom
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
       // Skip all keyboard handling in readonly mode
@@ -841,6 +925,17 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
         }
       }
 
+      // Handle zoom shortcuts (Cmd/Ctrl + +/-)
+      if (isModKey && (e.key === '+' || e.key === '=')) {
+        e.preventDefault();
+        reactFlowInstance.zoomIn();
+      }
+
+      if (isModKey && e.key === '-') {
+        e.preventDefault();
+        reactFlowInstance.zoomOut();
+      }
+
       // Handle edge deletion
       if ((e.key === 'Delete' || e.key === 'Backspace') && selectedEdgeId) {
         e.preventDefault();
@@ -852,7 +947,7 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
     [selectedEdgeId, reactFlowInstance, undo, redo, readonly],
   );
 
-  // Add edge click handler for delete button
+  // Handle edge click for delete button
   const handleEdgeClick = useCallback(
     (event: React.MouseEvent, edge: Edge) => {
       // Check if click is on delete button
@@ -873,7 +968,7 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
     [reactFlowInstance],
   );
 
-  // Update useEffect for keyboard events
+  // Add keyboard event listener
   useEffect(() => {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
@@ -898,12 +993,12 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
   // Add listener for opening node context menu
   useEffect(() => {
     const handleOpenContextMenu = (event: any) => {
-      // 从事件名称中提取nodeId
+      // Extract nodeId from event name
       const nodeId = event.nodeId;
 
-      // 检查事件是否包含必要的信息
+      // Check if event contains necessary information
       if (event?.nodeType) {
-        // 构造一个合成的React鼠标事件
+        // Create a synthetic React mouse event
         const syntheticEvent = {
           ...event.originalEvent,
           clientX: event.x,
@@ -912,7 +1007,7 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
           stopPropagation: () => {},
         } as React.MouseEvent;
 
-        // 构造一个简化的节点对象，包含必要的属性
+        // Create a simplified node object with necessary properties
         const node = {
           id: nodeId,
           type: event.nodeType as CanvasNodeType,
@@ -920,7 +1015,7 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
           position: { x: event.x, y: event.y },
         } as unknown as CanvasNode<any>;
 
-        // 调用onNodeContextMenu处理上下文菜单
+        // Call onNodeContextMenu to handle context menu
         onNodeContextMenu(syntheticEvent, node, {
           source: event.source,
           dragCreateInfo: event.dragCreateInfo,
@@ -928,14 +1023,15 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
       }
     };
 
-    // 监听所有包含openContextMenu的事件
+    // Listen for all events containing openContextMenu
     nodeOperationsEmitter.on('openNodeContextMenu', handleOpenContextMenu);
 
     return () => {
-      // 清理事件监听器
+      // Clean up event listeners
       nodeOperationsEmitter.off('openNodeContextMenu', handleOpenContextMenu);
     };
   }, [onNodeContextMenu]);
+
   const { data: sessionData } = useGetPilotSessionDetail(
     {
       query: { sessionId: activeSessionId },
@@ -946,14 +1042,16 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
     },
   );
   const session = useMemo(() => sessionData?.data, [sessionData]);
+
   const handleClick = useCallback(() => {
     setIsPilotOpen(!isPilotOpen);
   }, [setIsPilotOpen, isPilotOpen]);
+
   const handleSessionClick = useCallback(
     (sessionId: string) => {
-      setActiveSessionId(sessionId);
+      setActiveSessionId(canvasId, sessionId);
     },
-    [setActiveSessionId],
+    [setActiveSessionId, canvasId],
   );
   return (
     <Spin
@@ -977,32 +1075,27 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
         />
       </Modal>
       <div className="w-full h-[calc(100vh-16px)] relative flex flex-col overflow-hidden border-[1px] border-solid border-refly-Card-Border rounded-xl shadow-sm">
-        <AnimatePresence mode="wait">
-          {isPilotOpen ? (
-            <motion.div
-              key="pilot-panel"
-              className="absolute bottom-2 left-[calc(50%-284px)] transform -translate-x-1/2 z-20  w-[568px] rounded-[20px] shadow-refly-m border-[1px] border-solid border-refly-Card-Border bg-white dark:bg-refly-bg-content-z2"
-              initial={{ opacity: 0, y: 40, scale: 0.95 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 40, scale: 0.95 }}
-              transition={{ duration: 0.3, ease: 'easeInOut' }}
-            >
-              <Pilot canvasId={canvasId} />
-            </motion.div>
-          ) : nodes?.length > 0 ? (
-            <motion.div
-              key="session-header"
-              className="absolute bottom-2 left-[calc(50%-284px)] transform -translate-x-1/2 z-20 shadow-sm rounded-[20px] w-[568px] border border-solid border-refly-Card-Border dark:border-gray-700 bg-white dark:bg-neutral-900/95"
-              initial={{ opacity: 0, y: 20, scale: 0.95 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 20, scale: 0.95 }}
-              transition={{ duration: 0.25, ease: 'easeInOut' }}
-            >
+        {!readonly && (
+          <AnimatePresence mode="wait">
+            {isPilotOpen ? (
               <motion.div
-                className="pb-4"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ duration: 0.2, delay: 0.1 }}
+                key="pilot-panel"
+                className={SessionContainerClassName}
+                initial={{ opacity: 0, y: 40, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 40, scale: 0.95 }}
+                transition={{ duration: 0.3, ease: 'easeInOut' }}
+              >
+                <Pilot canvasId={canvasId} />
+              </motion.div>
+            ) : nodes?.length > 0 ? (
+              <motion.div
+                key="session-header"
+                className={SessionContainerClassName}
+                initial={{ opacity: 0, y: 20, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 20, scale: 0.95 }}
+                transition={{ duration: 0.25, ease: 'easeInOut' }}
               >
                 <SessionHeader
                   canvasId={canvasId}
@@ -1012,81 +1105,53 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
                   onSessionClick={handleSessionClick}
                 />
               </motion.div>
-            </motion.div>
-          ) : (
-            <motion.div
-              key="start-button"
-              className="absolute bottom-4 left-[calc(50%-140px)] z-20"
-              initial={{ opacity: 0, y: 20, scale: 0.9 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 20, scale: 0.9 }}
-              transition={{ duration: 0.25, ease: 'easeInOut' }}
-            >
+            ) : (
               <motion.div
-                whileHover={{
-                  scale: 1.02,
-                  transition: { duration: 0.2 },
-                }}
-                whileTap={{
-                  scale: 0.98,
-                  transition: { duration: 0.1 },
-                }}
+                key="start-button"
+                className="absolute bottom-4 left-[calc(50%-140px)] z-20"
+                initial={{ opacity: 0, y: 20, scale: 0.9 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 20, scale: 0.9 }}
+                transition={{ duration: 0.25, ease: 'easeInOut' }}
               >
-                <Button
-                  type="default"
-                  className="bg-white dark:bg-neutral-900/95 border border-neutral-200 dark:border-neutral-800 rounded-full h-14 px-4 shadow-sm hover:shadow transition-colors flex items-center gap-3 w-[280px] max-w-[92vw]"
-                  onClick={() => setIsPilotOpen(true)}
+                <motion.div
+                  whileHover={{
+                    scale: 1.02,
+                    transition: { duration: 0.2 },
+                  }}
+                  whileTap={{
+                    scale: 0.98,
+                    transition: { duration: 0.1 },
+                  }}
                 >
-                  <motion.div
-                    className="flex items-center shrink-0"
-                    initial={{ x: -5 }}
-                    animate={{ x: 0 }}
-                    transition={{ duration: 0.2, delay: 0.1 }}
+                  <Button
+                    type="default"
+                    className="rounded-[20px] h-14 py-3 px-4 shadow-refly-xl hover:shadow transition-colors flex items-center gap-3 w-[280px] max-w-[92vw] border-[1px] border-solid border-refly-Card-Border bg-refly-bg-glass-content backdrop-blur-[20px]"
+                    onClick={() => setIsPilotOpen(true)}
                   >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      viewBox="0 0 49 22"
-                      fill="none"
-                      className="h-5 w-auto translate-y-[2px]"
+                    <motion.div
+                      className="flex items-center shrink-0"
+                      initial={{ x: -5 }}
+                      animate={{ x: 0 }}
+                      transition={{ duration: 0.2, delay: 0.1 }}
                     >
-                      <path
-                        d="M3.31675 1.65329C3.35374 1.47891 3.49191 1.34349 3.66755 1.31304C4.30817 1.20198 4.95457 1.11983 5.60675 1.06659C6.35739 1.00531 7.03142 0.974672 7.62886 0.974672C8.33354 0.974672 8.99991 1.05893 9.62799 1.22743C10.2561 1.39594 10.7999 1.65637 11.2595 2.0087C11.719 2.34572 12.079 2.78997 12.3395 3.34146C12.6152 3.87762 12.7531 4.51336 12.7531 5.24867C12.7531 6.09122 12.6229 6.82653 12.3624 7.45461C12.1173 8.06737 11.788 8.58821 11.3744 9.01715C10.9607 9.43076 10.4859 9.76012 9.94969 10.0052C9.42885 10.235 8.89268 10.3882 8.3412 10.4648L11.18 16.6643C11.3139 16.9566 11.1002 17.2894 10.7787 17.2894H8.47041C8.2829 17.2894 8.11586 17.1709 8.05386 16.994L5.95143 10.9933L4.36592 10.6946L3.0606 16.9384C3.01784 17.1429 2.83751 17.2894 2.62856 17.2894H0.544825C0.264198 17.2894 0.0548222 17.031 0.113054 16.7564L3.31675 1.65329ZM4.82549 8.55758H6.04335C6.4876 8.55758 6.92419 8.51928 7.35312 8.44269C7.78205 8.35077 8.15737 8.19758 8.47907 7.98311C8.81608 7.75333 9.08417 7.45461 9.28331 7.08695C9.49778 6.7193 9.60501 6.25207 9.60501 5.68527C9.60501 5.16442 9.42885 4.72017 9.07651 4.35251C8.72417 3.96954 8.15737 3.77805 7.3761 3.77805C7.06972 3.77805 6.77866 3.79337 6.50292 3.82401C6.24249 3.83932 6.02037 3.8623 5.83654 3.89294L4.82549 8.55758Z"
-                        fill="var(--refly-text-0)"
-                      />
-                      <path
-                        d="M20.9581 16.1864C20.4832 16.5847 19.8704 16.9218 19.1198 17.1975C18.3692 17.4732 17.496 17.6111 16.5002 17.6111C15.2594 17.6111 14.279 17.2511 13.559 16.5311C12.8543 15.7958 12.502 14.7771 12.502 13.475C12.502 12.2495 12.6935 11.1465 13.0764 10.1661C13.4594 9.17034 13.9573 8.32779 14.57 7.63844C15.1981 6.94908 15.9028 6.42058 16.6841 6.05292C17.4653 5.66995 18.2466 5.47846 19.0279 5.47846C19.656 5.47846 20.1921 5.56271 20.6364 5.73122C21.0959 5.88441 21.4713 6.10654 21.7623 6.3976C22.0534 6.67334 22.2678 6.99504 22.4057 7.3627C22.5436 7.73035 22.6125 8.12099 22.6125 8.5346C22.6125 9.16268 22.4517 9.71416 22.13 10.1891C21.8083 10.6639 21.3564 11.0622 20.7742 11.3839C20.2074 11.6903 19.5181 11.9278 18.7062 12.0963C17.8943 12.2495 17.0058 12.3261 16.0407 12.3261C15.9181 12.3261 15.8032 12.3261 15.696 12.3261C15.5888 12.3107 15.4739 12.3031 15.3513 12.3031C15.3207 12.4869 15.2977 12.6554 15.2824 12.8086C15.2671 12.9465 15.2594 13.0767 15.2594 13.1992C15.2594 13.8886 15.4356 14.4018 15.7879 14.7388C16.1556 15.0758 16.6687 15.2443 17.3275 15.2443C18.0015 15.2443 18.6066 15.1447 19.1428 14.9456C19.6789 14.7465 20.0849 14.5473 20.3606 14.3482L20.9581 16.1864ZM15.7649 10.5108C16.1939 10.5108 16.6458 10.4954 17.1207 10.4648C17.6109 10.4342 18.0628 10.3652 18.4764 10.258C18.89 10.1354 19.2347 9.96693 19.5104 9.75246C19.7862 9.52267 19.924 9.2163 19.924 8.83332C19.924 8.60353 19.8398 8.37375 19.6713 8.14396C19.5028 7.89886 19.1504 7.77631 18.6143 7.77631C17.9402 7.77631 17.3504 8.03673 16.8449 8.55758C16.3547 9.07842 15.9947 9.72948 15.7649 10.5108Z"
-                        fill="var(--refly-text-0)"
-                      />
-                      <path
-                        d="M28.8432 7.28419L27.1428 17.1879C27.0509 17.7547 26.9207 18.2756 26.7522 18.7505C26.5837 19.2407 26.3462 19.6619 26.0398 20.0143C25.7488 20.3819 25.3735 20.6653 24.9139 20.8645C24.4543 21.0789 23.8875 21.1862 23.2135 21.1862C22.662 21.1862 22.1258 21.1402 21.605 21.0483C21.2014 20.9906 20.8412 20.8809 20.5244 20.7191C20.3432 20.6265 20.2764 20.4087 20.3476 20.2182L20.8479 18.8791C20.9352 18.6454 21.1983 18.5345 21.4404 18.5947C21.5565 18.6236 21.6727 18.6449 21.7888 18.6585C22.0492 18.6892 22.3786 18.7045 22.7769 18.7045C23.2671 18.7045 23.6424 18.5054 23.9028 18.1071C24.1786 17.7241 24.3854 17.096 24.5233 16.2228L25.9709 7.28419H24.908C24.6271 7.28419 24.4177 7.0253 24.4764 6.75061L24.7934 5.26658C24.8369 5.06294 25.0168 4.9174 25.225 4.9174H26.3386L26.6373 3.37784C26.7445 2.81104 26.8824 2.32083 27.0509 1.90722C27.2194 1.47828 27.4415 1.12595 27.7173 0.850205C28.0083 0.559144 28.353 0.344678 28.7513 0.206807C29.1649 0.0689356 29.6705 0 30.2679 0C30.513 0 30.7887 0.0153192 31.0951 0.0459577C31.4168 0.0612765 31.7309 0.099574 32.0372 0.16085C32.3436 0.206807 32.6423 0.268082 32.9334 0.344677C33.2245 0.421273 33.4849 0.513187 33.7147 0.62042L33.0483 2.71146C32.696 2.57359 32.336 2.48168 31.9683 2.43572C31.6006 2.38977 31.2406 2.36679 30.8883 2.36679C30.3981 2.36679 30.0381 2.51232 29.8083 2.80338C29.5939 3.09444 29.4407 3.54635 29.3488 4.15911L29.2109 4.9174H30.9734C31.2509 4.9174 31.4596 5.17048 31.4067 5.44291L31.1185 6.92694C31.0782 7.13439 30.8966 7.28419 30.6852 7.28419H28.8432Z"
-                        fill="var(--refly-text-0)"
-                      />
-                      <path
-                        d="M34.5713 13.8886C34.4794 14.3328 34.4794 14.6622 34.5713 14.8767C34.6785 15.0911 34.847 15.1984 35.0768 15.1984C35.2639 15.1984 35.4466 15.1823 35.6249 15.1503C35.9449 15.0928 36.282 15.3222 36.271 15.6472L36.2337 16.753C36.2287 16.9014 36.1505 17.0396 36.0158 17.1022C35.7601 17.221 35.4318 17.3218 35.0308 17.4043C34.51 17.5115 33.9968 17.5651 33.4913 17.5651C32.8326 17.5651 32.327 17.4426 31.9747 17.1975C31.6377 16.9371 31.4692 16.4622 31.4692 15.7728C31.4692 15.4205 31.5151 15.0145 31.607 14.555L34.3593 1.55442C34.4025 1.35041 34.5826 1.20446 34.7911 1.20446H36.715C36.9956 1.20446 37.205 1.46285 37.1468 1.73736L34.5713 13.8886Z"
-                        fill="var(--refly-text-0)"
-                      />
-                      <path
-                        d="M41.8804 12.2883C41.9097 12.5495 42.2605 12.6131 42.3796 12.3788L45.6018 6.04149C45.6771 5.89342 45.8292 5.80016 45.9953 5.80016H47.9983C48.3317 5.80016 48.5447 6.15559 48.3876 6.4496L43.2199 16.1175C42.7603 16.9754 42.3237 17.7643 41.9101 18.4843C41.5118 19.2043 41.1058 19.8247 40.6922 20.3455C40.2786 20.8664 39.8497 21.2723 39.4054 21.5634C38.9612 21.8545 38.4863 22 37.9808 22C37.4812 22 37.0742 21.9369 36.7597 21.8106C36.5761 21.7369 36.5078 21.5257 36.571 21.3383L37.1294 19.6799C37.1786 19.5338 37.3462 19.47 37.4982 19.4953C37.6055 19.5107 37.705 19.5183 37.7969 19.5183C38.1646 19.5183 38.5399 19.3422 38.9229 18.9898C39.3059 18.6375 39.6888 18.0707 40.0718 17.2894L38.0101 6.32309C37.9591 6.0514 38.1675 5.80016 38.4439 5.80016H40.7572C40.9819 5.80016 41.1708 5.96898 41.1958 6.19228L41.8804 12.2883Z"
-                        fill="var(--refly-text-0)"
-                      />
-                    </svg>
-                    <span className="text-neutral-900 dark:text-neutral-50 text-[14px] font-semibold">
-                      Agent
-                    </span>
-                  </motion.div>
-                  <motion.span
-                    className="text-neutral-400 text-[16px] font-[400]"
-                    initial={{ opacity: 0, x: 5 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ duration: 0.2, delay: 0.2 }}
-                  >
-                    {t('canvas.launchpad.placeholder', 'Describe needs...')}
-                  </motion.span>
-                </Button>
+                      <Logo logoProps={{ show: false }} />
+                      <span className="text-refly-text-0 text-[14px] ml-0.5">Agent</span>
+                    </motion.div>
+                    <motion.span
+                      className="text-refly-text-2 text-[16px] font-normal"
+                      initial={{ opacity: 0, x: 5 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ duration: 0.2, delay: 0.2 }}
+                    >
+                      {t('canvas.launchpad.placeholder', 'Describe needs...')}
+                    </motion.span>
+                  </Button>
+                </motion.div>
               </motion.div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+            )}
+          </AnimatePresence>
+        )}
 
         <TopToolbar canvasId={canvasId} mode={interactionMode} changeMode={toggleInteractionMode} />
         <div className="flex-grow relative">
@@ -1095,27 +1160,27 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
             <style>{`
               .react-flow__node {
                 cursor: not-allowed !important;
-                opacity: 0.9;
-              }
-              .react-flow__node:hover {
-                box-shadow: none !important;
               }
             `}</style>
           )}
           <DropOverlay />
           <ReactFlow
             {...flowConfig}
+            selectionMode={SelectionMode.Partial}
             className="bg-refly-bg-canvas"
             snapToGrid={true}
             snapGrid={[GRID_SIZE, GRID_SIZE]}
             edgeTypes={edgeTypes}
-            panOnScroll={interactionMode === 'touchpad'}
-            panOnDrag={interactionMode === 'mouse'}
-            zoomOnScroll={interactionMode === 'mouse'}
-            zoomOnPinch={interactionMode === 'touchpad'}
+            // Unified mouse and touchpad gesture configuration
+            panOnScroll={true} // Enable scroll panning
+            panOnScrollSpeed={0.5} // Adjust scroll speed
+            panOnDrag={true} // Enable mouse left-click and touchpad single-finger drag
+            zoomOnScroll={true} // Enable scroll zooming
+            zoomOnPinch={true} // Enable touchpad two-finger pinch zoom
             zoomOnDoubleClick={false}
-            selectNodesOnDrag={!operatingNodeId && interactionMode === 'mouse' && !readonly}
-            selectionOnDrag={!operatingNodeId && interactionMode === 'touchpad' && !readonly}
+            // Enable default selection behavior
+            selectNodesOnDrag={true}
+            selectionOnDrag={true}
             nodeTypes={memoizedNodeTypes}
             nodes={memoizedNodes}
             edges={memoizedEdges}
@@ -1149,7 +1214,6 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
             {nodes?.length === 0 && canvasInitialized && <EmptyGuide canvasId={canvasId} />}
 
             {memoizedBackground}
-            {memoizedMiniMap}
             <HelperLines horizontal={helperLineHorizontal} vertical={helperLineVertical} />
           </ReactFlow>
         </div>
@@ -1168,39 +1232,19 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
           </div>
         </div>
 
-        <MenuPopper open={menuOpen} position={menuPosition} setOpen={setMenuOpen} />
-
-        {contextMenu.open && contextMenu.type === 'canvas' && (
-          <ContextMenu
-            open={contextMenu.open}
-            position={contextMenu.position}
-            setOpen={(open) => setContextMenu((prev) => ({ ...prev, open }))}
-            isSelection={contextMenu.isSelection}
-          />
-        )}
-
-        {contextMenu.open &&
-          contextMenu.type === 'node' &&
-          contextMenu.nodeId &&
-          contextMenu.nodeType && (
-            <NodeContextMenu
-              open={contextMenu.open}
-              position={contextMenu.position}
-              nodeId={contextMenu.nodeId}
-              nodeType={contextMenu.nodeType}
-              source={contextMenu.source}
-              dragCreateInfo={contextMenu.dragCreateInfo}
-              setOpen={(open) => setContextMenu((prev) => ({ ...prev, open }))}
-            />
-          )}
-
-        {contextMenu.open && contextMenu.type === 'selection' && (
-          <SelectionContextMenu
-            open={contextMenu.open}
-            position={contextMenu.position}
-            setOpen={(open) => setContextMenu((prev) => ({ ...prev, open }))}
-          />
-        )}
+        <UnifiedContextMenu
+          open={contextMenu.open}
+          position={contextMenu.position}
+          menuType={contextMenu.type}
+          context={{
+            nodeId: contextMenu.nodeId,
+            nodeType: contextMenu.nodeType,
+            source: contextMenu.source,
+            dragCreateInfo: contextMenu.dragCreateInfo,
+            isSelection: contextMenu.isSelection,
+          }}
+          setOpen={(open) => setContextMenu((prev) => ({ ...prev, open }))}
+        />
 
         {selectedNodes.length > 0 && <MultiSelectionMenus />}
       </div>
@@ -1209,6 +1253,7 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
 });
 
 export const Canvas = (props: { canvasId: string; readonly?: boolean }) => {
+  const isPreviewCanvas = useMatch('/preview/canvas/:shareId');
   const { canvasId, readonly } = props;
   const setCurrentCanvasId = useCanvasStoreShallow((state) => state.setCurrentCanvasId);
 
@@ -1218,12 +1263,14 @@ export const Canvas = (props: { canvasId: string; readonly?: boolean }) => {
     setResourcesPanelWidth,
     showLeftOverview,
     setShowLeftOverview,
+    showWorkflowRun,
   } = useCanvasResourcesPanelStoreShallow((state) => ({
     sidePanelVisible: state.sidePanelVisible,
     resourcesPanelWidth: state.panelWidth,
     setResourcesPanelWidth: state.setPanelWidth,
     showLeftOverview: state.showLeftOverview,
     setShowLeftOverview: state.setShowLeftOverview,
+    showWorkflowRun: state.showWorkflowRun,
   }));
 
   useEffect(() => {
@@ -1236,6 +1283,10 @@ export const Canvas = (props: { canvasId: string; readonly?: boolean }) => {
     } else {
       setCurrentCanvasId(null);
     }
+
+    return () => {
+      setCurrentCanvasId(null);
+    };
   }, [canvasId, setCurrentCanvasId]);
 
   // Handle panel resize
@@ -1306,6 +1357,8 @@ export const Canvas = (props: { canvasId: string; readonly?: boolean }) => {
     <EditorPerformanceProvider>
       <ReactFlowProvider>
         <CanvasProvider readonly={readonly} canvasId={canvasId}>
+          <UploadNotification />
+
           <Splitter
             className="canvas-splitter w-full h-[calc(100vh-16px)]"
             onResize={handlePanelResize}
@@ -1319,25 +1372,29 @@ export const Canvas = (props: { canvasId: string; readonly?: boolean }) => {
               min={480}
               max={maxPanelWidth}
             >
-              <Popover
-                classNames={{
-                  root: 'resources-panel-popover',
-                }}
-                open={showLeftOverview}
-                onOpenChange={setShowLeftOverview}
-                arrow={false}
-                content={
-                  <div className="flex w-[360px] h-full" data-refly-resources-popover="true">
-                    <ResourceOverview />
-                  </div>
-                }
-                placement="left"
-                align={{
-                  offset: [0, 0],
-                }}
-              >
-                <CanvasResources />
-              </Popover>
+              {showWorkflowRun && !readonly && !isPreviewCanvas ? (
+                <WorkflowRun />
+              ) : (
+                <Popover
+                  classNames={{
+                    root: 'resources-panel-popover',
+                  }}
+                  open={showLeftOverview}
+                  onOpenChange={setShowLeftOverview}
+                  arrow={false}
+                  content={
+                    <div className="flex w-[360px] h-full" data-refly-resources-popover="true">
+                      <ResourceOverview />
+                    </div>
+                  }
+                  placement="left"
+                  align={{
+                    offset: [0, 0],
+                  }}
+                >
+                  <CanvasResources />
+                </Popover>
+              )}
             </Splitter.Panel>
           </Splitter>
           <CanvasResourcesWidescreenModal />
@@ -1346,3 +1403,6 @@ export const Canvas = (props: { canvasId: string; readonly?: boolean }) => {
     </EditorPerformanceProvider>
   );
 };
+
+// Re-export providers for external use
+export { ReactFlowProvider } from '@xyflow/react';

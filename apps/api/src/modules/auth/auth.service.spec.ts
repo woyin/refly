@@ -6,9 +6,6 @@ import { PrismaService } from '../common/prisma.service';
 import { JwtService } from '@nestjs/jwt';
 import { MiscService } from '../misc/misc.service';
 import { ProviderService } from '../provider/provider.service';
-import type { Queue } from 'bullmq';
-import { getQueueToken } from '@nestjs/bullmq';
-import { QUEUE_SEND_VERIFICATION_EMAIL } from '../../utils/const';
 
 describe('AuthService', () => {
   let service: AuthService;
@@ -17,10 +14,6 @@ describe('AuthService', () => {
   const jwtService = createMock<JwtService>();
   const miscService = createMock<MiscService>();
   const providerService = createMock<ProviderService>();
-
-  const mockQueue = {
-    add: jest.fn(),
-  } as unknown as Queue;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -31,7 +24,7 @@ describe('AuthService', () => {
           useValue: {
             get: jest.fn((key: string) => {
               switch (key) {
-                case 'auth.email.resendApiKey':
+                case 'email.resendApiKey':
                   return 're_123';
                 default:
                   return null;
@@ -43,7 +36,6 @@ describe('AuthService', () => {
         { provide: JwtService, useValue: jwtService },
         { provide: MiscService, useValue: miscService },
         { provide: ProviderService, useValue: providerService },
-        { provide: getQueueToken(QUEUE_SEND_VERIFICATION_EMAIL), useValue: mockQueue },
       ],
     }).compile();
 

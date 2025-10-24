@@ -4,8 +4,8 @@ import { KnowledgeModule } from '../knowledge/knowledge.module';
 import { SkillService } from './skill.service';
 import { SkillController } from './skill.controller';
 import { CommonModule } from '../common/common.module';
+import { StepModule } from '../step/step.module';
 import { SearchModule } from '../search/search.module';
-import { CanvasModule } from '../canvas/canvas.module';
 import { RAGModule } from '../rag/rag.module';
 import {
   QUEUE_SYNC_TOKEN_USAGE,
@@ -20,7 +20,6 @@ import { LabelModule } from '../label/label.module';
 import { SkillProcessor, CheckStuckActionsProcessor } from '../skill/skill.processor';
 import { SubscriptionModule } from '../subscription/subscription.module';
 import { CreditModule } from '../credit/credit.module';
-import { CollabModule } from '../collab/collab.module';
 import { MiscModule } from '../misc/misc.module';
 import { CodeArtifactModule } from '../code-artifact/code-artifact.module';
 import { ProviderModule } from '../provider/provider.module';
@@ -30,22 +29,25 @@ import { SkillEngineService } from './skill-engine.service';
 import { SkillInvokerService } from './skill-invoker.service';
 import { isDesktop } from '../../utils/runtime';
 import { ActionModule } from '../action/action.module';
+import { ToolModule } from '../tool/tool.module';
+import { ToolCallModule } from '../tool-call/tool-call.module';
 
 @Module({
   imports: [
     CommonModule,
+    StepModule,
     forwardRef(() => ActionModule),
     LabelModule,
     SearchModule,
-    CanvasModule,
     KnowledgeModule,
     RAGModule,
     SubscriptionModule,
     CreditModule,
-    CollabModule,
     MiscModule,
     CodeArtifactModule,
     ProviderModule,
+    ToolModule,
+    ToolCallModule,
     McpServerModule,
     MediaGeneratorModule,
     ...(isDesktop()

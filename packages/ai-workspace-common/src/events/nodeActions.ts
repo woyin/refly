@@ -49,6 +49,7 @@ export const cleanupNodeEvents = (nodeId: string) => {
     'cloneAskAI',
     'cloneAskAI.completed',
     'showActionButtons',
+    'download',
   ];
   for (const type of eventTypes) {
     nodeActionEmitter.all.delete(createNodeEventName(nodeId, type));

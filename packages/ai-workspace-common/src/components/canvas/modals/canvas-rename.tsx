@@ -25,6 +25,7 @@ export const CanvasRenameModal = memo(() => {
   const { t } = useTranslation();
 
   const [isLoading, setIsLoading] = useState(false);
+  const [saveLoading, setSaveLoading] = useState(false);
 
   const {
     canvasId,
@@ -32,17 +33,19 @@ export const CanvasRenameModal = memo(() => {
     modalVisible,
     modalType,
     reset: resetCanvasOperationState,
+    triggerRenameSuccess,
   } = useCanvasOperationStoreShallow((state) => ({
     canvasId: state.canvasId,
     canvasTitle: state.canvasTitle,
     modalVisible: state.modalVisible,
     modalType: state.modalType,
     reset: state.reset,
+    triggerRenameSuccess: state.triggerRenameSuccess,
   }));
   const setCanvasTitle = useCanvasStoreShallow((state) => state.setCanvasTitle);
   const [editedTitle, setEditedTitle] = useState(canvasTitle);
 
-  const updateCanvasTitleInSider = useSiderStoreShallow((state) => state.updateCanvasTitle);
+  const updateCanvasTitleInStore = useSiderStoreShallow((state) => state.updateCanvasTitle);
   const inputRef = useRef<InputRef | null>(null);
 
   useEffect(() => {
@@ -68,16 +71,34 @@ export const CanvasRenameModal = memo(() => {
   }, [canvasId]);
 
   const handleSubmit = useCallback(async () => {
+    if (saveLoading) return;
     if (editedTitle?.trim()) {
+      setSaveLoading(true);
       const newTitle = await updateRemoteCanvasTitle(canvasId, editedTitle);
       if (newTitle) {
         setCanvasTitle(canvasId, newTitle);
-        updateCanvasTitleInSider(canvasId, newTitle);
+        updateCanvasTitleInStore(canvasId, newTitle);
+
+        // Trigger rename success event with updated canvas data
+        triggerRenameSuccess({
+          canvasId,
+          title: newTitle,
+        } as any);
 
         resetCanvasOperationState();
       }
+      setSaveLoading(false);
     }
-  }, [canvasId, editedTitle, setCanvasTitle, updateCanvasTitleInSider, resetCanvasOperationState]);
+  }, [
+    canvasId,
+    editedTitle,
+    setCanvasTitle,
+    updateCanvasTitleInStore,
+    resetCanvasOperationState,
+    triggerRenameSuccess,
+    saveLoading,
+    setSaveLoading,
+  ]);
 
   const handleCancel = useCallback(() => {
     resetCanvasOperationState();
@@ -104,7 +125,7 @@ export const CanvasRenameModal = memo(() => {
       cancelText={t('common.cancel')}
       onOk={handleSubmit}
       onCancel={handleCancel}
-      okButtonProps={{ disabled: !editedTitle?.trim() }}
+      okButtonProps={{ disabled: !editedTitle?.trim() || saveLoading, loading: saveLoading }}
       afterOpenChange={(open) => {
         if (open) {
           inputRef.current?.focus();

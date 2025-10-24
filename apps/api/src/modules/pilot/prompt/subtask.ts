@@ -1,21 +1,13 @@
 import { SkillInput } from '@refly/openapi-schema';
+import { ProgressStage } from '../pilot.types';
 
 export function buildSubtaskSkillInput(params: {
-  userQuestion: string;
+  stage: ProgressStage;
   query: string;
+  context?: string;
+  scope?: string;
+  outputRequirements?: string;
   locale?: string;
 }): SkillInput {
-  const { userQuestion, query } = params;
-
-  const prompt = `ROLE:
-You are executing a focused subtask as part of a larger multi-epoch plan.
-
-GOAL CONTEXT:
-- Original user goal: "${userQuestion}"
-
-THIS SUBTASK:
-- Query: "${query}"
-`;
-
-  return { query: prompt };
+  return { query: params.query };
 }

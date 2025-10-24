@@ -9,6 +9,7 @@ import React, {
 } from 'react';
 import { get, set, update } from 'idb-keyval';
 import { Modal, Radio } from 'antd';
+import { ModalFunc } from 'antd/es/modal/confirm';
 import { Node, Edge, useStoreApi, InternalNode, useReactFlow } from '@xyflow/react';
 import { adoptUserNodes, updateConnectionLookup } from '@xyflow/system';
 import {
@@ -17,6 +18,7 @@ import {
   CanvasState,
   CanvasTransaction,
   VersionConflict,
+  WorkflowVariable,
 } from '@refly/openapi-schema';
 import { RawCanvasData } from '@refly-packages/ai-workspace-common/requests/types.gen';
 import { useFetchShareData } from '@refly-packages/ai-workspace-common/hooks/use-fetch-share-data';
@@ -33,7 +35,10 @@ import {
 import { useCanvasStore, useCanvasStoreShallow } from '@refly/stores';
 import { useDebouncedCallback } from 'use-debounce';
 import { IContextItem } from '@refly/common-types';
-import { useGetCanvasDetail } from '@refly-packages/ai-workspace-common/queries';
+import {
+  useGetCanvasDetail,
+  useGetWorkflowVariables,
+} from '@refly-packages/ai-workspace-common/queries';
 import { useTranslation } from 'react-i18next';
 import dayjs from 'dayjs';
 import { logEvent } from '@refly/telemetry-web';
@@ -62,8 +67,13 @@ interface CanvasContextType {
   shareNotFound?: boolean;
   shareData?: RawCanvasData;
   lastUpdated?: number;
+  workflow: {
+    workflowVariables: WorkflowVariable[];
+    workflowVariablesLoading: boolean;
+    refetchWorkflowVariables: () => void;
+  };
 
-  syncCanvasData: () => Promise<void>;
+  forceSyncState: (options?: { syncRemote?: boolean }) => Promise<void>;
   undo: () => Promise<void>;
   redo: () => Promise<void>;
 }
@@ -83,7 +93,7 @@ const pollCanvasTransactions = async (
     query: {
       canvasId,
       version,
-      since: Date.now() - 5000, // 5 seconds ago
+      since: Date.now() - 60000, // 1 minute ago
     },
   });
   if (error) {
@@ -152,26 +162,30 @@ export const CanvasProvider = ({
   const [loading, setLoading] = useState(false);
 
   const [syncFailureCount, setSyncFailureCount] = useState(0);
-  const [syncFailureModalOpen, setSyncFailureModalOpen] = useState(false);
+
+  const warningModalRef = useRef<ReturnType<ModalFunc> | null>(null);
 
   useEffect(() => {
-    if (syncFailureCount > CANVAS_SYNC_FAILURE_COUNT_THRESHOLD && !syncFailureModalOpen) {
-      setSyncFailureModalOpen(true);
-      modal.warning({
-        title: t('canvas.syncFailure.title'),
-        content: t('canvas.syncFailure.content'),
-        centered: true,
-        okText: t('canvas.syncFailure.reload'),
-        cancelText: t('common.cancel'),
-        onOk: () => {
-          window.location.reload();
-        },
-        onCancel: () => {
-          setSyncFailureModalOpen(false);
-        },
-      });
+    if (syncFailureCount > CANVAS_SYNC_FAILURE_COUNT_THRESHOLD) {
+      if (!warningModalRef.current) {
+        warningModalRef.current = modal.warning({
+          title: t('canvas.syncFailure.title'),
+          content: t('canvas.syncFailure.content'),
+          centered: true,
+          okText: t('canvas.syncFailure.reload'),
+          cancelText: t('common.cancel'),
+          onOk: () => {
+            window.location.reload();
+          },
+        });
+      }
+    } else {
+      if (warningModalRef.current) {
+        warningModalRef.current.destroy();
+        warningModalRef.current = null;
+      }
     }
-  }, [syncFailureCount, syncFailureModalOpen, modal, t]);
+  }, [syncFailureCount, modal, t]);
 
   const isSyncingRemoteRef = useRef(false); // Lock for syncWithRemote
   const isSyncingLocalRef = useRef(false); // Lock for syncCanvasData
@@ -186,6 +200,14 @@ export const CanvasProvider = ({
     enabled: !readonly && !!canvasId,
   });
 
+  const {
+    data: workflowVariables,
+    refetch: refetchWorkflowVariables,
+    isLoading: workflowVariablesLoading,
+  } = useGetWorkflowVariables({ query: { canvasId } }, undefined, {
+    enabled: !readonly && !!canvasId,
+  });
+
   // Use the hook to fetch canvas data when in readonly mode
   const {
     data: canvasData,
@@ -193,14 +215,22 @@ export const CanvasProvider = ({
     loading: shareLoading,
   } = useFetchShareData<RawCanvasData>(readonly ? canvasId : undefined);
 
+  const finalVariables = useMemo(() => {
+    if (readonly) {
+      return canvasData?.variables ?? [];
+    }
+    return workflowVariables?.data ?? [];
+  }, [readonly, workflowVariables, canvasData]);
+
   // Check if it's a 404 error
   const shareNotFound = useMemo(() => {
-    if (!canvasError) return false;
+    if (!readonly || shareLoading || !canvasError) return false;
     return (
+      !canvasData ||
       canvasError.message.includes('404') ||
       canvasError.message.includes('Failed to fetch share data: 404')
     );
-  }, [canvasError]);
+  }, [canvasError, canvasData, shareLoading, readonly]);
 
   // Set canvas data from API response when in readonly mode
   useEffect(() => {
@@ -222,208 +252,6 @@ export const CanvasProvider = ({
       setCanvasTitle(canvasId, canvasDetail.data.title);
     }
   }, [readonly, canvasData, canvasDetail, canvasId]);
-
-  const handleCreateCanvasVersion = async (canvasId: string, state: CanvasState) => {
-    try {
-      const result = await createCanvasVersion(canvasId, state);
-      if (!result) {
-        // Fallback: verify if server already created the new version
-        const remoteState = await getCanvasState(canvasId);
-        if (remoteState && remoteState.version !== state.version) {
-          return remoteState;
-        }
-        return;
-      }
-
-      const { conflict, newState } = result;
-
-      let finalState: CanvasState | undefined;
-
-      if (conflict) {
-        const userChoice = await handleConflictResolution(canvasId, conflict);
-        logEvent('canvas::conflict_version', userChoice, {
-          canvasId,
-          source: 'create_new_version',
-          localVersion: conflict.localState.version,
-          remoteVersion: conflict.remoteState.version,
-        });
-
-        if (userChoice === 'local') {
-          finalState = conflict.localState;
-        } else {
-          finalState = conflict.remoteState;
-        }
-      } else if (newState) {
-        finalState = newState;
-      }
-
-      return finalState;
-    } catch {
-      // Network error may occur while server actually succeeded; verify by fetching remote state
-      try {
-        const remoteState = await getCanvasState(canvasId);
-        if (remoteState && remoteState.version !== state.version) {
-          return remoteState;
-        }
-      } catch (_) {
-        // Intentionally ignore; will retry on next sync tick
-      }
-      return;
-    }
-  };
-
-  // Sync canvas state with remote
-  const syncWithRemote = async (canvasId: string) => {
-    const state = await get<CanvasState>(`canvas-state:${canvasId}`);
-    if (!state) {
-      return;
-    }
-
-    // If the number of transactions is greater than the threshold, create a new version
-    if (shouldCreateNewVersion(state)) {
-      const finalState = await handleCreateCanvasVersion(canvasId, state);
-      if (finalState) {
-        await set(`canvas-state:${canvasId}`, finalState);
-      }
-      return;
-    }
-
-    const unsyncedTransactions = state?.transactions?.filter((tx) => !tx.syncedAt);
-
-    if (!unsyncedTransactions?.length) {
-      return;
-    }
-
-    const { error, data } = await getClient().syncCanvasState({
-      body: {
-        canvasId,
-        version: state.version,
-        transactions: unsyncedTransactions,
-      },
-    });
-
-    if (!error && data?.success) {
-      setSyncFailureCount(0);
-      await update<CanvasState>(`canvas-state:${canvasId}`, (state) => ({
-        ...state,
-        nodes: state?.nodes ?? [],
-        edges: state?.edges ?? [],
-        transactions: state?.transactions?.map((tx) => ({
-          ...tx,
-          syncedAt: tx.syncedAt ?? Date.now(),
-        })),
-      }));
-    } else {
-      setSyncFailureCount((count) => count + 1);
-    }
-  };
-
-  // Set up sync job that runs every 2 seconds
-  useEffect(() => {
-    if (!canvasId || readonly) return;
-
-    const intervalId = setInterval(async () => {
-      // Prevent multiple instances from running simultaneously
-      if (isSyncingRemoteRef.current) return;
-
-      const { canvasInitializedAt } = useCanvasStore.getState();
-      const initTs = canvasInitializedAt[canvasId];
-
-      // Only sync canvas data after canvas is ready for some time
-      if (!initTs || Date.now() - initTs < SYNC_CANVAS_WAIT_INIT_TIME) {
-        return;
-      }
-
-      isSyncingRemoteRef.current = true;
-      try {
-        await syncWithRemote(canvasId);
-      } catch (error) {
-        console.error('Canvas sync failed:', error);
-      } finally {
-        isSyncingRemoteRef.current = false;
-      }
-    }, SYNC_REMOTE_INTERVAL);
-
-    return () => {
-      clearInterval(intervalId);
-    };
-  }, [canvasId]);
-
-  const { getNodes, getEdges } = useReactFlow();
-
-  // Sync canvas data to local state
-  const syncCanvasData = useDebouncedCallback(async () => {
-    // Prevent multiple concurrent sync operations
-    if (isSyncingLocalRef.current) {
-      return;
-    }
-
-    const { canvasInitializedAt } = useCanvasStore.getState();
-    const initTs = canvasInitializedAt[canvasId];
-
-    // Only sync canvas data after canvas is ready for some time
-    if (!initTs || Date.now() - initTs < SYNC_CANVAS_WAIT_INIT_TIME) {
-      return;
-    }
-
-    isSyncingLocalRef.current = true;
-
-    try {
-      const nodes = getNodes() as CanvasNode[];
-      const edges = getEdges() as CanvasEdge[];
-
-      // Purge context items from nodes
-      const purgedNodes: CanvasNode[] = nodes.map((node) => ({
-        ...node,
-        data: {
-          ...node.data,
-          metadata: {
-            ...node.data?.metadata,
-            contextItems: purgeContextItems(node.data?.metadata?.contextItems as IContextItem[]),
-          },
-        },
-      }));
-
-      const currentState = await get(`canvas-state:${canvasId}`);
-      const currentStateData = getCanvasDataFromState(currentState);
-
-      const diff = calculateCanvasStateDiff(currentStateData, {
-        nodes: purgedNodes,
-        edges,
-      });
-
-      if (diff) {
-        await update<CanvasState>(`canvas-state:${canvasId}`, (state) => ({
-          ...state,
-          nodes: state?.nodes ?? [],
-          edges: state?.edges ?? [],
-          transactions: [...(state?.transactions?.filter((tx) => !tx.revoked) ?? []), diff],
-        }));
-      }
-    } finally {
-      isSyncingLocalRef.current = false;
-    }
-  }, SYNC_CANVAS_LOCAL_WAIT_TIME);
-
-  // Function to update canvas data from state
-  const updateCanvasDataFromState = useCallback(
-    (state: CanvasState) => {
-      const { nodeLookup, parentLookup, connectionLookup, edgeLookup } = getState();
-      const { nodes, edges } = getCanvasDataFromState(state);
-
-      const internalState = getInternalState({
-        nodes: nodes && Array.isArray(nodes) ? (nodes as unknown as Node[]) : [],
-        edges: edges && Array.isArray(edges) ? (edges as unknown as Edge[]) : [],
-        nodeLookup,
-        parentLookup,
-        connectionLookup,
-        edgeLookup,
-      });
-      setState(internalState);
-      setLastUpdated(Date.now());
-    },
-    [getState, setState],
-  );
 
   const handleConflictResolution = useCallback(
     (canvasId: string, conflict: VersionConflict): Promise<'local' | 'remote'> => {
@@ -480,6 +308,228 @@ export const CanvasProvider = ({
       });
     },
     [],
+  );
+
+  const handleCreateCanvasVersion = useCallback(
+    async (canvasId: string, state: CanvasState) => {
+      try {
+        const result = await createCanvasVersion(canvasId, state);
+        if (!result) {
+          // Fallback: verify if server already created the new version
+          const remoteState = await getCanvasState(canvasId);
+          if (remoteState && remoteState.version !== state.version) {
+            return remoteState;
+          }
+          return;
+        }
+
+        const { conflict, newState } = result;
+
+        let finalState: CanvasState | undefined;
+
+        if (conflict) {
+          const userChoice = await handleConflictResolution(canvasId, conflict);
+          logEvent('canvas::conflict_version', userChoice, {
+            canvasId,
+            source: 'create_new_version',
+            localVersion: conflict.localState.version,
+            remoteVersion: conflict.remoteState.version,
+          });
+
+          if (userChoice === 'local') {
+            finalState = conflict.localState;
+          } else {
+            finalState = conflict.remoteState;
+          }
+        } else if (newState) {
+          finalState = newState;
+        }
+
+        return finalState;
+      } catch {
+        // Network error may occur while server actually succeeded; verify by fetching remote state
+        try {
+          const remoteState = await getCanvasState(canvasId);
+          if (remoteState && remoteState.version !== state.version) {
+            return remoteState;
+          }
+        } catch (_) {
+          // Intentionally ignore; will retry on next sync tick
+        }
+        return;
+      }
+    },
+    [handleConflictResolution],
+  );
+
+  // Sync canvas state with remote
+  const syncWithRemote = useCallback(async () => {
+    const state = await get<CanvasState>(`canvas-state:${canvasId}`);
+    if (!state) {
+      return;
+    }
+
+    // If the number of transactions is greater than the threshold, create a new version
+    if (shouldCreateNewVersion(state)) {
+      const finalState = await handleCreateCanvasVersion(canvasId, state);
+      if (finalState) {
+        await set(`canvas-state:${canvasId}`, finalState);
+      }
+      return;
+    }
+
+    const unsyncedTransactions = state?.transactions?.filter((tx) => !tx.syncedAt);
+
+    if (!unsyncedTransactions?.length) {
+      return;
+    }
+
+    const { error, data } = await getClient().syncCanvasState({
+      body: {
+        canvasId,
+        version: state.version,
+        transactions: unsyncedTransactions,
+      },
+    });
+
+    if (!error && data?.success) {
+      setSyncFailureCount(0);
+      await update<CanvasState>(`canvas-state:${canvasId}`, (state) => ({
+        ...state,
+        nodes: state?.nodes ?? [],
+        edges: state?.edges ?? [],
+        transactions: state?.transactions?.map((tx) => ({
+          ...tx,
+          syncedAt: tx.syncedAt ?? Date.now(),
+        })),
+      }));
+    } else {
+      setSyncFailureCount((count) => count + 1);
+    }
+  }, [canvasId, handleCreateCanvasVersion]);
+
+  // Set up sync job that runs every 2 seconds
+  useEffect(() => {
+    if (!canvasId || readonly) return;
+
+    const intervalId = setInterval(async () => {
+      // Prevent multiple instances from running simultaneously
+      if (isSyncingRemoteRef.current) return;
+
+      const { canvasInitializedAt } = useCanvasStore.getState();
+      const initTs = canvasInitializedAt[canvasId];
+
+      // Only sync canvas data after canvas is ready for some time
+      if (!initTs || Date.now() - initTs < SYNC_CANVAS_WAIT_INIT_TIME) {
+        return;
+      }
+
+      isSyncingRemoteRef.current = true;
+      try {
+        await syncWithRemote();
+      } catch (error) {
+        console.error('Canvas sync failed:', error);
+      } finally {
+        isSyncingRemoteRef.current = false;
+      }
+    }, SYNC_REMOTE_INTERVAL);
+
+    return () => {
+      clearInterval(intervalId);
+    };
+  }, [canvasId, readonly, syncWithRemote]);
+
+  const { getNodes, getEdges } = useReactFlow();
+
+  // Core local sync logic extracted for reuse
+  const doLocalSync = useCallback(async () => {
+    // Prevent multiple concurrent sync operations
+    if (isSyncingLocalRef.current) {
+      return;
+    }
+
+    const { canvasInitializedAt } = useCanvasStore.getState();
+    const initTs = canvasInitializedAt[canvasId];
+
+    // Only sync canvas data after canvas is ready for some time
+    if (!initTs || Date.now() - initTs < SYNC_CANVAS_WAIT_INIT_TIME) {
+      return;
+    }
+
+    isSyncingLocalRef.current = true;
+
+    try {
+      const nodes = getNodes() as CanvasNode[];
+      const edges = getEdges() as CanvasEdge[];
+
+      // Purge context items from nodes
+      const purgedNodes: CanvasNode[] = nodes.map((node) => ({
+        ...node,
+        data: {
+          ...node.data,
+          metadata: {
+            ...node.data?.metadata,
+            contextItems: purgeContextItems(node.data?.metadata?.contextItems as IContextItem[]),
+          },
+        },
+      }));
+
+      const currentState = await get(`canvas-state:${canvasId}`);
+      const currentStateData = getCanvasDataFromState(currentState);
+
+      const diff = calculateCanvasStateDiff(currentStateData, {
+        nodes: purgedNodes,
+        edges,
+      });
+
+      if (diff) {
+        await update<CanvasState>(`canvas-state:${canvasId}`, (state) => ({
+          ...state,
+          nodes: state?.nodes ?? [],
+          edges: state?.edges ?? [],
+          transactions: [...(state?.transactions?.filter((tx) => !tx.revoked) ?? []), diff],
+        }));
+      }
+    } finally {
+      isSyncingLocalRef.current = false;
+    }
+  }, [canvasId, getNodes, getEdges]);
+
+  // Debounced version for normal usage
+  const syncCanvasDataDebounced = useDebouncedCallback(async () => {
+    await doLocalSync();
+  }, SYNC_CANVAS_LOCAL_WAIT_TIME);
+
+  // A queue to ensure immediate local syncs run sequentially
+  const localSyncQueueRef = useRef<Promise<void>>(Promise.resolve());
+
+  // Immediate local sync that is awaitable and ordered
+  const syncLocalNow = useCallback(async () => {
+    const next = async () => doLocalSync();
+    const queued = localSyncQueueRef.current.then(next, next);
+    // Replace the queue with the in-flight promise
+    localSyncQueueRef.current = queued.catch(() => {});
+    await queued;
+  }, [doLocalSync]);
+
+  // Function to update canvas data from state
+  const updateCanvasDataFromState = useCallback(
+    (state: CanvasState) => {
+      const { nodeLookup, parentLookup, connectionLookup, edgeLookup } = getState();
+      const { nodes, edges } = getCanvasDataFromState(state);
+
+      const internalState = getInternalState({
+        nodes: nodes && Array.isArray(nodes) ? (nodes as unknown as Node[]) : [],
+        edges: edges && Array.isArray(edges) ? (edges as unknown as Edge[]) : [],
+        nodeLookup,
+        parentLookup,
+        connectionLookup,
+        edgeLookup,
+      });
+      setState(internalState);
+      setLastUpdated(Date.now());
+    },
+    [getState, setState],
   );
 
   const initialFetchCanvasState = useDebouncedCallback(async (canvasId: string) => {
@@ -641,14 +691,29 @@ export const CanvasProvider = ({
     initialFetchCanvasState(canvasId);
 
     return () => {
-      syncCanvasData.flush();
+      syncCanvasDataDebounced.flush();
 
       // Clear canvas data
       setState({ nodes: [], edges: [] });
       setLoading(false);
       setCanvasInitialized(canvasId, false);
     };
-  }, [canvasId, readonly, initialFetchCanvasState, syncCanvasData]);
+  }, [canvasId, readonly, initialFetchCanvasState, syncCanvasDataDebounced]);
+
+  // Force sync canvas state to remote or local
+  const forceSyncState = useCallback(
+    async (options?: { syncRemote?: boolean }) => {
+      if (options?.syncRemote) {
+        // Ensure latest local state is persisted before remote sync
+        await syncLocalNow();
+        await syncWithRemote();
+      } else {
+        // Schedule debounced local sync for performance
+        await syncCanvasDataDebounced();
+      }
+    },
+    [canvasId, syncLocalNow, syncWithRemote, syncCanvasDataDebounced],
+  );
 
   return (
     <CanvasContext.Provider
@@ -661,11 +726,14 @@ export const CanvasProvider = ({
         syncFailureCount,
         shareData: canvasData ?? undefined,
         lastUpdated,
-        syncCanvasData: async () => {
-          await syncCanvasData();
-        },
+        forceSyncState,
         undo,
         redo,
+        workflow: {
+          workflowVariables: finalVariables,
+          workflowVariablesLoading,
+          refetchWorkflowVariables,
+        },
       }}
     >
       {contextHolder}

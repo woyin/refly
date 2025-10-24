@@ -99,7 +99,6 @@ function Header() {
       ),
       value: 'docs',
     },
-
     {
       label: (
         <Dropdown menu={{ items: feedbackItems }} placement="bottom">
@@ -111,10 +110,15 @@ function Header() {
       ),
       value: 'community',
     },
+    {
+      label: t('landingPage.loginModal.privacyPolicy'),
+      value: 'privacy',
+    },
   ];
 
   useEffect(() => {
-    setValue(location.pathname.split('/')[1] || 'product');
+    const path = location.pathname.split('/')[1];
+    setValue(path || 'product');
   }, [location.pathname]);
 
   // Add effect to check for openLogin parameter
@@ -149,6 +153,9 @@ function Header() {
                     break;
                   case 'pricing':
                     navigate('/pricing');
+                    break;
+                  case 'privacy':
+                    window.open('https://docs.refly.ai/about/privacy-policy', '_blank');
                     break;
                 }
               }}

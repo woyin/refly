@@ -7,14 +7,19 @@ import {
 } from '@refly-packages/ai-workspace-common/events/nodeOperations';
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
 import { useAddNode } from './use-add-node';
-import { CanvasNode, CanvasNodeFilter, MediaSkillResponseNodeMeta } from '@refly/canvas-common';
+import {
+  CanvasNode,
+  convertContextItemsToNodeFilters,
+  MediaSkillResponseNodeMeta,
+} from '@refly/canvas-common';
 import { CodeArtifactNodeMeta } from '@refly/canvas-common';
 import { useNodePreviewControl } from '@refly-packages/ai-workspace-common/hooks/canvas/use-node-preview-control';
 import { CanvasNodeType } from '@refly-packages/ai-workspace-common/requests';
 import { useReactFlow } from '@xyflow/react';
 import { locateToNodePreviewEmitter } from '@refly-packages/ai-workspace-common/events/locateToNodePreview';
 import { genMediaSkillResponseID, genMediaSkillID } from '@refly/utils/id';
-import { useChatStore, useChatStoreShallow } from '@refly/stores';
+import { useChatStore, useChatStoreShallow, useActionResultStore } from '@refly/stores';
+import { useFindImages } from '@refly-packages/ai-workspace-common/hooks/canvas/use-find-images';
 
 import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
 import { omit } from '@refly/utils/typesafe';
@@ -22,7 +27,7 @@ import { omit } from '@refly/utils/typesafe';
 export const useListenNodeOperationEvents = () => {
   const { readonly, canvasId } = useCanvasContext();
   const { addNode } = useAddNode();
-  const { getNodes, getEdges, getNode } = useReactFlow();
+  const { getNodes, getEdges, getNode, deleteElements } = useReactFlow();
   const { t } = useTranslation();
 
   // Only use canvas store if in interactive mode and not readonly
@@ -32,6 +37,8 @@ export const useListenNodeOperationEvents = () => {
   const { mediaSelectedModel } = useChatStoreShallow((state) => ({
     mediaSelectedModel: state.mediaSelectedModel,
   }));
+
+  const findImages = useFindImages();
 
   const queryCodeArtifactByResultId = useCallback(
     async (params: { resultId: string; resultVersion: number }) => {
@@ -154,15 +161,73 @@ export const useListenNodeOperationEvents = () => {
       providerItemId,
       mediaType,
       query,
-      model,
+      modelInfo,
       nodeId,
       targetType,
       targetId,
+      contextItems,
     }: Events['generateMedia']) => {
       if (readonly) return;
 
       let targetNodeId = nodeId;
       const { mediaSelectedModel } = useChatStore.getState();
+
+      // Extract the first image storageKey from contextItems
+      const storageKeys = contextItems
+        ?.filter((item) => item.type === 'image' || item.type === 'video' || item.type === 'audio')
+        .flatMap((item) => findImages({ resultId: item.entityId }))
+        .map((img) => img.storageKey)
+        .filter(Boolean);
+
+      // Get skill response content and append to prompt
+      let enhancedQuery = query;
+      const skillResponseItems =
+        contextItems?.filter((item) => item.type === 'skillResponse') ?? [];
+
+      const documentItems = contextItems?.filter((item) => item.type === 'document') ?? [];
+
+      // Process skill response items
+      if (skillResponseItems.length > 0) {
+        const { resultMap } = useActionResultStore.getState();
+        const skillResponseContents: string[] = [];
+
+        for (const item of skillResponseItems) {
+          const result = resultMap[item.entityId];
+          if (result?.steps) {
+            const stepContents = result.steps?.map((step) => step?.content || '').filter(Boolean);
+            if (stepContents.length > 0) {
+              skillResponseContents.push(...stepContents);
+            }
+          }
+        }
+
+        if (skillResponseContents.length > 0) {
+          // Remove the "Previous responses:" label as per requirements
+          enhancedQuery = `${query}\n\n${skillResponseContents.join('\n\n')}`;
+        }
+      }
+
+      // Process document items and append their content
+      if (documentItems.length > 0) {
+        const documentContents: string[] = [];
+
+        for (const item of documentItems) {
+          try {
+            const { data, error } = await getClient().getDocumentDetail({
+              query: { docId: item.entityId },
+            });
+            if (!error && data?.data?.content) {
+              documentContents.push(data.data.content);
+            }
+          } catch (error) {
+            console.error('Error fetching document content:', error);
+          }
+        }
+
+        if (documentContents.length > 0) {
+          enhancedQuery = `${enhancedQuery}\n\n${documentContents.join('\n\n')}`;
+        }
+      }
 
       try {
         // If nodeId is empty, create a mediaSkill node first
@@ -170,19 +235,20 @@ export const useListenNodeOperationEvents = () => {
           const mediaSkillEntityId = genMediaSkillID();
 
           const mediaSkillNode = {
-            type: 'mediaSkill' as const,
+            type: 'skill' as const,
             data: {
               title: query,
               entityId: mediaSkillEntityId,
               metadata: {
                 query,
                 selectedModel: omit(mediaSelectedModel, ['creditBilling', 'provider']),
+                contextItems,
               },
             },
           };
 
           // Add the mediaSkill node to canvas
-          addNode(mediaSkillNode, [], false, true);
+          addNode(mediaSkillNode, convertContextItemsToNodeFilters(contextItems), false, true);
 
           // Get the created node ID
           const nodes = getNodes();
@@ -192,14 +258,59 @@ export const useListenNodeOperationEvents = () => {
           }
         }
 
+        // Process inputParameters to fill in enhancedQuery and storageKeys
+        let imageStorageKeyIndex = 0;
+
+        const processedInputParameters = (modelInfo?.inputParameters ?? []).map((param) => {
+          if (param.type === 'text') {
+            // Fill text type parameter with enhancedQuery
+            return {
+              ...param,
+              value: enhancedQuery,
+            };
+          } else if (param.type === 'url') {
+            // Check if there are multiple url parameters
+            const urlParameters = modelInfo?.inputParameters?.filter((p) => p.type === 'url') ?? [];
+
+            if (urlParameters.length === 1) {
+              // Single url parameter - use original logic
+              if (storageKeys?.length === 1 && !Array.isArray(param.value)) {
+                // Single URL as string
+                return {
+                  ...param,
+                  value: storageKeys[0],
+                };
+              } else {
+                // Multiple URLs as array
+                return {
+                  ...param,
+                  value: storageKeys,
+                };
+              }
+            } else if (urlParameters.length > 1) {
+              // Multiple url parameters - fill sequentially
+              if (storageKeys?.length > 0 && imageStorageKeyIndex < storageKeys.length) {
+                const value = storageKeys[imageStorageKeyIndex];
+                imageStorageKeyIndex++;
+                return {
+                  ...param,
+                  value: value,
+                };
+              }
+            }
+          }
+          return param;
+        });
+
         const { data } = await getClient().generateMedia({
           body: {
-            prompt: query,
+            prompt: enhancedQuery,
             mediaType,
-            model,
+            model: modelInfo?.name,
             providerItemId,
             targetType,
             targetId,
+            inputParameters: processedInputParameters,
           },
         });
 
@@ -207,6 +318,8 @@ export const useListenNodeOperationEvents = () => {
           // Create MediaSkillResponse node
           const resultId = data.resultId;
           const entityId = genMediaSkillResponseID();
+
+          const currentNode = getNode(targetNodeId);
 
           const newNode: Partial<CanvasNode<MediaSkillResponseNodeMeta>> = {
             type: 'mediaSkillResponse' as const,
@@ -216,25 +329,25 @@ export const useListenNodeOperationEvents = () => {
               metadata: {
                 status: 'waiting' as const,
                 mediaType,
-                prompt: query,
+                prompt: enhancedQuery,
                 resultId,
+                contextItems,
+                modelInfo,
                 selectedModel: omit(mediaSelectedModel, ['creditBilling', 'provider']),
+                inputParameters: processedInputParameters,
               },
             },
           };
+          // Set the new node position to the current node's position
+          if (currentNode?.position) {
+            newNode.position = { ...currentNode.position };
+          }
 
-          const currentNode = getNode(targetNodeId);
-          const connectedTo: CanvasNodeFilter[] = currentNode
-            ? [
-                {
-                  type: 'mediaSkill',
-                  entityId: currentNode.data?.entityId as string,
-                  handleType: 'source',
-                },
-              ]
-            : [];
+          // Add the new node without connecting to the current node
+          addNode(newNode, convertContextItemsToNodeFilters(contextItems), false, true);
 
-          addNode(newNode, connectedTo, false, true);
+          // Delete the skill node after emitting the event
+          deleteElements({ nodes: [currentNode] });
 
           // Emit completion event to notify mediaSkill node
           nodeOperationsEmitter.emit('mediaGenerationComplete', {
@@ -262,7 +375,7 @@ export const useListenNodeOperationEvents = () => {
         });
       }
     },
-    [readonly, getNode, addNode, getNodes, mediaSelectedModel],
+    [readonly, getNode, addNode, getNodes, mediaSelectedModel, findImages],
   );
 
   useEffect(() => {

@@ -22,7 +22,8 @@ import { ActionModule } from '../action/action.module';
 import { ProviderModule } from '../provider/provider.module';
 import { CodeArtifactModule } from '../code-artifact/code-artifact.module';
 import { isDesktop } from '../../utils/runtime';
-import { CanvasSyncService } from './canvas-sync.service';
+import { CanvasSyncModule } from '../canvas-sync/canvas-sync.module';
+import { ToolModule } from '../tool/tool.module';
 
 @Module({
   imports: [
@@ -30,7 +31,9 @@ import { CanvasSyncService } from './canvas-sync.service';
     MiscModule,
     KnowledgeModule,
     ActionModule,
+    ToolModule,
     ProviderModule,
+    CanvasSyncModule,
     CodeArtifactModule,
     SubscriptionModule,
     ...(isDesktop()
@@ -50,7 +53,6 @@ import { CanvasSyncService } from './canvas-sync.service';
   controllers: [CanvasController],
   providers: [
     CanvasService,
-    CanvasSyncService,
     ...(isDesktop()
       ? []
       : [
@@ -61,6 +63,6 @@ import { CanvasSyncService } from './canvas-sync.service';
           VerifyNodeAdditionProcessor,
         ]),
   ],
-  exports: [CanvasService, CanvasSyncService],
+  exports: [CanvasService],
 })
 export class CanvasModule {}

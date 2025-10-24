@@ -12,6 +12,95 @@ import { AiOutlineLoading3Quarters } from 'react-icons/ai';
 import { BiSolidEdit } from 'react-icons/bi';
 import { ContentHeader } from '../contentHeader';
 import { useLogout } from '@refly-packages/ai-workspace-common/hooks/use-logout';
+import defaultAvatar from '@refly-packages/ai-workspace-common/assets/refly_default_avatar.png';
+
+// Compress image utilities to ensure avatar file size under 5MB
+const MAX_AVATAR_BYTES = 5 * 1024 * 1024;
+
+const loadImageFromFile = (file: File): Promise<HTMLImageElement> => {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      resolve(img);
+    };
+    img.onerror = (e) => {
+      URL.revokeObjectURL(url);
+      reject(e);
+    };
+    img.src = url;
+  });
+};
+
+const canvasToBlob = (canvas: HTMLCanvasElement, quality: number): Promise<Blob> => {
+  return new Promise((resolve, reject) => {
+    canvas.toBlob(
+      (blob) => {
+        if (!blob) {
+          reject(new Error('Failed to convert canvas to blob'));
+          return;
+        }
+        resolve(blob);
+      },
+      'image/jpeg',
+      quality,
+    );
+  });
+};
+
+const compressImage = async (
+  file: File,
+  maxBytes = MAX_AVATAR_BYTES,
+  initialMaxDimension = 1024,
+): Promise<File> => {
+  const image = await loadImageFromFile(file);
+
+  let targetWidth = image.width;
+  let targetHeight = image.height;
+
+  const maxDim = Math.max(targetWidth, targetHeight);
+  if (maxDim > initialMaxDimension) {
+    const scale = initialMaxDimension / maxDim;
+    targetWidth = Math.floor(targetWidth * scale);
+    targetHeight = Math.floor(targetHeight * scale);
+  }
+
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d');
+  if (!ctx) throw new Error('Canvas 2D context not available');
+
+  let quality = 0.92;
+  let attempts = 0;
+  let blob: Blob | null = null;
+
+  while (attempts < 10) {
+    canvas.width = targetWidth;
+    canvas.height = targetHeight;
+    ctx.clearRect(0, 0, targetWidth, targetHeight);
+    ctx.drawImage(image, 0, 0, targetWidth, targetHeight);
+
+    // Prefer JPEG to get better compression ratio for avatars
+    // Lower quality progressively; if quality is already low, also reduce dimensions
+    // to meet the size constraint while keeping a reasonable visual quality
+    // eslint-disable-next-line no-await-in-loop
+    blob = await canvasToBlob(canvas, quality);
+    if (blob.size <= maxBytes) break;
+
+    if (quality > 0.5) {
+      quality *= 0.85; // reduce quality first
+    } else {
+      targetWidth = Math.floor(targetWidth * 0.9);
+      targetHeight = Math.floor(targetHeight * 0.9);
+    }
+    attempts += 1;
+  }
+
+  if (!blob) throw new Error('Compression failed without blob output');
+
+  const fileName = `${file.name.replace(/\.[^.]+$/, '')}.jpg`;
+  return new File([blob], fileName, { type: 'image/jpeg', lastModified: Date.now() });
+};
 
 export const AccountSetting = () => {
   const [form] = Form.useForm();
@@ -54,20 +143,30 @@ export const AccountSetting = () => {
     }
   };
 
-  const beforeUpload = (file: File) => {
+  const beforeUpload = async (file: File) => {
     const isValidType = ['image/png', 'image/jpeg', 'image/jpg', 'image/gif'].includes(file.type);
     if (!isValidType) {
       message.error(t('settings.account.onlyImageAllowed', { type: 'PNG, JPG, JPEG, GIF' }));
       return Upload.LIST_IGNORE;
     }
 
-    const isValidSize = file.size / 1024 / 1024 < 2;
-    if (!isValidSize) {
-      message.error(t('settings.account.imageSizeLimited', { size: 2 }));
-      return Upload.LIST_IGNORE;
+    let fileToUpload: File = file;
+    const isOverLimit = file.size > MAX_AVATAR_BYTES;
+    if (isOverLimit) {
+      try {
+        const compressed = await compressImage(file, MAX_AVATAR_BYTES);
+        if (compressed.size > MAX_AVATAR_BYTES) {
+          message.error(t('settings.account.imageSizeLimited', { size: 5 }));
+          return Upload.LIST_IGNORE;
+        }
+        fileToUpload = compressed;
+      } catch (_e) {
+        message.error(t('settings.account.imageSizeLimited', { size: 5 }));
+        return Upload.LIST_IGNORE;
+      }
     }
 
-    uploadAvatar(file);
+    uploadAvatar(fileToUpload);
 
     return false;
   };
@@ -166,10 +265,10 @@ export const AccountSetting = () => {
 
   // Avatar display component
   const AvatarDisplay = useMemo(() => {
-    if (userProfile?.avatar && !avatarError) {
+    if (defaultAvatar || (userProfile?.avatar && !avatarError)) {
       return (
         <img
-          src={userProfile.avatar}
+          src={userProfile?.avatar || defaultAvatar}
           alt="avatar"
           className="w-full h-full object-cover rounded-full"
           onError={() => {
@@ -199,7 +298,7 @@ export const AccountSetting = () => {
               </div>
               <div>
                 <div className="mb-[2px] text-base leading-[26px] font-semibold text-refly-text-0">
-                  {userProfile?.name || 'Unknown'}
+                  {userProfile?.nickname || 'Unknown'}
                 </div>
                 <div className="text-sm leading-5 text-refly-text-1">
                   {userProfile?.email || 'No email provided'}
@@ -235,13 +334,10 @@ export const AccountSetting = () => {
 
           {/* Logout Button */}
           <div>
-            <Button
-              color="danger"
-              variant="filled"
-              onClick={handleLogout}
-              className="text-refly-func-danger-default font-semibold"
-            >
-              {t('settings.account.logout')}
+            <Button variant="filled" onClick={handleLogout}>
+              <span className="text-refly-func-danger-default font-semibold">
+                {t('settings.account.logout')}
+              </span>
             </Button>
           </div>
         </div>
@@ -296,9 +392,9 @@ export const AccountSetting = () => {
                     </div>
                   )}
 
-                  {avatarKey && !avatarError ? (
+                  {(avatarKey && !avatarError) || defaultAvatar ? (
                     <img
-                      src={avatarUrl}
+                      src={avatarUrl || defaultAvatar}
                       alt="avatar"
                       className="w-full h-full object-cover"
                       onError={() => {

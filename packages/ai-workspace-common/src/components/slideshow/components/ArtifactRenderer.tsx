@@ -1,5 +1,6 @@
 import { memo, useMemo, useCallback } from 'react';
 import { message } from 'antd';
+import { useLocation } from 'react-router-dom';
 import {
   useGetCodeArtifactDetail,
   useGetDocumentDetail,
@@ -46,6 +47,7 @@ const ArtifactRenderer = memo(
     isMinimap?: boolean;
   }) => {
     const { t } = useTranslation();
+    const location = useLocation();
     const artifactId = node.nodeData?.entityId || '';
     const {
       title = rendererType === 'document'
@@ -56,6 +58,9 @@ const ArtifactRenderer = memo(
       type = 'text/html', // Default type
       language,
     } = node.nodeData?.metadata || {};
+
+    // Check if current route is an app route
+    const isAppRoute = location?.pathname?.startsWith('/app/') ?? false;
 
     // Choose different data fetching hook based on type
     const { data: remoteData, isLoading: isRemoteLoading } =
@@ -68,7 +73,7 @@ const ArtifactRenderer = memo(
             },
             [artifactId],
             {
-              enabled: Boolean(!shareId && artifactId && status?.startsWith('finish')),
+              enabled: Boolean(artifactId && status?.startsWith('finish')),
             },
           )
         : useGetCodeArtifactDetail(
@@ -79,7 +84,7 @@ const ArtifactRenderer = memo(
             },
             [artifactId],
             {
-              enabled: Boolean(!shareId && artifactId && status?.startsWith('finish')),
+              enabled: Boolean(artifactId && status?.startsWith('finish')),
             },
           );
 
@@ -87,11 +92,21 @@ const ArtifactRenderer = memo(
 
     const isLoading = isRemoteLoading || isShareLoading;
 
-    // Merge data sources
-    const artifactData = useMemo(
-      () => shareData || remoteData?.data || null,
-      [shareData, remoteData],
-    );
+    // Merge data sources - prioritize remoteData for app routes, shareData for others
+    const artifactData = useMemo(() => {
+      if (isAppRoute) {
+        return remoteData?.data || shareData || null;
+      }
+      return shareData || remoteData?.data || null;
+    }, [shareData, remoteData, isAppRoute]);
+
+    console.log('artifactData', {
+      artifactData,
+      remoteData,
+      shareData,
+      isAppRoute,
+      pathname: location?.pathname,
+    });
 
     // Get content
     const content = artifactData?.content || node.nodeData?.metadata?.content || '';

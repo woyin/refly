@@ -7,7 +7,26 @@ export type ResourceFileType =
   | 'text/markdown'
   | 'text/plain'
   | 'application/epub+zip'
-  | 'text/html';
+  | 'text/html'
+  // Images
+  | 'image/jpeg'
+  | 'image/png'
+  | 'image/gif'
+  | 'image/webp'
+  | 'image/svg+xml'
+  | 'image/bmp'
+  // Videos
+  | 'video/mp4'
+  | 'video/webm'
+  | 'video/ogg'
+  | 'video/quicktime'
+  | 'video/x-msvideo'
+  // Audio
+  | 'audio/mpeg'
+  | 'audio/wav'
+  | 'audio/ogg'
+  | 'audio/aac'
+  | 'audio/webm';
 
 // Define background colors for different node types
 export const NODE_COLORS: Record<
@@ -23,6 +42,7 @@ export const NODE_COLORS: Record<
   codeArtifact: 'var(--refly-Colorful-Blue)',
   website: 'var(--refly-Colorful-Blue)',
 
+  start: 'var(--refly-primary-default)',
   resource: 'var(--refly-primary-default)',
   resourceSelection: 'var(--refly-primary-default)',
 
@@ -50,6 +70,25 @@ export const NODE_COLORS: Record<
   'application/epub+zip': 'var(--refly-text-0)',
   'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': 'var(--refly-Colorful-Blue)',
   'text/html': 'var(--refly-Colorful-Blue)',
+  // Images
+  'image/jpeg': '#02b0c7',
+  'image/png': '#02b0c7',
+  'image/gif': '#02b0c7',
+  'image/webp': '#02b0c7',
+  'image/svg+xml': '#02b0c7',
+  'image/bmp': '#02b0c7',
+  // Videos
+  'video/mp4': 'var(--refly-Colorful-red)',
+  'video/webm': 'var(--refly-Colorful-red)',
+  'video/ogg': 'var(--refly-Colorful-red)',
+  'video/quicktime': 'var(--refly-Colorful-red)',
+  'video/x-msvideo': 'var(--refly-Colorful-red)',
+  // Audio
+  'audio/mpeg': 'var(--refly-Colorful-red)',
+  'audio/wav': 'var(--refly-Colorful-red)',
+  'audio/ogg': 'var(--refly-Colorful-red)',
+  'audio/aac': 'var(--refly-Colorful-red)',
+  'audio/webm': 'var(--refly-Colorful-red)',
 };
 export const NODE_MINI_MAP_COLORS = {
   ...NODE_COLORS,

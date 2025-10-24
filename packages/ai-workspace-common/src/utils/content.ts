@@ -31,9 +31,9 @@ export const truncateContent = (
 export const removeToolUseTags = (content: string): string => {
   if (!content) return '';
 
-  // Remove all <tool_use> tags and their content (global match)
-  const toolUseRegex = /<tool_use>[\s\S]*?<\/tool_use>/g;
-  return content.replace(toolUseRegex, '');
+  const markdownToolUseRegex = /```tool_use(?:_result)?[^\n]*[\s\S]*?```/g;
+  const htmlToolUseRegex = /<tool_use[\s\S]*?<\/tool_use>/g;
+  return content.replace(markdownToolUseRegex, '').replace(htmlToolUseRegex, '');
 };
 
 /**

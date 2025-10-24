@@ -1,20 +1,22 @@
-import { Button, Tooltip, Upload, Switch, FormInstance } from 'antd';
+import { Button, Tooltip, Upload, FormInstance } from 'antd';
 import { memo, useMemo, useRef, useCallback } from 'react';
-import { IconImage } from '@refly-packages/ai-workspace-common/components/common/icon';
-import { LinkOutlined } from '@ant-design/icons';
-import { Send, Stop } from 'refly-icons';
+import { ImageOutline, Send, Stop } from 'refly-icons';
 import { useTranslation } from 'react-i18next';
-import { useUserStoreShallow, useLaunchpadStore } from '@refly/stores';
+import {
+  useActionResultStoreShallow,
+  useChatStoreShallow,
+  useUserStoreShallow,
+} from '@refly/stores';
 import { getRuntime } from '@refly/utils/env';
 import { ModelSelector } from './model-selector';
 import { ModelInfo } from '@refly/openapi-schema';
-import { cn, extractUrlsWithLinkify } from '@refly/utils/index';
+import { cn } from '@refly/utils/index';
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
-import { useUploadImage } from '@refly-packages/ai-workspace-common/hooks/use-upload-image';
 import { IContextItem } from '@refly/common-types';
-import { SkillRuntimeConfig } from '@refly/openapi-schema';
-import { McpSelectorPopover } from '../mcp-selector-panel';
+import { SkillRuntimeConfig, GenericToolset } from '@refly/openapi-schema';
+import { ToolSelectorPopover } from '../tool-selector-panel';
 import { logEvent } from '@refly/telemetry-web';
+import { ChatModeSelector } from '@refly-packages/ai-workspace-common/components/canvas/front-page/chat-mode-selector';
 
 export interface CustomAction {
   icon: React.ReactNode;
@@ -26,16 +28,20 @@ interface ChatActionsProps {
   query: string;
   model: ModelInfo | null;
   setModel: (model: ModelInfo | null) => void;
-  runtimeConfig: SkillRuntimeConfig;
-  setRuntimeConfig: (runtimeConfig: SkillRuntimeConfig) => void;
+  runtimeConfig?: SkillRuntimeConfig;
+  setRuntimeConfig?: (runtimeConfig: SkillRuntimeConfig) => void;
+  resultId?: string;
   className?: string;
   form?: FormInstance;
   handleSendMessage: () => void;
   handleAbort: () => void;
   customActions?: CustomAction[];
-  onUploadImage?: (file: File) => Promise<void>;
+  onUploadImage: (file: File) => Promise<void>;
   contextItems: IContextItem[];
   isExecuting?: boolean;
+  selectedToolsets?: GenericToolset[];
+  setSelectedToolsets?: (toolsets: GenericToolset[]) => void;
+  enableChatModeSelector?: boolean;
 }
 
 export const ChatActions = memo(
@@ -44,8 +50,7 @@ export const ChatActions = memo(
       query,
       model,
       setModel,
-      runtimeConfig,
-      setRuntimeConfig,
+      resultId,
       handleSendMessage,
       customActions,
       className,
@@ -53,10 +58,19 @@ export const ChatActions = memo(
       handleAbort,
       contextItems,
       isExecuting = false,
+      selectedToolsets,
+      setSelectedToolsets,
+      enableChatModeSelector = false,
     } = props;
     const { t } = useTranslation();
-    const { canvasId, readonly } = useCanvasContext();
-    const { handleUploadImage } = useUploadImage();
+    const { readonly } = useCanvasContext();
+    const { chatMode, setChatMode } = useChatStoreShallow((state) => ({
+      chatMode: state.chatMode,
+      setChatMode: state.setChatMode,
+    }));
+    const { result } = useActionResultStoreShallow((state) => ({
+      result: resultId ? state.resultMap[resultId] : undefined,
+    }));
 
     const handleSendClick = useCallback(() => {
       // Check if knowledge base is used (resource or document types)
@@ -64,17 +78,16 @@ export const ChatActions = memo(
         contextItems?.some((item) => item?.type === 'resource' || item?.type === 'document') ??
         false;
 
-      const { selectedMcpServers } = useLaunchpadStore.getState();
-      const usedMcp = selectedMcpServers?.length > 0;
+      const usedTools = selectedToolsets?.length > 0;
 
       logEvent('canvas::node_execute', Date.now(), {
         node_type: 'askAI',
         model_name: model?.name ?? '',
         used_knowledge_base: usedKnowledgeBase,
-        used_mcp: usedMcp,
+        used_tools: usedTools,
       });
       handleSendMessage();
-    }, [contextItems, model, handleSendMessage]);
+    }, [contextItems, model, handleSendMessage, selectedToolsets]);
 
     const handleAbortClick = useCallback(() => {
       handleAbort();
@@ -87,28 +100,20 @@ export const ChatActions = memo(
       isLogin: state.isLogin,
     }));
 
-    const canSendEmptyMessage = useMemo(() => query?.trim(), [query]);
-    const canSendMessage = useMemo(
-      () => !userStore.isLogin || canSendEmptyMessage,
-      [userStore.isLogin, canSendEmptyMessage],
-    );
+    const canSendEmptyMessage = useMemo(() => {
+      const hasQuery = query?.trim();
+      const hasContextItems = contextItems?.length > 0;
+      return hasQuery || hasContextItems;
+    }, [query, contextItems]);
 
-    const detectedUrls = useMemo(() => {
-      if (!query?.trim()) return [];
-      const { detectedUrls } = extractUrlsWithLinkify(query);
-      return detectedUrls;
-    }, [query]);
+    const canSendMessage = useMemo(() => {
+      if (!result) {
+        return !userStore.isLogin || canSendEmptyMessage;
+      }
 
-    // Handle switch change
-    const handleAutoParseLinksChange = useCallback(
-      (checked: boolean) => {
-        setRuntimeConfig({
-          ...runtimeConfig,
-          disableLinkParsing: checked,
-        });
-      },
-      [runtimeConfig, setRuntimeConfig],
-    );
+      // Only allow sending message if the result is not waiting or executing
+      return result.status !== 'waiting' && result.status !== 'executing' && canSendEmptyMessage;
+    }, [userStore.isLogin, canSendEmptyMessage, result]);
 
     const containerRef = useRef<HTMLDivElement>(null);
 
@@ -119,61 +124,56 @@ export const ChatActions = memo(
     return (
       <div className={cn('flex justify-between items-center', className)} ref={containerRef}>
         <div className="flex items-center gap-1">
-          <ModelSelector
-            model={model}
-            setModel={setModel}
-            size="small"
-            briefMode={false}
-            trigger={['click']}
-            contextItems={contextItems}
-          />
+          {enableChatModeSelector && (
+            <ChatModeSelector chatMode={chatMode} setChatMode={setChatMode} />
+          )}
 
-          <Upload
-            accept="image/*"
-            showUploadList={false}
-            customRequest={({ file }) => {
-              if (onUploadImage) {
-                onUploadImage(file as File);
-              } else {
-                handleUploadImage(file as File, canvasId);
-              }
-            }}
-            multiple
-          >
-            <Tooltip title={t('common.uploadImage')}>
-              <Button
-                type="text"
+          {(!enableChatModeSelector || chatMode === 'ask') && (
+            <>
+              <ModelSelector
+                model={model}
+                setModel={setModel}
                 size="small"
-                icon={<IconImage className="flex items-center" />}
-                className="h-7 w-7 flex items-center justify-center"
+                briefMode={false}
+                trigger={['click']}
+                contextItems={contextItems}
               />
-            </Tooltip>
-          </Upload>
 
-          <McpSelectorPopover />
-
-          {detectedUrls?.length > 0 && (
-            <div className="flex items-center gap-1 ml-2">
-              <Switch
-                size="small"
-                checked={runtimeConfig?.disableLinkParsing}
-                onChange={handleAutoParseLinksChange}
-              />
-              <Tooltip
-                className="flex flex-row items-center gap-1 cursor-pointer"
-                title={t('skill.runtimeConfig.parseLinksHint', {
-                  count: detectedUrls?.length,
-                })}
+              <Upload
+                accept="image/*"
+                showUploadList={false}
+                customRequest={({ file }) => {
+                  onUploadImage(file as File);
+                }}
+                multiple
               >
-                <LinkOutlined className="text-sm text-gray-500 flex items-center justify-center cursor-pointer" />
-              </Tooltip>
-            </div>
+                <Tooltip title={t('common.uploadImage')}>
+                  <Button
+                    type="text"
+                    size="small"
+                    icon={<ImageOutline size={20} className="flex items-center" />}
+                    className="h-7 !w-7 flex items-center justify-center"
+                  />
+                </Tooltip>
+              </Upload>
+
+              <ToolSelectorPopover
+                selectedToolsets={selectedToolsets}
+                onSelectedToolsetsChange={setSelectedToolsets}
+              />
+            </>
           )}
         </div>
         <div className="flex flex-row items-center gap-2">
           {customActions?.map((action, index) => (
             <Tooltip title={action.title} key={index}>
-              <Button size="small" icon={action.icon} onClick={action.onClick} className="mr-0" />
+              <Button
+                type="text"
+                size="small"
+                icon={action.icon}
+                onClick={action.onClick}
+                className="h-7 w-7 flex items-center justify-center"
+              />
             </Tooltip>
           ))}
 
@@ -209,7 +209,9 @@ export const ChatActions = memo(
       prevProps.onUploadImage === nextProps.onUploadImage &&
       prevProps.model === nextProps.model &&
       prevProps.customActions === nextProps.customActions &&
-      prevProps.isExecuting === nextProps.isExecuting
+      prevProps.isExecuting === nextProps.isExecuting &&
+      prevProps.selectedToolsets === nextProps.selectedToolsets &&
+      prevProps.setSelectedToolsets === nextProps.setSelectedToolsets
     );
   },
 );

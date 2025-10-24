@@ -6,6 +6,7 @@ import { LOCALE } from '@refly/common-types';
 import {
   ActionResultNotFoundError,
   AuthenticationExpiredError,
+  ConnectionError,
   getErrorMessage,
 } from '@refly/errors';
 
@@ -19,6 +20,7 @@ const errTitle = {
 };
 
 const ignoredErrorCodes = [
+  new ConnectionError().code,
   new ActionResultNotFoundError().code,
   new AuthenticationExpiredError().code, // Don't show notifications for auth errors
 ];

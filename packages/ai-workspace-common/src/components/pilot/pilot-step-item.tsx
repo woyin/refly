@@ -1,8 +1,12 @@
-import { memo, useMemo } from 'react';
+import { memo, useMemo, useState } from 'react';
 import { PilotStep, PilotStepStatus } from '@refly/openapi-schema';
-import { QuestionCircleOutlined } from '@ant-design/icons';
+import { QuestionCircleOutlined, ReloadOutlined } from '@ant-design/icons';
 import { motion } from 'motion/react';
 import { Cancelled, Finished, Pending, Running1 } from 'refly-icons';
+import { Button, message } from 'antd';
+import { useTranslation } from 'react-i18next';
+import { usePilotRecovery } from '@refly-packages/ai-workspace-common/hooks/pilot/use-pilot-recovery';
+import { useGetPilotSessionDetail } from '@refly-packages/ai-workspace-common/queries/queries';
 
 // Status icon mapping for pilot steps
 export const StepStatusIcon = memo(({ status }: { status?: PilotStepStatus }) => {
@@ -46,18 +50,71 @@ StepStatusIcon.displayName = 'StepStatusIcon';
 
 export interface PilotStepItemProps {
   step: PilotStep;
+  sessionId: string;
+  canvasId: string;
   onClick?: (step: PilotStep) => void;
 }
 
-export const PilotStepItem = memo(({ step, onClick }: PilotStepItemProps) => {
+export const PilotStepItem = memo(({ step, sessionId, canvasId, onClick }: PilotStepItemProps) => {
+  const { t } = useTranslation();
+  const [isRecovering, setIsRecovering] = useState(false);
+
+  // Get the latest session data to ensure we have the most up-to-date step information
+  const { data: sessionData } = useGetPilotSessionDetail(
+    {
+      query: { sessionId },
+    },
+    undefined,
+    {
+      enabled: !!sessionId,
+      refetchInterval: 2000, // Poll every 2 seconds to get latest step status
+    },
+  );
+
+  // Get the current step from the latest session data
+  const currentStep = useMemo(() => {
+    if (!sessionData?.data?.steps) return step;
+
+    // Find the step with matching stepId in the latest session data
+    const latestStep = sessionData.data.steps.find((s) => s.stepId === step.stepId);
+    return latestStep || step;
+  }, [sessionData, step]);
+
+  // Use the new recovery hook
+  const { recoverSteps } = usePilotRecovery({
+    canvasId,
+    sessionId,
+  });
+
   const handleClick = useMemo(() => {
     if (!onClick) return undefined;
-    return () => onClick(step);
-  }, [onClick, step]);
+    return () => onClick(currentStep);
+  }, [onClick, currentStep]);
+
+  const handleRecoverStep = async (e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent triggering onClick
+
+    if (!currentStep.stepId) {
+      message.error(t('pilot.stepRecovery.error.noStepId'));
+      return;
+    }
+
+    setIsRecovering(true);
+    try {
+      await recoverSteps([currentStep]);
+    } catch {
+      // Error handling is done in the hook
+    } finally {
+      setIsRecovering(false);
+    }
+  };
+
+  const isFailed = currentStep.status === 'failed';
+  const showRecoverButton = isFailed && currentStep.stepId;
 
   return (
     <motion.div
-      className="flex items-center p-1 mt-2 cursor-pointer rounded-md transition-colors w-full max-w-full text-gray-600 hover:text-gray-800 dark:text-gray-400 hover:dark:text-gray-200 dark:hover:bg-gray-800 bg-[#F4F4F4] border border-gray-100 dark:border-gray-700 dark:bg-refly-bg-content-z2"
+      className="flex items-center gap-2 h-10 w-full px-3 py-2 mt-2 cursor-pointer rounded-xl transition-colors text-refly-text-2 hover:text-refly-text-1 hover:bg-refly-tertiary-hover bg-refly-tertiary-default"
       onClick={handleClick}
       whileHover={{
         scale: 1.02,
@@ -68,13 +125,26 @@ export const PilotStepItem = memo(({ step, onClick }: PilotStepItemProps) => {
       }}
       layout
     >
-      <div className="mr-2 flex-shrink-0">
-        <StepStatusIcon status={step.status} />
+      <div className="flex-shrink-0">
+        <StepStatusIcon status={currentStep.status} />
       </div>
 
-      <div className="flex items-center py-1 flex-grow min-w-0">
-        <span className="truncate text-sm block max-w-[380px]">{step?.name ?? ''}</span>
-      </div>
+      <div className="flex-grow min-w-0 truncate text-sm">{currentStep?.name ?? ''}</div>
+
+      {showRecoverButton && (
+        <div className="flex-shrink-0">
+          <Button
+            size="small"
+            type="text"
+            loading={isRecovering}
+            onClick={handleRecoverStep}
+            className="h-6 px-2 text-xs"
+          >
+            <ReloadOutlined className="w-3 h-3" />
+            {t('pilot.stepRecovery.button')}
+          </Button>
+        </div>
+      )}
     </motion.div>
   );
 });

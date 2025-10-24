@@ -2,8 +2,8 @@ const translations = {
   agent: {
     name: '智能代理',
     description: '基于上下文回答问题',
-    placeholder: '向 AI 提问，按 Ctrl + / 选择技能...',
-    placeholderMac: '向 AI 提问，按 ⌘ + / 选择技能...',
+    placeholder: '输入任务，或向 AI 提问',
+    placeholderMac: '输入任务，或向 AI 提问',
     steps: {
       analyzeQuery: {
         name: '查询分析',
@@ -22,8 +22,8 @@ const translations = {
   commonQnA: {
     name: '通用问答',
     description: '基于上下文回答问题',
-    placeholder: '向 AI 提问，输入 Ctrl + / 选择技能...',
-    placeholderMac: '向 AI 提问，输入 ⌘ + / 选择技能...',
+    placeholder: '输入任务，或向 AI 提问',
+    placeholderMac: '输入任务，或向 AI 提问',
     steps: {
       analyzeQuery: {
         name: '分析需求',
@@ -36,6 +36,10 @@ const translations = {
       answerQuestion: {
         name: '问题回答',
         description: '生成答案中...',
+      },
+      start: {
+        name: '开始',
+        description: '分析需求中...',
       },
     },
   },

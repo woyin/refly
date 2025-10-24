@@ -1,17 +1,16 @@
-import { Button, Tooltip, Switch } from 'antd';
+import { Button, Tooltip } from 'antd';
 import { memo, useMemo, useRef, useCallback } from 'react';
-import { LinkOutlined } from '@ant-design/icons';
 import { Send } from 'refly-icons';
 import { useTranslation } from 'react-i18next';
 import { useUserStoreShallow } from '@refly/stores';
 import { getRuntime } from '@refly/utils/env';
 import { ModelSelector } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/chat-actions/model-selector';
-import { ModelInfo } from '@refly/openapi-schema';
-import { cn, extractUrlsWithLinkify } from '@refly/utils/index';
+import { ModelInfo, GenericToolset } from '@refly/openapi-schema';
+import { cn } from '@refly/utils/index';
 import { SkillRuntimeConfig } from '@refly/openapi-schema';
 import { useChatStoreShallow } from '@refly/stores';
 import { ChatModeSelector } from './chat-mode-selector';
-import { McpSelectorPopover } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/mcp-selector-panel';
+import { ToolSelectorPopover } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/tool-selector-panel';
 
 export interface CustomAction {
   content?: string;
@@ -32,6 +31,8 @@ interface ActionsProps {
   customActions?: CustomAction[];
   loading?: boolean;
   isExecuting?: boolean;
+  selectedToolsets?: GenericToolset[];
+  onSelectedToolsetsChange?: (toolsets: GenericToolset[]) => void;
 }
 
 export const Actions = memo(
@@ -40,14 +41,14 @@ export const Actions = memo(
       query,
       model,
       setModel,
-      runtimeConfig,
-      setRuntimeConfig,
       handleSendMessage,
       handleAbort,
       customActions,
       className,
       loading = false,
       isExecuting = false,
+      selectedToolsets,
+      onSelectedToolsetsChange,
     } = props;
     const { t } = useTranslation();
 
@@ -70,23 +71,6 @@ export const Actions = memo(
       [userStore.isLogin, canSendEmptyMessage],
     );
 
-    const detectedUrls = useMemo(() => {
-      if (!query?.trim()) return [];
-      const { detectedUrls } = extractUrlsWithLinkify(query);
-      return detectedUrls;
-    }, [query]);
-
-    // Handle switch change
-    const handleAutoParseLinksChange = useCallback(
-      (checked: boolean) => {
-        setRuntimeConfig({
-          ...runtimeConfig,
-          disableLinkParsing: checked,
-        });
-      },
-      [runtimeConfig, setRuntimeConfig],
-    );
-
     // Create a pilot session or directly send message
     const handleSend = useCallback(() => {
       if (!canSendMessage) return;
@@ -103,33 +87,22 @@ export const Actions = memo(
           </div>
 
           {userStore.isLogin && !isPilotActivated && (
-            <ModelSelector
-              model={model}
-              setModel={setModel}
-              size="medium"
-              briefMode={false}
-              trigger={['click']}
-            />
+            <div className="mr-2">
+              <ModelSelector
+                model={model}
+                setModel={setModel}
+                size="medium"
+                briefMode={false}
+                trigger={['click']}
+              />
+            </div>
           )}
 
-          {userStore.isLogin && <McpSelectorPopover />}
-
-          {detectedUrls?.length > 0 && (
-            <div className="flex items-center gap-1 ml-2">
-              <Switch
-                size="small"
-                checked={runtimeConfig?.disableLinkParsing}
-                onChange={handleAutoParseLinksChange}
-              />
-              <Tooltip
-                className="flex flex-row items-center gap-1 cursor-pointer"
-                title={t('skill.runtimeConfig.parseLinksHint', {
-                  count: detectedUrls?.length,
-                })}
-              >
-                <LinkOutlined className="text-sm text-gray-500 flex items-center justify-center cursor-pointer" />
-              </Tooltip>
-            </div>
+          {userStore.isLogin && chatMode === 'ask' && (
+            <ToolSelectorPopover
+              selectedToolsets={selectedToolsets}
+              onSelectedToolsetsChange={onSelectedToolsetsChange}
+            />
           )}
         </div>
         <div className="flex flex-row items-center gap-2">
@@ -173,7 +146,9 @@ export const Actions = memo(
       prevProps.model === nextProps.model &&
       prevProps.loading === nextProps.loading &&
       prevProps.isExecuting === nextProps.isExecuting &&
-      prevProps.customActions === nextProps.customActions
+      prevProps.customActions === nextProps.customActions &&
+      prevProps.selectedToolsets === nextProps.selectedToolsets &&
+      prevProps.onSelectedToolsetsChange === nextProps.onSelectedToolsetsChange
     );
   },
 );

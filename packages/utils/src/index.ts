@@ -21,3 +21,5 @@ export * from './str';
 export * from './step';
 export * from './time';
 export * from './artifact';
+export * from './validator';
+export * from './query-processor';

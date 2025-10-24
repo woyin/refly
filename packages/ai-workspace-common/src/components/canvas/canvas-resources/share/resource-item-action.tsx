@@ -1,14 +1,17 @@
-import { Button, Tooltip } from 'antd';
+import { Button, Tooltip, Popconfirm } from 'antd';
 import { useTranslation } from 'react-i18next';
-import { Location, Delete } from 'refly-icons';
+import { XBorder, Delete } from 'refly-icons';
 import { CanvasNode } from '@refly/canvas-common';
 import cn from 'classnames';
-import { useCallback } from 'react';
-import { useNodePosition } from '@refly-packages/ai-workspace-common/hooks/canvas/use-node-position';
-import { useReactFlow } from '@xyflow/react';
+import { useCallback, useState } from 'react';
 import { useDeleteNode } from '@refly-packages/ai-workspace-common/hooks/canvas/use-delete-node';
 import { useActiveNode } from '@refly/stores';
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
+import { CreateVariablesModal } from '../../workflow-variables/create-variables-modal';
+import type { WorkflowVariable, VariableValue, VariableResourceType } from '@refly/openapi-schema';
+import { useDeleteResource } from '@refly-packages/ai-workspace-common/hooks/canvas/use-delete-resource';
+import { useListResources } from '@refly-packages/ai-workspace-common/queries';
+import { useGetProjectCanvasId } from '@refly-packages/ai-workspace-common/hooks/use-get-project-canvasId';
 
 export const ResourceItemAction = ({
   node,
@@ -18,24 +21,35 @@ export const ResourceItemAction = ({
   className?: string;
 }) => {
   const { t } = useTranslation();
-  const { readonly, canvasId } = useCanvasContext();
-  const { setNodeCenter } = useNodePosition();
-  const { getNodes } = useReactFlow();
+  const { readonly, canvasId, workflow } = useCanvasContext();
   const { deleteNode } = useDeleteNode();
   const { activeNode, setActiveNode } = useActiveNode(canvasId);
-  const handleLocateNode = (node: CanvasNode) => {
+  const { deleteResource } = useDeleteResource();
+  const { projectId } = useGetProjectCanvasId();
+  const { refetch: refetchResources } = useListResources({
+    query: {
+      canvasId,
+      projectId,
+    },
+  });
+
+  // Safely extract workflowVariables with fallback to prevent runtime crashes
+  const workflowVariables = workflow?.workflowVariables ?? [];
+
+  // Add state for modal visibility
+  const [isCreateVariableModalVisible, setIsCreateVariableModalVisible] = useState(false);
+
+  const handleCreateVariable = useCallback((node: CanvasNode) => {
     if (node?.type === 'group') {
       return;
     }
-    const nodes = getNodes();
-    const foundNode = nodes.find((n) => n.data?.entityId === node.data?.entityId);
-    if (foundNode) {
-      setNodeCenter(foundNode.id, true);
-    }
-  };
+
+    // Open the create variable modal
+    setIsCreateVariableModalVisible(true);
+  }, []);
 
   const handleDeleteNode = useCallback(
-    (node: CanvasNode) => {
+    async (node: CanvasNode) => {
       if (!node?.id) {
         return;
       }
@@ -48,41 +62,185 @@ export const ResourceItemAction = ({
       if (activeNode?.id === node.id) {
         setActiveNode(null);
       }
+
+      if (node.type === 'resource' && node.data.entityId) {
+        await deleteResource(node.data.entityId);
+        refetchResources();
+      }
     },
-    [activeNode?.id, deleteNode, setActiveNode],
+    [activeNode?.id, deleteNode, setActiveNode, deleteResource],
   );
 
+  // Create default variable data for the current resource
+  const getDefaultVariableData = useCallback((): WorkflowVariable | undefined => {
+    if (!node?.data?.entityId) return undefined;
+
+    // Extract resource information from node data
+    const resourceData = node.data as any; // Type assertion for resource data
+    const currentStorageKey = resourceData.storageKey || resourceData.entityId;
+
+    // Check if resource is already used in workflow variables
+    const existingVariable = workflowVariables.find((variable) => {
+      if (variable?.variableType !== 'resource') return false;
+
+      return variable.value?.some((value) => {
+        if (value?.type === 'resource' && value.resource?.storageKey === currentStorageKey) {
+          return true;
+        }
+        return false;
+      });
+    });
+
+    // If variable already exists, return the existing variable data
+    if (existingVariable) {
+      return existingVariable;
+    }
+
+    // Get file extension and determine file type for new variable
+    const fileName = resourceData?.title || resourceData?.name || resourceData.entityId;
+    const fileExtension = fileName.split('.').pop()?.toLowerCase() || '';
+
+    // Determine resource type based on file extension
+    let resourceType: VariableResourceType = 'document';
+    if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(fileExtension)) {
+      resourceType = 'image';
+    } else if (['mp3', 'wav', 'ogg', 'aac'].includes(fileExtension)) {
+      resourceType = 'audio';
+    } else if (['mp4', 'avi', 'mov', 'wmv'].includes(fileExtension)) {
+      resourceType = 'video';
+    }
+
+    // Create variable value from the current resource
+    const variableValue: VariableValue[] = [
+      {
+        type: 'resource',
+        resource: {
+          name: fileName,
+          storageKey: node.data.metadata.storageKey as string,
+          fileType: fileExtension || 'file',
+          entityId: node.data.entityId,
+        },
+      },
+    ];
+
+    const variable =
+      workflowVariables.filter((variable) => variable?.resourceTypes?.includes(resourceType)) || [];
+
+    return {
+      variableId: '', // Will be generated by the modal
+      name: resourceType + (variable.length + 1).toString(), // User will input
+      value: variableValue,
+      description: '',
+      variableType: 'resource',
+      required: true,
+      resourceTypes: [resourceType], // Set specific resource type based on file
+      isSingle: true,
+      options: [],
+    };
+  }, [node, workflowVariables]);
+
+  const handleModalClose = useCallback((visible: boolean) => {
+    setIsCreateVariableModalVisible(visible);
+  }, []);
+
+  // Check if current resource is already used in workflow variables
+  const isResourceAlreadyUsed = useCallback(() => {
+    if (!workflowVariables.length || !node?.data?.entityId) return false;
+
+    const resourceData = node.data;
+
+    // Check all resource type variables for matching storageKey
+    return (
+      workflowVariables.some((variable) => {
+        if (variable?.variableType !== 'resource') return false;
+
+        return variable.value?.some((value) => {
+          if (value?.type !== 'resource' || !value.resource) {
+            return false;
+          }
+          const resourceVal = value.resource;
+          if (resourceVal.entityId) {
+            return resourceVal.entityId === resourceData.entityId;
+          }
+          return resourceVal.storageKey === resourceData.metadata?.storageKey;
+        });
+      }) || false
+    );
+  }, [workflowVariables, node]);
+
+  // Get tooltip text based on resource usage status
+  const getTooltipText = useCallback(() => {
+    if (isResourceAlreadyUsed()) {
+      return t('canvas.nodeActions.alreadyCreated') || 'Already Created';
+    }
+    return t('canvas.nodeActions.createVariable') || 'Create Variable';
+  }, [isResourceAlreadyUsed, t]);
+
   return (
-    <div
-      className={cn(
-        'items-center gap-1 hidden transition-opacity flex-shrink-0 group-hover:flex',
-        className,
-      )}
-    >
-      <Tooltip title={t('canvas.nodeActions.centerNode')} arrow={false}>
-        <Button
-          type="text"
-          size="small"
-          icon={<Location size={16} />}
-          onClick={(e) => {
-            e.stopPropagation();
-            handleLocateNode(node);
-          }}
-        />
-      </Tooltip>
-      {!readonly && (
-        <Tooltip title={t('common.delete')} arrow={false}>
+    <>
+      <div
+        className={cn(
+          'items-center gap-1 hidden transition-opacity flex-shrink-0 group-hover:flex',
+          className,
+        )}
+      >
+        <Tooltip title={getTooltipText()} arrow={false}>
           <Button
             type="text"
             size="small"
-            icon={<Delete size={16} color="var(--refly-func-danger-default)" />}
+            icon={<XBorder size={16} />}
             onClick={(e) => {
               e.stopPropagation();
-              handleDeleteNode(node);
+              handleCreateVariable(node);
             }}
           />
         </Tooltip>
-      )}
-    </div>
+        {!readonly && (
+          <Popconfirm
+            title={t('canvas.nodeActions.resourceDeleteConfirm', {
+              title: node?.data?.title || t('common.untitled'),
+            })}
+            onConfirm={async (e) => {
+              e?.stopPropagation();
+              await handleDeleteNode(node);
+            }}
+            onCancel={(e) => {
+              e?.stopPropagation();
+            }}
+            okText={t('common.confirm')}
+            cancelText={t('common.cancel')}
+          >
+            <Tooltip title={t('common.delete')} arrow={false} placement="bottom">
+              <Button
+                type="text"
+                size="small"
+                icon={<Delete size={16} color="var(--refly-func-danger-default)" />}
+                onClick={(e) => e.stopPropagation()}
+              />
+            </Tooltip>
+          </Popconfirm>
+        )}
+      </div>
+
+      {/* Create Variables Modal */}
+      <div onClick={(e) => e.stopPropagation()}>
+        <CreateVariablesModal
+          mode={isResourceAlreadyUsed() ? 'edit' : 'create'}
+          visible={isCreateVariableModalVisible}
+          onCancel={handleModalClose}
+          defaultValue={getDefaultVariableData()}
+          variableType="resource"
+          disableChangeVariableType
+          isFromResource
+          onViewCreatedVariable={() => {
+            // For resource variables, we can reopen the modal in edit mode
+            handleModalClose(false);
+            setTimeout(() => {
+              handleModalClose(true);
+            }, 100);
+          }}
+        />
+      </div>
+    </>
   );
 };

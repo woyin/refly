@@ -1,7 +1,6 @@
 import {
   Resource as ResourceModel,
   Document as DocumentModel,
-  Reference as ReferenceModel,
   StaticFile as StaticFileModel,
 } from '../../generated/client';
 import {
@@ -9,9 +8,6 @@ import {
   ResourceType,
   IndexStatus,
   IndexError,
-  Reference,
-  ReferenceType,
-  ReferenceMeta,
   Document,
   EntityType,
   ResourceMeta,
@@ -37,6 +33,7 @@ export type DocumentDetail = DocumentModel & {
 export type ResourceDetail = ResourceModel & {
   content?: string;
   downloadURL?: string;
+  publicURL?: string;
 };
 
 export type FinalizeResourceParam = {
@@ -69,6 +66,8 @@ export const resourcePO2DTO = (resource: ResourceDetail): Resource => {
       'canvasId',
       'rawFileKey',
       'downloadURL',
+      'publicURL',
+      'storageKey',
     ]),
     resourceType: resource.resourceType as ResourceType,
     indexStatus: resource.indexStatus as IndexStatus,
@@ -91,17 +90,4 @@ export const documentPO2DTO = (doc: DocumentDetail): Document => {
     updatedAt: doc.updatedAt.toJSON(),
   };
   return res;
-};
-
-export interface ExtendedReferenceModel extends ReferenceModel {
-  sourceMeta?: ReferenceMeta;
-  targetMeta?: ReferenceMeta;
-}
-
-export const referencePO2DTO = (reference: ExtendedReferenceModel): Reference => {
-  return {
-    ...pick(reference, ['referenceId', 'sourceId', 'targetId', 'sourceMeta', 'targetMeta']),
-    sourceType: reference.sourceType as ReferenceType,
-    targetType: reference.targetType as ReferenceType,
-  };
 };

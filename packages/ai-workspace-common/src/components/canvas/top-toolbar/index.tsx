@@ -1,10 +1,9 @@
 import { FC, memo } from 'react';
-import { useMatch } from 'react-router-dom';
-import { Button, Divider, message } from 'antd';
-import { useSiderStoreShallow } from '@refly/stores';
+import { useMatch, useNavigate } from 'react-router-dom';
+import { Button, Divider, message, Tooltip } from 'antd';
+import { useCanvasResourcesPanelStoreShallow } from '@refly/stores';
 import { useTranslation } from 'react-i18next';
 import { LOCALE } from '@refly/common-types';
-import { SiderPopover } from '@refly-packages/ai-workspace-common/components/sider/popover';
 import { useCanvasStoreShallow } from '@refly/stores';
 import { Helmet } from 'react-helmet';
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
@@ -15,11 +14,15 @@ import ShareSettings from './share-settings';
 import { useUserStoreShallow } from '@refly/stores';
 import './index.scss';
 import { IconLink } from '@refly-packages/ai-workspace-common/components/common/icon';
-import { Undo, Redo, Copy } from 'refly-icons';
+import { Undo, Redo, Copy, Play } from 'refly-icons';
 import { useDuplicateCanvas } from '@refly-packages/ai-workspace-common/hooks/use-duplicate-canvas';
 import { useAuthStoreShallow } from '@refly/stores';
 import { CanvasLayoutControls } from '@refly-packages/ai-workspace-common/components/canvas/layout-control/canvas-layout-controls';
 import { TooltipButton } from './buttons';
+import { ToolsDependency } from '../tools-dependency';
+import cn from 'classnames';
+import { Logo } from '@refly-packages/ai-workspace-common/components/common/logo';
+import { logEvent } from '@refly/telemetry-web';
 
 const buttonClass = '!p-0 h-[30px] w-[30px] flex items-center justify-center ';
 
@@ -40,15 +43,18 @@ const ToolContainer = memo(({ children }: { children: React.ReactNode }) => {
 export const TopToolbar: FC<TopToolbarProps> = memo(({ canvasId, mode, changeMode }) => {
   const { i18n, t } = useTranslation();
   const language = i18n.language as LOCALE;
-  const { collapse } = useSiderStoreShallow((state) => ({
-    collapse: state.collapse,
-  }));
+  const navigate = useNavigate();
   const { isLogin } = useUserStoreShallow((state) => ({
     isLogin: state.isLogin,
   }));
   const { setLoginModalOpen } = useAuthStoreShallow((state) => ({
     setLoginModalOpen: state.setLoginModalOpen,
   }));
+  const { showWorkflowRun, setShowWorkflowRun } = useCanvasResourcesPanelStoreShallow((state) => ({
+    showWorkflowRun: state.showWorkflowRun,
+    setShowWorkflowRun: state.setShowWorkflowRun,
+  }));
+
   const isShareCanvas = useMatch('/share/canvas/:canvasId');
   const isPreviewCanvas = useMatch('/preview/canvas/:shareId');
 
@@ -64,12 +70,25 @@ export const TopToolbar: FC<TopToolbarProps> = memo(({ canvasId, mode, changeMod
   const canvasTitle = shareData?.title || canvasTitleFromStore;
 
   const { duplicateCanvas, loading: duplicating } = useDuplicateCanvas();
+
   const handleDuplicate = () => {
+    logEvent('remix_workflow_share', Date.now(), {
+      canvasId,
+    });
+
     if (!isLogin) {
       setLoginModalOpen(true);
       return;
     }
     duplicateCanvas(canvasId);
+  };
+
+  const handleInitializeWorkflow = () => {
+    if (!isLogin) {
+      setLoginModalOpen(true);
+      return;
+    }
+    setShowWorkflowRun(!showWorkflowRun);
   };
 
   return (
@@ -81,12 +100,6 @@ export const TopToolbar: FC<TopToolbarProps> = memo(({ canvasId, mode, changeMod
 
       <div className="absolute h-16 p-2 top-0 left-0 right-0 box-border flex justify-between items-center bg-transparent">
         <ToolContainer>
-          {collapse && (
-            <>
-              <SiderPopover align={{ offset: [8, -8] }} showBrand={false} />
-              <Divider type="vertical" className="m-0 h-5 bg-refly-Card-Border" />
-            </>
-          )}
           {readonly ? (
             <ReadonlyCanvasTitle
               canvasTitle={canvasTitle}
@@ -94,14 +107,32 @@ export const TopToolbar: FC<TopToolbarProps> = memo(({ canvasId, mode, changeMod
               owner={shareData?.owner}
             />
           ) : (
-            <CanvasActionDropdown canvasId={canvasId} canvasName={canvasTitle} offset={[0, 4]}>
-              <CanvasTitle
-                canvasTitle={canvasTitle}
-                canvasLoading={loading || !canvasInitialized}
-                language={language}
-                syncFailureCount={syncFailureCount}
-              />
-            </CanvasActionDropdown>
+            <div className="flex items-center gap-2">
+              <Tooltip
+                title={t(isLogin ? 'canvas.toolbar.backDashboard' : 'canvas.toolbar.backHome')}
+                arrow={false}
+                align={{ offset: [20, -8] }}
+              >
+                <div
+                  className="flex-shrink-0 flex items-center justify-center h-8 w-8 hover:bg-refly-tertiary-hover rounded-lg cursor-pointer"
+                  onClick={() => navigate('/')}
+                >
+                  <Logo
+                    textProps={{ show: false }}
+                    logoProps={{ show: true, className: '!w-5 !h-5' }}
+                  />
+                </div>
+              </Tooltip>
+              <Divider type="vertical" className="m-0 h-5 bg-refly-Card-Border" />
+              <CanvasActionDropdown canvasId={canvasId} canvasName={canvasTitle} offset={[0, 4]}>
+                <CanvasTitle
+                  canvasTitle={canvasTitle}
+                  canvasLoading={loading || !canvasInitialized}
+                  language={language}
+                  syncFailureCount={syncFailureCount}
+                />
+              </CanvasActionDropdown>
+            </div>
           )}
         </ToolContainer>
 
@@ -127,6 +158,21 @@ export const TopToolbar: FC<TopToolbarProps> = memo(({ canvasId, mode, changeMod
           )}
           <CanvasLayoutControls />
 
+          {!readonly && !isPreviewCanvas && (
+            <TooltipButton
+              tooltip={t('canvas.toolbar.tooltip.initializeWorkflow') || 'Initialize Workflow'}
+              onClick={handleInitializeWorkflow}
+              className={cn(buttonClass, showWorkflowRun && '!bg-gradient-tools-open')}
+            >
+              <Play
+                size={16}
+                color={showWorkflowRun ? 'var(--refly-primary-default)' : 'var(--refly-text-0)'}
+              />
+            </TooltipButton>
+          )}
+
+          <ToolsDependency canvasId={canvasId} />
+
           {isPreviewCanvas ? (
             <Button
               loading={duplicating}
@@ -145,6 +191,10 @@ export const TopToolbar: FC<TopToolbarProps> = memo(({ canvasId, mode, changeMod
                 type="primary"
                 icon={<IconLink className="flex items-center" />}
                 onClick={() => {
+                  logEvent('duplicate_workflow_share', Date.now(), {
+                    canvasId,
+                    shareUrl: window.location.href,
+                  });
                   navigator.clipboard.writeText(window.location.href);
                   message.success(t('shareContent.copyLinkSuccess'));
                 }}

@@ -20,12 +20,18 @@ import Moveable from 'react-moveable';
 import { useSetNodeDataByEntity } from '@refly-packages/ai-workspace-common/hooks/canvas/use-set-node-data-by-entity';
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
 import cn from 'classnames';
-import { ImagePreview } from '@refly-packages/ai-workspace-common/components/common/image-preview';
+
 import { useSelectedNodeZIndex } from '@refly-packages/ai-workspace-common/hooks/canvas/use-selected-node-zIndex';
 import { NodeActionButtons } from './shared/node-action-buttons';
 import { useGetNodeConnectFromDragCreateInfo } from '@refly-packages/ai-workspace-common/hooks/canvas/use-get-node-connect';
 import { NodeDragCreateInfo } from '@refly-packages/ai-workspace-common/events/nodeOperations';
-import { useNodeData } from '@refly-packages/ai-workspace-common/hooks/canvas';
+import {
+  useNodeData,
+  useNodeExecutionStatus,
+} from '@refly-packages/ai-workspace-common/hooks/canvas';
+import { useNodePreviewControl } from '@refly-packages/ai-workspace-common/hooks/canvas/use-node-preview-control';
+import { NodeExecutionOverlay } from './shared/node-execution-overlay';
+import { NodeExecutionStatus } from './shared/node-execution-status';
 
 const NODE_SIDE_CONFIG = { width: 320, height: 'auto' };
 export const ImageNode = memo(
@@ -33,7 +39,7 @@ export const ImageNode = memo(
     const { metadata } = data ?? {};
     const imageUrl = metadata?.imageUrl ?? '';
     const [isHovered, setIsHovered] = useState(false);
-    const [isPreviewModalVisible, setIsPreviewModalVisible] = useState(false);
+
     const { handleMouseEnter: onHoverStart, handleMouseLeave: onHoverEnd } = useNodeHoverEffect(id);
     const targetRef = useRef<HTMLDivElement>(null);
     useSelectedNodeZIndex(id, selected);
@@ -42,8 +48,9 @@ export const ImageNode = memo(
     const { deleteNode } = useDeleteNode();
     const setNodeDataByEntity = useSetNodeDataByEntity();
     const { getConnectionInfo } = useGetNodeConnectFromDragCreateInfo();
-    const { readonly } = useCanvasContext();
+    const { readonly, canvasId } = useCanvasContext();
     const { setNodeStyle } = useNodeData();
+    const { previewNode } = useNodePreviewControl({ canvasId });
 
     const handleMouseEnter = useCallback(() => {
       setIsHovered(true);
@@ -54,6 +61,12 @@ export const ImageNode = memo(
       setIsHovered(false);
       onHoverEnd();
     }, [onHoverEnd]);
+
+    // Get node execution status
+    const { status: executionStatus } = useNodeExecutionStatus({
+      canvasId: canvasId || '',
+      nodeId: id,
+    });
 
     const handleAddToContext = useCallback(() => {
       addToContext({
@@ -107,24 +120,67 @@ export const ImageNode = memo(
       [data, addNode, getConnectionInfo],
     );
 
-    const handlePreview = useCallback(() => {
-      setIsPreviewModalVisible(true);
-    }, []);
-
     const handleDownload = useCallback(async () => {
       if (!imageUrl) return;
 
       nodeActionEmitter.emit(createNodeEventName(id, 'download.started'));
 
-      const triggerDownload = (href: string) => {
+      // Build a safe filename preserving extension and avoiding illegal characters
+      const sanitizeFileName = (name: string): string => {
+        return (name || 'image')
+          .replace(/[\\/:*?"<>|]/g, '')
+          .replace(/\s+/g, ' ')
+          .trim();
+      };
+
+      const getExtFromContentType = (contentType?: string | null): string => {
+        const ct = (contentType ?? '').toLowerCase();
+        if (!ct) return '';
+        if (ct.includes('image/jpeg') || ct.includes('image/jpg')) return 'jpg';
+        if (ct.includes('image/png')) return 'png';
+        if (ct.includes('image/webp')) return 'webp';
+        if (ct.includes('image/gif')) return 'gif';
+        if (ct.includes('image/svg')) return 'svg';
+        if (ct.includes('image/bmp')) return 'bmp';
+        if (ct.includes('image/tiff')) return 'tiff';
+        return '';
+      };
+
+      const getExtFromUrl = (u: string): string => {
+        try {
+          const { pathname } = new URL(u);
+          const file = pathname.split('/').pop() ?? '';
+          const m = file.match(/\.([a-zA-Z0-9]{1,8})$/);
+          return (m?.[1] ?? '').toLowerCase();
+        } catch {
+          return '';
+        }
+      };
+
+      const buildSafeFileName = (base: string, extHint?: string): string => {
+        const MAX_BASE_LEN = 250; // keep filename manageable
+        const sanitizedBase = sanitizeFileName(base);
+        const ext = (extHint ?? '').replace(/^\./, '').toLowerCase();
+        const hasExt = !!ext && new RegExp(`\\.${ext}$`, 'i').test(sanitizedBase);
+        const truncatedBase =
+          sanitizedBase.length > MAX_BASE_LEN
+            ? sanitizedBase.slice(0, MAX_BASE_LEN)
+            : sanitizedBase;
+        return hasExt ? truncatedBase : `${truncatedBase}${ext ? `.${ext}` : ''}`;
+      };
+
+      const triggerDownload = (href: string, fileName?: string) => {
         const link = document.createElement('a');
         link.href = href;
-        link.download = data?.title ?? 'image';
+        link.download = fileName ?? sanitizeFileName(data?.title ?? 'image');
         link.target = '_blank';
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
       };
+
+      let completedEmitted = false;
+      const baseTitle = data?.title ?? 'image';
 
       try {
         const url = new URL(imageUrl);
@@ -138,30 +194,50 @@ export const ImageNode = memo(
           throw new Error(`Download failed: ${response?.status ?? 'unknown'}`);
         }
 
+        const contentType = response.headers?.get?.('content-type') ?? '';
+        const inferredExt = getExtFromContentType(contentType) || getExtFromUrl(imageUrl) || '';
+        const fileName = buildSafeFileName(baseTitle, inferredExt || 'png');
+
         const blob = await response.blob();
         const objectUrl = URL.createObjectURL(blob);
-        triggerDownload(objectUrl);
+        triggerDownload(objectUrl, fileName);
         URL.revokeObjectURL(objectUrl);
         nodeActionEmitter.emit(createNodeEventName(id, 'download.completed'), {
           success: true,
-          fileName: data?.title ?? 'image',
+          fileName,
         });
+        completedEmitted = true;
       } catch (error) {
         console.error('Download failed:', error);
-        // Fallback to original method if fetch fails
-        triggerDownload(imageUrl);
+        // Fallback to original method if fetch fails (may ignore filename on cross-origin)
+        const fallbackExt = getExtFromUrl(imageUrl) || 'png';
+        const fallbackName = buildSafeFileName(baseTitle, fallbackExt);
+        triggerDownload(imageUrl, fallbackName);
         nodeActionEmitter.emit(createNodeEventName(id, 'download.completed'), {
           success: true,
-          fileName: data?.title ?? 'image',
+          fileName: fallbackName,
         });
+        completedEmitted = true;
+      } finally {
+        if (!completedEmitted) {
+          nodeActionEmitter.emit(createNodeEventName(id, 'download.completed'), {
+            success: false,
+            fileName: baseTitle,
+          });
+        }
       }
     }, [imageUrl, data?.title, id]);
 
     const handleImageClick = useCallback(() => {
-      if (selected || readonly) {
-        handlePreview();
-      }
-    }, [selected, readonly, handlePreview]);
+      // Create a node object for preview
+      const nodeForPreview = {
+        id,
+        type: 'image' as const,
+        data,
+        position: { x: 0, y: 0 },
+      };
+      previewNode(nodeForPreview);
+    }, [previewNode, id, data]);
 
     const onTitleChange = (newTitle: string) => {
       setNodeDataByEntity(
@@ -233,7 +309,7 @@ export const ImageNode = memo(
         onClick={onNodeClick}
         className="relative"
       >
-        <div className="absolute -top-8 left-3 right-0 z-10 flex items-center h-8 gap-2 w-[60%]">
+        <div className="absolute -top-8 left-3 z-10 flex items-center h-8 gap-2 w-[40%]">
           <div
             className={cn(
               'flex-1 min-w-0 rounded-t-lg px-1 py-1 transition-opacity duration-200 bg-transparent',
@@ -284,23 +360,30 @@ export const ImageNode = memo(
           </>
         )}
 
-        <div className="w-full relative z-1 rounded-2xl overflow-hidden flex items-center justify-center">
+        <NodeExecutionOverlay status={executionStatus} />
+
+        <div
+          className={cn(
+            'relative z-10 rounded-2xl overflow-hidden flex items-center justify-center',
+            {
+              'w-full': !isPreview,
+              'max-w-64 max-h-64': isPreview,
+            },
+          )}
+          style={{ cursor: isPreview || readonly ? 'default' : 'pointer' }}
+          onClick={handleImageClick}
+        >
+          {/* Node execution status badge */}
+          <NodeExecutionStatus status={executionStatus} />
+
           <img
-            onClick={handleImageClick}
             src={imageUrl}
             alt={data.title || 'Image'}
-            className="w-full h-full object-cover"
-            style={{ cursor: selected || readonly ? 'pointer' : 'default' }}
+            className={cn('w-full h-full', {
+              'object-cover': !isPreview,
+              'object-contain max-w-64 max-h-64': isPreview,
+            })}
           />
-          {/* only for preview image */}
-          {isPreviewModalVisible && !isPreview && (
-            <ImagePreview
-              isPreviewModalVisible={isPreviewModalVisible}
-              setIsPreviewModalVisible={setIsPreviewModalVisible}
-              imageUrl={imageUrl}
-              imageTitle={data?.title}
-            />
-          )}
         </div>
       </div>
     );

@@ -16,8 +16,6 @@ interface PollingState {
 interface ActionResultState {
   resultMap: Record<string, ActionResult & CacheInfo>;
   pollingStateMap: Record<string, PollingState & CacheInfo>;
-  batchUpdateQueue: Array<{ resultId: string; result: ActionResult }>;
-  isBatchUpdateScheduled: boolean;
   streamResults: Record<string, ActionResult>;
   traceIdMap: Record<string, string>; // key: resultId, value: traceId
 
@@ -35,6 +33,7 @@ interface ActionResultState {
   removeActionResult: (resultId: string) => void;
   startPolling: (resultId: string, version: number) => void;
   stopPolling: (resultId: string) => void;
+  removePollingState: (resultId: string) => void;
   incrementErrorCount: (resultId: string) => void;
   resetErrorCount: (resultId: string) => void;
   updateLastPollTime: (resultId: string) => void;
@@ -42,9 +41,6 @@ interface ActionResultState {
   updateLastEventTime: (resultId: string) => void;
   clearTimeout: (resultId: string) => void;
 
-  // Batched update actions
-  queueActionResultUpdate: (resultId: string, result: ActionResult) => void;
-  processBatchedUpdates: () => void;
   batchPollingStateUpdates: (
     updates: Array<{ resultId: string; state: Partial<PollingState> }>,
   ) => void;
@@ -57,7 +53,6 @@ interface ActionResultState {
 export const defaultState = {
   resultMap: {},
   pollingStateMap: {},
-  batchUpdateQueue: [],
   isBatchUpdateScheduled: false,
   streamResults: {},
   traceIdMap: {},
@@ -120,11 +115,19 @@ export const useActionResultStore = create<ActionResultState>()(
       // Note: This is less important now with our custom storage but kept for compatibility
       cleanupOldResults: () => {},
 
-      // Direct update (use sparingly - prefer queueActionResultUpdate)
       updateActionResult: (resultId: string, result: ActionResult) => {
         // Shallow update to avoid deep copying the entire store
         const now = Date.now();
         set((state) => {
+          const oldResult = state.resultMap[resultId];
+          const oldVersion = oldResult?.version ?? 0;
+          const newVersion = result.version ?? 0;
+
+          // Skip update if we're trying to update with an older version
+          if (oldResult && newVersion < oldVersion) {
+            return state;
+          }
+
           return {
             ...state,
             resultMap: {
@@ -149,105 +152,6 @@ export const useActionResultStore = create<ActionResultState>()(
           return {
             ...state,
             resultMap: newResultMap,
-          };
-        });
-      },
-
-      // Queue update for batching
-      queueActionResultUpdate: (resultId: string, result: ActionResult) => {
-        set((state) => {
-          // Check if there's already an update for this resultId in the queue
-          const existingUpdateIndex = state.batchUpdateQueue.findIndex(
-            (item) => item.resultId === resultId,
-          );
-
-          const updatedQueue = [...state.batchUpdateQueue];
-
-          if (existingUpdateIndex !== -1) {
-            // Replace the existing update with the new one to avoid duplicate updates
-            updatedQueue[existingUpdateIndex] = { resultId, result };
-          } else {
-            // Add to queue if no existing update
-            updatedQueue.push({ resultId, result });
-          }
-
-          // Schedule processing if not already scheduled
-          if (!state.isBatchUpdateScheduled && updatedQueue.length > 0) {
-            // Use requestAnimationFrame for better synchronization with browser rendering
-            window.setTimeout(() => {
-              window.requestAnimationFrame(() => {
-                get().processBatchedUpdates();
-                // Clean up old results after processing batch updates
-                get().cleanupOldResults();
-              });
-            }, 100); // Increased batching delay for better performance
-
-            return {
-              ...state,
-              batchUpdateQueue: updatedQueue,
-              isBatchUpdateScheduled: true,
-            };
-          }
-
-          return {
-            ...state,
-            batchUpdateQueue: updatedQueue,
-          };
-        });
-
-        // Update timestamp whenever we queue a result update
-        get().updateLastUsedTimestamp(resultId);
-      },
-
-      // Process all batched updates at once
-      processBatchedUpdates: () => {
-        set((state) => {
-          if (state.batchUpdateQueue.length === 0) {
-            return {
-              ...state,
-              isBatchUpdateScheduled: false,
-            };
-          }
-
-          // Create new result map with all batched updates
-          const updatedResultMap = { ...state.resultMap };
-          const now = Date.now();
-
-          // First group updates by resultId to ensure we only process the latest update for each result
-          const latestUpdates = new Map<string, ActionResult>();
-
-          for (const { resultId, result } of state.batchUpdateQueue) {
-            latestUpdates.set(resultId, result);
-          }
-
-          // Apply all updates at once, but prevent overriding finished/failed states with pending states
-          for (const [resultId, result] of latestUpdates.entries()) {
-            const oldStatus = updatedResultMap[resultId]?.status;
-            const newStatus = result.status;
-
-            // Only keep old status if it's final state (finish/failed) and new status is executing
-            const shouldKeepOldStatus =
-              (oldStatus === 'finish' || oldStatus === 'failed') && newStatus === 'executing';
-
-            const updateStatus = shouldKeepOldStatus ? oldStatus : newStatus;
-
-            useActionResultStore.getState().addStreamResult(resultId, {
-              ...result,
-              status: updateStatus,
-            });
-
-            updatedResultMap[resultId] = {
-              ...result,
-              status: updateStatus,
-              lastUsedAt: now,
-            };
-          }
-
-          return {
-            ...state,
-            resultMap: updatedResultMap,
-            batchUpdateQueue: [],
-            isBatchUpdateScheduled: false,
           };
         });
       },
@@ -293,6 +197,17 @@ export const useActionResultStore = create<ActionResultState>()(
                 lastUsedAt: now,
               },
             },
+          };
+        });
+      },
+
+      removePollingState: (resultId: string) => {
+        set((state) => {
+          const newPollingStateMap = { ...state.pollingStateMap };
+          delete newPollingStateMap[resultId];
+          return {
+            ...state,
+            pollingStateMap: newPollingStateMap,
           };
         });
       },

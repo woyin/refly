@@ -1,5 +1,5 @@
 import { Runnable } from '@langchain/core/runnables';
-import { ToolParams } from '@langchain/core/tools';
+import { StructuredToolInterface, ToolParams } from '@langchain/core/tools';
 import { BaseMessage } from '@langchain/core/messages';
 import { SkillEngine } from './engine';
 import { StateGraphArgs } from '@langchain/langgraph';
@@ -10,7 +10,6 @@ import {
   SkillContext,
   SkillInput,
   SkillTemplateConfigDefinition,
-  SkillInvocationConfig,
   SkillMeta,
   User,
   SkillEvent,
@@ -25,6 +24,7 @@ import {
   MediaGenerationModelConfig,
 } from '@refly/openapi-schema';
 import { EventEmitter } from 'node:stream';
+import { preprocess, PreprocessResult } from './scheduler/utils/preprocess';
 
 export abstract class BaseSkill {
   /**
@@ -47,10 +47,6 @@ export abstract class BaseSkill {
    * Skill template config schema
    */
   abstract configSchema: SkillTemplateConfigDefinition;
-  /**
-   * Skill invocation config
-   */
-  abstract invocationConfig: SkillInvocationConfig;
   /**
    * Langgraph state definition
    */
@@ -89,6 +85,8 @@ export abstract class BaseSkill {
         eventData.event = 'structured_data';
       } else if (eventData.artifact) {
         eventData.event = 'artifact';
+      } else if (eventData.toolCallResult) {
+        eventData.event = 'tool_call_stream';
       }
     }
 
@@ -183,6 +181,9 @@ export abstract class BaseSkill {
       icon: this.icon,
     };
 
+    // Preprocess query and context
+    config.configurable.preprocessResult ??= await preprocess(input.query, config, this.engine);
+
     const response = await this.toRunnable().invoke(input, {
       ...config,
       metadata: {
@@ -208,6 +209,9 @@ export abstract class BaseSkill {
       name: this.name,
       icon: this.icon,
     };
+
+    // Preprocess query and context
+    config.configurable.preprocessResult ??= await preprocess(input.query, config, this.engine);
 
     const runnable = this.toRunnable();
 
@@ -262,6 +266,8 @@ export interface SkillEventMap {
   structured_data: [data: SkillEvent];
   token_usage: [data: SkillEvent];
   invoke_skill: [data: SkillEvent];
+  tool_call_start: [data: SkillEvent];
+  tool_call_stream: [data: SkillEvent];
   error: [data: SkillEvent];
 }
 
@@ -272,8 +278,9 @@ export interface SkillRunnableMeta extends Record<string, unknown>, SkillMeta {
 }
 
 export interface SkillRunnableConfig extends RunnableConfig {
-  configurable?: SkillContext & {
+  configurable?: {
     user: User;
+    context: SkillContext;
     resultId?: string;
     canvasId?: string;
     locale?: string;
@@ -295,7 +302,8 @@ export interface SkillRunnableConfig extends RunnableConfig {
     tplConfig?: SkillTemplateConfig;
     runtimeConfig?: SkillRuntimeConfig;
     emitter?: EventEmitter<SkillEventMap>;
-    selectedMcpServers?: string[];
+    selectedTools?: StructuredToolInterface[];
+    preprocessResult?: PreprocessResult;
   };
   metadata?: SkillRunnableMeta;
 }

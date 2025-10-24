@@ -1,30 +1,23 @@
 import { useParams } from 'react-router-dom';
+import { useEffect } from 'react';
 import { Canvas } from '@refly-packages/ai-workspace-common/components/canvas';
-import { useSiderStoreShallow } from '@refly/stores';
-import { SiderPopover } from '@refly-packages/ai-workspace-common/components/sider/popover';
 import { FrontPage } from '@refly-packages/ai-workspace-common/components/canvas/front-page';
+import { logEvent } from '@refly/telemetry-web';
 
 const CanvasPage = () => {
   const { canvasId = '' } = useParams();
-  const { collapse } = useSiderStoreShallow((state) => ({
-    collapse: state.collapse,
-  }));
+
+  useEffect(() => {
+    if (canvasId === 'empty') {
+      logEvent('enter_workspace');
+    } else if (canvasId) {
+      logEvent('enter_canvas', null, { canvasId });
+    }
+  }, [canvasId]);
 
   return (
-    <div className="w-full h-full p-2 rounded-lg">
-      {canvasId && canvasId !== 'empty' ? (
-        <Canvas canvasId={canvasId} />
-      ) : (
-        <div className="flex h-full w-full flex-col">
-          {collapse && (
-            <SiderPopover
-              align={{ offset: [8, -48] }}
-              childrenClassName="absolute top-6 left-6 z-10"
-            />
-          )}
-          <FrontPage projectId={null} />
-        </div>
-      )}
+    <div className="w-full h-full">
+      {canvasId && canvasId !== 'empty' ? <Canvas canvasId={canvasId} /> : <FrontPage />}
     </div>
   );
 };

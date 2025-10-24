@@ -4,6 +4,7 @@ import {
   LLMModelConfig,
   MediaGenerationModelConfig,
   Provider,
+  ProviderItem,
   SimpleEventName,
   SkillInstance,
   SkillTrigger,
@@ -20,6 +21,7 @@ export interface InvokeSkillJobData extends InvokeSkillRequest {
   rawParam: string;
   result?: ActionResult;
   provider?: Provider;
+  providerItem?: ProviderItem;
   modelConfigMap?: {
     chat?: LLMModelConfig;
     agent?: LLMModelConfig;
@@ -31,14 +33,11 @@ export interface InvokeSkillJobData extends InvokeSkillRequest {
   };
 }
 
-export type CheckStuckActionsJobData = Record<string, never>;
-
 export function skillInstancePO2DTO(skill: SkillInstanceModel): SkillInstance {
   return {
     ...pick(skill, ['skillId', 'description']),
     name: skill.tplName,
     icon: JSON.parse(skill.icon),
-    invocationConfig: JSON.parse(skill.invocationConfig),
     tplConfig: JSON.parse(skill.tplConfig),
     tplConfigSchema: JSON.parse(skill.configSchema),
     pinnedAt: skill.pinnedAt?.toJSON(),

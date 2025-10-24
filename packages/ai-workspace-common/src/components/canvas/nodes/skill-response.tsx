@@ -1,52 +1,59 @@
-import { Position, useReactFlow } from '@xyflow/react';
-import { useTranslation } from 'react-i18next';
-import { Divider, Input, message, Typography } from 'antd';
-import type { InputRef } from 'antd';
-import { CanvasNode } from '@refly/canvas-common';
-import { useState, useCallback, useRef, useEffect, memo, useMemo } from 'react';
-import { CustomHandle } from './shared/custom-handle';
-import { getNodeCommonStyles } from './index';
-import { SkillResponseNodeProps } from './shared/types';
-import { useInvokeAction } from '@refly-packages/ai-workspace-common/hooks/canvas/use-invoke-action';
-import { useNodeHoverEffect } from '@refly-packages/ai-workspace-common/hooks/canvas/use-node-hover';
+import { IconError, IconLoading } from '@refly-packages/ai-workspace-common/components/common/icon';
+import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
+import {
+  cleanupNodeEvents,
+  createNodeEventName,
+  nodeActionEmitter,
+} from '@refly-packages/ai-workspace-common/events/nodeActions';
+import { useAddNode } from '@refly-packages/ai-workspace-common/hooks/canvas/use-add-node';
+import { useAddToContext } from '@refly-packages/ai-workspace-common/hooks/canvas/use-add-to-context';
+import { useCreateDocument } from '@refly-packages/ai-workspace-common/hooks/canvas/use-create-document';
 import { useDeleteNode } from '@refly-packages/ai-workspace-common/hooks/canvas/use-delete-node';
 import { useInsertToDocument } from '@refly-packages/ai-workspace-common/hooks/canvas/use-insert-to-document';
-import { useCreateDocument } from '@refly-packages/ai-workspace-common/hooks/canvas/use-create-document';
-import {
-  IconError,
-  IconLoading,
-  IconToken,
-} from '@refly-packages/ai-workspace-common/components/common/icon';
-import { time } from '@refly-packages/ai-workspace-common/utils/time';
-import { LOCALE } from '@refly/common-types';
-import { useActionResultStore, useActionResultStoreShallow } from '@refly/stores';
-import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
-import { SelectedSkillHeader } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/selected-skill-header';
-import { nodeActionEmitter } from '@refly-packages/ai-workspace-common/events/nodeActions';
-import {
-  createNodeEventName,
-  cleanupNodeEvents,
-} from '@refly-packages/ai-workspace-common/events/nodeActions';
-import { CanvasNodeType } from '@refly/openapi-schema';
-import { useAddToContext } from '@refly-packages/ai-workspace-common/hooks/canvas/use-add-to-context';
-import { useAddNode } from '@refly-packages/ai-workspace-common/hooks/canvas/use-add-node';
-import { genSkillID } from '@refly/utils/id';
+import { useInvokeAction } from '@refly-packages/ai-workspace-common/hooks/canvas/use-invoke-action';
+import { useNodeHoverEffect } from '@refly-packages/ai-workspace-common/hooks/canvas/use-node-hover';
 import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
+import { time } from '@refly-packages/ai-workspace-common/utils/time';
+import { CanvasNode, purgeToolsets } from '@refly/canvas-common';
+import { LOCALE } from '@refly/common-types';
+import { CanvasNodeType } from '@refly/openapi-schema';
+import { useActionResultStore, useActionResultStoreShallow } from '@refly/stores';
+import { genSkillID } from '@refly/utils/id';
+import { Position, useReactFlow } from '@xyflow/react';
+import type { InputRef } from 'antd';
+import { Input, message } from 'antd';
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { CustomHandle } from './shared/custom-handle';
+import { getNodeCommonStyles } from './shared/styles';
+import { SkillResponseNodeProps } from './shared/types';
 
-import { useActionPolling } from '@refly-packages/ai-workspace-common/hooks/canvas/use-action-polling';
-import cn from 'classnames';
-import { useUpdateNodeTitle } from '@refly-packages/ai-workspace-common/hooks/use-update-node-title';
-import { truncateContent } from '@refly-packages/ai-workspace-common/utils/content';
-import { useNodeData } from '@refly-packages/ai-workspace-common/hooks/canvas';
-import { useSkillError } from '@refly-packages/ai-workspace-common/hooks/use-skill-error';
 import { ModelIcon } from '@lobehub/icons';
-import { useSelectedNodeZIndex } from '@refly-packages/ai-workspace-common/hooks/canvas/use-selected-node-zIndex';
-import { NodeActionButtons } from './shared/node-action-buttons';
-import { useGetNodeConnectFromDragCreateInfo } from '@refly-packages/ai-workspace-common/hooks/canvas/use-get-node-connect';
 import { NodeDragCreateInfo } from '@refly-packages/ai-workspace-common/events/nodeOperations';
+import {
+  useNodeData,
+  useNodeExecutionFocus,
+  useNodeExecutionStatus,
+} from '@refly-packages/ai-workspace-common/hooks/canvas';
+import { useActionPolling } from '@refly-packages/ai-workspace-common/hooks/canvas/use-action-polling';
+import { useGetNodeConnectFromDragCreateInfo } from '@refly-packages/ai-workspace-common/hooks/canvas/use-get-node-connect';
+import { useSelectedNodeZIndex } from '@refly-packages/ai-workspace-common/hooks/canvas/use-selected-node-zIndex';
+import { usePilotRecovery } from '@refly-packages/ai-workspace-common/hooks/pilot/use-pilot-recovery';
+import { useSkillError } from '@refly-packages/ai-workspace-common/hooks/use-skill-error';
+import { useUpdateNodeTitle } from '@refly-packages/ai-workspace-common/hooks/use-update-node-title';
+import { useGetPilotSessionDetail } from '@refly-packages/ai-workspace-common/queries/queries';
+import {
+  processContentPreview,
+  truncateContent,
+} from '@refly-packages/ai-workspace-common/utils/content';
+import { usePilotStoreShallow } from '@refly/stores';
+import cn from 'classnames';
+import { NodeActionButtons } from './shared/node-action-buttons';
+import { NodeExecutionStatus } from './shared/node-execution-status';
 
 import { MultimodalContentPreview } from '@refly-packages/ai-workspace-common/components/canvas/nodes/shared/multimodal-content-preview';
 import { NodeIcon } from '@refly-packages/ai-workspace-common/components/canvas/nodes/shared/node-icon';
+import { logEvent } from '@refly/telemetry-web';
 
 const NODE_WIDTH = 320;
 const NODE_SIDE_CONFIG = { width: NODE_WIDTH, height: 'auto', maxHeight: 214 };
@@ -54,16 +61,12 @@ const NODE_SIDE_CONFIG = { width: NODE_WIDTH, height: 'auto', maxHeight: 214 };
 export const NodeHeader = memo(
   ({
     query,
-    skillName,
-    skill,
     disabled,
     showIcon,
     updateTitle,
     source,
   }: {
     query: string;
-    skillName?: string;
-    skill?: any;
     disabled: boolean;
     showIcon?: boolean;
     updateTitle: (title: string) => void;
@@ -98,45 +101,38 @@ export const NodeHeader = memo(
     );
 
     return (
-      <>
-        <div
-          data-cy="skill-response-node-header"
-          className={`flex-shrink-0 ${source === 'skillResponsePreview' ? 'mb-0' : 'mb-3'}`}
-        >
-          <div className="flex items-center gap-2">
-            {showIcon && <NodeIcon type="skillResponse" />}
-            {isEditing ? (
-              <Input
-                ref={inputRef}
-                className={`${
-                  source === 'skillResponsePreview' ? 'text-lg' : ''
-                } !border-transparent font-bold focus:!bg-transparent px-0.5 py-0 !bg-transparent !text-gray-700 dark:!text-gray-200`}
-                value={editTitle}
-                data-cy="skill-response-node-header-input"
-                onBlur={handleBlur}
-                onChange={handleChange}
-              />
-            ) : (
-              <Typography.Text
-                className={`font-bold leading-normal truncate block ${
-                  source === 'skillResponsePreview' ? 'text-lg' : 'text-sm'
-                }`}
-                title={editTitle}
-                onClick={() => {
-                  !disabled && setIsEditing(true);
-                }}
-              >
-                {editTitle || t('common.untitled')}
-              </Typography.Text>
-            )}
-          </div>
+      <div
+        data-cy="skill-response-node-header"
+        className={`flex-shrink-0 w-full ${source === 'skillResponsePreview' ? 'mb-0' : 'mb-3'}`}
+      >
+        <div className="flex items-center gap-2">
+          {showIcon && <NodeIcon type="skillResponse" />}
+          {isEditing ? (
+            <Input
+              ref={inputRef}
+              className={`${
+                source === 'skillResponsePreview' ? 'text-lg' : ''
+              } !border-transparent rounded-md font-bold focus:!bg-refly-tertiary-hover px-0.5 py-0 !bg-refly-tertiary-hover !text-refly-text-0`}
+              value={editTitle}
+              data-cy="skill-response-node-header-input"
+              onBlur={handleBlur}
+              onChange={handleChange}
+            />
+          ) : (
+            <div
+              className={`flex-1 rounded-md h-6 px-0.5 box-border font-bold leading-6 truncate block hover:bg-refly-tertiary-hover ${
+                source === 'skillResponsePreview' ? 'text-lg' : 'text-sm'
+              }`}
+              title={editTitle}
+              onClick={() => {
+                !disabled && setIsEditing(true);
+              }}
+            >
+              {editTitle || t('common.untitled')}
+            </div>
+          )}
         </div>
-        {skillName && skillName !== 'commonQnA' && (
-          <div className="flex-shrink-0 mb-2">
-            <SelectedSkillHeader readonly skill={skill} className="rounded-md" />
-          </div>
-        )}
-      </>
+      </div>
     );
   },
 );
@@ -145,30 +141,21 @@ const NodeFooter = memo(
   ({
     model,
     modelInfo,
-    tokenUsage,
     createdAt,
     language,
   }: {
     model: string;
     modelInfo: any;
-    tokenUsage: any;
     createdAt: string;
     language: string;
   }) => {
     return (
-      <div className="flex-shrink-0 mt-2 flex flex-wrap justify-between items-center text-[10px] text-gray-400 relative z-20 gap-1 dark:text-gray-500">
+      <div className="flex-shrink-0 mt-2 flex flex-wrap justify-between items-center text-[10px] text-gray-400 relative z-20 gap-1 dark:text-gray-500 w-full">
         <div className="flex flex-wrap items-center gap-1 max-w-[70%]">
           {model && (
             <div className="flex items-center gap-1 overflow-hidden">
               <ModelIcon model={modelInfo?.name} size={16} type={'color'} />
               <span className="truncate">{model}</span>
-            </div>
-          )}
-          {model && tokenUsage ? <Divider type="vertical" className="mx-1" /> : null}
-          {tokenUsage?.reduce && (
-            <div className="flex items-center gap-1 flex-shrink-0">
-              <IconToken className="w-3 h-3" />
-              {tokenUsage.reduce((acc, t) => acc + t.inputTokens + t.outputTokens, 0)}
             </div>
           )}
         </div>
@@ -185,8 +172,7 @@ const NodeFooter = memo(
       prevProps.model === nextProps.model &&
       prevProps.createdAt === nextProps.createdAt &&
       prevProps.language === nextProps.language &&
-      JSON.stringify(prevProps.modelInfo) === JSON.stringify(nextProps.modelInfo) &&
-      JSON.stringify(prevProps.tokenUsage) === JSON.stringify(nextProps.tokenUsage)
+      JSON.stringify(prevProps.modelInfo) === JSON.stringify(nextProps.modelInfo)
     );
   },
 );
@@ -209,6 +195,35 @@ export const SkillResponseNode = memo(
     const { getEdges } = useReactFlow();
     const updateNodeTitle = useUpdateNodeTitle();
     const { handleMouseEnter: onHoverStart, handleMouseLeave: onHoverEnd } = useNodeHoverEffect(id);
+    const { readonly, canvasId } = useCanvasContext();
+
+    // Get current pilot session info
+    const activeSessionId = usePilotStoreShallow(
+      (state) => state.activeSessionIdByCanvas[canvasId || ''],
+    );
+
+    // Get pilot session data to check if this node corresponds to a pilot step
+    const { data: sessionData } = useGetPilotSessionDetail(
+      {
+        query: { sessionId: activeSessionId },
+      },
+      undefined,
+      {
+        enabled: !!activeSessionId,
+      },
+    );
+
+    // Get node execution status
+    const { status: executionStatus, isExecuting } = useNodeExecutionStatus({
+      canvasId: canvasId || '',
+      nodeId: id,
+    });
+
+    // Auto-focus on node when executing
+    useNodeExecutionFocus({
+      isExecuting,
+      canvasId: canvasId || '',
+    });
 
     const nodeStyle = useMemo(
       () => (isPreview ? { width: NODE_WIDTH, height: 214 } : NODE_SIDE_CONFIG),
@@ -218,10 +233,22 @@ export const SkillResponseNode = memo(
     const { t, i18n } = useTranslation();
     const language = i18n.languages?.[0];
 
-    const { canvasId, readonly } = useCanvasContext();
-
-    const { title, contentPreview: content, metadata, createdAt, entityId } = data ?? {};
+    const {
+      title,
+      editedTitle,
+      contentPreview: content,
+      metadata,
+      createdAt,
+      entityId,
+    } = data ?? {};
     const { errMsg } = useSkillError(metadata?.errors?.[0]);
+
+    // Find current node's corresponding pilot step
+    const currentPilotStep = useMemo(() => {
+      if (!sessionData?.data?.steps || !entityId) return null;
+
+      return sessionData.data.steps.find((step) => step.entityId === entityId);
+    }, [sessionData, entityId]);
 
     const { getConnectionInfo } = useGetNodeConnectFromDragCreateInfo();
 
@@ -232,20 +259,50 @@ export const SkillResponseNode = memo(
       structuredData,
       selectedSkill,
       actionMeta,
-      tokenUsage,
       version,
+      shareId,
     } = metadata ?? {};
     const currentSkill = actionMeta || selectedSkill;
 
     const { startPolling, resetFailedState } = useActionPolling();
-    const { isStreaming, removeStreamResult } = useActionResultStoreShallow((state) => ({
+    const { result, isStreaming, removeStreamResult } = useActionResultStoreShallow((state) => ({
+      result: state.resultMap[entityId],
       isStreaming: !!state.streamResults[entityId],
       removeStreamResult: state.removeStreamResult,
     }));
 
+    // Sync node status with action result status
+    useEffect(() => {
+      if (!result || !data) return;
+
+      const nodePreview = data.contentPreview;
+      const resultPreview = processContentPreview(result.steps?.map((s) => s?.content || ''));
+
+      const needsStatusUpdate = result.status !== data.metadata?.status;
+      const needsPreviewUpdate = nodePreview !== resultPreview;
+
+      if (needsStatusUpdate || needsPreviewUpdate) {
+        setNodeData(id, {
+          ...data,
+          ...(needsStatusUpdate && {
+            metadata: { ...data.metadata, status: result.status },
+          }),
+          ...(needsPreviewUpdate && {
+            contentPreview: resultPreview,
+          }),
+        });
+      }
+    }, [result, data, id, setNodeData]);
+
+    // Use pilot recovery hook for pilot steps
+    const { recoverSteps } = usePilotRecovery({
+      canvasId: canvasId || '',
+      sessionId: activeSessionId || '',
+    });
+
     useEffect(() => {
       if (!isStreaming) {
-        if (['executing', 'waiting'].includes(status)) {
+        if (['executing', 'waiting'].includes(status) && !shareId) {
           startPolling(entityId, version);
         }
       } else {
@@ -264,7 +321,24 @@ export const SkillResponseNode = memo(
           return () => clearTimeout(timeoutId);
         }
       }
-    }, [isStreaming, status, startPolling, entityId, version, removeStreamResult]);
+    }, [isStreaming, status, startPolling, entityId, shareId, version, removeStreamResult]);
+
+    // Listen to pilot step status changes and sync with node status
+    useEffect(() => {
+      if (currentPilotStep?.status && currentPilotStep.status !== data?.metadata?.status) {
+        console.log(
+          `[Pilot Step Sync] Updating node ${id} status from ${data?.metadata?.status} to ${currentPilotStep.status}`,
+        );
+
+        setNodeData(id, {
+          ...data,
+          metadata: {
+            ...data?.metadata,
+            status: currentPilotStep.status,
+          },
+        });
+      }
+    }, [currentPilotStep?.status, data, id, setNodeData]);
 
     const sources = Array.isArray(structuredData?.sources) ? structuredData?.sources : [];
 
@@ -287,11 +361,10 @@ export const SkillResponseNode = memo(
       name: currentSkill?.name || 'commonQnA',
       icon: currentSkill?.icon,
     };
-    const skillName = currentSkill?.name || 'commonQnA';
     const model = modelInfo?.label;
 
     // Get query and response content from result
-    const query = title;
+    const query = editedTitle || title;
 
     // Check if node has any connections
     const edges = getEdges();
@@ -311,16 +384,48 @@ export const SkillResponseNode = memo(
 
     const { invokeAction } = useInvokeAction({ source: 'skill-response-node' });
 
-    const handleRerun = useCallback(() => {
-      if (readonly) {
-        return;
-      }
+    // Pilot recovery mode
+    const handlePilotRecovery = useCallback(async () => {
+      if (!currentPilotStep?.stepId || !activeSessionId) return;
 
-      if (['executing', 'waiting'].includes(data?.metadata?.status)) {
-        message.info(t('canvas.skillResponse.executing'));
-        return;
-      }
+      message.info(
+        t('canvas.skillResponse.startPilotRecovery', {
+          defaultValue: 'Starting pilot recovery...',
+        }),
+      );
 
+      try {
+        // 使用 usePilotRecovery hook
+        await recoverSteps([currentPilotStep]);
+
+        // 前端状态更新
+        setNodeData(id, {
+          ...data,
+          contentPreview: '',
+          metadata: {
+            ...data?.metadata,
+            status: 'waiting',
+            version: (data?.metadata?.version || 0) + 1,
+          },
+        });
+
+        message.success(
+          t('canvas.skillResponse.pilotRecoveryStarted', {
+            defaultValue: 'Pilot recovery started successfully',
+          }),
+        );
+      } catch (error) {
+        console.error('Pilot recovery failed:', error);
+        message.error(
+          t('canvas.skillResponse.pilotRecoveryFailed', {
+            defaultValue: 'Pilot recovery failed',
+          }),
+        );
+      }
+    }, [currentPilotStep, activeSessionId, recoverSteps, data, id, setNodeData, t]);
+
+    // Direct rerun mode (original logic)
+    const handleDirectRerun = useCallback(() => {
       message.info(t('canvas.skillResponse.startRerun'));
 
       setNodeStyle(id, NODE_SIDE_CONFIG);
@@ -330,12 +435,15 @@ export const SkillResponseNode = memo(
         resetFailedState(entityId);
       }
 
+      const nextVersion = (data?.metadata?.version || 0) + 1;
+
       setNodeData(id, {
         ...data,
         contentPreview: '',
         metadata: {
           ...data?.metadata,
           status: 'waiting',
+          version: nextVersion,
         },
       });
 
@@ -345,6 +453,8 @@ export const SkillResponseNode = memo(
           query: title,
           selectedSkill: skill,
           contextItems: data?.metadata?.contextItems,
+          selectedToolsets: purgeToolsets(data?.metadata?.selectedToolsets),
+          version: nextVersion,
         },
         {
           entityType: 'canvas',
@@ -357,11 +467,47 @@ export const SkillResponseNode = memo(
       canvasId,
       id,
       title,
-      t,
       invokeAction,
       setNodeData,
-      readonly,
       resetFailedState,
+      setNodeStyle,
+      skill,
+      t,
+    ]);
+
+    const handleRerun = useCallback(() => {
+      if (readonly) {
+        return;
+      }
+
+      if (['executing', 'waiting'].includes(data?.metadata?.status)) {
+        message.info(t('canvas.skillResponse.executing'));
+        return;
+      }
+
+      logEvent('rerun_ask_ai', null, {
+        canvasId,
+        nodeId: id,
+      });
+
+      // 判断是否为 pilot step
+      if (currentPilotStep?.stepId && activeSessionId) {
+        // 使用 pilot recovery 模式
+        handlePilotRecovery();
+      } else {
+        // 使用原有的直接重试模式
+        handleDirectRerun();
+      }
+    }, [
+      readonly,
+      data?.metadata?.status,
+      t,
+      currentPilotStep,
+      activeSessionId,
+      handlePilotRecovery,
+      handleDirectRerun,
+      canvasId,
+      id,
     ]);
 
     const insertToDoc = useInsertToDocument(entityId);
@@ -375,13 +521,18 @@ export const SkillResponseNode = memo(
     const { deleteNode } = useDeleteNode();
 
     const handleDelete = useCallback(() => {
+      logEvent('delete_node_ask_ai', null, {
+        canvasId,
+        nodeId: id,
+      });
+
       deleteNode({
         id,
         type: 'skillResponse',
         data,
         position: { x: 0, y: 0 },
       } as CanvasNode);
-    }, [id, data, deleteNode]);
+    }, [id, data, deleteNode, canvasId]);
 
     const { debouncedCreateDocument } = useCreateDocument();
 
@@ -400,11 +551,13 @@ export const SkillResponseNode = memo(
             return;
           }
 
-          // Extract full content from all steps
+          // Extract full content from all steps and remove tool_use tags
           const fullContent = data.data.steps
             ?.map((step) => step?.content || '')
             .filter(Boolean)
-            .join('\n\n');
+            .join('\n\n')
+            .replace(/<tool_use>[\s\S]*?<\/tool_use>/g, '')
+            .trim();
 
           const { position, connectTo } = getConnectionInfo(
             { entityId, type: 'skillResponse' },
@@ -432,13 +585,19 @@ export const SkillResponseNode = memo(
     const { addToContext } = useAddToContext();
 
     const handleAddToContext = useCallback(() => {
+      logEvent('add_to_context_ask_ai', null, {
+        canvasId,
+        entityId,
+        nodeId: id,
+      });
+
       addToContext({
         type: 'skillResponse',
         title: title,
         entityId: entityId,
         metadata: data?.metadata,
       });
-    }, [data, entityId, title, addToContext]);
+    }, [data, entityId, title, addToContext, canvasId, id]);
 
     const { addNode } = useAddNode();
 
@@ -493,6 +652,10 @@ export const SkillResponseNode = memo(
           event?.dragCreateInfo,
         );
 
+        logEvent('append_ask_ai', null, {
+          canvasId,
+        });
+
         // Add a small delay to avoid race conditions with context items
         setTimeout(() => {
           addNode(
@@ -518,11 +681,12 @@ export const SkillResponseNode = memo(
           );
         }, 10);
       },
-      [data, addNode, getConnectionInfo],
+      [data, addNode, getConnectionInfo, canvasId],
     );
 
     const handleCloneAskAI = useCallback(async () => {
-      const { contextItems, modelInfo, selectedSkill, tplConfig } = data?.metadata || {};
+      const { contextItems, modelInfo, selectedSkill, tplConfig, structuredData } =
+        data?.metadata || {};
       const currentSkill = actionMeta || selectedSkill;
 
       // Create new skill node with context, similar to group node implementation
@@ -530,6 +694,12 @@ export const SkillResponseNode = memo(
         type: item.type as CanvasNodeType,
         entityId: item.entityId,
       }));
+
+      logEvent('clone_ask_ai', null, {
+        canvasId,
+        sourceEntityId: data.entityId,
+        sourceNodeId: id,
+      });
 
       // Create new skill node
       addNode(
@@ -540,7 +710,7 @@ export const SkillResponseNode = memo(
             entityId: genSkillID(),
             metadata: {
               contextItems,
-              query: title,
+              query: structuredData?.query || title,
               modelInfo,
               selectedSkill: currentSkill,
               tplConfig,
@@ -553,7 +723,7 @@ export const SkillResponseNode = memo(
       );
 
       nodeActionEmitter.emit(createNodeEventName(id, 'cloneAskAI.completed'));
-    }, [id, data?.entityId, addNode, t]);
+    }, [id, data?.entityId, addNode, t, canvasId]);
 
     const onTitleChange = (newTitle: string) => {
       if (newTitle === query) {
@@ -654,20 +824,25 @@ export const SkillResponseNode = memo(
             />
           </>
         )}
+
         <div
           style={nodeStyle}
-          className={`h-full flex flex-col relative z-1 p-4 box-border ${getNodeCommonStyles({ selected, isHovered })}`}
+          className={cn(
+            'h-full flex flex-col relative z-1 p-4 box-border',
+            getNodeCommonStyles({ selected, isHovered }),
+            'flex max-h-60 flex-col items-start gap-2 self-stretch px-4 py-3 rounded-2xl border-solid',
+            // Apply error styles only when there's an error
+            status === 'failed'
+              ? 'border border-refly-func-danger-default bg-refly-bg-content-z2 shadow-[0_2px_20px_4px_rgba(0,0,0,0.04)]'
+              : 'border border-gray-200 bg-refly-bg-content-z2',
+          )}
         >
-          <NodeHeader
-            showIcon
-            disabled={readonly}
-            query={query}
-            skillName={skillName}
-            skill={skill}
-            updateTitle={onTitleChange}
-          />
+          {/* Node execution status badge */}
+          <NodeExecutionStatus status={executionStatus} />
 
-          <div className={'relative flex-grow overflow-y-auto pr-2 -mr-2'}>
+          <NodeHeader showIcon disabled={readonly} query={query} updateTitle={onTitleChange} />
+
+          <div className={'relative flex-grow overflow-y-auto pr-2 -mr-2 w-full'}>
             <div className="flex flex-col gap-3">
               {status === 'failed' && (
                 <div
@@ -678,7 +853,7 @@ export const SkillResponseNode = memo(
                   onClick={() => handleRerun()}
                 >
                   <IconError className="h-4 w-4 text-red-500" />
-                  <span className="text-xs text-red-500 max-w-48 truncate">
+                  <span className="text-xs text-red-500 w-full truncate">
                     {errMsg || t('canvas.skillResponse.executionFailed')}
                   </span>
                 </div>
@@ -687,7 +862,7 @@ export const SkillResponseNode = memo(
               {(status === 'waiting' || status === 'executing') && (
                 <div className="flex items-center gap-2 bg-gray-100 rounded-md p-2 dark:bg-gray-800">
                   <IconLoading className="h-3 w-3 animate-spin text-green-500" />
-                  <span className="text-xs text-gray-500 max-w-48 truncate">
+                  <span className="text-xs text-gray-500 w-full truncate">
                     {log ? (
                       <>
                         <span className="text-green-500 font-medium">{`${logTitle} `}</span>
@@ -714,7 +889,6 @@ export const SkillResponseNode = memo(
           <NodeFooter
             model={model}
             modelInfo={modelInfo}
-            tokenUsage={tokenUsage}
             createdAt={createdAt}
             language={language}
           />

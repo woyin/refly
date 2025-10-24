@@ -97,6 +97,77 @@ export class ProviderService implements OnModuleInit {
     } catch (error) {
       this.logger.error('Failed to initialize monitoring:', error);
     }
+
+    // Initialize default embedding provider if none exists
+    // await this.initializeDefaultEmbeddingProvider();
+  }
+
+  /**
+   * Initialize default embedding provider if none exists
+   */
+  private async initializeDefaultEmbeddingProvider() {
+    try {
+      // Check if any embedding provider items exist
+      const existingEmbeddingItems = await this.prisma.providerItem.findFirst({
+        where: {
+          category: 'embedding',
+          deletedAt: null,
+        },
+      });
+
+      if (existingEmbeddingItems) {
+        this.logger.log('Embedding provider already exists, skipping initialization');
+        return;
+      }
+
+      // Check if OpenAI provider exists
+      let openaiProvider = await this.prisma.provider.findFirst({
+        where: {
+          providerKey: 'openai',
+          isGlobal: true,
+          deletedAt: null,
+        },
+      });
+
+      // Create OpenAI provider if it doesn't exist
+      if (!openaiProvider) {
+        openaiProvider = await this.prisma.provider.create({
+          data: {
+            providerId: genProviderID(),
+            providerKey: 'openai',
+            name: 'OpenAI',
+            baseUrl: 'https://api.openai.com/v1',
+            enabled: true,
+            categories: 'llm,embedding',
+            isGlobal: true,
+            apiKey: this.encryptionService.encrypt(''), // Empty API key, user needs to configure
+          },
+        });
+        this.logger.log(`Created default OpenAI provider ${openaiProvider.providerId}`);
+      }
+
+      // Create default embedding model item
+      const embeddingItem = await this.prisma.providerItem.create({
+        data: {
+          itemId: genProviderItemID(),
+          providerId: openaiProvider.providerId,
+          category: 'embedding',
+          name: 'text-embedding-3-small',
+          enabled: true,
+          config: JSON.stringify({
+            model: 'text-embedding-3-small',
+            dimensions: 1536,
+          }),
+          tier: 't2',
+          order: 0,
+          groupName: 'Default',
+        },
+      });
+
+      this.logger.log(`Created default embedding model item ${embeddingItem.itemId}`);
+    } catch (error) {
+      this.logger.error('Failed to initialize default embedding provider:', error);
+    }
   }
 
   async fetchGlobalProviderConfig(): Promise<GlobalProviderConfig> {

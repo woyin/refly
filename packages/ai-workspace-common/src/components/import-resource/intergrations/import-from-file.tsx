@@ -6,13 +6,16 @@ import { useTranslation } from 'react-i18next';
 import { useSubscriptionUsage } from '@refly-packages/ai-workspace-common/hooks/use-subscription-usage';
 import type { RcFile } from 'antd/es/upload/interface';
 import { genResourceID } from '@refly/utils/id';
+import { getFileType } from '@refly-packages/ai-workspace-common/components/canvas/workflow-variables/utils';
+import { ACCEPT_FILE_EXTENSIONS } from '@refly-packages/ai-workspace-common/components/canvas/workflow-variables/constants';
 
 const { Dragger } = Upload;
 
-const ALLOWED_FILE_EXTENSIONS = ['.pdf', '.docx', '.rtf', '.txt', '.md', '.html', '.epub'];
-const ALLOWED_IMAGE_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.webp', '.gif', '.tiff', '.bmp'];
+interface ImportFromFileProps {
+  canvasId: string;
+}
 
-export const ImportFromFile = () => {
+export const ImportFromFile = ({ canvasId }: ImportFromFileProps) => {
   const { t } = useTranslation();
   const {
     fileList: storageFileList,
@@ -42,6 +45,8 @@ export const ImportFromFile = () => {
     const { data } = await getClient().upload({
       body: {
         file,
+        entityId: canvasId,
+        entityType: 'canvas',
       },
     });
     if (data?.success) {
@@ -62,7 +67,7 @@ export const ImportFromFile = () => {
   const props: UploadProps = {
     name: 'file',
     multiple: true,
-    accept: [...ALLOWED_FILE_EXTENSIONS, ...ALLOWED_IMAGE_EXTENSIONS].join(','),
+    accept: ACCEPT_FILE_EXTENSIONS.map((ext) => `.${ext}`).join(','),
     fileList: [],
     beforeUpload: async (file: File) => {
       if (uploadLimit > 0 && file.size > maxFileSizeBytes) {
@@ -72,8 +77,7 @@ export const ImportFromFile = () => {
 
       const tempUid = genResourceID();
       const fileExtension = getFileExtension(file.name);
-
-      const fileType = ALLOWED_IMAGE_EXTENSIONS.includes(`.${fileExtension}`) ? 'image' : 'file';
+      const fileType = getFileType(file.name);
 
       // Add file to waiting list with pending status
       addToWaitingList({
@@ -170,9 +174,7 @@ export const ImportFromFile = () => {
 
   const genUploadHint = () => {
     let hint = t('resource.import.supportedFiles', {
-      formats: [...ALLOWED_FILE_EXTENSIONS, ...ALLOWED_IMAGE_EXTENSIONS]
-        .map((ext) => ext.slice(1).toUpperCase())
-        .join(', '),
+      formats: ACCEPT_FILE_EXTENSIONS.map((ext) => ext.toUpperCase()).join(', '),
     });
     if (uploadLimit > 0) {
       hint += `. ${t('resource.import.fileUploadLimit', { size: maxFileSize })}`;

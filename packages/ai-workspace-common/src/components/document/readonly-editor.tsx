@@ -19,6 +19,7 @@ export const ReadonlyEditor = memo(
     const document = useDocumentStoreShallow((state) => state.data[docId]?.document);
     const [isPreviewModalVisible, setIsPreviewModalVisible] = useState(false);
     const [imageUrl, setImageUrl] = useState<string | null>(null);
+    const [isEditorReady, setIsEditorReady] = useState(false);
 
     const handleNodeClick = useCallback(
       (event: MouseEvent) => {
@@ -85,19 +86,25 @@ export const ReadonlyEditor = memo(
     }, [docId]);
 
     useEffect(() => {
-      if (document?.content && editorRef.current) {
-        editorRef.current?.commands.setContent(document.content);
-      }
-    }, [document?.content]);
+      if (!editorRef.current) return;
+      const content = document?.content ?? '';
+      editorRef.current?.commands.setContent(content);
+    }, [isEditorReady, document?.content, docId]);
 
     return (
       <div className={classNames('w-full', 'ai-note-editor-content-container')}>
         <div className="w-full h-full">
           <EditorRoot>
             <EditorContent
+              key={docId}
               extensions={extensions}
               onCreate={({ editor }) => {
                 editorRef.current = editor;
+                setIsEditorReady(true);
+                const initialContent = document?.content ?? '';
+                if (initialContent !== undefined) {
+                  editorRef.current?.commands.setContent(initialContent);
+                }
               }}
               editable={false}
               className="w-full h-full border-muted sm:rounded-lg"

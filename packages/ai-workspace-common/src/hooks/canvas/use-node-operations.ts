@@ -2,7 +2,6 @@ import { useCallback, useState } from 'react';
 import { applyNodeChanges, NodeChange, useStoreApi } from '@xyflow/react';
 import { useCanvasStoreShallow, useContextPanelStoreShallow } from '@refly/stores';
 import { useCanvasId } from '@refly-packages/ai-workspace-common/hooks/canvas/use-canvas-id';
-import { useUploadMinimap } from '@refly-packages/ai-workspace-common/hooks/use-upload-minimap';
 import { truncateContent, MAX_CONTENT_PREVIEW_LENGTH } from '../../utils/content';
 import { getHelperLines } from '../../components/canvas/common/helper-line/util';
 import { CanvasNode } from '@refly/canvas-common';
@@ -22,8 +21,7 @@ export const useNodeOperations = () => {
   const { removeContextItem } = useContextPanelStoreShallow((state) => ({
     removeContextItem: state.removeContextItem,
   }));
-  const { debouncedHandleUpdateCanvasMiniMap } = useUploadMinimap(canvasId);
-  const { syncCanvasData } = useCanvasContext();
+  const { forceSyncState } = useCanvasContext();
 
   // Add helper line states
   const [helperLineHorizontal, setHelperLineHorizontal] = useState<number | undefined>(undefined);
@@ -91,9 +89,9 @@ export const useNodeOperations = () => {
         elevateNodesOnSelect: false,
       });
       setState({ nodes: cleanedNodes });
-      syncCanvasData();
+      forceSyncState();
     },
-    [syncCanvasData],
+    [forceSyncState],
   );
 
   const onNodesChange = useCallback(
@@ -104,10 +102,27 @@ export const useNodeOperations = () => {
         measured: node.measured ? { ...node.measured } : undefined,
       }));
 
-      // Handle deleted nodes
+      // Handle deleted nodes - filter out start type nodes to prevent deletion
       const deletedNodes = changes.filter((change) => change.type === 'remove');
 
       if (deletedNodes.length > 0) {
+        // Filter out start type nodes from deletion changes
+        const filteredChanges = changes.filter((change) => {
+          if (change.type === 'remove') {
+            const nodeToDelete = nodes.find((node) => node.id === change.id);
+            // Prevent deletion of start type nodes
+            if (nodeToDelete?.type === 'start') {
+              return false;
+            }
+          }
+          return true;
+        });
+
+        // Use filtered changes if any start nodes were filtered out
+        const changesToApply =
+          filteredChanges.length !== changes.length ? filteredChanges : changes;
+
+        // Process remaining deleted nodes
         for (const change of deletedNodes) {
           const nodeId = change.id;
 
@@ -122,6 +137,21 @@ export const useNodeOperations = () => {
           removeContextItem(nodeId);
           removeNodePreview(canvasId, nodeId);
         }
+
+        // Check if this is a position change for snap alignment
+        const isPositionChange =
+          changesToApply.length === 1 &&
+          changesToApply[0]?.type === 'position' &&
+          changesToApply[0]?.position;
+
+        // Apply changes with or without helper lines based on change type
+        const updatedNodes = isPositionChange
+          ? customApplyNodeChanges(changesToApply, mutableNodes)
+          : applyNodeChanges(changesToApply, mutableNodes);
+
+        updateNodesWithSync(updatedNodes);
+
+        return updatedNodes;
       }
 
       // Check if this is a position change for snap alignment
@@ -134,7 +164,6 @@ export const useNodeOperations = () => {
         : applyNodeChanges(changes, mutableNodes);
 
       updateNodesWithSync(updatedNodes);
-      debouncedHandleUpdateCanvasMiniMap();
 
       return updatedNodes;
     },
@@ -144,7 +173,6 @@ export const useNodeOperations = () => {
       removeContextItem,
       removeNodePreview,
       customApplyNodeChanges,
-      debouncedHandleUpdateCanvasMiniMap,
       // Use deletedNodesEmitter event emitter to track deleted nodes
     ],
   );

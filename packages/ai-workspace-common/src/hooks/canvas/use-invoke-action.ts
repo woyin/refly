@@ -1,5 +1,15 @@
-import { useCallback, useRef, useEffect } from 'react';
+import { codeArtifactEmitter } from '@refly-packages/ai-workspace-common/events/codeArtifact';
+import { deletedNodesEmitter } from '@refly-packages/ai-workspace-common/events/deleted-nodes';
+import { useFindImages } from '@refly-packages/ai-workspace-common/hooks/canvas/use-find-images';
+import { useFindMemo } from '@refly-packages/ai-workspace-common/hooks/canvas/use-find-memo';
+import { useFindThreadHistory } from '@refly-packages/ai-workspace-common/hooks/canvas/use-find-thread-history';
+import { useFindWebsite } from '@refly-packages/ai-workspace-common/hooks/canvas/use-find-website';
+import { useSetNodeDataByEntity } from '@refly-packages/ai-workspace-common/hooks/canvas/use-set-node-data-by-entity';
+import { ssePost } from '@refly-packages/ai-workspace-common/utils/sse-post';
+import { SkillNodeMeta, convertContextItemsToInvokeParams } from '@refly/canvas-common';
 import {
+  ActionResult,
+  ActionStatus,
   ActionStep,
   ActionStepMeta,
   Artifact,
@@ -7,35 +17,30 @@ import {
   Entity,
   InvokeSkillRequest,
   SkillEvent,
-  ActionStatus,
-  ActionResult,
 } from '@refly/openapi-schema';
-import { ssePost } from '@refly-packages/ai-workspace-common/utils/sse-post';
-import { getRuntime } from '@refly/utils/env';
-import { useSetNodeDataByEntity } from '@refly-packages/ai-workspace-common/hooks/canvas/use-set-node-data-by-entity';
 import { useActionResultStore } from '@refly/stores';
-import { aggregateTokenUsage, genActionResultID, detectActualTypeFromType } from '@refly/utils';
-import { SkillNodeMeta, convertContextItemsToInvokeParams } from '@refly/canvas-common';
-import { useFindThreadHistory } from '@refly-packages/ai-workspace-common/hooks/canvas/use-find-thread-history';
-import { useActionPolling } from './use-action-polling';
-import { useFindMemo } from '@refly-packages/ai-workspace-common/hooks/canvas/use-find-memo';
-import { useUpdateActionResult } from './use-update-action-result';
-import { useSubscriptionUsage } from '../use-subscription-usage';
-import { useFindImages } from '@refly-packages/ai-workspace-common/hooks/canvas/use-find-images';
-import { ARTIFACT_TAG_CLOSED_REGEX, getArtifactContentAndAttributes } from '@refly/utils/artifact';
-import { useFindWebsite } from '@refly-packages/ai-workspace-common/hooks/canvas/use-find-website';
-import { codeArtifactEmitter } from '@refly-packages/ai-workspace-common/events/codeArtifact';
-import { deletedNodesEmitter } from '@refly-packages/ai-workspace-common/events/deleted-nodes';
-import { useLaunchpadStoreShallow } from '@refly/stores';
 import { logEvent } from '@refly/telemetry-web';
+import { aggregateTokenUsage, detectActualTypeFromType, genActionResultID } from '@refly/utils';
+import { ARTIFACT_TAG_CLOSED_REGEX, getArtifactContentAndAttributes } from '@refly/utils/artifact';
+import { getRuntime } from '@refly/utils/env';
+import { useCallback, useEffect, useRef } from 'react';
 import {
-  useAbortAction,
+  mergeToolCallById,
+  parseToolCallFromChunk,
+} from '../../components/markdown/plugins/tool-call/toolProcessor';
+import { useSubscriptionUsage } from '../use-subscription-usage';
+import {
   globalAbortControllerRef,
-  globalIsAbortedRef,
   globalCurrentResultIdRef,
+  globalIsAbortedRef,
+  useAbortAction,
 } from './use-abort-action';
+import { useActionPolling } from './use-action-polling';
+import { useUpdateActionResult } from './use-update-action-result';
 
 export const useInvokeAction = (params?: { source?: string }) => {
+  const latestStepsRef = useRef(new Map<string, ActionStep[]>());
+
   const { source } = params || {};
 
   const setNodeDataByEntity = useSetNodeDataByEntity();
@@ -79,18 +84,6 @@ export const useInvokeAction = (params?: { source?: string }) => {
     });
 
     stopPolling(resultId);
-
-    // Clear any pending throttled updates for this result
-    if (streamUpdateThrottleRef.current[resultId]?.timeout) {
-      clearTimeout(streamUpdateThrottleRef.current[resultId].timeout);
-      delete streamUpdateThrottleRef.current[resultId];
-    }
-
-    // Clear any pending token usage updates
-    if (tokenUsageUpdateTimeoutRef.current[resultId]) {
-      clearTimeout(tokenUsageUpdateTimeoutRef.current[resultId]);
-      delete tokenUsageUpdateTimeoutRef.current[resultId];
-    }
   };
 
   const onSkillLog = (skillEvent: SkillEvent) => {
@@ -108,16 +101,11 @@ export const useInvokeAction = (params?: { source?: string }) => {
       updatedStep.logs = [...(updatedStep.logs || []), log];
     }
 
-    const updatedResult = {
-      ...result,
-      status: 'executing' as const,
+    const payload = {
       steps: getUpdatedSteps(result.steps ?? [], updatedStep),
     };
-    onUpdateResult(resultId, updatedResult, skillEvent);
+    onUpdateResult(resultId, payload, skillEvent);
   };
-
-  // Optimize token usage updates by debouncing
-  const tokenUsageUpdateTimeoutRef = useRef<Record<string, number>>({});
 
   const onSkillTokenUsage = (skillEvent: SkillEvent) => {
     const { resultId, step, tokenUsage } = skillEvent;
@@ -128,35 +116,21 @@ export const useInvokeAction = (params?: { source?: string }) => {
       return;
     }
 
-    // Clear existing timeout for this result
-    if (tokenUsageUpdateTimeoutRef.current[resultId]) {
-      clearTimeout(tokenUsageUpdateTimeoutRef.current[resultId]);
+    const currentResult = useActionResultStore.getState().resultMap[resultId];
+    if (!currentResult) return;
+
+    const updatedStep: ActionStep = findOrCreateStep(currentResult.steps ?? [], step);
+    if (tokenUsage) {
+      updatedStep.tokenUsage = aggregateTokenUsage([...(updatedStep.tokenUsage ?? []), tokenUsage]);
     }
 
-    // Debounce token usage updates to 500ms
-    tokenUsageUpdateTimeoutRef.current[resultId] = window.setTimeout(() => {
-      const currentResult = useActionResultStore.getState().resultMap[resultId];
-      if (!currentResult) return;
-
-      const updatedStep: ActionStep = findOrCreateStep(currentResult.steps ?? [], step);
-      if (tokenUsage) {
-        updatedStep.tokenUsage = aggregateTokenUsage([
-          ...(updatedStep.tokenUsage ?? []),
-          tokenUsage,
-        ]);
-      }
-
-      onUpdateResult(
-        resultId,
-        {
-          ...currentResult,
-          steps: getUpdatedSteps(currentResult.steps ?? [], updatedStep),
-        },
-        skillEvent,
-      );
-
-      delete tokenUsageUpdateTimeoutRef.current[resultId];
-    }, 500);
+    onUpdateResult(
+      resultId,
+      {
+        steps: getUpdatedSteps(currentResult.steps ?? [], updatedStep),
+      },
+      skillEvent,
+    );
   };
 
   const findOrCreateStep = (steps: ActionStep[], stepMeta: ActionStepMeta) => {
@@ -177,6 +151,17 @@ export const useInvokeAction = (params?: { source?: string }) => {
       return [...steps, updatedStep];
     }
     return steps.map((step) => (step.name === updatedStep.name ? updatedStep : step));
+  };
+
+  // Update toolCalls on a step by parsing tool_use XML in the current chunk content
+  const updateToolCallsFromXml = (
+    updatedStep: ActionStep,
+    step: ActionStepMeta | undefined,
+    content: string,
+  ): void => {
+    const parsed = parseToolCallFromChunk(content, step?.name);
+    if (!parsed) return;
+    updatedStep.toolCalls = mergeToolCallById(updatedStep.toolCalls, parsed);
   };
 
   const onSkillStreamArtifact = (_resultId: string, artifact: Artifact, content: string) => {
@@ -205,147 +190,54 @@ export const useInvokeAction = (params?: { source?: string }) => {
     }
   };
 
-  // Optimize stream updates with debouncing
-  const streamUpdateThrottleRef = useRef<
-    Record<
-      string,
-      {
-        timeout: number | null;
-        lastUpdate: number;
-        pendingContent: string;
-        pendingReasoningContent: string;
-        pendingArtifact?: Artifact;
-        codeArtifactCreated?: boolean;
-      }
-    >
-  >({});
+  // utils: get latest steps either from cache or store
+  const getLatestSteps = (resultId: string): ActionStep[] => {
+    const cached = latestStepsRef.current.get(resultId);
+    if (cached && cached.length > 0) return cached;
+
+    const storeSteps = useActionResultStore.getState().resultMap[resultId]?.steps ?? [];
+    return storeSteps;
+  };
+
+  // utils: set latest steps cache
+  const setLatestSteps = (resultId: string, steps: ActionStep[]) => {
+    latestStepsRef.current.set(resultId, steps);
+  };
+
+  const clearLatestSteps = (resultId?: string) => {
+    if (!resultId) {
+      latestStepsRef.current.clear();
+    } else {
+      latestStepsRef.current.delete(resultId);
+    }
+  };
 
   const onSkillStream = (skillEvent: SkillEvent) => {
-    const { resultId, content, reasoningContent = '', step, artifact } = skillEvent;
+    const { resultId, content = '', reasoningContent = '', step, artifact } = skillEvent;
     const { resultMap } = useActionResultStore.getState();
     const result = resultMap[resultId];
 
     if (!result || !step) {
       return;
     }
-
-    // Setup throttling state if not exists
-    if (!streamUpdateThrottleRef.current[resultId]) {
-      streamUpdateThrottleRef.current[resultId] = {
-        timeout: null,
-        lastUpdate: 0,
-        pendingContent: '',
-        pendingReasoningContent: '',
-      };
-    }
-
-    const throttleState = streamUpdateThrottleRef.current[resultId];
-    const now = performance.now();
-    const THROTTLE_INTERVAL = 250; // Increased from 100ms to 250ms for less frequent updates
-
-    // Accumulate content
-    throttleState.pendingContent += content;
-    throttleState.pendingReasoningContent += reasoningContent;
-    if (artifact) {
-      throttleState.pendingArtifact = artifact;
-    }
-
-    // Clear existing timeout
-    if (throttleState.timeout) {
-      clearTimeout(throttleState.timeout);
-      throttleState.timeout = null;
-    }
-
-    // If enough time has passed since last update or we have a lot of content, update immediately
-    if (
-      now - throttleState.lastUpdate > THROTTLE_INTERVAL ||
-      throttleState.pendingContent.length > 1000
-    ) {
-      // Use requestAnimationFrame to align with browser's render cycle
-      requestAnimationFrame(() => {
-        const updatedStep: ActionStep = findOrCreateStep(result.steps ?? [], step);
-        updatedStep.content += throttleState.pendingContent;
-
-        if (!updatedStep.reasoningContent) {
-          updatedStep.reasoningContent = throttleState.pendingReasoningContent;
-        } else {
-          updatedStep.reasoningContent += throttleState.pendingReasoningContent;
-        }
-
-        const updatedResult = {
-          ...result,
-          status: 'executing' as const,
-          steps: getUpdatedSteps(result.steps ?? [], updatedStep),
-        };
-
-        // Handle code artifact content if this is a code artifact stream
-        if (throttleState.pendingArtifact) {
-          onSkillStreamArtifact(resultId, throttleState.pendingArtifact, updatedStep.content ?? '');
-          throttleState.codeArtifactCreated = true;
-        }
-
-        onUpdateResult(resultId, updatedResult, {
-          ...skillEvent,
-          content: throttleState.pendingContent,
-          reasoningContent: throttleState.pendingReasoningContent,
-        });
-
-        // Reset accumulated content
-        throttleState.pendingContent = '';
-        throttleState.pendingReasoningContent = '';
-        throttleState.pendingArtifact = undefined;
-        throttleState.lastUpdate = now;
-      });
+    const updatedStep: ActionStep = findOrCreateStep(result.steps ?? [], step);
+    updatedStep.content = (updatedStep.content ?? '') + (content ?? '');
+    if (!updatedStep.reasoningContent) {
+      updatedStep.reasoningContent = reasoningContent ?? '';
     } else {
-      // Schedule update for later
-      throttleState.timeout = window.setTimeout(
-        () => {
-          requestAnimationFrame(() => {
-            const currentResult = useActionResultStore.getState().resultMap[resultId];
-            if (!currentResult) return;
-
-            const updatedStep: ActionStep = findOrCreateStep(currentResult.steps ?? [], step);
-            updatedStep.content += throttleState.pendingContent;
-
-            if (!updatedStep.reasoningContent) {
-              updatedStep.reasoningContent = throttleState.pendingReasoningContent;
-            } else {
-              updatedStep.reasoningContent += throttleState.pendingReasoningContent;
-            }
-
-            const updatedResult = {
-              ...currentResult,
-              status: 'executing' as const,
-              steps: getUpdatedSteps(currentResult.steps ?? [], updatedStep),
-            };
-
-            // Handle the artifact content processing if needed
-            if (throttleState.pendingArtifact) {
-              onSkillStreamArtifact(
-                resultId,
-                throttleState.pendingArtifact,
-                updatedStep.content ?? '',
-              );
-            }
-
-            onUpdateResult(resultId, updatedResult, {
-              ...skillEvent,
-              content: throttleState.pendingContent,
-              reasoningContent: throttleState.pendingReasoningContent,
-              artifact: throttleState.pendingArtifact,
-            });
-
-            // Reset state
-            throttleState.pendingContent = '';
-            throttleState.pendingReasoningContent = '';
-            throttleState.pendingArtifact = undefined;
-            throttleState.lastUpdate = performance.now();
-            throttleState.timeout = null;
-          });
-        },
-        THROTTLE_INTERVAL - (now - throttleState.lastUpdate),
-      );
+      updatedStep.reasoningContent =
+        (updatedStep.reasoningContent ?? '') + (reasoningContent ?? '');
     }
+
+    const payload = {
+      steps: getUpdatedSteps(result.steps ?? [], updatedStep),
+    };
+
+    if (artifact) {
+      onSkillStreamArtifact(resultId, artifact, updatedStep.content ?? '');
+    }
+
+    onUpdateResult(resultId, payload, skillEvent);
   };
 
   const onSkillStructedData = (skillEvent: SkillEvent) => {
@@ -388,12 +280,10 @@ export const useInvokeAction = (params?: { source?: string }) => {
       };
     }
 
-    const updatedResult = {
-      ...result,
-      status: 'executing' as const,
+    const payload = {
       steps: getUpdatedSteps(result.steps ?? [], updatedStep),
     };
-    onUpdateResult(skillEvent.resultId, updatedResult, skillEvent);
+    onUpdateResult(skillEvent.resultId, payload, skillEvent);
   };
 
   const onSkillArtifact = (skillEvent: SkillEvent) => {
@@ -418,13 +308,11 @@ export const useInvokeAction = (params?: { source?: string }) => {
         ? existingArtifacts.map((item, index) => (index === artifactIndex ? artifact : item))
         : [...existingArtifacts, artifact];
 
-    const updatedResult = {
-      ...result,
-      status: 'executing' as const,
+    const payload = {
       steps: getUpdatedSteps(result.steps ?? [], updatedStep),
     };
 
-    onUpdateResult(skillEvent.resultId, updatedResult, skillEvent);
+    onUpdateResult(skillEvent.resultId, payload, skillEvent);
   };
 
   const onSkillCreateNode = (_skillEvent: SkillEvent) => {
@@ -432,6 +320,7 @@ export const useInvokeAction = (params?: { source?: string }) => {
   };
 
   const onSkillEnd = (skillEvent: SkillEvent) => {
+    clearLatestSteps(skillEvent.resultId);
     const { resultMap } = useActionResultStore.getState();
     const result = resultMap[skillEvent.resultId];
 
@@ -448,13 +337,11 @@ export const useInvokeAction = (params?: { source?: string }) => {
 
     stopPolling(skillEvent.resultId);
 
-    const updatedResult = {
-      ...result,
+    const payload = {
       status: 'finish' as const,
     };
-    onUpdateResult(skillEvent.resultId, updatedResult, skillEvent);
+    onUpdateResult(skillEvent.resultId, payload, skillEvent);
 
-    // Clear current resultId when conversation ends
     if (globalCurrentResultIdRef.current === skillEvent.resultId) {
       globalCurrentResultIdRef.current = '';
     }
@@ -480,7 +367,6 @@ export const useInvokeAction = (params?: { source?: string }) => {
             },
           );
         } else {
-          // For other artifact types, just update status
           setNodeDataByEntity(
             {
               type: artifact.type,
@@ -500,6 +386,7 @@ export const useInvokeAction = (params?: { source?: string }) => {
   };
 
   const onSkillError = (skillEvent: SkillEvent) => {
+    clearLatestSteps(skillEvent.resultId);
     const runtime = getRuntime();
     const { originError, resultId } = skillEvent;
 
@@ -527,12 +414,11 @@ export const useInvokeAction = (params?: { source?: string }) => {
       setTraceId(resultId, traceId);
     }
 
-    const updatedResult = {
-      ...result,
+    const payload = {
       status: 'failed' as const,
       errors: originError ? [originError] : [],
     };
-    onUpdateResult(skillEvent.resultId, updatedResult, skillEvent);
+    onUpdateResult(skillEvent.resultId, payload, skillEvent);
 
     if (runtime?.includes('extension')) {
       if (globalIsAbortedRef.current) {
@@ -546,16 +432,52 @@ export const useInvokeAction = (params?: { source?: string }) => {
     }
   };
 
+  // deprecated, use stream instead
+  const onToolCallStart = (skillEvent: SkillEvent) => {
+    onToolCallStream(skillEvent);
+  };
+
+  // deprecated, use stream instead
+  const onToolCallStream = (skillEvent: SkillEvent) => {
+    const { resultId, content = '', reasoningContent = '', step, artifact } = skillEvent;
+    if (!resultId || !step) return;
+
+    // get latest steps either from cache or store
+    const currentSteps = getLatestSteps(resultId);
+
+    const existingStep = currentSteps.find((s) => s.name === step.name);
+    const updatedStep: ActionStep = existingStep
+      ? { ...existingStep }
+      : {
+          ...step,
+          content: '',
+          reasoningContent: '',
+          artifacts: [],
+          structuredData: {},
+        };
+
+    // merge text
+    updatedStep.content = (updatedStep.content ?? '') + (content ?? '');
+    updatedStep.reasoningContent = (updatedStep.reasoningContent ?? '') + (reasoningContent ?? '');
+
+    // merge tool calls status
+    updateToolCallsFromXml(updatedStep, step, content);
+
+    // update based on latest steps
+    const mergedSteps = getUpdatedSteps(currentSteps, updatedStep);
+    setLatestSteps(resultId, mergedSteps);
+    if (artifact) {
+      onSkillStreamArtifact(resultId, artifact, updatedStep.content ?? '');
+    }
+    onUpdateResult(resultId, { steps: mergedSteps }, skillEvent);
+  };
+
   const onCompleted = () => {};
   const onStart = () => {};
   const findThreadHistory = useFindThreadHistory();
   const findMemo = useFindMemo();
   const findWebsite = useFindWebsite();
   const findImages = useFindImages();
-
-  const { selectedMcpServers } = useLaunchpadStoreShallow((state) => ({
-    selectedMcpServers: state.selectedMcpServers,
-  }));
 
   const invokeAction = useCallback(
     async (payload: SkillNodeMeta, target: Entity) => {
@@ -574,7 +496,10 @@ export const useInvokeAction = (params?: { source?: string }) => {
         tplConfig = {},
         runtimeConfig = {},
         projectId,
+        selectedToolsets = [],
       } = payload;
+
+      const originalQuery = payload.structuredData?.query as string;
 
       logEvent('model::invoke_trigger', Date.now(), {
         source,
@@ -624,6 +549,7 @@ export const useInvokeAction = (params?: { source?: string }) => {
         resultId,
         input: {
           query,
+          originalQuery,
           images,
         },
         target,
@@ -632,7 +558,7 @@ export const useInvokeAction = (params?: { source?: string }) => {
         context,
         resultHistory,
         skillName: selectedSkill?.name,
-        selectedMcpServers,
+        toolsets: selectedToolsets,
         tplConfig,
         runtimeConfig,
         projectId,
@@ -678,6 +604,8 @@ export const useInvokeAction = (params?: { source?: string }) => {
         onStart: wrapEventHandler(onStart),
         onSkillStart: wrapEventHandler(onSkillStart),
         onSkillStream: wrapEventHandler(onSkillStream),
+        onToolCallStart: wrapEventHandler(onToolCallStart),
+        onToolCallStream: wrapEventHandler(onToolCallStream),
         onSkillLog: wrapEventHandler(onSkillLog),
         onSkillArtifact: wrapEventHandler(onSkillArtifact),
         onSkillStructedData: wrapEventHandler(onSkillStructedData),
@@ -692,7 +620,7 @@ export const useInvokeAction = (params?: { source?: string }) => {
         timeoutCleanup();
       };
     },
-    [setNodeDataByEntity, onUpdateResult, createTimeoutHandler, selectedMcpServers],
+    [setNodeDataByEntity, onUpdateResult, createTimeoutHandler],
   );
 
   return { invokeAction, abortAction };

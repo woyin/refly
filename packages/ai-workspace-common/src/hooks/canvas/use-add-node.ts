@@ -7,7 +7,6 @@ import { CanvasNode, CanvasNodeFilter, prepareAddNode } from '@refly/canvas-comm
 import { useEdgeStyles } from '../../components/canvas/constants';
 import { useNodeSelection } from './use-node-selection';
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
-import { locateToNodePreviewEmitter } from '@refly-packages/ai-workspace-common/events/locateToNodePreview';
 import { useNodePosition } from './use-node-position';
 import { useNodePreviewControl } from '@refly-packages/ai-workspace-common/hooks/canvas';
 import { adoptUserNodes } from '@xyflow/system';
@@ -45,7 +44,7 @@ export const useAddNode = () => {
   const { setSelectedNode } = useNodeSelection();
   const { getState, setState } = useStoreApi();
   const { canvasId } = useCanvasContext();
-  const { calculatePosition, layoutBranchAndUpdatePositions, setNodeCenter } = useNodePosition();
+  const { layoutBranchAndUpdatePositions, setNodeCenter } = useNodePosition();
   const { previewNode } = useNodePreviewControl({ canvasId });
   const { setNodes, setEdges } = useReactFlow();
 
@@ -147,7 +146,6 @@ export const useAddNode = () => {
         elevateNodesOnSelect: false,
       });
       setState({ nodes: updatedNodes.filter((node) => node && !node.id.startsWith('ghost-')) });
-
       // Then update edges with a slight delay to ensure nodes are registered first
       // This helps prevent the race condition where edges are created but nodes aren't ready
       setTimeout(() => {
@@ -164,27 +162,25 @@ export const useAddNode = () => {
       }, 10);
 
       if (
-        ['document', 'resource', 'website', 'skillResponse', 'codeArtifact'].includes(
-          newNode.type,
-        ) &&
+        [
+          'document',
+          'resource',
+          'website',
+          'skillResponse',
+          'codeArtifact',
+          'image',
+          'video',
+          'audio',
+        ].includes(newNode.type) &&
         shouldPreview
       ) {
         previewNode(newNode as unknown as CanvasNode);
-        locateToNodePreviewEmitter.emit('locateToNodePreview', { canvasId, id: newNode.id });
       }
 
       // Return the calculated position
       return newNode.position;
     },
-    [
-      canvasId,
-      edgeStyles,
-      setNodeCenter,
-      previewNode,
-      t,
-      calculatePosition,
-      layoutBranchAndUpdatePositions,
-    ],
+    [canvasId, edgeStyles, setNodeCenter, previewNode, t, layoutBranchAndUpdatePositions],
   );
 
   return { addNode };

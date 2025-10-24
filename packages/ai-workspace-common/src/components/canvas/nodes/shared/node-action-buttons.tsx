@@ -7,17 +7,29 @@ import { useTranslation } from 'react-i18next';
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
 import {
   IconDeleteFile,
-  IconRun,
+  IconVariable,
 } from '@refly-packages/ai-workspace-common/components/common/icon';
-import { AiChat, Reload, Copy, Clone, More, Delete, Download } from 'refly-icons';
+import {
+  AiChat,
+  Reload,
+  Copy,
+  Clone,
+  More,
+  Delete,
+  Download,
+  PlayOutline,
+  AddContext,
+} from 'refly-icons';
 import cn from 'classnames';
-import { useReactFlow, useStore } from '@xyflow/react';
+import { useReactFlow } from '@xyflow/react';
 import { copyToClipboard } from '@refly-packages/ai-workspace-common/utils';
 import { useGetNodeContent } from '@refly-packages/ai-workspace-common/hooks/canvas/use-get-node-content';
+import { useInitializeWorkflow } from '@refly-packages/ai-workspace-common/hooks/use-initialize-workflow';
 import { nodeOperationsEmitter } from '@refly-packages/ai-workspace-common/events/nodeOperations';
-import { useCanvasStoreShallow } from '@refly/stores';
-import { useShallow } from 'zustand/react/shallow';
+import { useActionResultStoreShallow, useCanvasStoreShallow } from '@refly/stores';
 import CommonColorPicker from './color-picker';
+import { logEvent } from '@refly/telemetry-web';
+import { useRealtimeCanvasData } from '@refly-packages/ai-workspace-common/hooks/canvas/use-realtime-canvas-data';
 
 type ActionButtonType = {
   key: string;
@@ -29,6 +41,7 @@ type ActionButtonType = {
   color?: string;
   bgColor?: string;
   onChangeBackground?: (bgColor: string) => void;
+  disabled?: boolean;
 };
 
 type NodeActionButtonsProps = {
@@ -38,28 +51,31 @@ type NodeActionButtonsProps = {
   isSelected?: boolean;
   bgColor?: string;
   onChangeBackground?: (bgColor: string) => void;
+  isExtracting?: boolean;
 };
 
 export const NodeActionButtons: FC<NodeActionButtonsProps> = memo(
-  ({ nodeId, nodeType, isNodeHovered, bgColor, onChangeBackground }) => {
+  ({ nodeId, nodeType, isNodeHovered, bgColor, onChangeBackground, isExtracting }) => {
     const { t } = useTranslation();
-    const { readonly } = useCanvasContext();
+    const { readonly, canvasId } = useCanvasContext();
+    const workflowRun = useInitializeWorkflow(canvasId);
     const { getNode } = useReactFlow();
     const node = useMemo(() => getNode(nodeId), [nodeId, getNode]);
     const { fetchNodeContent } = useGetNodeContent(node);
     const nodeData = useMemo(() => node?.data, [node]);
     const buttonContainerRef = useRef<HTMLDivElement>(null);
 
+    // Shared workflow state from CanvasProvider
+    const initializing = workflowRun.loading;
+    const isPolling = workflowRun.isPolling;
+
     const showMoreButton = useMemo(() => {
-      return !['skill', 'mediaSkill', 'video', 'audio', 'image'].includes(nodeType);
+      return !['skill', 'mediaSkill', 'mediaSkillResponse', 'video', 'audio', 'image'].includes(
+        nodeType,
+      );
     }, [nodeType]);
 
-    const { nodes } = useStore(
-      useShallow((state) => ({
-        nodes: state.nodes,
-        edges: state.edges,
-      })),
-    );
+    const { nodes } = useRealtimeCanvasData();
 
     const selectedNodes = nodes.filter((node) => node.selected) || [];
     const isMultiSelected = selectedNodes.length > 1;
@@ -68,12 +84,28 @@ export const NodeActionButtons: FC<NodeActionButtonsProps> = memo(
       contextMenuOpenedCanvasId: state.contextMenuOpenedCanvasId,
     }));
 
+    const { activeExecutionId } = useCanvasStoreShallow((state) => ({
+      activeExecutionId: canvasId ? (state.canvasExecutionId[canvasId] ?? null) : null,
+    }));
+
+    const resultId = nodeType === 'skillResponse' ? String(node?.data?.entityId) : '';
+    const result = useActionResultStoreShallow((state) => state.resultMap[resultId]);
+    const isRunningAction = useMemo(() => {
+      return result && (result.status === 'waiting' || result.status === 'executing');
+    }, [result]);
+
+    const isRunningWorkflow = useMemo(
+      () => !!(initializing || isPolling || activeExecutionId),
+      [initializing, isPolling, activeExecutionId],
+    );
     const [cloneAskAIRunning, setCloneAskAIRunning] = useState(false);
     const [copyRunning, setCopyRunning] = useState(false);
     const [downloadRunning, setDownloadRunning] = useState(false);
 
     const shouldShowButtons =
-      !readonly && !isMultiSelected && (isNodeHovered || contextMenuOpenedCanvasId === nodeId);
+      !readonly &&
+      !isMultiSelected &&
+      (isNodeHovered || contextMenuOpenedCanvasId === nodeId || !!isExtracting);
 
     const handleCloneAskAI = useCallback(() => {
       setCloneAskAIRunning(true);
@@ -86,8 +118,19 @@ export const NodeActionButtons: FC<NodeActionButtonsProps> = memo(
       nodeActionEmitter.emit(createNodeEventName(nodeId, 'cloneAskAI'));
     }, [nodeId, t, nodeActionEmitter]);
 
+    const handleAddToContext = useCallback(() => {
+      nodeActionEmitter.emit(createNodeEventName(nodeId, 'addToContext'));
+    }, [nodeId, nodeActionEmitter]);
+
     const handleCopy = useCallback(async () => {
       setCopyRunning(true);
+      if (nodeType === 'skillResponse') {
+        logEvent('copy_node_content_ask_ai', null, {
+          canvasId,
+          nodeId,
+        });
+      }
+
       try {
         const content = (await fetchNodeContent()) as string;
         copyToClipboard(content || '');
@@ -98,7 +141,7 @@ export const NodeActionButtons: FC<NodeActionButtonsProps> = memo(
       } finally {
         setCopyRunning(false);
       }
-    }, [fetchNodeContent, t]);
+    }, [fetchNodeContent, t, nodeType, canvasId, nodeId]);
 
     const handleDeleteFile = useCallback(
       (type: 'resource' | 'document') => {
@@ -154,17 +197,51 @@ export const NodeActionButtons: FC<NodeActionButtonsProps> = memo(
       nodeActionEmitter.emit(createNodeEventName(nodeId, 'download'));
     }, [nodeId]);
 
+    const handleRunWorkflow = useCallback(() => {
+      if (!canvasId || isRunningWorkflow) return;
+      logEvent('run_from_this_node', null, {
+        canvasId,
+        nodeId,
+      });
+
+      workflowRun.initializeWorkflow({
+        canvasId,
+        startNodes: [nodeId],
+      });
+    }, [canvasId, nodeId, isRunningWorkflow, workflowRun]);
+
     const actionButtons = useMemo(() => {
       const buttons: ActionButtonType[] = [];
 
-      // Add askAI button for most node types except skill, mediaSkill, audio, video
-      if (!['skill', 'mediaSkill', 'audio', 'video'].includes(nodeType)) {
+      // Add askAI button for most node types except skill, mediaSkill, mediaSkillResponse, audio, video
+      if (!['skill', 'mediaSkill', 'mediaSkillResponse', 'audio', 'video'].includes(nodeType)) {
         buttons.push({
           key: 'askAI',
           icon: AiChat,
           color: 'var(--refly-primary-default)',
           tooltip: t('canvas.nodeActions.askAI'),
           onClick: () => nodeActionEmitter.emit(createNodeEventName(nodeId, 'askAI')),
+        });
+      }
+
+      if (
+        [
+          'skillResponse',
+          'document',
+          'resource',
+          'codeArtifact',
+          'website',
+          'image',
+          'video',
+          'audio',
+          'memo',
+        ].includes(nodeType)
+      ) {
+        buttons.push({
+          key: 'addToContext',
+          icon: AddContext,
+          tooltip: t('canvas.nodeActions.addToContext'),
+          onClick: handleAddToContext,
         });
       }
 
@@ -176,6 +253,17 @@ export const NodeActionButtons: FC<NodeActionButtonsProps> = memo(
             icon: Reload,
             tooltip: t('canvas.nodeActions.rerun'),
             onClick: () => nodeActionEmitter.emit(createNodeEventName(nodeId, 'rerun')),
+            disabled: isRunningAction || isRunningWorkflow,
+          });
+
+          buttons.push({
+            key: 'runWorkflow',
+            icon: PlayOutline,
+            tooltip: t(
+              `canvas.nodeActions.${isRunningWorkflow ? 'existWorkflowRunning' : 'runWorkflow'}`,
+            ),
+            onClick: handleRunWorkflow,
+            disabled: isRunningAction || isRunningWorkflow,
           });
 
           buttons.push({
@@ -189,10 +277,21 @@ export const NodeActionButtons: FC<NodeActionButtonsProps> = memo(
 
         case 'skill':
           buttons.push({
-            key: 'run',
-            icon: IconRun,
-            tooltip: t('canvas.nodeActions.run'),
-            onClick: () => nodeActionEmitter.emit(createNodeEventName(nodeId, 'run')),
+            key: 'variable',
+            icon: IconVariable,
+            tooltip: t('canvas.nodeActions.extractVariables' as any) || t('canvas.nodeActions.run'),
+            onClick: () => nodeActionEmitter.emit(createNodeEventName(nodeId, 'extractVariables')),
+            loading: isExtracting,
+          });
+          break;
+
+        case 'mediaSkillResponse':
+          buttons.push({
+            key: 'rerun',
+            icon: Reload,
+            tooltip: t('canvas.nodeActions.rerun'),
+            onClick: () => nodeActionEmitter.emit(createNodeEventName(nodeId, 'rerun')),
+            disabled: isRunningAction || isRunningWorkflow,
           });
           break;
 
@@ -205,10 +304,25 @@ export const NodeActionButtons: FC<NodeActionButtonsProps> = memo(
             loading: downloadRunning,
           });
           break;
+
+        case 'audio':
+          break;
+
+        case 'video':
+          break;
       }
 
       // Add copy button for content nodes
-      if (['skillResponse', 'document', 'resource', 'codeArtifact', 'memo'].includes(nodeType)) {
+      if (
+        [
+          'skillResponse',
+          'mediaSkillResponse',
+          'document',
+          'resource',
+          'codeArtifact',
+          'memo',
+        ].includes(nodeType)
+      ) {
         buttons.push({
           key: 'copy',
           icon: Copy,
@@ -226,6 +340,7 @@ export const NodeActionButtons: FC<NodeActionButtonsProps> = memo(
         onClick: () => nodeActionEmitter.emit(createNodeEventName(nodeId, 'delete')),
         danger: true,
         color: 'var(--refly-func-danger-default)',
+        disabled: isRunningAction || isRunningWorkflow,
       });
 
       if (['resource', 'document'].includes(nodeType)) {
@@ -247,6 +362,7 @@ export const NodeActionButtons: FC<NodeActionButtonsProps> = memo(
       nodeId,
       nodeType,
       t,
+      result,
       handleCloneAskAI,
       cloneAskAIRunning,
       handleCopy,
@@ -297,13 +413,24 @@ export const NodeActionButtons: FC<NodeActionButtonsProps> = memo(
             '!justify-end': !showMoreButton,
           })}
         >
+          {' '}
           <div className="flex items-center gap-3">
             {actionButtons.map((button) => (
               <Tooltip key={button.key} title={button.tooltip} placement="top">
                 <Button
                   type="text"
+                  disabled={button.disabled}
                   danger={button.danger}
-                  icon={<button.icon color={button.color || 'var(--refly-text-0)'} size={18} />}
+                  icon={
+                    <button.icon
+                      color={
+                        button.disabled
+                          ? 'var(--refly-text-3)'
+                          : button.color || 'var(--refly-text-0)'
+                      }
+                      size={18}
+                    />
+                  }
                   onClick={(e) => {
                     e.stopPropagation();
                     e.preventDefault();
@@ -318,21 +445,18 @@ export const NodeActionButtons: FC<NodeActionButtonsProps> = memo(
               </Tooltip>
             ))}
           </div>
-
           {showMoreButton && (
             <div className="flex items-center gap-2">
               {nodeType === 'memo' && (
                 <CommonColorPicker color={bgColor} onChange={onChangeBackground} />
               )}
-              <Tooltip title={t('canvas.nodeActions.more')} placement="top">
-                <Button
-                  type="text"
-                  size="small"
-                  icon={<More size={18} />}
-                  onClick={handleOpenContextMenu}
-                  className="h-6 p-0 flex items-center justify-center hover:!bg-refly-tertiary-hover"
-                />
-              </Tooltip>
+              <Button
+                type="text"
+                size="small"
+                icon={<More size={18} />}
+                onClick={handleOpenContextMenu}
+                className="h-6 p-0 flex items-center justify-center hover:!bg-refly-tertiary-hover"
+              />
             </div>
           )}
         </div>

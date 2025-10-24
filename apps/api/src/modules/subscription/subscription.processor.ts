@@ -25,7 +25,6 @@ export class SyncTokenUsageProcessor extends WorkerHost {
   }
 
   async process(job: Job<SyncTokenUsageJobData>) {
-    this.logger.log(`[${QUEUE_SYNC_TOKEN_USAGE}] job: ${JSON.stringify(job)}`);
     try {
       await this.subscriptionService.syncTokenUsage(job.data);
     } catch (error) {
@@ -44,9 +43,8 @@ export class SyncStorageUsageProcessor extends WorkerHost {
   }
 
   async process(job: Job<SyncStorageUsageJobData>) {
-    this.logger.log(`[${QUEUE_SYNC_STORAGE_USAGE}] job: ${JSON.stringify(job)}`);
     try {
-      await this.subscriptionService.syncStorageUsage(job.data);
+      await this.subscriptionService.handleSyncStorageUsage(job.data);
     } catch (error) {
       this.logger.error(`[${QUEUE_SYNC_STORAGE_USAGE}] error: ${error?.stack}`);
       throw error;
@@ -63,9 +61,6 @@ export class CheckCanceledSubscriptionsProcessor extends WorkerHost {
   }
 
   async process() {
-    this.logger.log(
-      `[${QUEUE_CHECK_CANCELED_SUBSCRIPTIONS}] Starting check for canceled subscriptions`,
-    );
     try {
       await this.subscriptionService.checkCanceledSubscriptions();
     } catch (error) {
@@ -84,7 +79,6 @@ export class SyncRequestUsageProcessor extends WorkerHost {
   }
 
   async process(job: Job<SyncRequestUsageJobData>) {
-    this.logger.log(`[${QUEUE_SYNC_REQUEST_USAGE}] job: ${JSON.stringify(job)}`);
     try {
       await this.subscriptionService.syncRequestUsage(job.data);
     } catch (error) {
@@ -103,7 +97,6 @@ export class ExpireAndRechargeCreditsProcessor extends WorkerHost {
   }
 
   async process() {
-    this.logger.log(`[${QUEUE_EXPIRE_AND_RECHARGE_CREDITS}] Starting expire and recharge credits`);
     try {
       await this.subscriptionService.expireAndRechargeCredits();
     } catch (error) {

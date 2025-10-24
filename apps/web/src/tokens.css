@@ -2,10 +2,10 @@
 /* Light Theme */
 :root {
   --refly-bg-content-z2: #ffffff;
-  --refly-bg-body-z0: #f3f3f3;
-  --refly-bg-main-z1: #f0f0f0;
+  --refly-bg-body-z0: #ffffff;
+  --refly-bg-main-z1: #ffffff;
   --refly-bg-float-z3: #ffffff;
-  --refly-bg-glass-content: #ffffffcc;
+  --refly-bg-glass-content: rgba(255, 255, 255, 0.9);
   /* Gradient tokens */
   --refly-gradient-modal-top: #d8fffc;
   --refly-gradient-modal-bottom: #ffffff;
@@ -23,6 +23,7 @@
   --text-icon-refly-text-2: rgba(28, 31, 35, 0.6);
   --refly-text-StaticWhite: rgb(3, 3, 3);
   --refly-primary-default: #0e9f77;
+  --refly-primary-light: #cdfff1;
   --refly-primary-hover: #1b9774;
   --refly-primary-active: #16926f;
   --refly-primary-disabled: #d6d6d6;
@@ -31,6 +32,7 @@
   --refly-Colorful-red: #f93920;
   --refly-Colorful-Blue: #0062d6;
   --refly-Colorful-orange: #fc8800;
+  --refly-Colorful-orange-light: #fff8ef;
   --refly-Colorful-violet: #6a3ac7;
   --refly-fill-default: #ffffff;
   --refly-fill-hover: #e6e8ea;
@@ -40,7 +42,7 @@
   --refly-bg-content-z2: #ffffff;
   --refly-secondary-default: #00000014;
   --refly-secondary-hover: #0000001f;
-  --refly-tertiary-default: #0000000a;
+  --refly-tertiary-default: rgba(0, 0, 0, 0.04);
   --refly-tertiary-hover: #00000014;
   --refly-func-danger-default: #f93920;
   --refly-func-danger-hover: #d52515;
@@ -56,10 +58,10 @@
 /* Dark Theme */
 .dark {
   --refly-bg-content-z2: #252525;
-  --refly-bg-body-z0: #111111;
-  --refly-bg-main-z1: #2b2b2c;
+  --refly-bg-body-z0: #0e0e0e;
+  --refly-bg-main-z1: #191919;
   --refly-bg-float-z3: #292929;
-  --refly-bg-glass-content: #000000cc;
+  --refly-bg-glass-content: rgba(30, 30, 30, 0.9);
   /* Gradient tokens */
   /* Use a subtle primary tint on top and blend into content background for dark theme */
   --refly-gradient-modal-top: rgb(36, 53, 50);
@@ -78,7 +80,8 @@
   --text-icon-refly-text-2: rgba(243, 243, 243, 0.6);
   --refly-text-StaticWhite: #ffffff;
   --refly-primary-default: #009589;
-  --refly-primary-hover: #33c2b0;
+  --refly-primary-light: #cdfff1;
+  --refly-primary-hover: rgb(3, 4, 4);
   --refly-primary-active: #8ee1d3;
   --refly-primary-disabled: #007777;
   --refly-primary-default-last: #009589;
@@ -86,6 +89,7 @@
   --refly-Colorful-red: rgba(252, 114, 90, 1);
   --refly-Colorful-Blue: rgba(127, 193, 255, 1);
   --refly-Colorful-orange: rgba(255, 174, 67, 1);
+  --refly-Colorful-orange-light: rgba(255, 174, 67, 0.12);
   --refly-Colorful-violet: rgba(136, 101, 212, 1);
   --refly-fill-default: #202020;
   --refly-fill-hover: #333333;
@@ -95,7 +99,7 @@
   --refly-bg-content-z2: rgba(30, 30, 30, 1);
   --refly-secondary-default: #2f3237;
   --refly-secondary-hover: #5f5f5f;
-  --refly-tertiary-default: #202020;
+  --refly-tertiary-default: rgba(255, 255, 255, 0.08);
   --refly-tertiary-hover: #363636;
   --refly-func-danger-default: #fc725a;
   --refly-func-danger-hover: #fd9983;

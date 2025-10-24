@@ -4,6 +4,7 @@ import { type Options } from '@hey-api/client-fetch';
 import { type QueryClient } from '@tanstack/react-query';
 import {
   checkSettingsField,
+  checkToolOauthStatus,
   exportCanvas,
   exportDocument,
   getActionResult,
@@ -26,6 +27,10 @@ import {
   getSettings,
   getSubscriptionPlans,
   getSubscriptionUsage,
+  getWorkflowAppDetail,
+  getWorkflowDetail,
+  getWorkflowVariables,
+  listAccounts,
   listActions,
   listCanvases,
   listCanvasTemplateCategories,
@@ -47,10 +52,15 @@ import {
   listSkillInstances,
   listSkills,
   listSkillTriggers,
+  listTools,
+  listToolsetInventory,
+  listToolsets,
+  listWorkflowApps,
   serveStatic,
 } from '../requests/services.gen';
 import {
   CheckSettingsFieldData,
+  CheckToolOauthStatusData,
   ExportCanvasData,
   ExportDocumentData,
   GetActionResultData,
@@ -67,6 +77,10 @@ import {
   GetPilotSessionDetailData,
   GetProjectDetailData,
   GetResourceDetailData,
+  GetWorkflowAppDetailData,
+  GetWorkflowDetailData,
+  GetWorkflowVariablesData,
+  ListAccountsData,
   ListCanvasesData,
   ListCanvasTemplatesData,
   ListCodeArtifactsData,
@@ -84,6 +98,9 @@ import {
   ListSharesData,
   ListSkillInstancesData,
   ListSkillTriggersData,
+  ListToolsData,
+  ListToolsetsData,
+  ListWorkflowAppsData,
 } from '../requests/types.gen';
 import * as Common from './common';
 export const prefetchUseListMcpServers = (
@@ -125,6 +142,22 @@ export const prefetchUseGetAuthConfig = (
   queryClient.prefetchQuery({
     queryKey: Common.UseGetAuthConfigKeyFn(clientOptions),
     queryFn: () => getAuthConfig({ ...clientOptions }).then((response) => response.data),
+  });
+export const prefetchUseListAccounts = (
+  queryClient: QueryClient,
+  clientOptions: Options<ListAccountsData, true> = {},
+) =>
+  queryClient.prefetchQuery({
+    queryKey: Common.UseListAccountsKeyFn(clientOptions),
+    queryFn: () => listAccounts({ ...clientOptions }).then((response) => response.data),
+  });
+export const prefetchUseCheckToolOauthStatus = (
+  queryClient: QueryClient,
+  clientOptions: Options<CheckToolOauthStatusData, true>,
+) =>
+  queryClient.prefetchQuery({
+    queryKey: Common.UseCheckToolOauthStatusKeyFn(clientOptions),
+    queryFn: () => checkToolOauthStatus({ ...clientOptions }).then((response) => response.data),
   });
 export const prefetchUseGetCollabToken = (
   queryClient: QueryClient,
@@ -181,6 +214,14 @@ export const prefetchUseGetCanvasTransactions = (
   queryClient.prefetchQuery({
     queryKey: Common.UseGetCanvasTransactionsKeyFn(clientOptions),
     queryFn: () => getCanvasTransactions({ ...clientOptions }).then((response) => response.data),
+  });
+export const prefetchUseGetWorkflowVariables = (
+  queryClient: QueryClient,
+  clientOptions: Options<GetWorkflowVariablesData, true>,
+) =>
+  queryClient.prefetchQuery({
+    queryKey: Common.UseGetWorkflowVariablesKeyFn(clientOptions),
+    queryFn: () => getWorkflowVariables({ ...clientOptions }).then((response) => response.data),
   });
 export const prefetchUseListCanvasTemplates = (
   queryClient: QueryClient,
@@ -351,6 +392,30 @@ export const prefetchUseGetPilotSessionDetail = (
     queryKey: Common.UseGetPilotSessionDetailKeyFn(clientOptions),
     queryFn: () => getPilotSessionDetail({ ...clientOptions }).then((response) => response.data),
   });
+export const prefetchUseGetWorkflowDetail = (
+  queryClient: QueryClient,
+  clientOptions: Options<GetWorkflowDetailData, true>,
+) =>
+  queryClient.prefetchQuery({
+    queryKey: Common.UseGetWorkflowDetailKeyFn(clientOptions),
+    queryFn: () => getWorkflowDetail({ ...clientOptions }).then((response) => response.data),
+  });
+export const prefetchUseGetWorkflowAppDetail = (
+  queryClient: QueryClient,
+  clientOptions: Options<GetWorkflowAppDetailData, true>,
+) =>
+  queryClient.prefetchQuery({
+    queryKey: Common.UseGetWorkflowAppDetailKeyFn(clientOptions),
+    queryFn: () => getWorkflowAppDetail({ ...clientOptions }).then((response) => response.data),
+  });
+export const prefetchUseListWorkflowApps = (
+  queryClient: QueryClient,
+  clientOptions: Options<ListWorkflowAppsData, true> = {},
+) =>
+  queryClient.prefetchQuery({
+    queryKey: Common.UseListWorkflowAppsKeyFn(clientOptions),
+    queryFn: () => listWorkflowApps({ ...clientOptions }).then((response) => response.data),
+  });
 export const prefetchUseGetSettings = (
   queryClient: QueryClient,
   clientOptions: Options<unknown, true> = {},
@@ -438,6 +503,30 @@ export const prefetchUseListProviderItemOptions = (
   queryClient.prefetchQuery({
     queryKey: Common.UseListProviderItemOptionsKeyFn(clientOptions),
     queryFn: () => listProviderItemOptions({ ...clientOptions }).then((response) => response.data),
+  });
+export const prefetchUseListTools = (
+  queryClient: QueryClient,
+  clientOptions: Options<ListToolsData, true> = {},
+) =>
+  queryClient.prefetchQuery({
+    queryKey: Common.UseListToolsKeyFn(clientOptions),
+    queryFn: () => listTools({ ...clientOptions }).then((response) => response.data),
+  });
+export const prefetchUseListToolsetInventory = (
+  queryClient: QueryClient,
+  clientOptions: Options<unknown, true> = {},
+) =>
+  queryClient.prefetchQuery({
+    queryKey: Common.UseListToolsetInventoryKeyFn(clientOptions),
+    queryFn: () => listToolsetInventory({ ...clientOptions }).then((response) => response.data),
+  });
+export const prefetchUseListToolsets = (
+  queryClient: QueryClient,
+  clientOptions: Options<ListToolsetsData, true> = {},
+) =>
+  queryClient.prefetchQuery({
+    queryKey: Common.UseListToolsetsKeyFn(clientOptions),
+    queryFn: () => listToolsets({ ...clientOptions }).then((response) => response.data),
   });
 export const prefetchUseServeStatic = (
   queryClient: QueryClient,

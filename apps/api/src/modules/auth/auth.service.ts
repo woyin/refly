@@ -1,4 +1,4 @@
-import { Injectable, Logger, UnauthorizedException, Optional } from '@nestjs/common';
+import { Injectable, Logger, UnauthorizedException } from '@nestjs/common';
 import { randomBytes } from 'node:crypto';
 import argon2 from 'argon2';
 import ms from 'ms';
@@ -6,10 +6,15 @@ import { Profile } from 'passport';
 import { CookieOptions, Response } from 'express';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
-import { User as UserModel, VerificationSession } from '../../generated/client';
+import {
+  User as UserModel,
+  VerificationSession,
+  Account as AccountModel,
+} from '../../generated/client';
 import { TokenData } from './auth.dto';
 import {
   ACCESS_TOKEN_COOKIE,
+  EMAIL_COOKIE,
   genUID,
   genVerificationSessionID,
   omit,
@@ -19,12 +24,12 @@ import {
 } from '@refly/utils';
 import { PrismaService } from '../common/prisma.service';
 import { MiscService } from '../misc/misc.service';
-import { Resend } from 'resend';
 import {
   User,
   AuthConfigItem,
   CheckVerificationRequest,
   CreateVerificationRequest,
+  ListAccountsData,
 } from '@refly/openapi-schema';
 import {
   AccountNotFoundError,
@@ -35,17 +40,13 @@ import {
   ParamsError,
   PasswordIncorrect,
 } from '@refly/errors';
-import { Queue } from 'bullmq';
-import { InjectQueue } from '@nestjs/bullmq';
-import { QUEUE_SEND_VERIFICATION_EMAIL } from '../../utils/const';
 import { ProviderService } from '../provider/provider.service';
-import { isDesktop } from '../../utils/runtime';
 import { logEvent } from '@refly/telemetry-node';
+import { NotificationService } from '../notification/notification.service';
 
 @Injectable()
 export class AuthService {
   private logger = new Logger(AuthService.name);
-  private resend: Resend;
 
   constructor(
     private prisma: PrismaService,
@@ -53,10 +54,8 @@ export class AuthService {
     private jwtService: JwtService,
     private miscService: MiscService,
     private providerService: ProviderService,
-    @Optional() @InjectQueue(QUEUE_SEND_VERIFICATION_EMAIL) private emailQueue?: Queue,
-  ) {
-    this.resend = new Resend(this.configService.get('auth.email.resendApiKey'));
-  }
+    private notificationService: NotificationService,
+  ) {}
 
   getAuthConfig(): AuthConfigItem[] {
     const items: AuthConfigItem[] = [];
@@ -84,9 +83,18 @@ export class AuthService {
 
     return {
       uid: user.uid,
+      email: user.email,
       accessToken,
       refreshToken,
     };
+  }
+
+  async listAccounts(user: User, params: ListAccountsData['query']): Promise<AccountModel[]> {
+    const { type, provider } = params;
+    const accounts = await this.prisma.account.findMany({
+      where: { uid: user.uid, type, provider },
+    });
+    return accounts;
   }
 
   private async generateRefreshToken(uid: string): Promise<string> {
@@ -177,6 +185,11 @@ export class AuthService {
           ...baseOptions,
           expires: new Date(Date.now() + ms(this.configService.get('auth.jwt.refreshExpiresIn'))),
         };
+      case EMAIL_COOKIE:
+        return {
+          ...baseOptions,
+          expires: new Date(Date.now() + ms(this.configService.get('auth.jwt.refreshExpiresIn'))),
+        };
       case ACCESS_TOKEN_COOKIE:
         return {
           ...baseOptions,
@@ -194,9 +207,10 @@ export class AuthService {
     }
   }
 
-  setAuthCookie(res: Response, { uid, accessToken, refreshToken }: TokenData) {
+  setAuthCookie(res: Response, { uid, email, accessToken, refreshToken }: TokenData) {
     return res
       .cookie(UID_COOKIE, uid, this.cookieOptions(UID_COOKIE))
+      .cookie(EMAIL_COOKIE, email, this.cookieOptions(EMAIL_COOKIE))
       .cookie(ACCESS_TOKEN_COOKIE, accessToken, this.cookieOptions(ACCESS_TOKEN_COOKIE))
       .cookie(REFRESH_TOKEN_COOKIE, refreshToken, this.cookieOptions(REFRESH_TOKEN_COOKIE));
   }
@@ -221,19 +235,55 @@ export class AuthService {
     return name;
   }
 
+  async parseOAuthState(state: string) {
+    this.logger.log(`parseOAuthState: ${state}`);
+
+    // Parse state safely once
+    const defaultRedirect = this.configService.get('auth.redirectUrl');
+    let parsedState: { uid?: string; redirect?: string } | null = null;
+    try {
+      parsedState = state ? JSON.parse(state) : null;
+    } catch {
+      this.logger.warn('Invalid state JSON received in Google OAuth callback');
+    }
+    // Build a safe redirect URL (allowlist by origin; fall back to default)
+    const requested = parsedState?.redirect;
+    let finalRedirect = defaultRedirect;
+    try {
+      if (typeof requested === 'string') {
+        const allowed = this.configService.get<string[]>('auth.allowedRedirectOrigins') ?? [
+          new URL(defaultRedirect).origin,
+        ];
+        const u = new URL(requested, defaultRedirect);
+        if (allowed.includes(u.origin)) {
+          finalRedirect = u.toString();
+        }
+      }
+    } catch {
+      // ignore and use default
+    }
+
+    return { parsedState, finalRedirect };
+  }
+
   /**
    * General OAuth logic
    * @param accessToken
    * @param refreshToken
    * @param profile
    */
-  async oauthValidate(accessToken: string, refreshToken: string, profile: Profile) {
-    this.logger.log(
-      `oauth accessToken: ${accessToken}, refreshToken: ${refreshToken}, profile: ${JSON.stringify(
-        profile,
-      )}`,
-    );
+  async oauthValidate(
+    accessToken: string,
+    refreshToken: string,
+    profile: Profile,
+    scopes: string[],
+    uid?: string,
+  ) {
     const { provider, id, emails, displayName, photos } = profile;
+
+    this.logger.log(
+      `oauth provider=${provider}, accountId=${id},uid=${uid},email=${emails}, scopes=${JSON.stringify(scopes)}`,
+    );
 
     // Check if there is an authentication account record
     const account = await this.prisma.account.findUnique({
@@ -248,6 +298,42 @@ export class AuthService {
     // If there is an authentication account record and corresponding user, return directly
     if (account) {
       this.logger.log(`account found for provider ${provider}, account id: ${id}`);
+
+      // Check if account belongs to different user
+      if (uid && account.uid !== uid) {
+        this.logger.error(
+          `OAuth account conflict: account uid ${account.uid} != provided uid ${uid}`,
+        );
+        throw new Error('You have already authorized on another account');
+      }
+
+      try {
+        // Merge existing scopes with new scopes to avoid overwriting
+        const existingScopes = account.scope ? JSON.parse(account.scope) : [];
+        const mergedScopes = [...new Set([...existingScopes, ...scopes])];
+
+        // Prepare update data
+        const updateData: any = {
+          accessToken: accessToken,
+          scope: JSON.stringify(mergedScopes),
+        };
+
+        // Only update refreshToken if it's not undefined (to preserve existing valid refresh token)
+        if (refreshToken !== undefined) {
+          updateData.refreshToken = refreshToken;
+        }
+
+        await this.prisma.account.update({
+          where: { pk: account.pk },
+          data: updateData,
+        });
+        this.logger.log(
+          `Successfully updated account ${account.pk} with merged scopes: ${JSON.stringify(mergedScopes)}`,
+        );
+      } catch (error) {
+        this.logger.error(`Failed to update account ${account.pk}:`, error);
+        throw error;
+      }
       const user = await this.prisma.user.findUnique({
         where: {
           uid: account.uid,
@@ -260,73 +346,113 @@ export class AuthService {
       this.logger.log(`user ${account.uid} not found for provider ${provider} account id: ${id}`);
     }
 
+    let email = '';
     // oauth profile returns no email, this is invalid
     if (emails?.length === 0) {
       this.logger.warn('emails is empty, invalid oauth');
-      throw new OAuthError();
-    }
-    const email = emails[0].value;
-
-    // Return user if this email has been registered
-    const user = await this.prisma.user.findUnique({ where: { email } });
-    if (user) {
-      this.logger.log(`user ${user.uid} already registered for email ${email}`);
-      logEvent(user, 'login_success', provider);
-      return user;
+      //throw new OAuthError();
+    } else if (emails?.length > 0) {
+      email = emails[0].value;
     }
 
-    const uid = genUID();
-    const name = await this.genUniqueUsername(email.split('@')[0]);
+    // Determine the uid to use
+    let targetUid = uid;
 
-    // download avatar if profile photo exists
-    let avatar: string;
-    try {
-      if (photos?.length > 0) {
-        avatar = (
-          await this.miscService.dumpFileFromURL(
-            { uid },
-            {
-              url: photos[0].value,
-              entityId: uid,
-              entityType: 'user',
-              visibility: 'public',
-            },
-          )
-        ).url;
+    // If no uid provided, check if email is registered or create new user
+    if (!targetUid) {
+      // Return user if this email has been registered
+      const user = await this.prisma.user.findUnique({ where: { email } });
+      if (user) {
+        await this.prisma.account.upsert({
+          where: {
+            provider_providerAccountId: { provider, providerAccountId: id },
+          },
+          update: {
+            accessToken,
+            ...(refreshToken !== undefined ? { refreshToken } : {}),
+            scope: JSON.stringify(scopes),
+          },
+          create: {
+            type: 'oauth',
+            uid: user.uid,
+            provider,
+            providerAccountId: id,
+            accessToken,
+            refreshToken,
+            scope: JSON.stringify(scopes),
+          },
+        });
+        this.logger.log(`user ${user.uid} already registered for email ${email}`);
+        logEvent(user, 'login_success', provider);
+        return user;
       }
-    } catch (e) {
-      this.logger.warn(`failed to download avatar: ${e}`);
+
+      targetUid = genUID();
+      const name = await this.genUniqueUsername(email.split('@')[0]);
+
+      // download avatar if profile photo exists
+      let avatar: string;
+      try {
+        if (photos?.length > 0) {
+          avatar = (
+            await this.miscService.dumpFileFromURL(
+              { uid: targetUid },
+              {
+                url: photos[0].value,
+                entityId: targetUid,
+                entityType: 'user',
+                visibility: 'public',
+              },
+            )
+          ).url;
+        }
+      } catch (e) {
+        this.logger.warn(`failed to download avatar: ${e}`);
+      }
+
+      const newUser = await this.prisma.user.create({
+        data: {
+          name,
+          nickname: displayName || name,
+          uid: targetUid,
+          email,
+          avatar,
+          emailVerified: new Date(),
+          outputLocale: 'auto',
+        },
+      });
+      await this.postCreateUser(newUser);
+      this.logger.log(`user created: ${newUser.uid}`);
     }
 
-    const newUser = await this.prisma.user.create({
-      data: {
-        name,
-        nickname: displayName || name,
-        uid,
-        email,
-        avatar,
-        emailVerified: new Date(),
-        outputLocale: 'auto',
-      },
+    try {
+      await this.prisma.account.create({
+        data: {
+          type: 'oauth',
+          uid: targetUid,
+          provider,
+          providerAccountId: id,
+          accessToken: accessToken,
+          refreshToken: refreshToken,
+          scope: JSON.stringify(scopes), // Default scope for login
+        },
+      });
+    } catch (error) {
+      this.logger.error(`Failed to create account for ${targetUid}:`, error);
+      throw error;
+    }
+
+    // Get the user for logging and return
+    const finalUser = await this.prisma.user.findUnique({
+      where: { uid: targetUid },
     });
-    await this.postCreateUser(newUser);
-    this.logger.log(`user created: ${newUser.uid}`);
 
-    const newAccount = await this.prisma.account.create({
-      data: {
-        type: 'oauth',
-        uid: newUser.uid,
-        provider,
-        providerAccountId: id,
-        accessToken: accessToken,
-        refreshToken: refreshToken,
-      },
-    });
-    this.logger.log(`new account created for ${newAccount.uid}`);
+    if (finalUser) {
+      logEvent(finalUser, 'signup_success', provider);
+      return finalUser;
+    }
 
-    logEvent(newUser, 'signup_success', provider);
-
-    return newUser;
+    throw new Error('Failed to find created user');
   }
 
   async emailSignup(
@@ -430,32 +556,23 @@ export class AuthService {
       },
     });
 
-    await this.addSendVerificationEmailJob(sessionId);
+    // Send verification email using notification service
+    await this.sendVerificationEmail(sessionId, session);
 
     return session;
   }
 
-  async addSendVerificationEmailJob(sessionId: string) {
-    if (this.emailQueue) {
-      await this.emailQueue.add('verifyEmail', { sessionId });
-    } else if (isDesktop()) {
-      // In desktop mode, send email directly since queue is not available
-      await this.sendVerificationEmail(sessionId);
-    } else {
-      this.logger.warn('Email queue not available and not in desktop mode');
-    }
-  }
+  async sendVerificationEmail(sessionId: string, session?: VerificationSession) {
+    const sessionToSend =
+      session ??
+      (await this.prisma.verificationSession.findUnique({
+        where: { sessionId },
+      }));
 
-  async sendVerificationEmail(sessionId: string, _session?: VerificationSession) {
-    let session = _session;
-    if (!session) {
-      session = await this.prisma.verificationSession.findUnique({ where: { sessionId } });
-    }
-    await this.resend.emails.send({
-      from: this.configService.get('auth.email.sender'),
-      to: session.email,
+    await this.notificationService.sendEmail({
+      to: sessionToSend.email,
       subject: 'Email Verification Code',
-      html: `Your verification code is: ${session.code}`,
+      html: `Your verification code is: ${sessionToSend.code}`,
     });
   }
 
@@ -519,5 +636,251 @@ export class AuthService {
     }
 
     return this.login(user);
+  }
+
+  /**
+   * Tool OAuth validation - handles OAuth for tools with specific scopes
+   * @param accessToken
+   * @param refreshToken
+   * @param profile
+   */
+  async toolOAuthValidate(
+    accessToken: string,
+    refreshToken: string,
+    profile: Profile,
+    scopes: string[],
+  ) {
+    const { provider, id, emails } = profile;
+
+    this.logger.log(`tool oauth provider=${provider}, accountId=${id}`);
+
+    // Check if there is an authentication account record
+    const account = await this.prisma.account.findUnique({
+      where: {
+        provider_providerAccountId: {
+          provider,
+          providerAccountId: id,
+        },
+      },
+    });
+
+    // If there is an authentication account record and corresponding user, update tokens and scope
+    if (account) {
+      this.logger.log(`account found for provider ${provider}, account id: ${id}`);
+
+      // Update tokens and scope for tool OAuth
+      await this.prisma.account.update({
+        where: { pk: account.pk },
+        data: {
+          accessToken: accessToken,
+          refreshToken: refreshToken, // 1 hour
+          scope: JSON.stringify(scopes), // Tool scope
+        },
+      });
+
+      const user = await this.prisma.user.findUnique({
+        where: {
+          uid: account.uid,
+        },
+      });
+      if (user) {
+        return user;
+      }
+
+      this.logger.log(`user ${account.uid} not found for provider ${provider} account id: ${id}`);
+    }
+
+    // For tool OAuth, we expect the user to already exist
+    // oauth profile returns no email, this is invalid
+    if (emails?.length === 0) {
+      this.logger.warn('emails is empty, invalid oauth');
+      throw new OAuthError();
+    }
+    const email = emails[0].value;
+
+    // Return user if this email has been registered
+    const user = await this.prisma.user.findUnique({ where: { email } });
+    if (user) {
+      this.logger.log(`user ${user.uid} already registered for email ${email}`);
+
+      // Create or update account record for tool OAuth
+      const existingAccount = await this.prisma.account.findUnique({
+        where: {
+          provider_providerAccountId: {
+            provider,
+            providerAccountId: id,
+          },
+        },
+      });
+
+      if (existingAccount) {
+        // Update existing account with new tokens and scope
+        await this.prisma.account.update({
+          where: { pk: existingAccount.pk },
+          data: {
+            accessToken: accessToken,
+            refreshToken: refreshToken,
+            scope: JSON.stringify(scopes),
+          },
+        });
+      } else {
+        // Create new account record
+        await this.prisma.account.create({
+          data: {
+            type: 'oauth',
+            uid: user.uid,
+            provider,
+            providerAccountId: id,
+            accessToken: accessToken,
+            refreshToken: refreshToken,
+            scope: JSON.stringify(scopes),
+          },
+        });
+      }
+
+      return user;
+    }
+
+    // For tool OAuth, user must already exist
+    throw new OAuthError('User not found for tool OAuth');
+  }
+
+  /**
+   * Check if user has sufficient OAuth scope for tool
+   * @param uid User ID
+   * @param provider OAuth provider
+   * @param requiredScope Required scope array
+   */
+  async checkToolOAuthStatus(
+    uid: string,
+    provider: string,
+    requiredScope: string[],
+  ): Promise<boolean> {
+    try {
+      const account = await this.prisma.account.findFirst({
+        where: {
+          uid,
+          provider,
+        },
+      });
+
+      if (!account || !account.scope) {
+        return false;
+      }
+
+      const existingScope = JSON.parse(account.scope);
+      const hasRequiredScope = requiredScope.every((scope) => existingScope.includes(scope));
+
+      return hasRequiredScope;
+    } catch (error) {
+      this.logger.error(`Error checking tool OAuth status for user ${uid}:`, error);
+      return false;
+    }
+  }
+
+  /**
+   * Generate OAuth URL for tool authorization
+   * @param provider OAuth provider
+   * @param scope Required scope array
+   * @param redirectUrl Redirect URL after authorization
+   */
+  async generateGoogleOAuthUrl(scope: string, redirect: string, uid: string): Promise<string> {
+    this.logger.log(`generateGoogleOAuthUrl, scope: ${scope}, redirect: ${redirect}, uid: ${uid}`);
+
+    const baseScope = ['profile', 'email'];
+    const scopeArray = scope?.split(',') ?? [];
+    const finalScope = [...baseScope, ...scopeArray];
+    this.logger.log(`finalScope: ${finalScope}`);
+
+    // Check if user-specified scope contains elements not found in baseScope
+    const hasAdditionalScopes = scopeArray.some((s) => !baseScope.includes(s.trim()));
+
+    // Use tool oauth client id if additional scopes are requested
+    const clientId = hasAdditionalScopes
+      ? (this.configService.get('tools.google.clientId') ??
+        this.configService.get('auth.google.clientId'))
+      : this.configService.get('auth.google.clientId');
+
+    const callbackUrl = hasAdditionalScopes
+      ? (this.configService.get('tools.google.callbackUrl') ??
+        this.configService.get('auth.google.callbackUrl'))
+      : this.configService.get('auth.google.callbackUrl');
+
+    // Check if user already has Google OAuth with refresh token
+    let prompt = 'consent';
+    if (uid) {
+      try {
+        const existingAccount = await this.prisma.account.findFirst({
+          where: {
+            uid: uid,
+            provider: 'google',
+            type: 'oauth',
+          },
+        });
+
+        // If account exists and has a valid refresh token, don't force consent
+        if (
+          existingAccount?.refreshToken &&
+          existingAccount.refreshToken !== undefined &&
+          scopeArray.length === 0
+        ) {
+          prompt = 'none';
+        }
+      } catch (error) {
+        this.logger.warn('Failed to check existing Google OAuth account:', error);
+        // Default to consent on error
+      }
+    }
+
+    const params = new URLSearchParams({
+      client_id: clientId,
+      redirect_uri: callbackUrl,
+      scope: finalScope.join(' '),
+      response_type: 'code',
+      access_type: 'offline',
+      prompt,
+      state: JSON.stringify({
+        redirect: redirect ?? this.configService.get('auth.redirectUrl'),
+        uid: uid,
+      }),
+    });
+
+    return `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
+  }
+
+  async generateNotionOAuthUrl(uid: string, redirect?: string): Promise<string> {
+    const clientId = this.configService.get('auth.notion.clientId');
+    const callbackUrl = this.configService.get('auth.notion.callbackUrl');
+
+    const params = new URLSearchParams({
+      client_id: clientId,
+      response_type: 'code',
+      owner: 'user',
+      redirect_uri: callbackUrl,
+      state: JSON.stringify({
+        redirect: redirect ?? this.configService.get('auth.redirectUrl'),
+        uid: uid,
+      }),
+    });
+
+    return `https://api.notion.com/v1/oauth/authorize?${params.toString()}`;
+  }
+
+  async generateTwitterOAuthUrl(uid: string, redirect?: string): Promise<string> {
+    const clientId = this.configService.get('auth.twitter.clientId');
+    const callbackUrl = this.configService.get('auth.twitter.callbackUrl');
+
+    const params = new URLSearchParams({
+      client_id: clientId,
+      response_type: 'code',
+      owner: 'user',
+      redirect_uri: callbackUrl,
+      state: JSON.stringify({
+        redirect: redirect ?? this.configService.get('auth.redirectUrl'),
+        uid: uid,
+      }),
+    });
+
+    return `https://api.x.com/2/oauth2/authorize?${params.toString()}`;
   }
 }

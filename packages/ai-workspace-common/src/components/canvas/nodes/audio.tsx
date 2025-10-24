@@ -2,7 +2,7 @@ import { memo, useState, useCallback, useEffect } from 'react';
 import { Position } from '@xyflow/react';
 import { CanvasNode } from '@refly/canvas-common';
 import { useNodeHoverEffect } from '@refly-packages/ai-workspace-common/hooks/canvas/use-node-hover';
-import { getNodeCommonStyles } from './index';
+import { getNodeCommonStyles } from './shared/styles';
 import { CustomHandle } from './shared/custom-handle';
 import { NodeHeader } from './shared/node-header';
 import { HiExclamationTriangle } from 'react-icons/hi2';
@@ -25,6 +25,11 @@ import { useGetNodeConnectFromDragCreateInfo } from '@refly-packages/ai-workspac
 import { NodeDragCreateInfo } from '@refly-packages/ai-workspace-common/events/nodeOperations';
 import { NodeProps } from '@xyflow/react';
 import { CanvasNodeData } from '@refly/canvas-common';
+import { useNodePreviewControl } from '@refly-packages/ai-workspace-common/hooks/canvas/use-node-preview-control';
+import { ModelInfo } from '@refly/openapi-schema';
+import { useNodeExecutionStatus } from '@refly-packages/ai-workspace-common/hooks/canvas';
+import { NodeExecutionOverlay } from './shared/node-execution-overlay';
+import { NodeExecutionStatus } from './shared/node-execution-status';
 
 const NODE_SIDE_CONFIG = {
   width: 350,
@@ -34,9 +39,14 @@ const NODE_SIDE_CONFIG = {
 // Define AudioNodeMeta interface
 interface AudioNodeMeta {
   audioUrl?: string;
+  storageKey?: string;
   showBorder?: boolean;
   showTitle?: boolean;
   style?: Record<string, any>;
+  resultId?: string;
+  contextItems?: IContextItem[];
+  modelInfo?: ModelInfo;
+  parentResultId?: string;
 }
 
 interface AudioNodeProps extends NodeProps {
@@ -71,7 +81,14 @@ export const AudioNode = memo(
     const { deleteNode } = useDeleteNode();
     const setNodeDataByEntity = useSetNodeDataByEntity();
     const { getConnectionInfo } = useGetNodeConnectFromDragCreateInfo();
-    const { readonly } = useCanvasContext();
+    const { readonly, canvasId } = useCanvasContext();
+    const { previewNode } = useNodePreviewControl({ canvasId });
+
+    // Get node execution status
+    const { status: executionStatus } = useNodeExecutionStatus({
+      canvasId: canvasId || '',
+      nodeId: id,
+    });
 
     const handleMouseEnter = useCallback(() => {
       setIsHovered(true);
@@ -147,6 +164,17 @@ export const AudioNode = memo(
       );
     };
 
+    const handleAudioClick = useCallback(() => {
+      // Create a node object for preview
+      const nodeForPreview = {
+        id,
+        type: 'audio' as const,
+        data: data as any,
+        position: { x: 0, y: 0 },
+      };
+      previewNode(nodeForPreview);
+    }, [previewNode, id, data]);
+
     // Handle audio loading errors with fallback
     const handleAudioError = useCallback(() => {
       console.error('Audio failed to load:', currentAudioUrl);
@@ -164,14 +192,15 @@ export const AudioNode = memo(
       }
     }, [currentAudioUrl, fallbackIndex]);
 
-    // Reset audio URL when original URL changes
+    // Reset audio URL only when the original audioUrl prop changes
+    // Avoid resetting when switching to fallback URLs to prevent infinite retries
     useEffect(() => {
-      if (audioUrl && audioUrl !== currentAudioUrl) {
+      if (audioUrl) {
         setCurrentAudioUrl(audioUrl);
         setFallbackIndex(0);
         setAudioError(false);
       }
-    }, [audioUrl, currentAudioUrl]);
+    }, [audioUrl]);
 
     // Add event handling
     useEffect(() => {
@@ -242,6 +271,8 @@ export const AudioNode = memo(
           </>
         )}
 
+        <NodeExecutionOverlay status={executionStatus} />
+
         <div
           className={`
                 w-full
@@ -252,7 +283,11 @@ export const AudioNode = memo(
                p-4
                 ${getNodeCommonStyles({ selected: !isPreview && selected, isHovered })}
               `}
+          style={{ cursor: isPreview || readonly ? 'default' : 'pointer' }}
+          onClick={handleAudioClick}
         >
+          {/* Node execution status badge */}
+          <NodeExecutionStatus status={executionStatus} />
           <div className={cn('flex flex-col h-full relative box-border')}>
             {showTitle && (
               <NodeHeader
@@ -277,10 +312,14 @@ export const AudioNode = memo(
                 <audio
                   src={currentAudioUrl}
                   controls
-                  className="w-full max-w-sm rounded-md cursor-pointer"
+                  className="w-full max-w-sm rounded-md"
                   preload="metadata"
                   onError={handleAudioError}
                   onLoadStart={() => setAudioError(false)}
+                  onClick={(e) => {
+                    // Prevent audio controls from triggering the parent click
+                    e.stopPropagation();
+                  }}
                 >
                   <track kind="captions" />
                   Your browser does not support the audio element.

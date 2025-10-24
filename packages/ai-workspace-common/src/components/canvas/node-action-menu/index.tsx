@@ -8,7 +8,6 @@ import { CanvasNode } from '@refly/canvas-common';
 import {
   Edit,
   AddContext,
-  Ppt,
   Fullscreen,
   InputContext,
   SubNode,
@@ -32,7 +31,6 @@ import { HoverCard, HoverContent } from '@refly-packages/ai-workspace-common/com
 import { useHoverCard } from '@refly-packages/ai-workspace-common/hooks/use-hover-card';
 import { useNodePreviewControl } from '@refly-packages/ai-workspace-common/hooks/canvas';
 import { useGetNodeContent } from '@refly-packages/ai-workspace-common/hooks/canvas/use-get-node-content';
-import { useAddNodeToSlide } from '@refly-packages/ai-workspace-common/hooks/canvas/use-add-node-to-slide';
 
 import './index.scss';
 
@@ -61,15 +59,6 @@ interface NodeActionMenuProps {
   hasFixedHeight?: boolean;
 }
 
-const getChildNodes = (id: string, nodes: CanvasNode[]) => {
-  const childNodes = nodes.filter((node) => {
-    const isInGroup = node.parentId === id;
-    return isInGroup && !['skill', 'group'].includes(node.type);
-  }) as CanvasNode[];
-
-  return childNodes;
-};
-
 export const NodeActionMenu: FC<NodeActionMenuProps> = ({
   nodeId,
   nodeType,
@@ -79,7 +68,7 @@ export const NodeActionMenu: FC<NodeActionMenuProps> = ({
   hasFixedHeight = false,
 }) => {
   const { t } = useTranslation();
-  const { getNode, getNodes } = useReactFlow();
+  const { getNode } = useReactFlow();
   const { canvasId } = useCanvasContext();
   const { setShowPreview } = useCanvasStoreShallow((state) => ({
     setShowPreview: state.setShowPreview,
@@ -91,27 +80,11 @@ export const NodeActionMenu: FC<NodeActionMenuProps> = ({
   }));
 
   const node = useMemo(() => getNode(nodeId) as CanvasNode, [nodeId, getNode]);
-  const nodes = useMemo(() => getNodes(), [getNodes]);
   const nodeData = useMemo(() => node?.data, [node]);
   const { fetchNodeContent } = useGetNodeContent(node);
   const [localSizeMode, setLocalSizeMode] = useState(
     () => nodeData?.metadata?.sizeMode || 'adaptive',
   );
-
-  const nodesForSlide = useMemo(() => {
-    if (nodeType === 'group') {
-      return getChildNodes(nodeId, nodes as CanvasNode[]);
-    }
-    return [node];
-  }, [nodeType, nodes]);
-
-  const { addNodesToSlide, isAddingNodesToSlide } = useAddNodeToSlide({
-    canvasId,
-    nodes: nodesForSlide,
-    onSuccess: () => {
-      onClose?.();
-    },
-  });
 
   useEffect(() => {
     setLocalSizeMode(nodeData?.metadata?.sizeMode || 'adaptive');
@@ -218,11 +191,6 @@ export const NodeActionMenu: FC<NodeActionMenuProps> = ({
     onClose?.();
   }, [nodeId, canvasId, node, previewNode, onClose]);
 
-  const handleAddToSlideshow = useCallback(() => {
-    addNodesToSlide();
-    onClose?.();
-  }, [nodeData?.entityId, canvasId, addNodesToSlide, onClose, nodeType]);
-
   const getMenuItems = useCallback(
     (activeDocumentId: string): MenuItem[] => {
       if (isMultiSelection) {
@@ -286,29 +254,6 @@ export const NodeActionMenu: FC<NodeActionMenuProps> = ({
                   videoUrl:
                     'https://static.refly.ai/onboarding/nodeAction/nodeAction-editQuery.webm',
                 },
-              },
-            ]
-          : []),
-        {
-          key: 'addToContext',
-          icon: AddContext,
-          label: t('canvas.nodeActions.addToContext'),
-          onClick: handleAddToContext,
-          type: 'button' as const,
-          hoverContent: {
-            title: t('canvas.nodeActions.addToContext'),
-            description: t('canvas.nodeActions.addToContextDescription'),
-            videoUrl: 'https://static.refly.ai/onboarding/nodeAction/nodeAction-addToContext.webm',
-          },
-        },
-        ...(!['group', 'skill'].includes(nodeType)
-          ? [
-              {
-                key: 'addToSlideshow',
-                icon: Ppt,
-                label: t('canvas.nodeActions.addToSlideshow'),
-                onClick: handleAddToSlideshow,
-                loading: isAddingNodesToSlide,
               },
             ]
           : []),
@@ -496,7 +441,6 @@ export const NodeActionMenu: FC<NodeActionMenuProps> = ({
       handleSelectCluster,
       handleUngroup,
       isMultiSelection,
-      handleAddToSlideshow,
     ],
   );
 

@@ -1,10 +1,10 @@
-import { InvokeSkillRequest, SkillEvent } from '@refly/openapi-schema';
 import { extractBaseResp } from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
-import { ConnectionError, AuthenticationExpiredError } from '@refly/errors';
-import { refreshToken } from './auth';
-import { isDesktop, serverOrigin } from '@refly/ui-kit';
 import { scrollToBottom } from '@refly-packages/ai-workspace-common/utils/ui';
+import { AuthenticationExpiredError, ConnectionError } from '@refly/errors';
+import { InvokeSkillRequest, SkillEvent } from '@refly/openapi-schema';
+import { isDesktop, serverOrigin } from '@refly/ui-kit';
 import throttle from 'lodash.throttle';
+import { refreshToken } from './auth';
 
 // Create throttled version of scrollToBottom function
 const throttledScrollToBottom = throttle(() => {
@@ -53,6 +53,8 @@ export const ssePost = async ({
   onSkillLog,
   onSkillStart,
   onSkillStream,
+  onToolCallStart,
+  onToolCallStream,
   onSkillEnd,
   onSkillArtifact,
   onSkillStructedData,
@@ -67,6 +69,8 @@ export const ssePost = async ({
   onSkillLog: (event: SkillEvent) => void;
   onSkillStart: (event: SkillEvent) => void;
   onSkillStream: (event: SkillEvent) => void;
+  onToolCallStart?: (event: SkillEvent) => void;
+  onToolCallStream?: (event: SkillEvent) => void;
   onSkillEnd: (event: SkillEvent) => void;
   onSkillStructedData: (event: SkillEvent) => void;
   onSkillCreateNode: (event: SkillEvent) => void;
@@ -168,6 +172,12 @@ export const ssePost = async ({
         }
 
         // Process remaining event types (less performance-critical)
+        if (eventsByType.tool_call_stream?.length) {
+          for (const event of eventsByType.tool_call_stream) {
+            onToolCallStream?.(event);
+          }
+        }
+
         if (eventsByType.artifact?.length) {
           for (const event of eventsByType.artifact) {
             onSkillArtifact(event);
@@ -259,6 +269,10 @@ export const ssePost = async ({
             if (message.startsWith('data: ')) {
               try {
                 const skillEvent = JSON.parse(message.substring(6)) as SkillEvent;
+                if (skillEvent.event === 'tool_call_start') {
+                  onToolCallStart?.(skillEvent);
+                  continue;
+                }
                 batchedEvents.push(skillEvent);
               } catch (err) {
                 console.log('Parse error:', {

@@ -21,7 +21,6 @@ export { useLaunchpadStore, useLaunchpadStoreShallow } from './launchpad';
 export { usePilotStore, usePilotStoreShallow } from './pilot';
 export { useProjectSelectorStore, useProjectSelectorStoreShallow } from './project-selector';
 export { useQuickSearchStateStore, useQuickSearchStateStoreShallow } from './quick-search-state';
-export { useReferencesStore, useReferencesStoreShallow } from './references';
 export { useSearchStateStore, useSearchStateStoreShallow } from './search-state';
 export { useSearchStore, useSearchStoreShallow } from './search';
 export { useSiderStore, useSiderStoreShallow } from './sider';

@@ -412,7 +412,7 @@ const getLayoutedElements = (
 export const useCanvasLayout = () => {
   const { getNodes, getEdges, setNodes, setEdges, getNode } = useReactFlow<CanvasNode<any>>();
 
-  const { syncCanvasData } = useCanvasContext();
+  const { forceSyncState } = useCanvasContext();
   const { fitView } = useReactFlow();
 
   const onLayout = useCallback(
@@ -423,7 +423,7 @@ export const useCanvasLayout = () => {
 
       setNodes(layouted.nodes);
       setEdges(layouted.edges);
-      syncCanvasData();
+      forceSyncState();
 
       window.requestAnimationFrame(() => {
         fitView({
@@ -433,7 +433,7 @@ export const useCanvasLayout = () => {
         });
       });
     },
-    [fitView, setNodes, setEdges, syncCanvasData],
+    [fitView, setNodes, setEdges, forceSyncState],
   );
 
   const getChildNodes = (id: string, nodes: CanvasNode[]) => {
@@ -557,9 +557,9 @@ export const useCanvasLayout = () => {
       });
 
       setNodes(updatedNodes);
-      syncCanvasData();
+      forceSyncState();
     },
-    [getNodes, getNode, getEdges, setNodes, syncCanvasData],
+    [getNodes, getNode, getEdges, setNodes, forceSyncState],
   );
 
   return {

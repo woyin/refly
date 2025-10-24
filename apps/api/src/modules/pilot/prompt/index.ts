@@ -1,270 +1,14 @@
-import { z } from 'zod';
 import { CanvasContentItem } from '../../canvas/canvas.dto';
-import { PilotSession, PilotStep } from '@refly/openapi-schema';
+import { GenericToolset, PilotSession, PilotStep } from '@refly/openapi-schema';
 import { zodToJsonSchema } from 'zod-to-json-schema';
+import { pilotStepSchema } from './schema';
 import { buildFormattedExamples } from './examples';
-
-/**
- * Schema for pilot steps with workflowStage to enforce proper tool sequencing
- */
-export const pilotStepSchema = z
-  .object({
-    name: z.string().describe('A clear and concise title for the step'),
-    skillName: z
-      .enum([
-        'commonQnA',
-        'webSearch',
-        'librarySearch',
-        'generateDoc',
-        'codeArtifacts',
-        'generateMedia', // Unified multimodal skill for image, video, and audio
-      ])
-      .describe('The name of the skill to invoke'),
-    priority: z.number().min(1).max(5).describe('Priority level from 1 (highest) to 5 (lowest)'),
-    query: z.string().describe('The query to ask the skill'),
-    contextItemIds: z
-      .array(z.string())
-      .describe('The ID list of the relevant canvas items for this step'),
-    workflowStage: z
-      .enum(['research', 'analysis', 'synthesis', 'creation'])
-      .describe(
-        'The workflow stage this step belongs to - must follow proper sequencing: research (early) → analysis (middle) → synthesis (optional) → creation (final). Each stage uses specific tools: research uses webSearch/librarySearch/commonQnA, analysis uses commonQnA, synthesis uses commonQnA, creation uses generateDoc/codeArtifacts/generateMedia only after sufficient context gathering.',
-      ),
-  })
-  .describe('A single action step of the pilot');
-
-export const multiStepSchema = z
-  .object({
-    steps: z.array(pilotStepSchema).describe('A list of steps of the pilot'),
-  })
-  .describe('A list of steps of the pilot');
-
-export type PilotStepRawOutput = z.infer<typeof pilotStepSchema>;
-
-/**
- * Detects the complexity of media generation requests
- * @param userQuestion The user's original question/request
- * @returns 'simple' for straightforward media requests, 'complex' for research-heavy requests, 'none' for non-media requests
- */
-export function detectMediaIntentComplexity(userQuestion: string): 'simple' | 'complex' | 'none' {
-  const question = userQuestion.toLowerCase();
-
-  // Media type keywords (combined from existing detection logic)
-  const mediaKeywords = [
-    // Image keywords
-    '图片',
-    '图像',
-    '照片',
-    '插图',
-    '设计',
-    '海报',
-    '标志',
-    '图标',
-    '示意图',
-    '画',
-    '绘制',
-    '图表',
-    'image',
-    'picture',
-    'photo',
-    'illustration',
-    'design',
-    'poster',
-    'logo',
-    'icon',
-    'diagram',
-    'draw',
-    'chart',
-    'graphic',
-    'visual',
-    'artwork',
-    'banner',
-    // Video keywords
-    '视频',
-    '动画',
-    '短片',
-    '演示',
-    '录像',
-    '影片',
-    '动态',
-    '片段',
-    '电影',
-    'video',
-    'animation',
-    'demo',
-    'demonstration',
-    'movie',
-    'clip',
-    'footage',
-    'commercial',
-    'trailer',
-    'motion',
-    'animated',
-    'film',
-    // Audio keywords
-    '音频',
-    '音乐',
-    '声音',
-    '语音',
-    '音效',
-    '背景音',
-    '播客',
-    '配音',
-    '歌曲',
-    '录音',
-    'audio',
-    'music',
-    'sound',
-    'voice',
-    'speech',
-    'podcast',
-    'narration',
-    'song',
-    'recording',
-    'sound effect',
-    'jingle',
-    'soundtrack',
-    'background music',
-  ];
-
-  // Check if it's a media request
-  const hasMediaKeywords = mediaKeywords.some((keyword) => question.includes(keyword));
-  if (!hasMediaKeywords) {
-    return 'none';
-  }
-
-  // Complex request indicators (requires research/analysis)
-  const complexIndicators = [
-    // Trend and analysis keywords
-    '最新',
-    '趋势',
-    '流行',
-    '热门',
-    '对比',
-    '分析',
-    '研究',
-    '调查',
-    '竞品',
-    '市场',
-    'latest',
-    'trend',
-    'trending',
-    'popular',
-    'analysis',
-    'research',
-    'study',
-    'competitor',
-    'market',
-    'industry',
-    // Time-sensitive keywords
-    '2024',
-    '2023',
-    '当前',
-    '现在',
-    '今年',
-    'current',
-    'recent',
-    'modern',
-    'contemporary',
-    // Research-heavy keywords
-    '基于',
-    '根据',
-    '参考',
-    'based on',
-    'according to',
-    'reference',
-    'inspired by',
-  ];
-
-  // Simple request indicators (self-contained descriptions)
-  const simpleIndicators = [
-    // Direct creative requests
-    '创建',
-    '制作',
-    '生成',
-    '设计一个',
-    '画一个',
-    'create',
-    'make',
-    'generate',
-    'design a',
-    'draw a',
-    // Style descriptors
-    '简约',
-    '现代',
-    '可爱',
-    '专业',
-    '彩色',
-    'simple',
-    'modern',
-    'cute',
-    'professional',
-    'colorful',
-    // Size/format descriptors
-    'logo',
-    '头像',
-    '壁纸',
-    'avatar',
-    'wallpaper',
-    'banner',
-  ];
-
-  const hasComplexIndicators = complexIndicators.some((indicator) => question.includes(indicator));
-  const hasSimpleIndicators = simpleIndicators.some((indicator) => question.includes(indicator));
-
-  // Decision logic: if has complex indicators, mark as complex
-  // If has simple indicators and no complex indicators, mark as simple
-  // Otherwise default to complex for safety
-  if (hasComplexIndicators) {
-    return 'complex';
-  } else if (hasSimpleIndicators) {
-    return 'simple';
-  } else {
-    return 'complex'; // Default to complex for safety
-  }
-}
-
-/**
- * Generates streamlined guidance for simple media requests
- * @returns Guidance text for simple media generation workflows
- */
-export function generateSimpleMediaGuidance(): string {
-  return `
-## STREAMLINED MEDIA GENERATION MODE
-Detected: Simple, self-contained media request
-
-### Optimized Workflow (1-2 Steps):
-- **DIRECT APPROACH**: Skip extensive research for clear creative briefs
-- **FOCUS**: Convert user intent directly to high-quality English prompts
-- **EFFICIENCY**: Minimize unnecessary context gathering steps
-
-### Media Generation Guidelines:
-1. **Immediate Generation**: Use generateMedia directly if request is clear and self-contained
-2. **English Prompt Quality**: 
-   - Translate user intent accurately to English
-   - Include technical specifications (dimensions, style, format)
-   - Maintain original creative vision
-   - Use professional media generation terminology
-
-### Workflow Options:
-**Option A (1 Step - Recommended for very clear requests):**
-- Direct generateMedia with optimized English prompt
-
-**Option B (2 Steps - For requests needing slight clarification):**
-- Step 1: Brief clarification or style research (optional)
-- Step 2: generateMedia with context-informed English prompt
-
-### English Prompt Format:
-- **Structure**: [Action] + [Subject] + [Style/Technical Specs] + mediaType: [type]
-- **Example**: "Create a minimalist company logo with blue and white colors, vector style, 512x512px. mediaType: image"
-- **Key Elements**: Be specific, professional, technically accurate
-
-### Important Notes:
-- contextItemIds can be empty for self-contained requests
-- workflowStage should be "creation" for direct generation
-- Priority should be 1 (highest) for main media generation step
-`;
-}
+import {
+  formatCanvasContent,
+  formatTodoMd,
+  formatCanvasIntoMermaidFlowchart,
+  formatToolsets,
+} from './formatter';
 
 /**
  * Determines the recommended workflow stage based on the current epoch
@@ -294,7 +38,7 @@ export function getRecommendedStageForEpoch(currentEpoch: number, totalEpochs: n
 }
 
 /**
- * Generates guidance for the current epoch stage
+ * Generates guidance for the current epoch stage with intelligent tool selection
  * @param stage The current workflow stage
  * @returns Guidance text for the prompt
  */
@@ -303,36 +47,92 @@ export function generateStageGuidance(stage: string): string {
     case 'research':
       return `
 ## CURRENT EPOCH STAGE: RESEARCH (Early Stage)
-In this early stage, focus exclusively on gathering information:
+In this early stage, focus exclusively on gathering information using appropriate tools:
 
-- REQUIRED: Use primarily webSearch and librarySearch tools
-- Use commonQnA only for basic information gathering
-- DO NOT use analysis, synthesis, or creation tools yet
+### Recommended Tool Categories:
+- **Information Gathering Tools**: web_search, library_search, scrape, search, crawl
+- **Basic Analysis Tools**: Use tools with analysis capabilities for initial information processing
+- **DO NOT** use creation/generation tools yet (generate_doc, generate_media, generate_code_artifact)
+
+### Tool Selection Strategy:
+- **web_search**: For current information, news, trends, and general web content
+- **library_search**: For searching internal knowledge base and existing documents
+- **scrape/crawl tools**: For extracting content from specific websites or domains
+- **search tools**: For comprehensive web searches with full content extraction
+
+### Query Format Requirements:
+- ALL queries MUST explicitly mention which tool to use
+- Examples:
+  * "Use web_search to find latest electric vehicle market statistics"
+  * "Use library_search to locate internal documents about renewable energy policies"
+  * "Use scrape tool to extract information from Tesla's investor relations page"
+  * "Use search tool to gather comprehensive data on climate change impacts"
+
+### Guidelines:
 - Focus on broad information gathering about the topic
 - Collect diverse perspectives and factual information
 - Explore different aspects of the question systematically
-- ALL steps in this epoch should have workflowStage="research"`;
+- ALL steps in this epoch should have workflowStage="research"
+- Select tools based on the specific information source needed
+- EVERY query must start with "Use [tool_name] to..."`;
 
     case 'analysis':
       return `
 ## CURRENT EPOCH STAGE: ANALYSIS (Middle Stage)
-In this middle stage, focus on analyzing the information collected:
+In this middle stage, focus on analyzing the information collected using analytical tools:
 
-- REQUIRED: Use primarily commonQnA for analysis
+### Recommended Tool Categories:
+- **Analysis Tools**: Tools with analytical and reasoning capabilities
+- **Data Processing Tools**: Tools that can process and structure information
+- **Comparison Tools**: Tools that can compare and contrast different data sources
+
+### Tool Selection Strategy:
 - Build upon research collected in previous epochs
-- Identify patterns, contradictions, and insights
+- Use tools that can identify patterns, contradictions, and insights
+- Select tools that can evaluate quality and reliability of information
+- Choose tools that can compare different perspectives and approaches
+
+### Query Format Requirements:
+- Queries MUST explicitly name the analysis-capable tool
+- Examples:
+  * "Use [analysis_tool] to analyze the web search results and identify key market trends and patterns"
+  * "Use [processing_tool] to process the scraped data and evaluate competitive positioning and opportunities"
+  * "Use [comparison_tool] to compare findings from multiple research sources and surface contradictions and insights"
+  * "Use [evaluation_tool] to assess the quality and reliability of collected information sources"
+
+### Guidelines:
+- Identify patterns, contradictions, and insights from gathered data
 - Evaluate the quality and reliability of information
 - Compare different perspectives and approaches
 - Synthesize preliminary findings
 - MOST steps in this epoch should have workflowStage="analysis"
-- NO creation steps allowed yet`;
+- NO creation tools allowed yet`;
 
     case 'synthesis':
       return `
 ## CURRENT EPOCH STAGE: SYNTHESIS (Late Middle Stage)
-In this late middle stage, focus on organizing and planning outputs:
+In this late middle stage, focus on organizing and planning outputs using synthesis-capable tools:
 
-- REQUIRED: Use primarily commonQnA for synthesis
+### Recommended Tool Categories:
+- **Synthesis Tools**: Tools capable of organizing and structuring information
+- **Planning Tools**: Tools that can help plan deliverable structures
+- **Organization Tools**: Tools that can create frameworks and outlines
+
+### Tool Selection Strategy:
+- Organize information into coherent frameworks
+- Identify the most important findings and insights
+- Plan the structure of final deliverables
+- Draft outlines for documents or applications
+
+### Query Format Requirements:
+- Queries MUST explicitly name the synthesis/organization tool
+- Examples:
+  * "Use [synthesis_tool] to create a detailed outline for the final report based on analysis findings"
+  * "Use [organization_tool] to organize research findings into coherent themes and frameworks"
+  * "Use [planning_tool] to plan the structure of final deliverables"
+  * "Use [design_tool] to draft interface requirements for the visualization dashboard"
+
+### Guidelines:
 - Organize information into coherent frameworks
 - Identify the most important findings and insights
 - Plan the structure of final deliverables
@@ -343,562 +143,141 @@ In this late middle stage, focus on organizing and planning outputs:
     case 'creation':
       return `
 ## CURRENT EPOCH STAGE: CREATION (Final Stage)
-In this final stage, focus on creating comprehensive outputs based on gathered information:
+In this final stage, focus on creating comprehensive outputs using creation tools:
 
-### Available Creation Tools:
-- **generateDoc**: Create comprehensive documents, articles, reports
-- **codeArtifacts**: Generate complete code projects and applications
-- **generateMedia**: Create multimodal content including images, videos, and audio (unified multimedia generator)
+### Available Creation Tool Categories:
+- **Document Generation**: generate_doc, create_document tools
+- **Code Generation**: generate_code_artifact, code creation tools
+- **Media Generation**: generate_media tools (unified multimedia generator)
+- **Specialized Creation**: Domain-specific creation tools
 
-### Multimodal Content Detection Guidelines:
-When users request content that involves visual, video, or audio elements, use the unified **generateMedia** tool:
+### Intelligent Tool Selection for Creation:
 
-#### Media Type Selection (use generateMedia with appropriate mediaType parameter):
-**CRITICAL: Always analyze user intent and specify the correct mediaType parameter**
+#### Media Content Detection and Tool Selection:
+When users request multimedia content, select the appropriate generate_media tool:
 
-**Image Content Detection (mediaType: image):**
-- Keywords: "图片", "图像", "照片", "插图", "设计", "海报", "标志", "图标", "示意图", "画", "绘制", "图表"
-- English: "image", "picture", "photo", "illustration", "design", "poster", "logo", "icon", "diagram", "draw", "chart", "graphic", "visual", "artwork", "banner"
-- User expressions: "create a...", "design a...", "make a picture of...", "draw something...", "generate an image..."
+**Media Type Detection Rules**:
+- **Image Content** (use generate_media with mediaType: image):
+  - Keywords: "图片", "图像", "照片", "插图", "设计", "海报", "标志", "图标", "示意图", "画", "绘制", "图表"
+  - English: "image", "picture", "photo", "illustration", "design", "poster", "logo", "icon", "diagram", "draw", "chart", "graphic", "visual", "artwork", "banner"
+  
+- **Video Content** (use generate_media with mediaType: video):
+  - Keywords: "视频", "动画", "短片", "演示", "录像", "影片", "动态", "片段", "电影"
+  - English: "video", "animation", "demo", "demonstration", "movie", "clip", "footage", "commercial", "trailer", "motion", "animated", "film"
+  
+- **Audio Content** (use generate_media with mediaType: audio):
+  - Keywords: "音频", "音乐", "声音", "语音", "音效", "背景音", "播客", "配音", "歌曲", "录音"
+  - English: "audio", "music", "sound", "voice", "speech", "podcast", "narration", "song", "recording", "sound effect", "jingle", "soundtrack", "background music"
 
-**Video Content Detection (mediaType: video):**
-- Keywords: "视频", "动画", "短片", "演示", "录像", "影片", "动态", "片段", "电影"
-- English: "video", "animation", "demo", "demonstration", "movie", "clip", "footage", "commercial", "trailer", "motion", "animated", "film"
-- User expressions: "create a video...", "make an animation...", "film something...", "produce a clip...", "animate..."
+#### Query Format Requirements for Creation:
+- ALL creation queries MUST explicitly specify the tool and parameters
+- Examples:
+  * "Use generate_doc to create a comprehensive market analysis report with executive summary, findings, and recommendations"
+  * "Use generate_code_artifact to create an interactive HTML dashboard with embedded charts and data visualization"
+  * "Use generate_media with mediaType: image to create an infographic summarizing key research findings"
+  * "Use generate_media with mediaType: video to create a presentation video explaining the analysis results"
 
-**Audio Content Detection (mediaType: audio):**
-- Keywords: "音频", "音乐", "声音", "语音", "音效", "背景音", "播客", "配音", "歌曲", "录音"
-- English: "audio", "music", "sound", "voice", "speech", "podcast", "narration", "song", "recording", "sound effect", "jingle", "soundtrack", "background music"
-- User expressions: "create music...", "generate audio...", "make a sound...", "compose something...", "record a voice..."
-
-### Selection Logic:
-**STEP 1: Analyze user intent carefully for media type detection**
-1. Scan user query for image-related keywords/expressions → use generateMedia with mediaType=image
-2. Scan user query for video-related keywords/expressions → use generateMedia with mediaType=video  
-3. Scan user query for audio-related keywords/expressions → use generateMedia with mediaType=audio
-4. If ambiguous, prioritize based on context and typical user patterns (images are most common)
-
-**STEP 2: Choose appropriate tool**
-- Use generateMedia ONLY for multimedia content (images, videos, audio)
-- Use codeArtifacts for code projects and interactive applications
-- Use generateDoc for text documents and reports
-
-**STEP 3: Format the query correctly**
-- ALWAYS include "mediaType: [detected_type]" in generateMedia queries
-- Example: "Create a company logo with modern design. mediaType: image"
+#### Creation Tool Selection Logic:
+1. **Analyze user intent** for content type (document, code, media)
+2. **Select appropriate creation tool** based on detected content type
+3. **Format queries correctly** with required parameters (e.g., mediaType for media generation)
+4. **Reference context** from previous research and analysis steps
 
 ### Important Rules:
 - MUST reference previous research context in contextItemIds
 - Each creation step should build upon information gathered in previous stages
-- Use specific, descriptive queries that include style and format requirements
+- Use specific, descriptive queries that include requirements and specifications
 - ALL creation steps should have workflowStage="creation"
 - Creation tools should ONLY be used in the final 1-2 steps
-- MUST reference previous context items in almost all cases`;
+- MUST reference previous context items in almost all cases
+- EVERY query must explicitly state "Use [tool_name] to..."`;
 
     default:
       return `
 ## CURRENT EPOCH STAGE: RESEARCH (Default Stage)
-Focus on gathering information:
+Focus on gathering information using appropriate research tools:
 
-- Use primarily webSearch and librarySearch tools
-- Use commonQnA only for basic information gathering
+### Tool Selection:
+- Use information gathering tools (web_search, library_search, etc.)
+- Select tools based on the specific information source needed
 - DO NOT use creation tools yet
-- ALL steps in this epoch should have workflowStage="research"`;
+- ALL steps in this epoch should have workflowStage="research"
+
+### Query Format Requirements:
+- ALL queries MUST explicitly mention which tool to use
+- Examples:
+  * "Use web_search to find latest information about [topic]"
+  * "Use library_search to locate internal documents about [topic]"
+  * "Use scrape tool to extract information from [specific website]"`;
   }
 }
 
 /**
- * Enhanced guidance generation that considers media intent complexity
- * @param stage The current workflow stage
- * @param userQuestion The original user question for media intent detection
- * @returns Guidance text optimized for the detected workflow type
- */
-export function generateEnhancedStageGuidance(stage: string, userQuestion?: string): string {
-  // If user question is provided, detect media intent complexity
-  if (userQuestion) {
-    const mediaComplexity = detectMediaIntentComplexity(userQuestion);
-
-    // For simple media requests in creation stage, provide streamlined guidance
-    if (mediaComplexity === 'simple' && stage === 'creation') {
-      return `${generateSimpleMediaGuidance()}\n\n${generateStageGuidance(stage)}`;
-    }
-
-    // For simple media requests in early stages, still provide streamlined approach
-    if (mediaComplexity === 'simple' && (stage === 'research' || stage === 'analysis')) {
-      return `${generateSimpleMediaGuidance()}\n\n${generateStageGuidance(stage)}`;
-    }
-  }
-
-  // Default to original stage guidance
-  return generateStageGuidance(stage);
-}
-
-/**
- * Utility function to test media intent detection and workflow optimization
- * @param userQuestion The user question to analyze
- * @returns Analysis result with detected complexity and recommended workflow
- */
-export function analyzeMediaWorkflowOptimization(userQuestion: string): {
-  mediaComplexity: 'simple' | 'complex' | 'none';
-  recommendedSteps: number;
-  workflowType: 'streamlined' | 'standard';
-  promptSuggestion?: string;
-} {
-  const complexity = detectMediaIntentComplexity(userQuestion);
-
-  if (complexity === 'simple') {
-    return {
-      mediaComplexity: complexity,
-      recommendedSteps: 1,
-      workflowType: 'streamlined',
-      promptSuggestion:
-        'Direct generateMedia with optimized English prompt, no context gathering needed',
-    };
-  } else if (complexity === 'complex') {
-    return {
-      mediaComplexity: complexity,
-      recommendedSteps: 3,
-      workflowType: 'standard',
-      promptSuggestion: 'Follow research → analysis → creation workflow with context building',
-    };
-  } else {
-    return {
-      mediaComplexity: complexity,
-      recommendedSteps: 5,
-      workflowType: 'standard',
-    };
-  }
-}
-
-/**
- * Formats the canvas content items into a detailed, structured string format
- */
-export function formatCanvasContent(contentItems: CanvasContentItem[]): string {
-  if (!contentItems?.length) {
-    return '';
-  }
-
-  // Add an index to each item and format with detailed information
-  return contentItems
-    .map((item, index) => {
-      const itemId = item?.id || 'unknown-id';
-      const itemType = item?.type || 'unknown-type';
-      const header = `## Canvas Item ${index + 1} (ID: ${itemId}, Type: ${itemType})`;
-
-      if (itemType === 'skillResponse') {
-        return `${header}\n**Question:** ${item?.title || 'No title'}\n**Answer:**\n${item?.content || 'No content'}\n**Context ID:** ${itemId}`;
-      }
-
-      if (itemType === 'document') {
-        if (item?.title && item?.content) {
-          return `${header}\n**Document Title:** ${item.title}\n**Document Content:**\n${item.content}\n**Context ID:** ${itemId}`;
-        }
-        if (item?.title && item?.contentPreview) {
-          return `${header}\n**Document Title:** ${item.title}\n**Document Preview:**\n${item.contentPreview}\n**Context ID:** ${itemId}`;
-        }
-      }
-
-      if (itemType === 'codeArtifact') {
-        return `${header}\n**Code Snippet:** ${item?.title || 'Untitled Code'}\n\`\`\`\n${item?.content || item?.contentPreview || 'No code available'}\n\`\`\`\n**Context ID:** ${itemId}`;
-      }
-
-      // Generic case for other item types
-      if (item?.title && (item?.content || item?.contentPreview)) {
-        return `${header}\n**Title:** ${item.title}\n**Content:**\n${item?.content || item?.contentPreview || 'No content available'}\n**Context ID:** ${itemId}`;
-      }
-
-      return null;
-    })
-    .filter(Boolean)
-    .join('\n\n---\n\n');
-}
-
-/**
- * Formats the session and steps into a markdown TODO-list.
- */
-export function formatTodoMd(session: PilotSession, steps: PilotStep[]): string {
-  const completedSteps: PilotStep[] = steps.filter((step) => step.status === 'finish');
-  const pendingSteps: PilotStep[] = steps.filter((step) => step.status !== 'finish');
-
-  // Calculate the current epoch based on the session's metadata or default to 1
-  const currentEpoch = session?.currentEpoch ?? 0;
-  const totalEpochs = session?.maxEpoch ?? 3;
-
-  let markdown = `# Todo: ${session.title ?? 'Research Plan'}\n\n`;
-
-  // Add original request
-  markdown += `## Original Request\n${session.input?.query ?? ''}\n\n`;
-
-  // Add status
-  markdown += `## Status\n${session.status ?? 'pending'}\n\n`;
-
-  // Add current epoch
-  markdown += `## Current Epoch: ${currentEpoch + 1}/${totalEpochs + 1}\n\n`;
-
-  // Tasks section
-  markdown += '## Tasks\n\n';
-
-  // Completed tasks
-  markdown += '### Completed\n';
-  if (completedSteps?.length > 0) {
-    for (const step of completedSteps) {
-      markdown += `- [x] ${step.stepId}: ${step.name}\n`;
-    }
-  }
-  markdown += '\n';
-
-  // Pending tasks
-  markdown += '### Pending\n';
-  if (pendingSteps?.length > 0) {
-    for (const step of pendingSteps) {
-      const rawOutput: PilotStepRawOutput = JSON.parse(step.rawOutput ?? '{}');
-      const { skillName, priority, query, workflowStage } = rawOutput;
-
-      // Format: - [ ] task-id: task name (Priority: X)
-      markdown += `- [ ] ${step.name}: ${query} (Priority: ${priority ?? 3})\n`;
-
-      // Add tool suggestion if available
-      if (skillName) {
-        markdown += `  - Suggested Tool: ${skillName}\n`;
-      }
-
-      // Add workflow stage if available
-      if (workflowStage) {
-        markdown += `  - Stage: ${workflowStage}\n`;
-      }
-    }
-  }
-
-  return markdown;
-}
-
-/**
- * Formats the canvas content items into a mermaid flowchart.
- */
-export function formatCanvasIntoMermaidFlowchart(contentItems: CanvasContentItem[]): string {
-  if (!contentItems?.length) {
-    return '```mermaid\ngraph TD\n    EmptyCanvas[Canvas is empty]\n```';
-  }
-
-  // Map of IDs to safe IDs for Mermaid (removing special characters)
-  const idMap = new Map<string, string>();
-
-  // Create safe IDs for Mermaid diagram
-  contentItems.forEach((item, index) => {
-    const itemId = item?.id || `unknown-${index}`;
-    // Create a safe ID that works in Mermaid (alphanumeric with underscores)
-    const safeId = `node_${index}_${itemId.replace(/[^a-zA-Z0-9]/g, '_')}`;
-    idMap.set(itemId, safeId);
-  });
-
-  // Start building the Mermaid diagram
-  let mermaidCode = '```mermaid\ngraph TD\n';
-
-  // Add nodes with proper styling based on type
-  for (const item of contentItems) {
-    const itemId = item?.id || 'unknown';
-    const safeId = idMap.get(itemId) || `node_${itemId.replace(/[^a-zA-Z0-9]/g, '_')}`;
-    const title = item?.title?.replace(/"/g, '\\"') || 'Untitled';
-    const itemType = item?.type || 'unknown-type';
-
-    // Define node style based on type
-    let nodeStyle = '';
-    switch (itemType) {
-      case 'document':
-        nodeStyle = 'class="document" fill:#f9f9f9,stroke:#666';
-        break;
-      case 'skillResponse':
-        nodeStyle = 'class="skill" fill:#e6f7ff,stroke:#1890ff';
-        break;
-      case 'codeArtifact':
-        nodeStyle = 'class="code" fill:#f6ffed,stroke:#52c41a';
-        break;
-      default:
-        nodeStyle = 'class="default" fill:#fff,stroke:#d9d9d9';
-    }
-
-    // Add node with label and style
-    mermaidCode += `    ${safeId}["${title}"] style ${safeId} ${nodeStyle}\n`;
-  }
-
-  // Add connections based on inputIds
-  for (const item of contentItems) {
-    const itemId = item?.id || 'unknown';
-    const safeId = idMap.get(itemId) || `node_${itemId.replace(/[^a-zA-Z0-9]/g, '_')}`;
-
-    // Check if item has input IDs (dependencies)
-    if (item?.inputIds?.length) {
-      for (const inputId of item.inputIds) {
-        const safeInputId = idMap.get(inputId);
-        // Only add connection if input ID exists in our map
-        if (safeInputId) {
-          mermaidCode += `    ${safeInputId} --> ${safeId}\n`;
-        }
-      }
-    }
-  }
-
-  // Add legend
-  mermaidCode += '    subgraph Legend\n';
-  mermaidCode +=
-    '        Document["Document"] style Document class="document" fill:#f9f9f9,stroke:#666\n';
-  mermaidCode +=
-    '        Skill["Skill Response"] style Skill class="skill" fill:#e6f7ff,stroke:#1890ff\n';
-  mermaidCode +=
-    '        Code["Code Artifact"] style Code class="code" fill:#f6ffed,stroke:#52c41a\n';
-  mermaidCode += '    end\n';
-
-  // End the Mermaid diagram
-  mermaidCode += '```';
-
-  return mermaidCode;
-}
-
-/**
- * Generates a detailed schema guide with example for LLM
+ * Generates a detailed schema guide with intelligent tool selection examples
  */
 export function generateSchemaInstructions(): string {
   // Convert Zod schema to JSON Schema for better documentation
   const jsonSchema = zodToJsonSchema(pilotStepSchema, { target: 'openApi3' });
 
-  // Generate examples that enforce proper tool sequencing
-  const researchExample = {
-    name: 'Find recent research on quantum computing',
-    skillName: 'webSearch',
-    query: 'latest advancements in quantum computing 2023',
-    contextItemIds: ['quantum-intro-123'],
-    workflowStage: 'research',
-    priority: 1,
-  };
-
-  const analysisExample = {
-    name: 'Analyze quantum computing applications',
-    skillName: 'commonQnA',
-    query: 'Analyze the most promising applications of recent quantum computing advancements',
-    contextItemIds: ['quantum-research-results-456', 'quantum-intro-123'],
-    workflowStage: 'analysis',
-    priority: 3,
-  };
-
-  const creationExample = {
-    name: 'Create quantum computing visualization',
-    skillName: 'codeArtifacts',
-    query:
-      'Create a single-page HTML visualization of quantum computing principles and applications',
-    contextItemIds: ['quantum-analysis-789', 'quantum-research-results-456'],
-    workflowStage: 'creation',
-    priority: 5,
-  };
-
-  // Add multimodal examples with diverse intent expressions
-  const multimodalExamples = [
-    // Image generation examples - various ways users express image needs
-    {
-      name: 'Generate product illustration',
-      skillName: 'generateMedia',
-      query:
-        'Create a modern, minimalist illustration of a smart home device with clean lines and tech-focused design. mediaType: image',
-      contextItemIds: ['research-smart-home-123', 'design-trends-456'],
-      workflowStage: 'creation',
-      priority: 1,
-    },
-    {
-      name: 'Design company logo',
-      skillName: 'generateMedia',
-      query:
-        'Design a professional logo for our AI startup with tech elements and modern aesthetics. mediaType: image',
-      contextItemIds: ['brand-guidelines-234', 'competitor-analysis-567'],
-      workflowStage: 'creation',
-      priority: 1,
-    },
-    {
-      name: 'Create marketing poster',
-      skillName: 'generateMedia',
-      query:
-        'Make a vibrant promotional poster for our product launch event with bold colors. mediaType: image',
-      contextItemIds: ['event-details-345', 'brand-colors-678'],
-      workflowStage: 'creation',
-      priority: 1,
-    },
-
-    // Video generation examples - various ways users express video needs
-    {
-      name: 'Create demo video',
-      skillName: 'generateMedia',
-      query:
-        'Generate a 30-second product demonstration video showing the key features and benefits. mediaType: video',
-      contextItemIds: ['product-features-789', 'user-scenarios-101'],
-      workflowStage: 'creation',
-      priority: 1,
-    },
-    {
-      name: 'Make promotional animation',
-      skillName: 'generateMedia',
-      query:
-        'Produce an animated commercial for our new app with smooth transitions and engaging visuals. mediaType: video',
-      contextItemIds: ['app-features-456', 'target-audience-789'],
-      workflowStage: 'creation',
-      priority: 1,
-    },
-    {
-      name: 'Film tutorial clip',
-      skillName: 'generateMedia',
-      query:
-        'Create a short tutorial video showing how to use our software interface step by step. mediaType: video',
-      contextItemIds: ['software-guide-123', 'user-feedback-456'],
-      workflowStage: 'creation',
-      priority: 1,
-    },
-
-    // Audio generation examples - various ways users express audio needs
-    {
-      name: 'Generate background music',
-      skillName: 'generateMedia',
-      query:
-        'Create upbeat, modern electronic background music for a tech presentation. mediaType: audio',
-      contextItemIds: ['presentation-content-112', 'music-references-131'],
-      workflowStage: 'creation',
-      priority: 2,
-    },
-    {
-      name: 'Produce podcast intro',
-      skillName: 'generateMedia',
-      query:
-        'Compose a professional podcast intro jingle with energetic rhythm and tech vibes. mediaType: audio',
-      contextItemIds: ['podcast-theme-234', 'audio-examples-567'],
-      workflowStage: 'creation',
-      priority: 2,
-    },
-    {
-      name: 'Create sound effects',
-      skillName: 'generateMedia',
-      query:
-        'Generate UI sound effects for button clicks and notifications in our mobile app. mediaType: audio',
-      contextItemIds: ['app-design-345', 'sound-references-678'],
-      workflowStage: 'creation',
-      priority: 2,
-    },
-  ];
-
-  // Add streamlined examples for simple media requests
-  const streamlinedMediaExamples = [
-    // Simple direct generation examples
-    {
-      name: 'Create company logo',
-      skillName: 'generateMedia',
-      query:
-        'Create a minimalist company logo with blue and white colors, vector style, 512x512px, professional appearance. mediaType: image',
-      contextItemIds: [],
-      workflowStage: 'creation',
-      priority: 1,
-    },
-    {
-      name: 'Generate cat illustration',
-      skillName: 'generateMedia',
-      query:
-        'Draw a cute cartoon cat with orange fur, sitting position, simple background, children-book style. mediaType: image',
-      contextItemIds: [],
-      workflowStage: 'creation',
-      priority: 1,
-    },
-    {
-      name: 'Design app icon',
-      skillName: 'generateMedia',
-      query:
-        'Design a modern mobile app icon for productivity app, rounded square, gradient background, clean typography. mediaType: image',
-      contextItemIds: [],
-      workflowStage: 'creation',
-      priority: 1,
-    },
-    {
-      name: 'Create background music',
-      skillName: 'generateMedia',
-      query:
-        'Compose calm ambient background music, 3 minutes duration, suitable for meditation, soft piano and nature sounds. mediaType: audio',
-      contextItemIds: [],
-      workflowStage: 'creation',
-      priority: 1,
-    },
-  ];
-
-  return `Please generate a structured JSON array of research steps with the following schema:
+  return `Please generate a structured JSON array of task steps with intelligent tool selection following this schema:
 
 Each step should have:
 1. "name": A clear, concise title for the step
-2. "skillName": The specific skill to invoke (one of: "commonQnA", "webSearch", "librarySearch", "generateDoc", "codeArtifacts", "generateMedia")
-3. "query": The specific question or prompt to send to the skill
-4. "contextItemIds": Array of IDs for relevant canvas items that provide context for this step
-5. "workflowStage": The stage of the workflow this step belongs to (one of: "research", "analysis", "synthesis", "creation")
+2. "query": The specific question or prompt to send to the selected tools - MUST explicitly reference which tools to use
+3. "contextItemIds": Array of IDs for relevant canvas items that provide context for this step
+4. "workflowStage": The stage of the workflow this step belongs to (one of: "research", "analysis", "synthesis", "creation")
 
-Example steps showing proper tool sequencing:
+#### CRITICAL: Tool-Specific Query Format Requirements:
 
-1. Research stage (early) - use search tools:
-\`\`\`json
-${JSON.stringify(researchExample, null, 2)}
-\`\`\`
+**Research Stage Queries** - MUST explicitly mention tools:
+- "Use web_search to find current electric vehicle market statistics and trends"
+- "Use library_search to find internal documents about renewable energy policies"
+- "Use scrape tool to extract content from the Tesla investor relations page"
+- "Use search tool to find comprehensive information about climate change impacts on agriculture"
 
-2. Analysis stage (middle) - use commonQnA for analysis:
-\`\`\`json
-${JSON.stringify(analysisExample, null, 2)}
-\`\`\`
+**Analysis Stage Queries** - MUST explicitly name an analysis-capable tool:
+- "Use [analysis_tool] to analyze the collected market data and identify key trends and patterns"
+- "Use [processing_tool] to process the research findings and evaluate investment opportunities and risks"
+- "Use [comparison_tool] to compare and contrast different renewable energy technologies based on gathered data"
 
-3. Creation stage (final) - ONLY in the final 1-2 steps and MUST reference previous context:
-\`\`\`json
-${JSON.stringify(creationExample, null, 2)}
-\`\`\`
+**Creation Stage Queries** - MUST explicitly specify the generation tool and parameters:
+- "Use generate_doc to create a comprehensive market analysis report based on research findings"
+- "Use generate_code_artifact to create an interactive HTML dashboard with embedded charts and data visualization"
+- "Use generate_media with mediaType: image to create an infographic summarizing key findings"
+- "Use generate_media with mediaType: video to create a presentation video explaining the research results"
 
-### Multimodal Creation Examples:
+#### Tool Selection Strategy:
+1. **Analyze the task requirements** - What type of information or output is needed?
+2. **Identify the appropriate tool category** - Information gathering, analysis, or creation?
+3. **Select toolsets** that contain the required tool types
+4. **Craft queries that explicitly mention the specific tools to use**
+5. **Reference context** when building on previous steps
 
-${multimodalExamples
-  .map(
-    (example) => `
-**${example.skillName} Example:**
-\`\`\`json
-${JSON.stringify(example, null, 2)}
-\`\`\`
-`,
-  )
-  .join('\n')}
+#### Media Generation Tool Selection:
+For multimedia content requests, use generate_media tools with proper mediaType specification:
+- **Image Content**: "Use generate_media with mediaType: image to create [specific image description]"
+- **Video Content**: "Use generate_media with mediaType: video to create [specific video description]"
+- **Audio Content**: "Use generate_media with mediaType: audio to create [specific audio description]"
 
-### Streamlined Media Generation Examples (For Simple, Self-Contained Requests):
+### Query Formatting Examples by Tool Type:
 
-${streamlinedMediaExamples
-  .map(
-    (example) => `
-**Direct ${example.skillName} Example:**
-\`\`\`json
-${JSON.stringify(example, null, 2)}
-\`\`\`
-`,
-  )
-  .join('\n')}
+**Information Gathering Tools:**
+- web_search: "Use web_search to research the latest developments in artificial intelligence regulation"
+- library_search: "Use library_search to find existing documents about company sustainability practices"
+- scrape: "Use scrape tool to extract detailed information from the Apple financial reports page"
+- search: "Use search tool to find comprehensive information about global renewable energy investments"
+- crawl: "Use crawl tool to gather all available content from the Tesla sustainability website"
 
-### Tool Selection Guidelines:
-- Use **generateMedia** for: all multimedia content including images, videos, and audio
-  - **CRITICAL**: Always specify mediaType parameter (image, video, or audio) in the query based on user intent
-  - **Media Type Detection Rules**:
-    * **image**: photos, pictures, illustrations, designs, posters, logos, diagrams, graphics
-    * **video**: videos, animations, demos, clips, movies, commercials, motion content
-    * **audio**: music, songs, sounds, voices, podcasts, narration, sound effects
-  - **Format**: "User's content request. mediaType: detected_type"
-  - **Examples**:
-    * "Create a logo for my company. mediaType: image"
-    * "Make a product demo video. mediaType: video" 
-    * "Generate background music. mediaType: audio"
-- Use **generateDoc** for: text documents, articles, reports
-- Use **codeArtifacts** for: code projects, applications, interactive tools
-
-### English Prompt Quality Guidelines:
-- **Technical Accuracy**: Use precise media generation terminology
-- **Specificity**: Include dimensions, style, format, duration, colors
-- **Intent Preservation**: Maintain the original user's creative vision
-- **Professional Language**: Use industry-standard terminology
+**Creation Tools:**
+- generate_doc: "Use generate_doc to create a professional research report titled 'Global EV Market Analysis' with executive summary, findings, and recommendations"
+- generate_code_artifact: "Use generate_code_artifact to create an interactive HTML visualization showing market share data with charts and filtering capabilities"
+- generate_media: "Use generate_media with mediaType: image to create an infographic showing the top 10 renewable energy companies by market cap"
 
 ### Workflow Optimization:
-- **Simple Media Requests**: Can use 1-2 steps with direct generateMedia
-- **Complex Media Requests**: Follow standard research → analysis → creation workflow
-- **Context Independence**: Simple requests can have empty contextItemIds
-- **Priority Assignment**: Use priority 1 for main media generation tasks
+- **Simple Requests**: Can use 1-2 steps with direct tool selection
+- **Complex Requests**: Follow standard research → analysis → creation workflow
+- **Context Dependencies**: Creation tasks should reference previous context items
+- **Priority Assignment**: Use priority 1 for critical tasks, 2-3 for supporting tasks
 
 JSON Schema Definition:
 \`\`\`json
@@ -906,12 +285,13 @@ ${JSON.stringify(jsonSchema, null, 2)}
 \`\`\`
 
 IMPORTANT:
-- Each step should be focused on a specific research sub-task
-- Make steps logical and progressive, building on previous steps when appropriate
-- Ensure each step has a clear purpose that contributes to answering the main research question
-- Creation tasks (generateDoc, codeArtifacts, generateMedia) MUST ONLY be used in the final 1-2 steps
-- For simple media requests, direct generation without context is acceptable
-- For complex media requests, creation tasks MUST reference previous context items
+- Each step query MUST explicitly mention which tool(s) to use from the available toolsets
+- Make queries specific about the tool usage and expected output format
+- Ensure each step has a clear purpose that contributes to the main objective
+- Creation tasks MUST ONLY be used in the final 1-2 steps
+- For simple requests, direct generation without context is acceptable
+- For complex requests, creation tasks MUST reference previous context items
+- Select toolsets based on the specific capabilities needed for each step
 - Ensure your response is a valid JSON array of steps that follow the schema exactly
 `;
 }
@@ -924,19 +304,126 @@ export function buildResearchStepExamples(): string {
 }
 
 /**
- * Generates the main planning prompt with canvas content
+ * Generates the tool-specific query requirements section
  */
-export function generatePlanningPrompt(
-  userQuestion: string,
-  session: PilotSession,
-  steps: PilotStep[],
-  contentItems: CanvasContentItem[],
-  maxStepsPerEpoch: number,
-  locale?: string,
-): string {
+function generateToolQueryRequirements() {
+  return `## CRITICAL: Tool-Specific Query Requirements
+
+Every step query MUST explicitly mention which specific tools to use from the available toolsets above. This is essential for proper tool selection and execution.
+
+### Query Format Requirements by Stage:
+
+**Research Stage (Early Epochs):**
+- Queries MUST start with or include explicit tool mentions
+- Examples:
+  * "Use web_search to find current market data on electric vehicles"
+  * "Use library_search to locate internal documents about renewable energy"
+  * "Use scrape tool to extract information from the Tesla investor page"
+  * "Use search tool to gather comprehensive data on climate change impacts"
+
+**Analysis Stage (Mid Epochs):**
+- Queries MUST explicitly name an analysis-capable tool
+- Examples:
+  * "Use [analysis_tool] to analyze the web search results and identify key market trends"
+  * "Use [processing_tool] to process the scraped data and evaluate competitive positioning"
+  * "Use [comparison_tool] to compare findings from multiple sources and identify patterns"
+
+**Creation Stage (Final Epochs):**
+- Queries MUST explicitly specify the generation tool and parameters
+- Examples:
+  * "Use generate_doc to create a market analysis report with findings from previous research"
+  * "Use generate_code_artifact to build an interactive HTML dashboard showing the collected data"
+  * "Use generate_media with mediaType: image to create an infographic of key statistics"`;
+}
+
+/**
+ * Generates the intelligent tool selection guidelines section
+ */
+function generateToolSelectionGuidelines() {
+  return `## Intelligent Tool Selection Guidelines
+
+### Stage-Based Tool Selection Strategy:
+
+1. **Research and Information Gathering (Early Stages - MUST USE FIRST)**
+   - **Information Gathering**: Select toolsets with web_search, library_search, scrape, search tools
+   - **Knowledge Base Access**: Use library_search for internal documents and resources
+   - **Web Content**: Use web_search, scrape, crawl tools for external information
+   - **Specialized Search**: Use domain-specific search tools when available
+
+2. **Analysis and Processing (Mid Stages - ONLY AFTER RESEARCH)**
+   - **Data Analysis**: Select toolsets with analytical and reasoning capabilities
+   - **Information Processing**: Use tools that can structure and organize information
+   - **Pattern Recognition**: Choose tools that can identify insights and connections
+
+3. **Creation and Output Generation (Final Stages - ONLY AT THE END)**
+   - **Document Creation**: Use generate_doc, create_document tools
+   - **Code Generation**: Use generate_code_artifact tools
+   - **Media Generation**: Use generate_media tools with proper mediaType specification
+   - **Specialized Creation**: Use domain-specific creation tools when needed
+
+### CRITICAL Tool Selection Rules - STRICTLY FOLLOW THESE:
+- First 60% of steps MUST select research/information gathering tools
+- The first 2-3 steps MUST select web_search or library_search tools
+- Next 20% should select analysis and processing tools
+- Last 20% can select creation tools ONLY after sufficient research and analysis
+- NEVER select creation tools (generate_doc, generate_code_artifact, generate_media) in the first 60% of steps
+- MUST ONLY select creation tools in the final 1-2 steps
+- Creation tools MUST almost always reference previous context items
+- Tool selection must follow the strict sequence: Research Tools → Analysis Tools → Creation Tools
+- ALL QUERIES MUST EXPLICITLY MENTION WHICH TOOLS TO USE`;
+}
+
+/**
+ * Generates the step generation guidelines section
+ */
+function generateStepGuidelines(maxStepsPerEpoch: number, hasContext = true) {
+  const contextGuidelines = hasContext
+    ? '4. Reference relevant context items from the canvas when appropriate\n   - Use the exact context IDs (e.g., "quantum-intro-123") from the Canvas Content section\n   - Include multiple context IDs when a step builds on multiple sources'
+    : '4. Use empty arrays for contextItemIds since no context is available yet';
+
+  const creationRules = hasContext
+    ? '8. Creation toolsets MUST ONLY be selected in the final 1-2 steps and MUST reference previous context items'
+    : '8. Creation toolsets MUST ONLY be selected in the final 1-2 steps';
+
+  return `## Step Generation Guidelines
+1. Break down the task into logical, sequential steps
+2. **Intelligently select toolsets** based on the specific capabilities needed for each step
+3. **Craft queries that explicitly mention which tools to use** from the selected toolsets
+${contextGuidelines}
+5. Assign the appropriate workflowStage value to each step (research, analysis, synthesis, creation)
+6. Generate exactly ${maxStepsPerEpoch} task steps to efficiently address the user's request
+7. REQUIRED: First step MUST select toolsets with web_search or library_search capabilities
+${creationRules}
+9. **EVERY query must explicitly state which tool(s) to use**`;
+}
+
+/**
+ * Generates the common prompt structure with shared sections
+ */
+function generateCommonPromptStructure(params: {
+  userQuestion: string;
+  session: PilotSession;
+  steps: PilotStep[];
+  availableToolsets: GenericToolset[];
+  contentItems: CanvasContentItem[];
+  maxStepsPerEpoch: number;
+  locale?: string;
+  isMainPrompt?: boolean;
+}): string {
+  const {
+    session,
+    steps,
+    availableToolsets,
+    maxStepsPerEpoch,
+    contentItems,
+    locale,
+    userQuestion,
+  } = params;
+
   const combinedContent = formatCanvasContent(contentItems);
   const todoMd = formatTodoMd(session, steps);
   const canvasVisual = formatCanvasIntoMermaidFlowchart(contentItems);
+  const formattedToolsets = formatToolsets(availableToolsets);
 
   // Calculate the current epoch based on the session's metadata or default to 0
   const currentEpoch = session?.currentEpoch ?? 0;
@@ -946,62 +433,33 @@ export function generatePlanningPrompt(
   const recommendedStage = getRecommendedStageForEpoch(currentEpoch, totalEpochs);
 
   // Generate stage-specific guidance
-  const stageGuidance = generateEnhancedStageGuidance(recommendedStage, userQuestion);
+  const stageGuidance = generateStageGuidance(recommendedStage);
 
   // Generate locale-specific instructions
   const localeInstructions = locale
     ? `\n## Output Language Instructions\nPlease generate all step names, queries, and any text content in ${locale}. The research plan should be tailored for ${locale} language output.\n`
     : '';
 
-  return `You are an expert research assistant capable of breaking down complex questions into clear, actionable research steps.
+  return `You are an expert task decomposition agent in a multi-agent system. Your role is to break down complex user requests into clear, actionable steps with intelligent tool selection for actor agents to execute.
 
 ## Your Task
-Analyze the user's question and available canvas content, then generate a structured research plan with specific steps to thoroughly investigate the topic.
+Analyze the user's question and available canvas content, then generate a structured task plan with specific steps that intelligently select the most appropriate tools for each sub-task.
 ${localeInstructions}
 ${stageGuidance}
 
-## Tool Usage Guidelines
+## Available Toolsets and Tools
 
-Follow these important guidelines about tool sequencing:
+${formattedToolsets}
 
-1. **Research and Context Gathering Tools (Early Stages - MUST USE FIRST)**
-   - **webSearch**: Use for gathering up-to-date information from the internet
-   - **librarySearch**: Use for searching through structured knowledge bases
-   - **commonQnA**: Use for basic information gathering and general knowledge
+${generateToolQueryRequirements()}
 
-2. **Analysis and Intermediate Output Tools (Mid Stages - ONLY AFTER RESEARCH)**
-   - **commonQnA**: Use for analyzing gathered information and providing structured insights
-   - Remember that all tools can produce intermediate outputs as markdown text or code blocks
+${generateToolSelectionGuidelines()}
 
-3. **Final Output Generation Tools (Final Stages - ONLY AT THE END)**
-   - **generateDoc**: Use for creating comprehensive documents ONLY after sufficient research, MUST be used only in the final 1-2 steps, and MUST reference previous context
-   - **codeArtifacts**: Use for generating complete code artifacts ONLY after proper context is gathered, MUST be used only in the final 1-2 steps, and MUST reference previous context
+${generateStepGuidelines(maxStepsPerEpoch, true)}
 
-## CRITICAL SEQUENCING RULES - STRICTLY FOLLOW THESE
-- First 60% of steps MUST be research tasks (webSearch, librarySearch, commonQnA for gathering information)
-- The first 2-3 steps MUST use webSearch or librarySearch to gather basic information
-- Next 20% should be analysis tasks (commonQnA for analyzing gathered information)
-- Last 20% can be creation tasks (generateDoc, codeArtifacts) and ONLY after sufficient research and analysis
-- NEVER use generateDoc or codeArtifacts in the first 60% of steps
-- MUST ONLY use generateDoc and codeArtifacts in the final 1-2 steps
-- generateDoc and codeArtifacts MUST almost always reference previous context items, only in extremely rare cases can they generate without context dependency
-- Tasks must follow the strict sequence: Research → Analysis → Creation
+  ## Schema Instructions:
 
-## Step Generation Guidelines
-1. Break down the research into logical, sequential steps
-2. Select the most appropriate skill for each research step
-3. Craft specific and focused queries for each skill
-4. Reference relevant context items from the canvas when appropriate
-   - Use the exact context IDs (e.g., "quantum-intro-123") from the Canvas Content section
-   - Include multiple context IDs when a step builds on multiple sources
-5. Assign the appropriate workflowStage value to each step (research, analysis, synthesis, creation)
-6. Generate exactly ${maxStepsPerEpoch} research steps to efficiently explore the topic
-7. REQUIRED: First step MUST be webSearch or librarySearch to gather basic information
-8. Creation tools (generateDoc, codeArtifacts) MUST ONLY be used in the final 1-2 steps and MUST reference previous context items in almost all cases
-
-## Schema Instructions:
-
-${generateSchemaInstructions()}
+  ${generateSchemaInstructions()}
 
 ## Examples with expected outputs:
 
@@ -1019,195 +477,41 @@ ${canvasVisual}
 ## User Question: 
 
 "${userQuestion}"
+
+Remember: You are a planner agent delegating sub-tasks to actor agents. Select tools intelligently based on each step's requirements, ensure proper workflow sequencing, and ALWAYS specify which tools to use in each query.
 `;
 }
 
 /**
- * Generates the bootstrap prompt when no canvas content exists
+ * Generates the main planning prompt with canvas content and available toolsets
  */
-export function generateBootstrapPrompt(
-  userQuestion: string,
-  session: PilotSession,
-  steps: PilotStep[],
-  contentItems: CanvasContentItem[],
-  maxStepsPerEpoch: number,
-  locale?: string,
-): string {
-  const combinedContent = formatCanvasContent(contentItems);
-  const todoMd = formatTodoMd(session, steps);
-  const canvasVisual = formatCanvasIntoMermaidFlowchart(contentItems);
-
-  // Calculate the current epoch based on the session's metadata or default to 0
-  const currentEpoch = session?.currentEpoch ?? 0;
-  const totalEpochs = session?.maxEpoch ?? 3;
-
-  // Determine recommended stage for current epoch
-  const recommendedStage = getRecommendedStageForEpoch(currentEpoch, totalEpochs);
-
-  // Generate stage-specific guidance
-  const stageGuidance = generateEnhancedStageGuidance(recommendedStage, userQuestion);
-
-  // Generate locale-specific instructions
-  const localeInstructions = locale
-    ? `\n## Output Language Instructions\nPlease generate all step names, queries, and any text content in ${locale}. The research plan should be tailored for ${locale} language output.\n`
-    : '';
-
-  return `You are an expert research assistant capable of breaking down complex questions into clear, actionable research steps.
-
-## Your Task
-Analyze the user's question and generate a structured research plan with specific steps to thoroughly investigate the topic. Since no existing content or context is available, create a plan that starts from scratch.
-${localeInstructions}
-${stageGuidance}
-
-## Tool Usage Guidelines
-
-Follow these important guidelines about tool sequencing:
-
-1. **Research and Context Gathering Tools (Early Stages - MUST USE FIRST)**
-   - **webSearch**: Use for gathering up-to-date information from the internet
-   - **librarySearch**: Use for searching through structured knowledge bases
-   - **commonQnA**: Use for basic information gathering and general knowledge
-
-2. **Analysis and Intermediate Output Tools (Mid Stages - ONLY AFTER RESEARCH)**
-   - **commonQnA**: Use for analyzing gathered information and providing structured insights
-   - Remember that all tools can produce intermediate outputs as markdown text or code blocks
-
-3. **Final Output Generation Tools (Final Stages - ONLY AT THE END)**
-   - **generateDoc**: Use for creating comprehensive documents ONLY after sufficient research, MUST be used only in the final 1-2 steps, and MUST reference previous context
-   - **codeArtifacts**: Use for generating complete code artifacts ONLY after proper context is gathered, MUST be used only in the final 1-2 steps, and MUST reference previous context
-
-## CRITICAL SEQUENCING RULES - STRICTLY FOLLOW THESE
-- First 60% of steps MUST be research tasks (webSearch, librarySearch, commonQnA for gathering information)
-- The first 2-3 steps MUST use webSearch or librarySearch to gather basic information
-- Next 20% should be analysis tasks (commonQnA for analyzing gathered information)
-- Last 20% can be creation tasks (generateDoc, codeArtifacts) and ONLY after sufficient research and analysis
-- NEVER use generateDoc or codeArtifacts in the first 60% of steps
-- MUST ONLY use generateDoc and codeArtifacts in the final 1-2 steps
-- generateDoc and codeArtifacts MUST almost always reference previous context items, only in extremely rare cases can they generate without context dependency
-- Tasks must follow the strict sequence: Research → Analysis → Creation
-
-## Step Generation Guidelines
-1. Break down the research into logical, sequential steps
-2. Select the most appropriate skill for each research step
-3. Craft specific and focused queries for each skill
-4. Use empty arrays for contextItemIds since no context is available yet
-5. Assign the appropriate workflowStage value to each step (research, analysis, synthesis, creation)
-6. Generate exactly ${maxStepsPerEpoch} research steps to efficiently explore the topic
-7. REQUIRED: First step MUST be webSearch or librarySearch to gather basic information
-8. Creation tools (generateDoc, codeArtifacts) MUST ONLY be used in the final 1-2 steps and MUST reference previous context items in almost all cases
-
-${generateSchemaInstructions()}
-
-Here are examples with expected outputs:
-${buildResearchStepExamples()}
-
-Create a research plan that:
-1. Begins with broad information gathering (research stage) using webSearch or librarySearch
-2. Progresses to analysis of gathered information (analysis stage) using commonQnA
-3. Concludes with steps to synthesize or apply the information (creation stage) for final steps only
-
-User Question: "${userQuestion}"
-
-Current Todo List:
-${todoMd}
-
-Canvas Content:
-${combinedContent}
-
-Canvas Structure:
-${canvasVisual}`;
+export function generatePlanningPrompt(params: {
+  userQuestion: string;
+  session: PilotSession;
+  steps: PilotStep[];
+  availableToolsets: GenericToolset[];
+  contentItems: CanvasContentItem[];
+  maxStepsPerEpoch: number;
+  locale?: string;
+}): string {
+  return generateCommonPromptStructure({ ...params, isMainPrompt: true });
 }
 
 /**
  * Generates the fallback prompt for manual JSON parsing
  */
-export function generateFallbackPrompt(
-  userQuestion: string,
-  session: PilotSession,
-  steps: PilotStep[],
-  contentItems: CanvasContentItem[],
-  maxStepsPerEpoch: number,
-  locale?: string,
-): string {
-  const combinedContent = formatCanvasContent(contentItems);
-  const todoMd = formatTodoMd(session, steps);
-  const canvasVisual = formatCanvasIntoMermaidFlowchart(contentItems);
-  const schemaInstructions = generateSchemaInstructions();
+export function generateFallbackPrompt(params: {
+  userQuestion: string;
+  session: PilotSession;
+  steps: PilotStep[];
+  contentItems: CanvasContentItem[];
+  availableToolsets: GenericToolset[];
+  maxStepsPerEpoch: number;
+  locale?: string;
+}): string {
+  const prompt = generateCommonPromptStructure(params);
 
-  // Calculate the current epoch based on the session's metadata or default to 0
-  const currentEpoch = session?.currentEpoch ?? 0;
-  const totalEpochs = session?.maxEpoch ?? 3;
-
-  // Determine recommended stage for current epoch
-  const recommendedStage = getRecommendedStageForEpoch(currentEpoch, totalEpochs);
-
-  // Generate stage-specific guidance
-  const stageGuidance = generateEnhancedStageGuidance(recommendedStage, userQuestion);
-
-  // Generate locale-specific instructions
-  const localeInstructions = locale
-    ? `\n## Output Language Instructions\nPlease generate all step names, queries, and any text content in ${locale}. The research plan should be tailored for ${locale} language output.\n`
-    : '';
-
-  return `You are an expert research assistant capable of breaking down complex questions into clear, actionable research steps.
-
-## Your Task
-Analyze the user's question and generate a structured research plan to thoroughly investigate the topic. Since no existing content or context is available, create a plan that starts from scratch.
-${localeInstructions}
-${stageGuidance}
-
-## Tool Usage Guidelines
-
-Follow these important guidelines about tool sequencing:
-
-1. **Research and Context Gathering Tools (Early Stages - MUST USE FIRST)**
-   - **webSearch**: Use for gathering up-to-date information from the internet
-   - **librarySearch**: Use for searching through structured knowledge bases
-   - **commonQnA**: Use for basic information gathering and general knowledge
-
-2. **Analysis and Intermediate Output Tools (Mid Stages - ONLY AFTER RESEARCH)**
-   - **commonQnA**: Use for analyzing gathered information and providing structured insights
-   - Remember that all tools can produce intermediate outputs as markdown text or code blocks
-
-3. **Final Output Generation Tools (Final Stages - ONLY AT THE END)**
-   - **generateDoc**: Use for creating comprehensive documents ONLY after sufficient research, MUST be used only in the final 1-2 steps, and MUST reference previous context
-   - **codeArtifacts**: Use for generating complete code artifacts ONLY after proper context is gathered, MUST be used only in the final 1-2 steps, and MUST reference previous context
-
-## CRITICAL SEQUENCING RULES - STRICTLY FOLLOW THESE
-- First 60% of steps MUST be research tasks (webSearch, librarySearch, commonQnA for gathering information)
-- The first 2-3 steps MUST use webSearch or librarySearch to gather basic information
-- Next 20% should be analysis tasks (commonQnA for analyzing gathered information)
-- Last 20% can be creation tasks (generateDoc, codeArtifacts) and ONLY after sufficient research and analysis
-- NEVER use generateDoc or codeArtifacts in the first 60% of steps
-- MUST ONLY use generateDoc and codeArtifacts in the final 1-2 steps
-- generateDoc and codeArtifacts MUST almost always reference previous context items, only in extremely rare cases can they generate without context dependency
-- Tasks must follow the strict sequence: Research → Analysis → Creation
-
-## Guidelines
-1. Break down the research into logical, sequential steps
-2. Select the most appropriate skill for each research step
-3. Craft specific and focused queries for each skill
-4. Use empty arrays for contextItemIds since no context is available yet
-5. Assign the appropriate workflowStage value to each step (research, analysis, synthesis, creation)
-6. Generate exactly ${maxStepsPerEpoch} research steps to efficiently explore the topic
-7. REQUIRED: First step MUST be webSearch or librarySearch to gather basic information
-8. Creation tools (generateDoc, codeArtifacts) MUST ONLY be used in the final 1-2 steps and MUST reference previous context items in almost all cases
-
-${schemaInstructions}
-
-Here are examples with expected outputs:
-${buildResearchStepExamples()}
-
-User Question: "${userQuestion}"
-
-## Current Todo List:
-${todoMd}
-
-Canvas Content:
-${combinedContent}
-
-Canvas Structure:
-${canvasVisual}
+  return `${prompt}
 
 Respond ONLY with a valid JSON array wrapped in \`\`\`json and \`\`\` tags.`;
 }

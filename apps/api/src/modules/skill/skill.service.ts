@@ -6,6 +6,7 @@ import {
   Prisma,
   SkillTrigger as SkillTriggerModel,
   ActionResult as ActionResultModel,
+  ProviderItem as ProviderItemModel,
 } from '../../generated/client';
 import { Response } from 'express';
 import {
@@ -29,20 +30,18 @@ import {
   User,
   Document,
   ActionResult,
-  ActionMeta,
   LLMModelConfig,
   CodeArtifact,
   MediaGenerationModelConfig,
   CreditBilling,
 } from '@refly/openapi-schema';
 import { BaseSkill } from '@refly/skill-template';
+import { purgeContextForActionResult, purgeToolsets } from '@refly/canvas-common';
 import { genActionResultID, genSkillID, genSkillTriggerID, safeParseJSON } from '@refly/utils';
 import { PrismaService } from '../common/prisma.service';
 import { QUEUE_SKILL, pick, QUEUE_CHECK_STUCK_ACTIONS } from '../../utils';
-import { InvokeSkillJobData, CheckStuckActionsJobData } from './skill.dto';
-import { KnowledgeService } from '../knowledge/knowledge.service';
+import { InvokeSkillJobData } from './skill.dto';
 import { documentPO2DTO, resourcePO2DTO } from '../knowledge/knowledge.dto';
-import { SubscriptionService } from '../subscription/subscription.service';
 import { CreditService } from '../credit/credit.service';
 import {
   ModelUsageQuotaExceeded,
@@ -54,11 +53,14 @@ import {
 import { actionResultPO2DTO } from '../action/action.dto';
 import { CodeArtifactService } from '../code-artifact/code-artifact.service';
 import { ProviderService } from '../provider/provider.service';
-import { providerPO2DTO } from '../provider/provider.dto';
+import { providerPO2DTO, providerItemPO2DTO } from '../provider/provider.dto';
 import { codeArtifactPO2DTO } from '../code-artifact/code-artifact.dto';
 import { SkillInvokerService } from './skill-invoker.service';
 import { ActionService } from '../action/action.service';
 import { ConfigService } from '@nestjs/config';
+import { ToolService } from '../tool/tool.service';
+import { DocumentService } from '../knowledge/document.service';
+import { ResourceService } from '../knowledge/resource.service';
 
 function validateSkillTriggerCreateParam(param: SkillTriggerCreateParam) {
   if (param.triggerType === 'simpleEvent') {
@@ -81,11 +83,12 @@ export class SkillService implements OnModuleInit {
   constructor(
     private readonly prisma: PrismaService,
     private readonly config: ConfigService,
-    private readonly knowledgeService: KnowledgeService,
-    private readonly subscriptionService: SubscriptionService,
+    private readonly resourceService: ResourceService,
+    private readonly documentService: DocumentService,
     private readonly credit: CreditService,
     private readonly codeArtifactService: CodeArtifactService,
     private readonly providerService: ProviderService,
+    private readonly toolService: ToolService,
     private readonly skillInvokerService: SkillInvokerService,
     private readonly actionService: ActionService,
     @Optional()
@@ -93,7 +96,7 @@ export class SkillService implements OnModuleInit {
     private skillQueue?: Queue<InvokeSkillJobData>,
     @Optional()
     @InjectQueue(QUEUE_CHECK_STUCK_ACTIONS)
-    private checkStuckActionsQueue?: Queue<CheckStuckActionsJobData>,
+    private checkStuckActionsQueue?: Queue,
   ) {
     this.skillInventory = this.skillInvokerService.getSkillInventory();
     this.logger.log(`Skill inventory initialized: ${this.skillInventory.length}`);
@@ -167,8 +170,6 @@ export class SkillService implements OnModuleInit {
 
     const cutoffTime = new Date(Date.now() - stuckTimeoutThreshold);
 
-    this.logger.log(`Checking for stuck actions with cutoff time: ${cutoffTime.toISOString()}`);
-
     try {
       // Find all ActionResults that are stuck in executing status
       const stuckResults = await this.prisma.actionResult.findMany({
@@ -185,7 +186,6 @@ export class SkillService implements OnModuleInit {
       });
 
       if (stuckResults.length === 0) {
-        this.logger.log('No stuck actions found');
         return;
       }
 
@@ -331,9 +331,6 @@ export class SkillService implements OnModuleInit {
           configSchema: tplConfigMap.get(instance.tplName)?.configSchema
             ? JSON.stringify(tplConfigMap.get(instance.tplName)?.configSchema)
             : undefined,
-          invocationConfig: tplConfigMap.get(instance.tplName)?.invocationConfig
-            ? JSON.stringify(tplConfigMap.get(instance.tplName)?.invocationConfig)
-            : undefined,
         },
       })),
     });
@@ -412,9 +409,15 @@ export class SkillService implements OnModuleInit {
     ]);
   }
 
-  async skillInvokePreCheck(user: User, param: InvokeSkillRequest): Promise<InvokeSkillJobData> {
+  private async prepareInvokeSkillJobData(
+    user: User,
+    param: InvokeSkillRequest,
+  ): Promise<{
+    data: InvokeSkillJobData;
+    existingResult: ActionResultModel;
+    providerItem: ProviderItemModel;
+  }> {
     const { uid } = user;
-
     const resultId = param.resultId || genActionResultID();
 
     // Check if the result already exists
@@ -433,7 +436,6 @@ export class SkillService implements OnModuleInit {
 
       param.modelName ??= existingResult.modelName;
       param.modelItemId ??= existingResult.providerItemId;
-      param.skillName ??= safeParseJSON(existingResult.actionMeta).name;
       param.context ??= safeParseJSON(existingResult.context);
       param.resultHistory ??= safeParseJSON(existingResult.history);
       param.tplConfig ??= safeParseJSON(existingResult.tplConfig);
@@ -451,13 +453,6 @@ export class SkillService implements OnModuleInit {
     const providerItem = await this.providerService.findProviderItemById(user, modelItemId);
 
     if (!providerItem || providerItem.category !== 'llm' || !providerItem.enabled) {
-      // Create failed action result record before throwing error
-      await this.createFailedActionResult(
-        resultId,
-        uid,
-        'Provider item not valid or disabled',
-        param,
-      );
       throw new ProviderItemNotFoundError(`provider item ${modelItemId} not valid`);
     }
 
@@ -509,6 +504,19 @@ export class SkillService implements OnModuleInit {
 
     if (param.context) {
       param.context = await this.populateSkillContext(user, param.context);
+
+      // Populate input.images with storage keys from image resources
+      if (param.context.resources?.length > 0) {
+        const imageResources = param.context.resources
+          .filter((item) => item.resource?.resourceType === 'image')
+          .map((item) => item.resource?.rawFileKey) // NOTE: for media resources, rawFileKey is the actual place where the media file is stored
+          .filter(Boolean);
+
+        if (imageResources.length > 0) {
+          param.input.images ??= [];
+          param.input.images.push(...imageResources);
+        }
+      }
     }
     if (param.resultHistory) {
       param.resultHistory = await this.populateSkillResultHistory(user, param.resultHistory);
@@ -533,6 +541,82 @@ export class SkillService implements OnModuleInit {
       }
     }
 
+    // Validate toolsets if provided
+    if (param.toolsets && param.toolsets.length > 0) {
+      await this.toolService.validateSelectedToolsets(user, param.toolsets);
+    }
+
+    // Validate workflowExecutionId and workflowNodeExecutionId if provided
+    const workflowExecutionId = param.workflowExecutionId;
+    const workflowNodeExecutionId = param.workflowNodeExecutionId;
+
+    if (workflowExecutionId) {
+      // Validate workflowExecutionId exists and belongs to the current user
+      const workflowExecution = await this.prisma.workflowExecution.findUnique({
+        where: { executionId: workflowExecutionId },
+      });
+
+      if (!workflowExecution) {
+        // Create failed action result record before throwing error
+        await this.createFailedActionResult(
+          resultId,
+          uid,
+          `Workflow execution ${workflowExecutionId} not found`,
+          param,
+        );
+        throw new ParamsError(`workflow execution ${workflowExecutionId} not found`);
+      }
+
+      if (workflowExecution.uid !== uid) {
+        // Create failed action result record before throwing error
+        await this.createFailedActionResult(
+          resultId,
+          uid,
+          `Workflow execution ${workflowExecutionId} does not belong to current user`,
+          param,
+        );
+        throw new ParamsError(
+          `workflow execution ${workflowExecutionId} does not belong to current user`,
+        );
+      }
+    }
+
+    if (workflowNodeExecutionId) {
+      // Validate workflowNodeExecutionId exists and belongs to the current user
+      const workflowNodeExecution = await this.prisma.workflowNodeExecution.findUnique({
+        where: { nodeExecutionId: workflowNodeExecutionId },
+      });
+
+      if (!workflowNodeExecution) {
+        // Create failed action result record before throwing error
+        await this.createFailedActionResult(
+          resultId,
+          uid,
+          `Workflow node execution ${workflowNodeExecutionId} not found`,
+          param,
+        );
+        throw new ParamsError(`workflow node execution ${workflowNodeExecutionId} not found`);
+      }
+
+      // Check if the associated workflow execution belongs to the current user
+      const associatedWorkflowExecution = await this.prisma.workflowExecution.findUnique({
+        where: { executionId: workflowNodeExecution.executionId },
+      });
+
+      if (!associatedWorkflowExecution || associatedWorkflowExecution.uid !== uid) {
+        // Create failed action result record before throwing error
+        await this.createFailedActionResult(
+          resultId,
+          uid,
+          `Workflow node execution ${workflowNodeExecutionId} does not belong to current user`,
+          param,
+        );
+        throw new ParamsError(
+          `workflow node execution ${workflowNodeExecutionId} does not belong to current user`,
+        );
+      }
+    }
+
     param.skillName ||= 'commonQnA';
     let skill = this.skillInventory.find((s) => s.name === param.skillName);
     if (!skill) {
@@ -540,34 +624,6 @@ export class SkillService implements OnModuleInit {
       param.skillName = 'commonQnA';
       skill = this.skillInventory.find((s) => s.name === param.skillName);
     }
-
-    const purgeContext = (context: SkillContext) => {
-      // remove actual content from context to save storage
-      const contextCopy: SkillContext = safeParseJSON(JSON.stringify(context ?? {}));
-      if (contextCopy.resources) {
-        for (const { resource } of contextCopy.resources) {
-          resource.content = '';
-        }
-      }
-      if (contextCopy.documents) {
-        for (const { document } of contextCopy.documents) {
-          document.content = '';
-        }
-      }
-
-      if (contextCopy.codeArtifacts) {
-        for (const { codeArtifact } of contextCopy.codeArtifacts) {
-          codeArtifact.content = '';
-        }
-      }
-
-      return contextCopy;
-    };
-
-    const purgeResultHistory = (resultHistory: ActionResult[] = []) => {
-      // remove extra unnecessary fields from result history to save storage
-      return resultHistory?.map((r) => pick(r, ['resultId', 'title']));
-    };
 
     const data: InvokeSkillJobData = {
       ...param,
@@ -578,6 +634,25 @@ export class SkillService implements OnModuleInit {
         ...providerPO2DTO(providerItem?.provider),
         apiKey: providerItem?.provider?.apiKey,
       },
+      providerItem: providerItemPO2DTO(providerItem),
+    };
+
+    return { data, existingResult, providerItem };
+  }
+
+  async skillInvokePreCheck(user: User, param: InvokeSkillRequest): Promise<InvokeSkillJobData> {
+    const { uid } = user;
+
+    const { data, existingResult, providerItem } = await this.prepareInvokeSkillJobData(
+      user,
+      param,
+    );
+    const resultId = param.resultId;
+    const modelConfigMap = data.modelConfigMap ?? {};
+
+    const purgeResultHistory = (resultHistory: ActionResult[] = []) => {
+      // remove extra unnecessary fields from result history to save storage
+      return resultHistory?.map((r) => pick(r, ['resultId', 'title']));
     };
 
     if (existingResult) {
@@ -587,6 +662,10 @@ export class SkillService implements OnModuleInit {
           data: { status: 'executing' },
         });
         data.result = actionResultPO2DTO(result);
+        if (param.workflowExecutionId && param.workflowNodeExecutionId) {
+          data.result.workflowExecutionId = param.workflowExecutionId;
+          data.result.workflowNodeExecutionId = param.workflowNodeExecutionId;
+        }
       } else {
         const [result] = await this.prisma.$transaction([
           this.prisma.actionResult.create({
@@ -597,23 +676,21 @@ export class SkillService implements OnModuleInit {
               type: 'skill',
               tier: providerItem?.tier ?? '',
               status: 'executing',
-              title: param.input.query,
+              title: param.input.query || param.input.originalQuery,
               targetId: param.target?.entityId,
               targetType: param.target?.entityType,
               modelName: modelConfigMap.chat.modelId,
               projectId: param.projectId ?? null,
-              actionMeta: JSON.stringify({
-                type: 'skill',
-                name: param.skillName,
-                icon: skill.icon,
-              } as ActionMeta),
               errors: JSON.stringify([]),
               input: JSON.stringify(param.input),
-              context: JSON.stringify(purgeContext(param.context)),
+              context: JSON.stringify(purgeContextForActionResult(param.context)),
               tplConfig: JSON.stringify(param.tplConfig),
               runtimeConfig: JSON.stringify(param.runtimeConfig),
               history: JSON.stringify(purgeResultHistory(param.resultHistory)),
+              toolsets: JSON.stringify(purgeToolsets(param.toolsets)),
               providerItemId: providerItem.itemId,
+              workflowExecutionId: param.workflowExecutionId,
+              workflowNodeExecutionId: param.workflowNodeExecutionId,
             },
           }),
           // Delete existing step data
@@ -633,22 +710,20 @@ export class SkillService implements OnModuleInit {
           tier: providerItem?.tier ?? '',
           targetId: param.target?.entityId,
           targetType: param.target?.entityType,
-          title: param.input?.query,
+          title: param.input?.query || param.input?.originalQuery,
           modelName: modelConfigMap.chat.modelId,
           type: 'skill',
           status: 'executing',
-          actionMeta: JSON.stringify({
-            type: 'skill',
-            name: param.skillName,
-            icon: skill.icon,
-          } as ActionMeta),
           projectId: param.projectId,
           input: JSON.stringify(param.input),
-          context: JSON.stringify(purgeContext(param.context)),
+          context: JSON.stringify(purgeContextForActionResult(param.context)),
           tplConfig: JSON.stringify(param.tplConfig),
           runtimeConfig: JSON.stringify(param.runtimeConfig),
           history: JSON.stringify(purgeResultHistory(param.resultHistory)),
+          toolsets: JSON.stringify(purgeToolsets(param.toolsets)),
           providerItemId: providerItem.itemId,
+          workflowExecutionId: param.workflowExecutionId,
+          workflowNodeExecutionId: param.workflowNodeExecutionId,
         },
       });
       data.result = actionResultPO2DTO(result);
@@ -710,11 +785,6 @@ export class SkillService implements OnModuleInit {
           targetType: param.target?.entityType,
           modelName: param.modelName ?? 'unknown',
           projectId: param.projectId,
-          actionMeta: JSON.stringify({
-            type: 'skill',
-            name: param.skillName ?? 'unknown',
-            icon: 'error',
-          }),
           errors: JSON.stringify([errorMessage]),
           input: JSON.stringify(param.input ?? {}),
           context: JSON.stringify(param.context ?? {}),
@@ -749,7 +819,9 @@ export class SkillService implements OnModuleInit {
       const limit = pLimit(5);
       const resources = await Promise.all(
         resourceIds.map((id) =>
-          limit(() => this.knowledgeService.getResourceDetail(user, { resourceId: id })),
+          limit(() =>
+            this.resourceService.getResourceDetail(user, { resourceId: id, genPublicUrl: true }),
+          ),
         ),
       );
       const resourceMap = new Map<string, Resource>();
@@ -768,7 +840,7 @@ export class SkillService implements OnModuleInit {
       const limit = pLimit(5);
       const docs = await Promise.all(
         docIds.map((id) =>
-          limit(() => this.knowledgeService.getDocumentDetail(user, { docId: id })),
+          limit(() => this.documentService.getDocumentDetail(user, { docId: id })),
         ),
       );
       const docMap = new Map<string, Document>();
@@ -879,16 +951,27 @@ export class SkillService implements OnModuleInit {
   }
 
   async sendInvokeSkillTask(user: User, param: InvokeSkillRequest) {
-    const data = await this.skillInvokePreCheck(user, param);
-
-    if (this.skillQueue) {
-      await this.skillQueue.add('invokeSkill', data);
-    } else {
-      // In desktop mode or when queue is not available, invoke directly
-      await this.invokeSkillFromQueue(data);
+    try {
+      const data = await this.skillInvokePreCheck(user, param);
+      if (this.skillQueue) {
+        await this.skillQueue.add('invokeSkill', data);
+      } else {
+        // In desktop mode or when queue is not available, invoke directly
+        await this.invokeSkillFromQueue(data);
+      }
+      return data.result;
+    } catch (error) {
+      this.logger.error(
+        `Failed to send invoke skill task for resultId: ${param.resultId}, error: ${error?.stack}`,
+      );
+      await this.createFailedActionResult(
+        param.resultId || genActionResultID(),
+        user.uid,
+        error?.message,
+        param,
+      );
+      throw error;
     }
-
-    return data.result;
   }
 
   async invokeSkillFromQueue(jobData: InvokeSkillJobData) {
@@ -903,9 +986,21 @@ export class SkillService implements OnModuleInit {
   }
 
   async invokeSkillFromApi(user: User, param: InvokeSkillRequest, res: Response) {
-    const jobData = await this.skillInvokePreCheck(user, param);
-
-    return this.skillInvokerService.streamInvokeSkill(user, jobData, res);
+    try {
+      const jobData = await this.skillInvokePreCheck(user, param);
+      return this.skillInvokerService.streamInvokeSkill(user, jobData, res);
+    } catch (error) {
+      this.logger.error(
+        `Failed to invoke skill from api for resultId: ${param.resultId}, error: ${error?.stack}`,
+      );
+      await this.createFailedActionResult(
+        param.resultId || genActionResultID(),
+        user.uid,
+        error?.message,
+        param,
+      );
+      throw error;
+    }
   }
 
   async listSkillTriggers(user: User, param: ListSkillTriggersData['query']) {

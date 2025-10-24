@@ -1,68 +1,60 @@
 import { Injectable, Logger, Optional } from '@nestjs/common';
 
-import * as Y from 'yjs';
-import { EventEmitter } from 'node:events';
-import { Response } from 'express';
-import { AIMessage, HumanMessage } from '@langchain/core/messages';
+import { DirectConnection } from '@hocuspocus/server';
 import { AIMessageChunk, BaseMessage, MessageContentComplex } from '@langchain/core/dist/messages';
+import { AIMessage, HumanMessage } from '@langchain/core/messages';
+import { InjectQueue } from '@nestjs/bullmq';
+import { ConfigService } from '@nestjs/config';
+import { ProjectNotFoundError } from '@refly/errors';
 import {
-  User,
   ActionResult,
   ActionStep,
   Artifact,
+  CreditBilling,
+  ProviderItem,
   SkillEvent,
   TokenUsageItem,
-  CreditBilling,
+  User,
 } from '@refly/openapi-schema';
-import { InvokeSkillJobData } from './skill.dto';
-import { PrismaService } from '../common/prisma.service';
-import { ConfigService } from '@nestjs/config';
 import {
-  detectLanguage,
-  incrementalMarkdownUpdate,
-  safeParseJSON,
-  getArtifactContentAndAttributes,
-  genTransactionId,
-} from '@refly/utils';
-import {
-  SkillRunnableConfig,
-  SkillEventMap,
-  SkillRunnableMeta,
   BaseSkill,
   SkillEngine,
+  SkillEventMap,
+  SkillRunnableConfig,
+  SkillRunnableMeta,
   createSkillInventory,
 } from '@refly/skill-template';
-import { throttle } from 'lodash';
-import { MiscService } from '../misc/misc.service';
-import { ResultAggregator } from '../../utils/result';
-import { DirectConnection } from '@hocuspocus/server';
-import { getWholeParsedContent } from '@refly/utils';
-import { ProjectNotFoundError } from '@refly/errors';
-import { projectPO2DTO } from '../project/project.dto';
-import { SyncRequestUsageJobData, SyncTokenUsageJobData } from '../subscription/subscription.dto';
-import { SyncBatchTokenCreditUsageJobData, CreditUsageStep } from '../credit/credit.dto';
+import { getWholeParsedContent, safeParseJSON } from '@refly/utils';
+import { Queue } from 'bullmq';
+import { Response } from 'express';
+import { EventEmitter } from 'node:events';
+import * as Y from 'yjs';
 import {
   QUEUE_AUTO_NAME_CANVAS,
   QUEUE_SYNC_PILOT_STEP,
   QUEUE_SYNC_REQUEST_USAGE,
-  QUEUE_SYNC_TOKEN_USAGE,
   QUEUE_SYNC_TOKEN_CREDIT_USAGE,
+  QUEUE_SYNC_TOKEN_USAGE,
 } from '../../utils/const';
-import { InjectQueue } from '@nestjs/bullmq';
-import { Queue } from 'bullmq';
-import { writeSSEResponse } from '../../utils/response';
 import { genBaseRespDataFromError } from '../../utils/exception';
-import { SyncPilotStepJobData } from '../pilot/pilot.processor';
-import { AutoNameCanvasJobData } from '../canvas/canvas.dto';
-import { ProviderService } from '../provider/provider.service';
-import { CodeArtifactService } from '../code-artifact/code-artifact.service';
-import { CollabContext } from '../collab/collab.dto';
-import { CollabService } from '../collab/collab.service';
-import { SkillEngineService } from '../skill/skill-engine.service';
-import { CanvasService } from '../canvas/canvas.service';
-import { CanvasSyncService } from '../canvas/canvas-sync.service';
-import { ActionService } from '../action/action.service';
 import { extractChunkContent } from '../../utils/llm';
+import { writeSSEResponse } from '../../utils/response';
+import { ResultAggregator } from '../../utils/result';
+import { ActionService } from '../action/action.service';
+import { AutoNameCanvasJobData } from '../canvas/canvas.dto';
+import { PrismaService } from '../common/prisma.service';
+import { CreditUsageStep, SyncBatchTokenCreditUsageJobData } from '../credit/credit.dto';
+import { MiscService } from '../misc/misc.service';
+import { SyncPilotStepJobData } from '../pilot/pilot.processor';
+import { projectPO2DTO } from '../project/project.dto';
+import { ProviderService } from '../provider/provider.service';
+import { SkillEngineService } from '../skill/skill-engine.service';
+import { StepService } from '../step/step.service';
+import { SyncRequestUsageJobData, SyncTokenUsageJobData } from '../subscription/subscription.dto';
+import { ToolCallService, ToolCallStatus } from '../tool-call/tool-call.service';
+import { ToolService } from '../tool/tool.service';
+import { InvokeSkillJobData } from './skill.dto';
+import { ToolCallResult } from '../../generated/client';
 
 @Injectable()
 export class SkillInvokerService {
@@ -71,25 +63,16 @@ export class SkillInvokerService {
   private skillEngine: SkillEngine;
   private skillInventory: BaseSkill[];
 
-  // Optimize frequent event type checking with Set
-  private static readonly OUTPUT_EVENTS = new Set([
-    'artifact',
-    'log',
-    'structured_data',
-    'create_node',
-  ]);
-
   constructor(
     private readonly prisma: PrismaService,
     private readonly config: ConfigService,
     private readonly miscService: MiscService,
-    private readonly canvasService: CanvasService,
-    private readonly canvasSyncService: CanvasSyncService,
-    private readonly collabService: CollabService,
     private readonly providerService: ProviderService,
-    private readonly codeArtifactService: CodeArtifactService,
+    private readonly toolService: ToolService,
+    private readonly toolCallService: ToolCallService,
     private readonly skillEngineService: SkillEngineService,
     private readonly actionService: ActionService,
+    private readonly stepCacheService: StepService,
     @Optional()
     @InjectQueue(QUEUE_SYNC_REQUEST_USAGE)
     private requestUsageQueue?: Queue<SyncRequestUsageJobData>,
@@ -113,6 +96,7 @@ export class SkillInvokerService {
 
   private async buildLangchainMessages(
     user: User,
+    providerItem: ProviderItem,
     result: ActionResult,
     steps: ActionStep[],
   ): Promise<BaseMessage[]> {
@@ -120,7 +104,7 @@ export class SkillInvokerService {
 
     // Only create content array if images exist
     let messageContent: string | MessageContentComplex[] = query;
-    if (result.input?.images?.length > 0) {
+    if (result.input?.images?.length > 0 && (providerItem?.config as any)?.capabilities?.vision) {
       const imageUrls = await this.miscService.generateImageUrls(user, result.input.images);
       messageContent = [
         { type: 'text', text: query },
@@ -128,26 +112,34 @@ export class SkillInvokerService {
       ];
     }
 
-    return [
-      new HumanMessage({ content: messageContent }),
-      ...(steps?.length > 0
-        ? steps.map(
-            (step) =>
-              new AIMessage({
-                content: getWholeParsedContent(step.reasoningContent, step.content),
-                additional_kwargs: {
-                  skillMeta: result.actionMeta,
-                  structuredData: step.structuredData,
-                  type: result.type,
-                  tplConfig:
-                    typeof result.tplConfig === 'string'
-                      ? safeParseJSON(result.tplConfig)
-                      : result.tplConfig,
-                },
-              }),
-          )
-        : []),
-    ];
+    // Build consolidated tool call history by step from DB to avoid duplicating start/stream/end fragments
+    const toolCallsByStep = await this.toolCallService.fetchConsolidatedToolUseOutputByStep(
+      result.resultId,
+      result.version,
+    );
+
+    const aiMessages =
+      steps?.length > 0
+        ? steps.map((step) => {
+            const toolCallOutputs: ToolCallResult[] = toolCallsByStep?.get(step?.name ?? '') ?? [];
+            const mergedContent = getWholeParsedContent(step.reasoningContent, step.content ?? '');
+            return new AIMessage({
+              content: mergedContent,
+              additional_kwargs: {
+                skillMeta: result.actionMeta,
+                structuredData: step.structuredData,
+                type: result.type,
+                tplConfig:
+                  typeof result.tplConfig === 'string'
+                    ? safeParseJSON(result.tplConfig)
+                    : result.tplConfig,
+                toolCalls: toolCallOutputs,
+              },
+            });
+          })
+        : [];
+    console.log('aiMessages', aiMessages);
+    return [new HumanMessage({ content: messageContent }), ...aiMessages];
   }
 
   private async buildInvokeConfig(
@@ -160,39 +152,34 @@ export class SkillInvokerService {
       context,
       tplConfig,
       runtimeConfig,
+      providerItem,
       modelConfigMap,
       provider,
       resultHistory,
       projectId,
       eventListener,
-      selectedMcpServers,
+      toolsets,
     } = data;
     const userPo = await this.prisma.user.findUnique({
       select: { uiLocale: true, outputLocale: true },
       where: { uid: user.uid },
     });
+
     const outputLocale = data?.locale || userPo?.outputLocale;
-
-    const displayLocale =
-      (outputLocale === 'auto' ? await detectLanguage(data?.input?.query) : outputLocale) ||
-      userPo.uiLocale ||
-      'en';
-
     // Merge the current context with contexts from result history
     // Current context items have priority, and duplicates are removed
 
     const config: SkillRunnableConfig = {
       configurable: {
-        ...context,
         user,
+        context,
         modelConfigMap,
         provider,
-        locale: displayLocale,
+        locale: outputLocale,
         uiLocale: userPo.uiLocale,
         tplConfig,
         runtimeConfig,
         resultId: data.result?.resultId,
-        selectedMcpServers,
       },
     };
 
@@ -209,8 +196,13 @@ export class SkillInvokerService {
 
     if (resultHistory?.length > 0) {
       config.configurable.chatHistory = await Promise.all(
-        resultHistory.map((r) => this.buildLangchainMessages(user, r, r.steps)),
+        resultHistory.map((r) => this.buildLangchainMessages(user, providerItem, r, r.steps)),
       ).then((messages) => messages.flat());
+    }
+
+    if (toolsets?.length > 0) {
+      const tools = await this.toolService.instantiateToolsets(user, toolsets, this.skillEngine);
+      config.configurable.selectedTools = tools;
     }
 
     if (eventListener) {
@@ -285,13 +277,16 @@ export class SkillInvokerService {
   }
 
   private async _invokeSkill(user: User, data: InvokeSkillJobData, res?: Response) {
-    const { input, result, target } = data;
-    this.logger.log(`invoke skill with data: ${JSON.stringify(data)}`);
-
+    const { input, result } = data;
     const { resultId, version, actionMeta, tier } = result;
+    this.logger.log(
+      `invoke skill with input: ${JSON.stringify(input)}, resultId: ${resultId}, version: ${version}`,
+    );
 
-    if (input.images?.length > 0) {
+    if (input.images?.length > 0 && (data.providerItem?.config as any)?.capabilities?.vision) {
       input.images = await this.miscService.generateImageUrls(user, input.images);
+    } else {
+      input.images = [];
     }
 
     if (tier) {
@@ -398,7 +393,21 @@ export class SkillInvokerService {
       }
     };
 
-    const resultAggregator = new ResultAggregator();
+    const resultAggregator = new ResultAggregator(this.stepCacheService, resultId, version);
+
+    // Initialize structuredData with original query if available
+    const originalQuery = data.input?.originalQuery;
+    if (originalQuery) {
+      resultAggregator.addSkillEvent({
+        event: 'structured_data',
+        resultId,
+        step: { name: 'start' },
+        structuredData: {
+          query: originalQuery, // Store original query in structuredData
+          processedQuery: data.input?.query, // Store processed query for reference
+        },
+      });
+    }
 
     // NOTE: Artifacts include both code artifacts and documents
     type ArtifactOutput = Artifact & {
@@ -438,140 +447,6 @@ export class SkillInvokerService {
             return;
           case 'artifact':
             this.logger.log(`artifact event received: ${JSON.stringify(artifact)}`);
-            if (artifact) {
-              resultAggregator.addSkillEvent(data);
-
-              const { entityId, type, status } = artifact;
-              if (!artifactMap[entityId]) {
-                artifactMap[entityId] = { ...artifact, content: '', nodeCreated: false };
-              } else {
-                // Only update artifact status
-                artifactMap[entityId].status = status;
-              }
-
-              if (!artifactMap[entityId].nodeCreated) {
-                this.logger.log(
-                  `add node to canvas ${target.entityId}, artifact: ${JSON.stringify(artifact)}`,
-                );
-
-                // For media types, include initial metadata
-                const nodeMetadata: any = {
-                  status: 'generating',
-                };
-
-                // If this is a completed media artifact, include the media URL
-                if (
-                  ['image', 'video', 'audio'].includes(type) &&
-                  status === 'finish' &&
-                  artifact.metadata
-                ) {
-                  Object.assign(nodeMetadata, artifact.metadata);
-                }
-
-                await this.canvasService.addNodeToCanvas(
-                  user,
-                  target.entityId,
-                  {
-                    type: artifact.type,
-                    data: {
-                      title: artifact.title,
-                      entityId: artifact.entityId,
-                      metadata: nodeMetadata,
-                    },
-                  },
-                  [{ type: 'skillResponse', entityId: resultId }],
-                );
-                artifactMap[entityId].nodeCreated = true;
-              }
-
-              // Handle media artifact completion - update node metadata
-              if (
-                ['image', 'video', 'audio'].includes(type) &&
-                status === 'finish' &&
-                artifact.metadata &&
-                artifactMap[entityId].nodeCreated
-              ) {
-                this.logger.log(
-                  `updating media node metadata for ${entityId}, metadata: ${JSON.stringify(artifact.metadata)}`,
-                );
-
-                try {
-                  // Get current canvas state to find and update the node
-                  const { nodes } = await this.canvasSyncService.getCanvasData(user, {
-                    canvasId: target.entityId,
-                  });
-
-                  // Find the node to update
-                  const nodeToUpdate = nodes.find(
-                    (node) =>
-                      node.data?.entityId === artifact.entityId && node.type === artifact.type,
-                  );
-
-                  if (nodeToUpdate) {
-                    // Update the node metadata with media URL and completion status
-                    const updatedNode = {
-                      ...nodeToUpdate,
-                      data: {
-                        ...nodeToUpdate.data,
-                        metadata: {
-                          ...nodeToUpdate.data.metadata,
-                          status: 'finish',
-                          ...artifact.metadata,
-                        },
-                      },
-                    };
-
-                    // Sync the updated node to canvas
-                    await this.canvasSyncService.syncState(user, {
-                      canvasId: target.entityId,
-                      transactions: [
-                        {
-                          txId: genTransactionId(),
-                          createdAt: Date.now(),
-                          syncedAt: Date.now(),
-                          nodeDiffs: [
-                            {
-                              type: 'update',
-                              id: nodeToUpdate.id,
-                              from: nodeToUpdate,
-                              to: updatedNode,
-                            },
-                          ],
-                          edgeDiffs: [],
-                        },
-                      ],
-                    });
-                  } else {
-                    this.logger.warn(`Media node not found for artifact ${artifact.entityId}`);
-                  }
-                } catch (error) {
-                  this.logger.error(`Failed to update media node metadata: ${error.message}`);
-                }
-              }
-
-              // Open direct connection to yjs doc if artifact type is document
-              if (type === 'document' && !artifactMap[entityId].connection) {
-                const doc = await this.prisma.document.findFirst({
-                  where: { docId: entityId },
-                });
-                const collabContext: CollabContext = {
-                  user,
-                  entity: doc,
-                  entityType: 'document',
-                };
-                const connection = await this.collabService.openDirectConnection(
-                  entityId,
-                  collabContext,
-                );
-
-                this.logger.log(
-                  `open direct connection to document ${entityId}, doc: ${JSON.stringify(
-                    connection.document?.toJSON(),
-                  )}`,
-                );
-                artifactMap[entityId].connection = connection;
-              }
-            }
             return;
           case 'error':
             result.errors.push(data.content);
@@ -588,42 +463,6 @@ export class SkillInvokerService {
       resultId,
       actionMeta,
     };
-
-    const throttledMarkdownUpdate = throttle(
-      ({ connection, content }: ArtifactOutput) => {
-        incrementalMarkdownUpdate(connection.document, content);
-      },
-      20,
-      {
-        leading: true,
-        trailing: true,
-      },
-    );
-
-    const throttledCodeArtifactUpdate = throttle(
-      async ({ entityId, content }: ArtifactOutput) => {
-        // Extract code content and attributes from content string
-        const {
-          content: codeContent,
-          language,
-          type,
-          title,
-        } = getArtifactContentAndAttributes(content);
-
-        await this.codeArtifactService.updateCodeArtifact(user, {
-          artifactId: entityId,
-          title,
-          type,
-          language,
-          content: codeContent,
-          createIfNotExists: true,
-          resultId,
-          resultVersion: version,
-        });
-      },
-      1000,
-      { leading: true, trailing: true },
-    );
 
     if (res) {
       writeSSEResponse(res, { event: 'start', resultId, version });
@@ -699,6 +538,10 @@ export class SkillInvokerService {
       // Start initial network timeout
       createNetworkTimeout();
 
+      // tool callId, now we use first time returned run_id as tool call id
+      const startTs = Date.now();
+
+      const toolCallIds: Set<string> = new Set();
       for await (const event of skill.streamEvents(input, {
         ...config,
         version: 'v2',
@@ -722,100 +565,185 @@ export class SkillInvokerService {
         // Record stream output for simple timeout tracking
         lastOutputTime = Date.now();
         hasAnyOutput = true;
-
         switch (event.event) {
           case 'on_tool_end':
+          case 'on_tool_error':
           case 'on_tool_start': {
-            // Extract tool_call_chunks from AIMessageChunk
-            if (event.metadata.langgraph_node === 'tools' && event.data?.output) {
+            // Skip non-tool user-visible helpers like commonQnA, and ensure toolsetKey exists
+            const { toolsetKey } = event.metadata ?? {};
+            if (!toolsetKey) {
+              break;
+            }
+            const stepName = runMeta?.step?.name;
+            const toolsetId = toolsetKey;
+            const toolName = String(event.metadata?.name ?? '');
+            const runId = event?.run_id ? String(event.run_id) : undefined;
+            const toolCallId = this.toolCallService.getOrCreateToolCallId({
+              resultId,
+              version,
+              toolName,
+              toolsetId,
+              runId,
+            });
+            const buildToolUseXML = (includeResult: boolean, errorMsg: string, updatedTs: number) =>
+              this.toolCallService.generateToolUseXML({
+                toolCallId,
+                includeResult,
+                errorMsg,
+                metadata: {
+                  name: toolName,
+                  type: event.metadata?.type as string | undefined,
+                  toolsetKey: toolsetId,
+                  toolsetName: event.metadata?.toolsetName,
+                },
+                input: event.data?.input,
+                output: event.data?.output,
+                startTs: startTs,
+                updatedTs: updatedTs,
+              });
+
+            const persistToolCall = async (
+              status: ToolCallStatus,
+              data: {
+                input: string | undefined;
+                output: string | undefined;
+                errorMessage?: string;
+              },
+            ) => {
+              const input = data.input;
+              const output = data.output;
+              const errorMessage = String(data.errorMessage ?? '');
+              const createdAt = startTs;
+              const updatedAt = Date.now();
+              await this.toolCallService.persistToolCallResult(
+                res,
+                user.uid,
+                { resultId, version },
+                toolsetId,
+                toolName,
+                input,
+                output,
+                status,
+                toolCallId,
+                stepName,
+                createdAt,
+                updatedAt,
+                errorMessage,
+              );
+            };
+
+            if (event.event === 'on_tool_start') {
+              if (!toolCallIds.has(toolCallId)) {
+                toolCallIds.add(toolCallId);
+                await persistToolCall(ToolCallStatus.EXECUTING, {
+                  input: event.data?.input,
+                  output: '',
+                });
+                // Send XML for executing state
+                const xmlContent = buildToolUseXML(false, '', Date.now());
+                if (xmlContent && res) {
+                  resultAggregator.handleStreamContent(runMeta, xmlContent, '');
+                  this.toolCallService.emitToolUseStream(res, {
+                    resultId,
+                    step: runMeta?.step,
+                    xmlContent,
+                    toolCallId,
+                    toolName,
+                    event_name: 'stream',
+                  });
+                }
+                break;
+              }
+            }
+            if (event.event === 'on_tool_error') {
+              const errorMsg = String((event.data as any)?.error ?? 'Tool execution failed');
+              await persistToolCall(ToolCallStatus.FAILED, {
+                input: undefined,
+                output: event.data?.output,
+                errorMessage: errorMsg,
+              });
+              // Send XML for failed state
+              const xmlContent = buildToolUseXML(false, errorMsg, Date.now());
+              if (xmlContent && res) {
+                resultAggregator.handleStreamContent(runMeta, xmlContent, '');
+                this.toolCallService.emitToolUseStream(res, {
+                  resultId,
+                  step: runMeta?.step,
+                  xmlContent,
+                  toolCallId,
+                  toolName,
+                  event_name: 'stream',
+                });
+              }
+              this.toolCallService.releaseToolCallId({
+                resultId,
+                version,
+                toolName,
+                toolsetId,
+                runId,
+              });
+              toolCallIds.delete(toolCallId);
+              break;
+            }
+            if (event.event === 'on_tool_end') {
+              await persistToolCall(ToolCallStatus.COMPLETED, {
+                input: undefined,
+                output: event.data?.output,
+              });
+              // Extract tool_call_chunks from AIMessageChunk
+              if (event.metadata.langgraph_node === 'tools' && event.data?.output) {
+                const { toolsetKey } = event.metadata ?? {};
+                // Skip non-tool user-visible helpers like commonQnA, and ensure toolsetKey exists
+                if (!toolsetKey) {
+                  break;
+                }
+
+                const xmlContent = buildToolUseXML(true, '', Date.now());
+                if (xmlContent && res) {
+                  resultAggregator.handleStreamContent(runMeta, xmlContent, '');
+                  this.toolCallService.emitToolUseStream(res, {
+                    resultId,
+                    step: runMeta?.step,
+                    xmlContent,
+                    toolCallId,
+                    toolName,
+                    event_name: 'stream',
+                  });
+                }
+              }
+              this.toolCallService.releaseToolCallId({
+                resultId,
+                version,
+                toolName,
+                toolsetId,
+                runId,
+              });
+              toolCallIds.delete(toolCallId);
+              break;
+            }
+            break;
+          }
+          case 'on_chat_model_stream': {
+            // Suppress streaming content when inside tool execution to avoid duplicate outputs
+            // Tools like generateDoc stream to their own targets (e.g., documents) and should not
+            // also stream to the skill response channel.
+            // if (event?.metadata?.langgraph_node === 'tools') {
+            //   break;
+            // }
+
+            const { content, reasoningContent } = extractChunkContent(chunk);
+
+            if ((content || reasoningContent) && !runMeta?.suppressOutput) {
               // Update result content and forward stream events to client
-
-              const [, , eventName] = event.name?.split('__') ?? event.name;
-
-              const content = event.data?.output
-                ? `
-<tool_use>
-<name>${`${eventName}`}</name>
-<arguments>
-${event.data?.input ? JSON.stringify({ params: event.data?.input?.input }) : ''}
-</arguments>
-<result>
-${event.data?.output ? JSON.stringify({ response: event.data?.output?.content ?? '' }) : ''}
-</result>
-</tool_use>
-`
-                : `
-<tool_use>
-<name>${`${eventName}`}</name>
-<arguments>
-${event.data?.input ? JSON.stringify(event.data?.input?.input) : ''}
-</arguments>
-</tool_use>
-`;
-              resultAggregator.handleStreamContent(runMeta, content, '');
-
+              resultAggregator.handleStreamContent(runMeta, content, reasoningContent);
               if (res) {
                 writeSSEResponse(res, {
                   event: 'stream',
                   resultId,
                   content,
+                  reasoningContent,
                   step: runMeta?.step,
-                  structuredData: {
-                    toolCallId: event.run_id,
-                    name: event.name,
-                  },
                 });
-              }
-            }
-            break;
-          }
-          case 'on_chat_model_stream': {
-            const { content, reasoningContent } = extractChunkContent(chunk);
-
-            if ((content || reasoningContent) && !runMeta?.suppressOutput) {
-              if (runMeta?.artifact) {
-                const { entityId } = runMeta.artifact;
-                const artifact = artifactMap[entityId];
-
-                // Update artifact content based on type
-                artifact.content += content;
-
-                if (artifact.type === 'document' && artifact.connection) {
-                  // For document artifacts, update the yjs document
-                  throttledMarkdownUpdate(artifact);
-                } else if (artifact.type === 'codeArtifact') {
-                  // For code artifacts, save to MinIO and database
-                  throttledCodeArtifactUpdate(artifact);
-
-                  // Send stream and stream_artifact event to client
-                  resultAggregator.handleStreamContent(runMeta, content, reasoningContent);
-                  if (res) {
-                    writeSSEResponse(res, {
-                      event: 'stream',
-                      resultId,
-                      content,
-                      reasoningContent: reasoningContent || undefined,
-                      step: runMeta?.step,
-                      artifact: {
-                        entityId: artifact.entityId,
-                        type: artifact.type,
-                        title: artifact.title,
-                      },
-                    });
-                  }
-                }
-              } else {
-                // Update result content and forward stream events to client
-                resultAggregator.handleStreamContent(runMeta, content, reasoningContent);
-                if (res) {
-                  writeSSEResponse(res, {
-                    event: 'stream',
-                    resultId,
-                    content,
-                    reasoningContent,
-                    step: runMeta?.step,
-                  });
-                }
               }
             }
             break;
@@ -864,6 +792,7 @@ ${event.data?.input ? JSON.stringify(event.data?.input?.input) : ''}
             break;
         }
       }
+      // throw new Error('test-failure');
     } catch (err) {
       const errorInfo = this.categorizeError(err);
       const errorMessage = err.message || 'Unknown error';
@@ -913,17 +842,10 @@ ${event.data?.input ? JSON.stringify(event.data?.input?.input) : ''}
         artifact.connection?.disconnect();
       }
 
-      const steps = resultAggregator.getSteps({ resultId, version });
+      const steps = await resultAggregator.getSteps({ resultId, version });
       const status = result.errors.length > 0 ? 'failed' : 'finish';
 
       await this.prisma.$transaction([
-        this.prisma.actionResult.updateMany({
-          where: { resultId, version },
-          data: {
-            status,
-            errors: JSON.stringify(result.errors),
-          },
-        }),
         this.prisma.actionStep.createMany({ data: steps }),
         ...(result.pilotStepId
           ? [
@@ -933,6 +855,21 @@ ${event.data?.input ? JSON.stringify(event.data?.input?.input) : ''}
               }),
             ]
           : []),
+        ...(result.workflowNodeExecutionId
+          ? [
+              this.prisma.workflowNodeExecution.updateMany({
+                where: { nodeExecutionId: result.workflowNodeExecutionId },
+                data: { status, endTime: new Date() },
+              }),
+            ]
+          : []),
+        this.prisma.actionResult.updateMany({
+          where: { resultId, version },
+          data: {
+            status,
+            errors: JSON.stringify(result.errors),
+          },
+        }),
       ]);
 
       writeSSEResponse(res, { event: 'end', resultId, version });
@@ -975,6 +912,8 @@ ${event.data?.input ? JSON.stringify(event.data?.input?.input) : ''}
         });
       }
 
+      await resultAggregator.clearCache();
+
       // Process credit billing for all steps after skill completion
       if (this.creditUsageReportQueue && !result.errors.length) {
         await this.processCreditUsageReport(user, resultId, version, resultAggregator);
@@ -996,7 +935,7 @@ ${event.data?.input ? JSON.stringify(event.data?.input?.input) : ''}
     version: number,
     resultAggregator: ResultAggregator,
   ): Promise<void> {
-    const steps = resultAggregator.getSteps({ resultId, version });
+    const steps = await resultAggregator.getSteps({ resultId, version });
 
     // Collect all model names used in token usage
     const modelNames = new Set<string>();
@@ -1106,9 +1045,18 @@ ${event.data?.input ? JSON.stringify(event.data?.input?.input) : ''}
           resultId,
           version,
           content: JSON.stringify(genBaseRespDataFromError(err)),
+          originError: err.message,
         });
       }
       this.logger.error(`invoke skill error: ${err.stack}`);
+
+      await this.prisma.actionResult.updateMany({
+        where: { resultId, version },
+        data: {
+          status: 'failed',
+          errors: JSON.stringify([err.message]),
+        },
+      });
     } finally {
       if (res) {
         res.end('');

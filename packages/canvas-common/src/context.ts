@@ -1,7 +1,7 @@
-import { ActionResult, CanvasNodeType, SkillContext } from '@refly/openapi-schema';
+import { ActionResult, CanvasNodeType, MediaType, SkillContext } from '@refly/openapi-schema';
 import { IContextItem } from '@refly/common-types';
 import { Node, Edge } from '@xyflow/react';
-import { getClientOrigin, omit } from '@refly/utils';
+import { genUniqueId, getClientOrigin, omit, safeParseJSON } from '@refly/utils';
 import { CanvasNodeFilter } from './types';
 
 export const convertResultContextToItems = (
@@ -105,6 +105,11 @@ export const convertContextItemsToNodeFilters = (items: IContextItem[]): CanvasN
   const uniqueItems = new Map<string, CanvasNodeFilter>();
 
   for (const item of items ?? []) {
+    // resources are no longer present in canvas
+    if (item.type === 'resource') {
+      continue;
+    }
+
     const type = item.selection?.sourceEntityType ?? (item.type as CanvasNodeType);
     const entityId = item.selection?.sourceEntityId ?? item.entityId;
 
@@ -192,7 +197,7 @@ export const convertContextItemsToInvokeParams = (
     (item) => `${item.metadata.entityId}-${(item.content || '').substring(0, 100)}`,
   );
 
-  const context = {
+  const context: SkillContext = {
     contentList: combinedContentList,
     resources: deduplicate(
       purgedItems
@@ -202,14 +207,14 @@ export const convertContextItemsToInvokeParams = (
           resource: {
             resourceId: item.entityId,
             resourceType: item.metadata?.resourceType,
-            title: item.title,
+            title: item.title ?? '',
           },
           isCurrent: item.isCurrentContext,
           metadata: {
             ...item.metadata,
           },
         })),
-      (item) => item.resourceId,
+      (item) => item.resourceId ?? genUniqueId(),
     ),
     documents: deduplicate(
       purgedItems
@@ -218,13 +223,10 @@ export const convertContextItemsToInvokeParams = (
           docId: item.entityId,
           document: {
             docId: item.entityId,
-            title: item.title,
+            title: item.title ?? '',
           },
           isCurrent: item.isCurrentContext,
-          metadata: {
-            ...item.metadata,
-            url: getClientOrigin(),
-          },
+          metadata: item.metadata,
         })),
       (item) => item.docId,
     ),
@@ -235,7 +237,7 @@ export const convertContextItemsToInvokeParams = (
           artifactId: item.entityId,
           codeArtifact: {
             artifactId: item.entityId,
-            title: item.title,
+            title: item.title ?? '',
             type: item.metadata?.artifactType ?? 'unknown',
           },
           isCurrent: item.isCurrentContext,
@@ -243,7 +245,7 @@ export const convertContextItemsToInvokeParams = (
             ...item.metadata,
           },
         })),
-      (item) => item.artifactId,
+      (item) => item.artifactId ?? genUniqueId(),
     ),
     urls: deduplicate(
       purgedItems
@@ -270,6 +272,18 @@ export const convertContextItemsToInvokeParams = (
           ];
         }),
       (item) => item.url,
+    ),
+    mediaList: deduplicate(
+      items
+        ?.filter((item) => ['image', 'video', 'audio'].includes(item?.type as string))
+        .map((item) => ({
+          entityId: item.entityId,
+          mediaType: item.type as MediaType,
+          title: item.title ?? '',
+          url: item.metadata?.[`${item?.type}Url`],
+          storageKey: item.metadata?.storageKey,
+        })),
+      (item) => item.entityId,
     ),
   };
   // Process history items - get all skill responses
@@ -382,10 +396,48 @@ export const purgeContextItems = (items: IContextItem[]): IContextItem[] => {
   if (!Array.isArray(items)) {
     return [];
   }
-  return items.map((item) => ({
-    ...omit(item, ['metadata']),
-    metadata: {
-      withHistory: item.metadata?.withHistory,
-    },
-  }));
+  return items.map((item) => {
+    if (
+      ['image', 'video', 'audio', 'resource', 'document', 'codeArtifact'].includes(
+        item.type as string,
+      )
+    ) {
+      return item;
+    }
+    return {
+      ...omit(item, ['metadata']),
+      metadata: {
+        withHistory: item.metadata?.withHistory,
+      },
+    };
+  });
+};
+
+export const purgeContextForActionResult = (context: SkillContext) => {
+  // remove actual content from context to save storage
+  const contextCopy: SkillContext = safeParseJSON(JSON.stringify(context ?? {}));
+  if (contextCopy.resources) {
+    for (const { resource } of contextCopy.resources) {
+      if (resource) {
+        resource.content = '';
+      }
+    }
+  }
+  if (contextCopy.documents) {
+    for (const { document } of contextCopy.documents) {
+      if (document) {
+        document.content = '';
+      }
+    }
+  }
+
+  if (contextCopy.codeArtifacts) {
+    for (const { codeArtifact } of contextCopy.codeArtifacts) {
+      if (codeArtifact) {
+        codeArtifact.content = '';
+      }
+    }
+  }
+
+  return contextCopy;
 };

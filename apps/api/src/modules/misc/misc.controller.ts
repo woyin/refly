@@ -135,4 +135,20 @@ export class MiscController {
 
     res.end(data);
   }
+
+  @Get('favicon')
+  async getFavicon(@Query('domain') domain: string, @Res() res: Response): Promise<void> {
+    const { data, contentType } = await this.miscService.getFavicon(domain);
+
+    // Set cache headers for 24 hours (86400 seconds)
+    res.set({
+      'Content-Type': contentType,
+      'Cache-Control': 'public, max-age=86400', // 24 hours
+      'Access-Control-Allow-Origin': '*',
+      'Cross-Origin-Resource-Policy': 'cross-origin',
+      'Content-Length': String(data.length),
+    });
+
+    res.end(data);
+  }
 }

@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { CanvasNode } from '@refly/canvas-common';
 import { CodeArtifactNodeProps } from './shared/types';
 import { CustomHandle } from './shared/custom-handle';
-import { getNodeCommonStyles } from './index';
+import { getNodeCommonStyles } from './shared/styles';
 import { useAddToContext } from '@refly-packages/ai-workspace-common/hooks/canvas/use-add-to-context';
 import { useDeleteNode } from '@refly-packages/ai-workspace-common/hooks/canvas/use-delete-node';
 import { time } from '@refly-packages/ai-workspace-common/utils/time';
@@ -36,7 +36,12 @@ import { useSetNodeDataByEntity } from '@refly-packages/ai-workspace-common/hook
 import { NodeActionButtons } from './shared/node-action-buttons';
 import { useGetNodeConnectFromDragCreateInfo } from '@refly-packages/ai-workspace-common/hooks/canvas/use-get-node-connect';
 import { NodeDragCreateInfo } from '@refly-packages/ai-workspace-common/events/nodeOperations';
-import { useNodeData } from '@refly-packages/ai-workspace-common/hooks/canvas';
+import {
+  useNodeData,
+  useNodeExecutionStatus,
+} from '@refly-packages/ai-workspace-common/hooks/canvas';
+import { NodeExecutionOverlay } from './shared/node-execution-overlay';
+import { NodeExecutionStatus } from './shared/node-execution-status';
 
 // Fixed node size configuration
 const NODE_WIDTH = 320;
@@ -112,7 +117,7 @@ export const CodeArtifactNode = memo(
 
     const node = useMemo(() => getNode(id), [id, getNode]);
 
-    const { readonly } = useCanvasContext();
+    const { canvasId, readonly } = useCanvasContext();
 
     // Listen for statusUpdate events to update node metadata
     useEffect(() => {
@@ -167,6 +172,12 @@ export const CodeArtifactNode = memo(
         onHoverEnd();
       }
     }, [isHovered, onHoverEnd]);
+
+    // Get node execution status
+    const { status: executionStatus } = useNodeExecutionStatus({
+      canvasId: canvasId || '',
+      nodeId: id,
+    });
 
     const { addToContext } = useAddToContext();
 
@@ -344,9 +355,14 @@ export const CodeArtifactNode = memo(
           </>
         )}
 
+        <NodeExecutionOverlay status={executionStatus} />
+
         <div
           className={`h-full flex flex-col relative z-1 p-4 box-border max-h-[800px] ${getNodeCommonStyles({ selected, isHovered })}`}
         >
+          {/* Node execution status badge */}
+          <NodeExecutionStatus status={executionStatus} />
+
           <NodeHeader
             title={data?.title}
             fixedTitle={t('canvas.nodeTypes.codeArtifact')}

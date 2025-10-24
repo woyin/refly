@@ -41,6 +41,7 @@ import { StaticFile } from '../../generated/client';
 import { PandocParser } from '../knowledge/parsers/pandoc.parser';
 import pLimit from 'p-limit';
 import { isDesktop } from '../../utils/runtime';
+import { RedisService } from '../common/redis.service';
 
 @Injectable()
 export class MiscService implements OnModuleInit {
@@ -49,6 +50,7 @@ export class MiscService implements OnModuleInit {
   constructor(
     private config: ConfigService,
     private prisma: PrismaService,
+    private redisService: RedisService,
     @Inject(OSS_EXTERNAL) private externalOss: ObjectStorageService,
     @Inject(OSS_INTERNAL) private internalOss: ObjectStorageService,
     @Optional() @InjectQueue(QUEUE_IMAGE_PROCESSING) private imageQueue?: Queue<FileObject>,
@@ -209,7 +211,11 @@ export class MiscService implements OnModuleInit {
     return this.internalOss;
   }
 
-  async batchRemoveObjects(user: User | null, objects: FileObject[]) {
+  async batchRemoveObjects(
+    user: User | null,
+    objects: FileObject[],
+    options?: { force?: boolean },
+  ) {
     // Group objects by storageKey for efficient querying
     const storageKeys = objects.map((fo) => fo.storageKey);
 
@@ -252,7 +258,7 @@ export class MiscService implements OnModuleInit {
     if (objectsToRemove.size > 0) {
       await Promise.all(
         Array.from(objectsToRemove.entries()).map(([visibility, storageKeys]) =>
-          this.minioClient(visibility).removeObjects(Array.from(storageKeys)),
+          this.minioClient(visibility).removeObjects(Array.from(storageKeys), options?.force),
         ),
       );
     }
@@ -291,7 +297,7 @@ export class MiscService implements OnModuleInit {
     return `${endpoint}/${storageKey}`;
   }
 
-  async downloadFile(file: FileObject) {
+  async downloadFile(file: FileObject): Promise<Buffer> {
     const { storageKey, visibility = 'private' } = file;
     const stream = await this.minioClient(visibility).getObject(storageKey);
     return streamToBuffer(stream);
@@ -308,6 +314,27 @@ export class MiscService implements OnModuleInit {
     const stream = await this.minioClient('private').getObject(storageKey);
     await this.minioClient('public').putObject(storageKey, stream);
     return this.generateFileURL({ visibility: 'public', storageKey });
+  }
+
+  /**
+   * Generate a temporary public URL for a private file
+   * @param storageKey - The storage key of the file to generate a temporary public URL for
+   * @param expiresIn - The number of seconds the URL will be valid for
+   * @returns The temporary public URL
+   */
+  async generateTempPublicURL(storageKey: string, expiresIn?: number): Promise<string> {
+    if (!storageKey) {
+      return '';
+    }
+    const fallback = Number(this.config.get<number>('image.presignExpiry') ?? 300);
+    const raw = expiresIn ?? fallback;
+    const expiry = Number(raw);
+    const MAX = 7 * 24 * 60 * 60; // 7 days
+    if (!Number.isFinite(expiry) || expiry <= 0) {
+      throw new ParamsError('[generateTempPublicURL] invalid expiresIn');
+    }
+    const safeExpiry = Math.min(Math.floor(expiry), MAX);
+    return this.minioClient('private').presignedGetObject(storageKey, safeExpiry);
   }
 
   async uploadBuffer(
@@ -702,10 +729,8 @@ export class MiscService implements OnModuleInit {
 
           // For private files, generate a signed URL that expires in given time
           try {
-            const signedUrl = await this.minioClient(visibility).presignedGetObject(
-              storageKey,
-              this.config.get('image.presignExpiry'),
-            );
+            const expiry = Number(this.config.get<number>('image.presignExpiry') ?? 300);
+            const signedUrl = await this.generateTempPublicURL(storageKey, expiry);
             return signedUrl;
           } catch (error) {
             this.logger.error(
@@ -795,34 +820,75 @@ export class MiscService implements OnModuleInit {
     }
   }
 
-  async duplicateFile(param: {
-    sourceFile: FileObject;
-    targetFile: FileObject;
-  }) {
-    const { sourceFile, targetFile } = param;
+  async duplicateFile(
+    user: User,
+    param: {
+      sourceFile: FileObject;
+      targetFile?: FileObject;
+      targetEntityId?: string;
+      targetEntityType?: EntityType;
+    },
+  ) {
+    const { sourceFile, targetFile, targetEntityId, targetEntityType } = param;
 
     if (!sourceFile) {
       throw new NotFoundException(`File with key ${sourceFile?.storageKey} not found`);
     }
 
-    if (!targetFile) {
-      throw new ParamsError('Target file information is required');
+    // Generate target file info if not provided
+    let finalTargetFile: FileObject;
+    if (targetFile) {
+      finalTargetFile = targetFile;
+    } else {
+      // Generate new storage key with UUID
+      const objectKey = randomUUID();
+      const extension = path.extname(sourceFile.storageKey) || '';
+      finalTargetFile = {
+        storageKey: `static/${objectKey}${extension}`,
+        visibility: sourceFile.visibility,
+      };
     }
+    finalTargetFile.visibility ??= 'private';
 
-    try {
-      // Use the appropriate Minio service based on visibility
-      const minioService = sourceFile.visibility === 'public' ? this.externalOss : this.internalOss;
+    // Check for related staticFile record for the source file
+    const sourceStaticFile = await this.prisma.staticFile.findFirst({
+      where: {
+        storageKey: sourceFile.storageKey,
+        deletedAt: null,
+      },
+    });
 
-      // Use the duplicateFile method from MinioService instead of copyObject
-      await minioService.duplicateFile(sourceFile.storageKey, targetFile.storageKey);
-
-      this.logger.log(
-        `Successfully duplicated file from ${sourceFile.storageKey} to ${targetFile.storageKey}`,
+    if (!sourceStaticFile) {
+      throw new NotFoundException(
+        `StaticFile record for source ${sourceFile.storageKey} not found`,
       );
-    } catch (error) {
-      this.logger.error(`Duplicate file failed: ${error?.stack}`);
-      throw error; // Re-throw the error to properly handle it upstream
     }
+
+    // Create new staticFile record for the target file
+    await this.prisma.staticFile.create({
+      data: {
+        uid: user.uid,
+        storageKey: finalTargetFile.storageKey,
+        storageSize: sourceStaticFile.storageSize,
+        contentType: sourceStaticFile.contentType,
+        entityId: targetEntityId,
+        entityType: targetEntityType,
+        visibility: sourceStaticFile.visibility,
+        processedImageKey: sourceStaticFile.processedImageKey,
+      },
+    });
+
+    // Use the appropriate Minio service based on visibility
+    const minioService = sourceFile.visibility === 'public' ? this.externalOss : this.internalOss;
+
+    // Use the duplicateFile method from MinioService instead of copyObject
+    await minioService.duplicateFile(sourceFile.storageKey, finalTargetFile.storageKey);
+
+    this.logger.log(
+      `Successfully duplicated file from ${sourceFile.storageKey} to ${finalTargetFile.storageKey}`,
+    );
+
+    return finalTargetFile;
   }
 
   /**
@@ -980,5 +1046,72 @@ export class MiscService implements OnModuleInit {
     }
 
     return updatedContent;
+  }
+
+  /**
+   * Get favicon for a domain with Redis caching
+   * @param domain - The domain to get favicon for
+   * @returns Buffer containing the favicon data and content type
+   */
+  async getFavicon(domain: string): Promise<{ data: Buffer; contentType: string }> {
+    // Validate domain parameter
+    if (!domain || typeof domain !== 'string') {
+      throw new ParamsError('Domain parameter is required and must be a string');
+    }
+
+    // Basic domain validation
+    const domainRegex = /^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    if (!domainRegex.test(domain)) {
+      throw new ParamsError('Invalid domain format');
+    }
+
+    const cacheKey = `favicon:${domain}`;
+    const CACHE_TTL = 24 * 60 * 60; // 24 hours in seconds
+
+    try {
+      // Try to get from cache first
+      const cachedFavicon = await this.redisService.get(cacheKey);
+      if (cachedFavicon) {
+        this.logger.log(`Returning cached favicon for domain: ${domain}`);
+        // Parse cached data (stored as base64 string)
+        const buffer = Buffer.from(cachedFavicon, 'base64');
+        return {
+          data: buffer,
+          contentType: 'image/x-icon', // Default content type for cached favicons
+        };
+      }
+
+      // Fetch from Google favicon service
+      const faviconUrl = `https://www.google.com/s2/favicons?domain=${encodeURIComponent(domain)}&sz=64`;
+      this.logger.log(`Fetching favicon from Google for domain: ${domain}`);
+
+      // Create AbortController for timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+
+      const response = await fetch(faviconUrl, {
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch favicon: ${response.status} ${response.statusText}`);
+      }
+
+      const arrayBuffer = await response.arrayBuffer();
+      const buffer = Buffer.from(arrayBuffer);
+      const contentType = response.headers.get('content-type') || 'image/x-icon';
+
+      // Cache the favicon data as base64
+      const base64Data = buffer.toString('base64');
+      await this.redisService.setex(cacheKey, CACHE_TTL, base64Data);
+
+      this.logger.log(`Successfully fetched and cached favicon for domain: ${domain}`);
+      return { data: buffer, contentType };
+    } catch (error) {
+      this.logger.error(`Failed to get favicon for domain ${domain}: ${error.stack}`);
+      throw new Error(`Unable to retrieve favicon for domain: ${domain}`);
+    }
   }
 }

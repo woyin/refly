@@ -26,6 +26,11 @@ export default () => ({
     username: process.env.REDIS_USERNAME,
     password: process.env.REDIS_PASSWORD,
   },
+  session: {
+    secret: process.env.SESSION_SECRET || 'refly-session-secret-key-change-in-production',
+    maxAge: Number.parseInt(process.env.SESSION_MAX_AGE) || 86400000, // 24 hours in milliseconds
+    cookieName: process.env.SESSION_COOKIE_NAME || 'refly.sid',
+  },
   objectStorage: {
     reclaimPolicy: process.env.OBJECT_STORAGE_RECLAIM_POLICY || 'retain', // 'retain' or 'delete'
     backend: process.env.OBJECT_STORAGE_BACKEND || 'minio',
@@ -70,6 +75,11 @@ export default () => ({
       password: process.env.ELASTICSEARCH_PASSWORD,
     },
   },
+  email: {
+    sender: process.env.EMAIL_SENDER || 'Refly <notifications@refly.ai>',
+    payloadMode: process.env.EMAIL_PAYLOAD_MODE || 'base64', // 'url' or 'base64'
+    resendApiKey: process.env.RESEND_API_KEY || 're_123',
+  },
   auth: {
     skipVerification: process.env.AUTH_SKIP_VERIFICATION === 'true' || false,
     redirectUrl: process.env.LOGIN_REDIRECT_URL,
@@ -88,8 +98,6 @@ export default () => ({
     },
     email: {
       enabled: process.env.EMAIL_AUTH_ENABLED === 'true' || true,
-      sender: process.env.EMAIL_SENDER || 'Refly <notifications@refly.ai>',
-      resendApiKey: process.env.RESEND_API_KEY || 're_123',
     },
     github: {
       enabled: process.env.GITHUB_AUTH_ENABLED === 'true' || false,
@@ -102,6 +110,30 @@ export default () => ({
       clientId: process.env.GOOGLE_CLIENT_ID || 'test',
       clientSecret: process.env.GOOGLE_CLIENT_SECRET || 'test',
       callbackUrl: process.env.GOOGLE_CALLBACK_URL || 'test',
+    },
+    twitter: {
+      enabled: process.env.TWITTER_AUTH_ENABLED === 'true' || false,
+      clientId: process.env.TWITTER_CLIENT_ID || 'test',
+      clientSecret: process.env.TWITTER_CLIENT_SECRET || 'test',
+      callbackUrl: process.env.TWITTER_CALLBACK_URL || 'test',
+      consumerKey: process.env.TWITTER_CONSUMER_KEY || 'test',
+      consumerSecret: process.env.TWITTER_CONSUMER_SECRET || 'test',
+      bearerToken: process.env.TWITTER_BEARER_TOKEN || 'test',
+    },
+    notion: {
+      enabled: process.env.NOTION_AUTH_ENABLED === 'true' || false,
+      clientId: process.env.NOTION_CLIENT_ID || 'test',
+      clientSecret: process.env.NOTION_CLIENT_SECRET || 'test',
+      callbackUrl: process.env.NOTION_CALLBACK_URL || 'test',
+      authorizationURL: process.env.NOTION_AUTHORIZATION_URL || 'test',
+    },
+  },
+  tools: {
+    supportedToolsets: process.env.SUPPORTED_TOOLSETS || '', // comma separated list of toolset keys
+    google: {
+      clientId: process.env.GOOGLE_TOOLS_CLIENT_ID,
+      clientSecret: process.env.GOOGLE_TOOLS_CLIENT_SECRET,
+      callbackUrl: process.env.GOOGLE_TOOLS_CALLBACK_URL,
     },
   },
   encryption: {

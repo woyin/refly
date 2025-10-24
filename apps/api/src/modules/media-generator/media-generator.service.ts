@@ -3,192 +3,441 @@ import {
   User,
   MediaGenerateRequest,
   MediaGenerateResponse,
-  CreditBilling,
+  EntityType,
+  CanvasNodeType,
+  CanvasNode,
 } from '@refly/openapi-schema';
-import {
-  ReplicateAudioGenerator,
-  ReplicateVideoGenerator,
-  ReplicateImageGenerator,
-  FalAudioGenerator,
-  FalVideoGenerator,
-  FalImageGenerator,
-  VolcesVideoGenerator,
-  VolcesImageGenerator,
-} from '@refly/providers';
-import { ModelUsageQuotaExceeded, ProviderItemNotFoundError } from '@refly/errors';
-import { InjectQueue } from '@nestjs/bullmq';
-import { Queue } from 'bullmq';
-import { QUEUE_SYNC_MEDIA_CREDIT_USAGE } from '../../utils/const';
-import { SyncMediaCreditUsageJobData } from '../subscription/subscription.dto';
+
 import { PrismaService } from '../common/prisma.service';
 import { MiscService } from '../misc/misc.service';
-import { CreditService } from '../credit/credit.service';
 import { ProviderService } from '../provider/provider.service';
-import { PromptProcessorService } from './prompt-processor.service';
-import { genActionResultID, pick } from '@refly/utils';
-
-// Define generator interface for type safety
-interface MediaGenerator {
-  generate(params: { model: string; prompt: string; apiKey: string }): Promise<{ output: string }>;
-}
-
-// Generator factory type
-type GeneratorFactory = () => MediaGenerator;
-
-// Generator mapping configuration
-type GeneratorConfig = {
-  [provider: string]: {
-    [mediaType: string]: GeneratorFactory;
-  };
-};
+import { ActionResultNotFoundError } from '@refly/errors';
+import { genActionResultID, genMediaID, safeParseJSON } from '@refly/utils';
+import { fal } from '@fal-ai/client';
+import Replicate from 'replicate';
+import { CanvasSyncService } from '../canvas-sync/canvas-sync.service';
+import { ActionResult } from '../../generated/client';
 
 @Injectable()
 export class MediaGeneratorService {
   private readonly logger = new Logger(MediaGeneratorService.name);
 
-  // Generator configuration mapping
-  private readonly generatorConfig: GeneratorConfig = {
-    replicate: {
-      audio: () => new ReplicateAudioGenerator(),
-      video: () => new ReplicateVideoGenerator(),
-      image: () => new ReplicateImageGenerator(),
-    },
-    fal: {
-      audio: () => new FalAudioGenerator(),
-      video: () => new FalVideoGenerator(),
-      image: () => new FalImageGenerator(),
-    },
-    volces: {
-      video: () => new VolcesVideoGenerator(),
-      image: () => new VolcesImageGenerator(),
-    },
+  // Timeout configurations for different media types (in milliseconds)
+  private readonly timeoutConfig = {
+    image: 5 * 60 * 1000, // 5 minutes for images
+    audio: 15 * 60 * 1000, // 15 minutes for audio
+    video: 15 * 60 * 1000, // 15 minutes for video
   };
+
+  // Polling interval (in milliseconds)
+  private readonly pollInterval = 2000; // 2 seconds
 
   constructor(
     private readonly prisma: PrismaService,
     private readonly miscService: MiscService,
-    private readonly credit: CreditService,
     private readonly providerService: ProviderService,
-    private readonly promptProcessor: PromptProcessorService,
-    @InjectQueue(QUEUE_SYNC_MEDIA_CREDIT_USAGE)
-    private readonly mediaCreditUsageReportQueue: Queue<SyncMediaCreditUsageJobData>,
+    private readonly canvasSyncService: CanvasSyncService,
   ) {}
 
   /**
-   * Start asynchronous media generation task
-   * @param user User Information
-   * @param request Media Generation Request
-   * @returns Response containing resultId
+   * Validate that the provided model and providerItemId are compatible with the requested media type
+   * @param user User information
+   * @param mediaType Media type (image, audio, video)
+   * @param model Model ID
+   * @param providerItemId Provider item ID
+   * @returns Validation result
    */
-  async generateMedia(user: User, request: MediaGenerateRequest): Promise<MediaGenerateResponse> {
+  private async validateMediaGenerationRequest(
+    user: User,
+    mediaType: string,
+    model: string,
+    providerItemId: string,
+  ): Promise<{ isValid: boolean; error?: string }> {
     try {
-      const resultId = genActionResultID();
+      // Get the provider item to validate
+      const providerItem = await this.providerService.findProviderItemById(user, providerItemId);
 
-      const { mediaType, model, prompt, targetType, targetId, providerItemId } = request;
+      if (!providerItem) {
+        return {
+          isValid: false,
+          error: `Provider item ${providerItemId} not found`,
+        };
+      }
 
-      // Creating an ActionResult Record
-      await this.prisma.actionResult.create({
-        data: {
-          resultId,
-          uid: user.uid,
-          type: 'media',
-          title: `${mediaType} generation: ${prompt.substring(0, 50)}...`,
-          modelName: model,
-          targetType,
-          targetId,
-          providerItemId,
-          status: 'waiting',
-          input: JSON.stringify(request),
-          version: 0,
-        },
-      });
+      // Check if the provider item supports the requested media type
+      try {
+        const config: any = JSON.parse(providerItem.config || '{}');
+        const capabilities = config.capabilities || {};
 
-      // Perform media generation asynchronously
-      this.executeMediaGeneration(user, resultId, request).catch((error) => {
-        this.logger.error(`Media generation failed for ${resultId}:`, error);
-      });
+        if (!capabilities[mediaType]) {
+          return {
+            isValid: false,
+            error: `Provider item ${providerItem.itemId} does not support ${mediaType} generation`,
+          };
+        }
 
-      return {
-        success: true,
-        resultId,
-      };
+        // Check if the model ID matches
+        if (config.modelId !== model) {
+          return {
+            isValid: false,
+            error: `Model ID mismatch: requested ${model}, but provider item has ${config.modelId}`,
+          };
+        }
+
+        return { isValid: true };
+      } catch (parseError) {
+        return {
+          isValid: false,
+          error: `Invalid provider item configuration: ${parseError instanceof Error ? parseError.message : 'Unknown error'}`,
+        };
+      }
     } catch (error) {
-      this.logger.error('Media generation initialization failed:', error);
       return {
-        success: false,
+        isValid: false,
+        error: `Validation failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
       };
     }
   }
 
   /**
-   * Execute media generation tasks
-   * @param resultId Result ID
-   * @param request Media Generation Request
+   * Get user's default media generation model configuration
+   * @param user User information
+   * @param mediaType Media type (image, audio, video)
+   * @returns Default model configuration or null if not configured
    */
-  private async executeMediaGeneration(
+  private async getUserDefaultMediaModel(
     user: User,
-    resultId: string,
+    mediaType: string,
+  ): Promise<{ model: string; providerItemId: string } | null> {
+    try {
+      // Get user's configured media generation settings
+      const userMediaConfig = await this.providerService.getUserMediaConfig(
+        user,
+        mediaType as 'image' | 'audio' | 'video',
+      );
+
+      if (!userMediaConfig) {
+        this.logger.warn(
+          `No media generation model configured for ${mediaType} for user ${user.uid}`,
+        );
+        return null;
+      }
+
+      this.logger.log(
+        `Using user's default ${mediaType} model: ${userMediaConfig.model} from provider: ${userMediaConfig.provider}`,
+      );
+
+      return {
+        model: userMediaConfig.model,
+        providerItemId: userMediaConfig.providerItemId,
+      };
+    } catch (error) {
+      this.logger.warn(
+        `Failed to get user's default media model for ${mediaType}: ${error?.message || error}`,
+      );
+      return null;
+    }
+  }
+
+  private async doGenerate(
+    user: User,
     request: MediaGenerateRequest,
-  ): Promise<void> {
-    let result: { output: string };
-    const { providerItemId, prompt } = request;
+    mediaId?: string,
+  ): Promise<MediaGenerateResponse> {
+    const { mediaType, model, prompt, providerItemId, wait, targetType, targetId, parentResultId } =
+      request;
+
+    // If no model or providerItemId is specified, try to get user's default configuration
+    let finalModel = model;
+    let finalProviderItemId = providerItemId;
+
+    if (!finalModel) {
+      this.logger.log(
+        `No model or providerItemId specified for ${mediaType} generation, using user's default configuration`,
+      );
+      const defaultConfig = await this.getUserDefaultMediaModel(user, mediaType);
+      if (defaultConfig) {
+        finalModel = defaultConfig.model;
+        finalProviderItemId = defaultConfig.providerItemId;
+        this.logger.log(
+          `Using default ${mediaType} model: ${finalModel} with providerItemId: ${finalProviderItemId}`,
+        );
+      } else {
+        this.logger.warn(`No default ${mediaType} model configured for user ${user.uid}`);
+        return {
+          success: false,
+          errMsg: `No media generation model configured for ${mediaType}. Please configure a model first using the settings.`,
+        };
+      }
+    } else {
+      this.logger.log(
+        `Using specified ${mediaType} model: ${finalModel} with providerItemId: ${finalProviderItemId}`,
+      );
+    }
+
+    const resultId = request.resultId || genActionResultID();
+
+    // Creating an ActionResult Record
+    const result = await this.prisma.actionResult.create({
+      data: {
+        resultId,
+        uid: user.uid,
+        type: 'media',
+        title: prompt,
+        modelName: finalModel,
+        targetType,
+        targetId,
+        providerItemId: finalProviderItemId,
+        status: 'waiting',
+        input: JSON.stringify({
+          ...request,
+          model: finalModel,
+          providerItemId: finalProviderItemId,
+        }),
+        version: 0,
+        parentResultId,
+      },
+    });
+
+    // Create the final request with resolved model and providerItemId
+    const finalRequest: MediaGenerateRequest = {
+      ...request,
+      model: finalModel,
+      providerItemId: finalProviderItemId,
+    };
+
+    // Start media generation asynchronously and capture promise for optional return
+    const mediaGeneratePromise = this.executeGenerate(user, result, finalRequest, mediaId).catch(
+      (error) => {
+        this.logger.error(`Media generation failed for ${resultId}:`, error);
+        return null;
+      },
+    );
+
+    // If wait is true, execute synchronously and return result
+    if (wait) {
+      // Poll for completion
+      const result = await this.pollActionResult(resultId, mediaType);
+      const mediaGenerateResult = await mediaGeneratePromise;
+
+      return {
+        success: true,
+        resultId,
+        outputUrl: result.outputUrl,
+        storageKey: result.storageKey,
+        originalResult: mediaGenerateResult?.originalResult,
+      };
+    }
+
+    return {
+      success: true,
+      resultId,
+    };
+  }
+
+  /**
+   * Start asynchronous media generation task
+   * @param user User Information
+   * @param request Media Generation Request
+   * @returns Response containing resultId or completed result if wait is true
+   */
+  async generate(user: User, request: MediaGenerateRequest): Promise<MediaGenerateResponse> {
+    const { mediaType, prompt, parentResultId } = request;
+    let mediaId: string | undefined = undefined;
+
+    // Store workflow node execution to update status at the end
+    let nodeExecutionToUpdate: { nodeExecutionId: string; nodeData: CanvasNode } | null = null;
+
+    // Check if this media generation is part of a workflow node execution
+    if (parentResultId) {
+      const parentResult = await this.prisma.actionResult.findFirst({
+        select: {
+          targetId: true,
+          targetType: true,
+          workflowNodeExecutionId: true,
+        },
+        where: { resultId: parentResultId },
+        orderBy: { version: 'desc' },
+      });
+
+      if (!parentResult) {
+        throw new ActionResultNotFoundError(`Action result ${parentResultId} not found`);
+      }
+
+      if (!request.targetId || !request.targetType) {
+        request.targetId = parentResult.targetId;
+        request.targetType = parentResult.targetType as EntityType;
+      }
+
+      if (parentResult.workflowNodeExecutionId) {
+        const nodeExecution = await this.prisma.workflowNodeExecution.findUnique({
+          where: {
+            nodeExecutionId: parentResult.workflowNodeExecutionId,
+          },
+        });
+        if (nodeExecution?.childNodeIds) {
+          const childNodeIds = safeParseJSON(nodeExecution.childNodeIds) as string[];
+          const mediaNodeExecution = await this.prisma.workflowNodeExecution.findFirst({
+            where: {
+              nodeId: { in: childNodeIds },
+              status: 'waiting',
+              nodeType: mediaType as CanvasNodeType,
+              executionId: nodeExecution.executionId,
+            },
+            orderBy: {
+              createdAt: 'asc',
+            },
+          });
+          if (mediaNodeExecution?.entityId) {
+            mediaId = mediaNodeExecution.entityId;
+
+            const nodeData: CanvasNode = safeParseJSON(mediaNodeExecution.nodeData);
+            nodeExecutionToUpdate = {
+              nodeExecutionId: mediaNodeExecution.nodeExecutionId,
+              nodeData,
+            };
+          }
+        }
+      }
+    }
 
     try {
-      // ===== Language Processing: Detect and translate prompt =====
-      const promptProcessingResult = await this.promptProcessor.processPrompt(prompt);
+      const result = await this.doGenerate(user, request, mediaId);
 
-      // Update status to Executing with language processing info
+      // Update workflow node execution status to finish if exists
+      if (nodeExecutionToUpdate && result.success && result.outputUrl && result.storageKey) {
+        await this.prisma.workflowNodeExecution.update({
+          where: {
+            nodeExecutionId: nodeExecutionToUpdate.nodeExecutionId,
+          },
+          data: {
+            title: prompt,
+            entityId: nodeExecutionToUpdate.nodeData.data?.entityId || '',
+            status: 'finish',
+            nodeData: JSON.stringify({
+              ...nodeExecutionToUpdate.nodeData,
+              data: {
+                ...nodeExecutionToUpdate.nodeData.data,
+                title: prompt,
+                entityId: nodeExecutionToUpdate.nodeData.data?.entityId || '',
+                metadata: {
+                  ...nodeExecutionToUpdate.nodeData.data?.metadata,
+                  [`${mediaType}Url`]: result.outputUrl,
+                  [`${mediaType}StorageKey`]: result.storageKey,
+                },
+              },
+            }),
+          },
+        });
+      }
+
+      return result;
+    } catch (error) {
+      // Update workflow node execution status to failed if exists
+      if (nodeExecutionToUpdate) {
+        try {
+          await this.prisma.workflowNodeExecution.update({
+            where: {
+              nodeExecutionId: nodeExecutionToUpdate.nodeExecutionId,
+            },
+            data: {
+              status: 'failed',
+            },
+          });
+        } catch (updateError) {
+          this.logger.error(
+            `Failed to update workflow node execution status to failed: ${updateError.message}`,
+          );
+        }
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Execute synchronous media generation tasks
+   * @param user User Information
+   * @param result ActionResult record
+   * @param request Media Generation Request
+   */
+  private async executeGenerate(
+    user: User,
+    result: ActionResult,
+    request: MediaGenerateRequest,
+    mediaId?: string,
+  ): Promise<MediaGenerateResponse> {
+    const { mediaType, provider } = request;
+    const { pk, resultId, parentResultId, title, targetType, targetId } = result;
+    try {
+      // Update status to executing
       await this.prisma.actionResult.update({
-        where: { resultId_version: { resultId, version: 0 } },
+        where: { pk },
         data: {
           status: 'executing',
-          // Store language processing info while keeping original request intact
-          input: JSON.stringify({
-            ...pick(request, ['mediaType', 'model', 'prompt']), // Keep original request fields unchanged (prompt = original user input)
-            // Add new fields for language processing
-            englishPrompt: promptProcessingResult.translatedPrompt, // English version for generation
-            detectedLanguage: promptProcessingResult.detectedLanguage,
-            isTranslated: promptProcessingResult.isTranslated,
-          }),
         },
       });
 
-      const providerItem = await this.providerService.findProviderItemById(user, providerItemId);
+      const mediaProvider = await this.providerService.findProvider(user, {
+        enabled: true,
+        isGlobal: true,
+        category: 'mediaGeneration',
+        providerKey: provider,
+      });
 
-      if (!providerItem) {
-        throw new ProviderItemNotFoundError(`provider item ${providerItemId} not found`);
+      const input = request.input;
+
+      this.logger.log(`input: ${JSON.stringify(input)}`);
+
+      let url = '';
+
+      // Generate media based on provider type
+      const providerKey = provider;
+
+      let originalResult = null;
+
+      if (providerKey === 'replicate') {
+        // Use Replicate provider
+        const replicate = new Replicate({
+          auth: mediaProvider?.apiKey ?? '',
+        });
+
+        const output = await replicate.run(
+          request.model as `${string}/${string}` | `${string}/${string}:${string}`,
+          { input },
+        );
+
+        url = this.getUrlFromReplicateOutput(output);
+      } else if (providerKey === 'fal') {
+        // Use Fal provider
+        fal.config({
+          credentials: mediaProvider?.apiKey,
+        });
+
+        originalResult = await fal.subscribe(request.model, {
+          input: input,
+          logs: false,
+          onQueueUpdate: (update) => {
+            if (update.status === 'IN_PROGRESS') {
+              update.logs?.map((log) => log.message).forEach(console.log);
+            }
+          },
+        });
+
+        url = this.getUrlFromFalResult(originalResult);
+      } else {
+        throw new Error(`Unsupported provider: ${providerKey}`);
       }
-
-      const creditBilling: CreditBilling = providerItem?.creditBilling
-        ? JSON.parse(providerItem?.creditBilling)
-        : undefined;
-
-      if (creditBilling) {
-        const creditUsageResult = await this.credit.checkRequestCreditUsage(user, creditBilling);
-        this.logger.log('creditUsageResult', creditUsageResult);
-        if (!creditUsageResult.canUse) {
-          throw new ModelUsageQuotaExceeded(`credit not available: ${creditUsageResult.message}`);
-        }
-      }
-
-      // Create request with translated prompt for third-party service
-      const translatedRequest: MediaGenerateRequest = {
-        ...request,
-        prompt: promptProcessingResult.translatedPrompt, // Use English prompt for generation
-      };
-
-      result = await this.generateWithProvider(translatedRequest, providerItem.provider);
 
       const uploadResult = await this.miscService.dumpFileFromURL(user, {
-        url: result.output,
+        url: url,
         entityId: resultId,
         entityType: 'mediaResult',
         visibility: 'private',
       });
 
-      // The update status is completed, saving the storage information inside the system
+      // Update status to completed, saving the storage information inside the system
       await this.prisma.actionResult.update({
-        where: { resultId_version: { resultId, version: 0 } },
+        where: { pk },
         data: {
           status: 'finish',
           outputUrl: uploadResult.url, // Using system internal URL
@@ -196,28 +445,48 @@ export class MediaGeneratorService {
         },
       });
 
-      if (this.mediaCreditUsageReportQueue && creditBilling) {
-        const basicUsageData = {
-          uid: user.uid,
-          resultId,
-        };
-        const mediaCreditUsage: SyncMediaCreditUsageJobData = {
-          ...basicUsageData,
-          creditBilling,
-          timestamp: new Date(),
-        };
-
-        await this.mediaCreditUsageReportQueue.add(
-          `media_credit_usage_report:${resultId}`,
-          mediaCreditUsage,
+      if (parentResultId && targetType === 'canvas' && targetId) {
+        const entityId = mediaId || genMediaID(mediaType);
+        await this.canvasSyncService.addNodeToCanvas(
+          user,
+          targetId,
+          {
+            type: mediaType,
+            data: {
+              title,
+              entityId,
+              metadata: {
+                resultId,
+                storageKey: uploadResult.storageKey,
+                [`${mediaType}Url`]: uploadResult.url,
+                modelInfo: {
+                  name: request.model,
+                  label: request.model,
+                  provider: provider,
+                  providerItemId: request.providerItemId,
+                },
+                parentResultId,
+              },
+            },
+          },
+          [{ type: 'skillResponse', entityId: parentResultId }],
+          { autoLayout: true },
         );
       }
+
+      return {
+        success: true,
+        resultId,
+        outputUrl: uploadResult.url,
+        storageKey: uploadResult.storageKey,
+        originalResult: originalResult,
+      };
     } catch (error) {
       this.logger.error(`Media generation failed for ${resultId}: ${error.stack}`);
 
       // Update status to failed
       await this.prisma.actionResult.update({
-        where: { resultId_version: { resultId, version: 0 } },
+        where: { pk },
         data: {
           status: 'failed',
           errors: JSON.stringify([error instanceof Error ? error.message : 'Unknown error']),
@@ -226,38 +495,246 @@ export class MediaGeneratorService {
     }
   }
 
-  /**
-   * Generate media using the appropriate provider and media type
-   * @param request Media generation request
-   * @param apiKey API key for the provider
-   * @returns Generated media output
-   */
-  private async generateWithProvider(
-    request: MediaGenerateRequest,
-    provider: { apiKey: string; providerKey: string },
-  ): Promise<{ output: string }> {
-    const { mediaType, model, prompt } = request;
-    const { apiKey, providerKey } = provider;
-
-    // Get the generator factory from configuration
-    const providerConfig = this.generatorConfig[providerKey];
-    if (!providerConfig) {
-      throw new Error(
-        `Unsupported provider for media generation: ${providerKey}, provider item id: ${request.providerItemId}`,
-      );
+  private getUrlFromReplicateOutput(output: any): string {
+    // Check for model_file property
+    if (output?.model_file ?? false) {
+      return output.model_file;
     }
-
-    const generatorFactory = providerConfig[mediaType];
-    if (!generatorFactory) {
-      throw new Error(`Unsupported media type '${mediaType}' for provider '${providerKey}'`);
+    // Check for wav property
+    if (output?.wav ?? false) {
+      return output.wav;
     }
+    // Check for mesh_paint property
+    if (output?.mesh_paint ?? false) {
+      return output.mesh_paint;
+    }
+    // Check if output is an array and return the first element if exists
+    if (Array.isArray(output) && output?.[0] !== undefined) {
+      return output[0];
+    }
+    // Fallback: return output as string (or empty string if undefined)
+    return output ?? '';
+  }
 
-    // Create generator instance and generate media
-    const generator = generatorFactory();
-    return await generator.generate({
-      model,
-      prompt,
-      apiKey,
+  private async getFromReplicate(
+    model: string,
+    input: Record<string, any>,
+    apiKey: string,
+  ): Promise<any> {
+    const url = 'https://api.replicate.com/v1/predictions';
+
+    const headers = {
+      Authorization: `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+      Prefer: 'wait',
+    };
+
+    const data = {
+      version: model,
+      input: input,
+    };
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(data),
     });
+
+    if (!response.ok) {
+      throw new Error(`Failed to submit request: ${response.status} ${response.statusText}`);
+    }
+
+    return response.json();
+  }
+  private async pollFromFal(
+    model: string,
+    baseModel: string,
+    input: Record<string, any>,
+    apiKey: string,
+  ): Promise<any> {
+    const url = `https://queue.fal.run/${model}`;
+
+    const headers = {
+      Authorization: `Key ${apiKey}`,
+      'Content-Type': 'application/json',
+    };
+
+    try {
+      // Submit the initial request
+      const response = await fetch(url, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(input),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to submit request: ${response.status} ${response.statusText}`);
+      }
+
+      const responseData = await response.json();
+      const requestId = responseData.request_id;
+
+      if (!requestId) {
+        throw new Error('No request ID received from fal');
+      }
+
+      // Poll for completion
+      const statusUrl = `https://queue.fal.run/${baseModel}/requests/${requestId}/status`;
+      const responseUrl = `https://queue.fal.run/${baseModel}/requests/${requestId}`;
+
+      let status = responseData.status;
+      const maxAttempts = 60; // 5 minutes with 5-second intervals
+      let attempts = 0;
+
+      while (status !== 'COMPLETED' && status !== 'FAILED' && attempts < maxAttempts) {
+        await new Promise((resolve) => setTimeout(resolve, 5000));
+        attempts++;
+
+        const pollResponse = await fetch(statusUrl, {
+          method: 'GET',
+          headers: {
+            Authorization: `Key ${apiKey}`,
+          },
+        });
+
+        if (!pollResponse.ok) {
+          throw new Error(
+            `Failed to poll status: ${pollResponse.status} ${pollResponse.statusText}`,
+          );
+        }
+
+        const statusData = await pollResponse.json();
+        status = statusData.status;
+
+        if (status === 'FAILED') {
+          throw new Error(`Request failed: ${statusData.error || 'Unknown error'}`);
+        }
+      }
+
+      if (status !== 'COMPLETED') {
+        throw new Error('Request timed out');
+      }
+
+      // Get the final result
+      const finalResponse = await fetch(responseUrl, {
+        method: 'GET',
+        headers: {
+          Authorization: `Key ${apiKey}`,
+        },
+      });
+
+      if (!finalResponse.ok) {
+        throw new Error(
+          `Failed to get result: ${finalResponse.status} ${finalResponse.statusText}`,
+        );
+      }
+
+      return await finalResponse.json();
+    } catch (error) {
+      this.logger.error(
+        `Error generating media with fal: ${error instanceof Error ? error.stack : error}`,
+      );
+      throw error;
+    }
+  }
+
+  async getFromFal(model: string, input: Record<string, any>, apiKey: string): Promise<any> {
+    const url = `https://queue.fal.run/${model}`;
+
+    const headers = {
+      Authorization: `Key ${apiKey}`,
+      'Content-Type': 'application/json',
+    };
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(input),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to submit request: ${response.status} ${response.statusText}`);
+    }
+
+    return response.json();
+  }
+
+  private getUrlFromFalResult(result: any): string {
+    if (result?.data?.audio?.url) return result.data.audio.url;
+    if (result?.data?.video?.url) return result.data.video.url;
+    if (result?.data?.image?.url) return result.data.image.url;
+    if (result?.data?.model_glb?.url) return result.data.model_glb.url;
+    if (result?.data?.model_mesh?.url) return result.data.model_mesh.url;
+
+    if (result?.data?.audios?.[0]?.url) return result.data.audios[0].url;
+    if (result?.data?.videos?.[0]?.url) return result.data.videos[0].url;
+    if (result?.data?.images?.[0]?.url) return result.data.images[0].url;
+
+    return '';
+  }
+
+  /**
+   * Helper method to sleep for a given duration
+   */
+  private sleep(ms: number): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+  }
+
+  /**
+   * Poll for action result completion with timeout
+   * @param resultId Result ID to poll
+   * @param mediaType Media type for timeout calculation
+   * @returns Action result when completed
+   */
+  private async pollActionResult(
+    resultId: string,
+    mediaType: string,
+  ): Promise<{ outputUrl: string; storageKey: string }> {
+    const timeout =
+      this.timeoutConfig[mediaType as keyof typeof this.timeoutConfig] ?? this.timeoutConfig.image;
+    const startTime = Date.now();
+
+    this.logger.log(`Starting polling for ${mediaType} generation, timeout: ${timeout}ms`);
+
+    while (Date.now() - startTime < timeout) {
+      // Wait for polling interval
+      await this.sleep(this.pollInterval);
+
+      // Check status
+      const actionResult = await this.prisma.actionResult.findFirst({
+        where: { resultId },
+        orderBy: { version: 'desc' },
+      });
+
+      if (!actionResult) {
+        throw new Error(`ActionResult not found for resultId: ${resultId}`);
+      }
+
+      // Check if completed
+      if (actionResult.status === 'finish') {
+        if (!actionResult.outputUrl || !actionResult.storageKey) {
+          throw new Error('Media generation completed but output data is missing');
+        }
+
+        this.logger.log(`Media generation completed for ${resultId}`);
+        return {
+          outputUrl: actionResult.outputUrl,
+          storageKey: actionResult.storageKey,
+        };
+      }
+
+      // Check if failed
+      if (actionResult.status === 'failed') {
+        const errors = actionResult.errors ? JSON.parse(actionResult.errors) : [];
+        const errorMessage = Array.isArray(errors) ? errors.join(', ') : String(errors);
+        throw new Error(`Media generation failed: ${errorMessage}`);
+      }
+
+      // Continue polling if still executing or waiting
+      this.logger.debug(`Media generation status for ${resultId}: ${actionResult.status}`);
+    }
+
+    // Timeout reached
+    throw new Error(`Media generation timeout after ${timeout / 1000}s`);
   }
 }

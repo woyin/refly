@@ -7,6 +7,9 @@ import {
   Query,
   DefaultValuePipe,
   ParseIntPipe,
+  UseInterceptors,
+  UploadedFile,
+  BadRequestException,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guard/jwt-auth.guard';
 import { CanvasService } from './canvas.service';
@@ -27,8 +30,15 @@ import {
   CreateCanvasVersionRequest,
   CreateCanvasVersionResponse,
   SetCanvasStateRequest,
+  ImportCanvasRequest,
+  ExportCanvasResponse,
+  WorkflowVariable,
+  GetCanvasDataResponse,
+  ListOrder,
+  ListCanvasResponse,
 } from '@refly/openapi-schema';
-import { CanvasSyncService } from './canvas-sync.service';
+import { CanvasSyncService } from '../canvas-sync/canvas-sync.service';
+import { FileInterceptor } from '@nestjs/platform-express';
 
 @Controller('v1/canvas')
 export class CanvasController {
@@ -44,8 +54,16 @@ export class CanvasController {
     @Query('projectId') projectId: string,
     @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
     @Query('pageSize', new DefaultValuePipe(10), ParseIntPipe) pageSize: number,
-  ) {
-    const canvases = await this.canvasService.listCanvases(user, { page, pageSize, projectId });
+    @Query('order', new DefaultValuePipe('updationDesc')) order: ListOrder,
+    @Query('keyword') keyword: string,
+  ): Promise<ListCanvasResponse> {
+    const canvases = await this.canvasService.listCanvases(user, {
+      page,
+      pageSize,
+      projectId,
+      order,
+      keyword,
+    });
     return buildSuccessResponse(canvases.map(canvasPO2DTO));
   }
 
@@ -58,7 +76,10 @@ export class CanvasController {
 
   @UseGuards(JwtAuthGuard)
   @Get('data')
-  async getCanvasData(@LoginedUser() user: User, @Query('canvasId') canvasId: string) {
+  async getCanvasData(
+    @LoginedUser() user: User,
+    @Query('canvasId') canvasId: string,
+  ): Promise<GetCanvasDataResponse> {
     const data = await this.canvasService.getCanvasRawData(user, canvasId);
     return buildSuccessResponse(data);
   }
@@ -89,6 +110,41 @@ export class CanvasController {
   async deleteCanvas(@LoginedUser() user: User, @Body() body: DeleteCanvasRequest) {
     await this.canvasService.deleteCanvas(user, body);
     return buildSuccessResponse({});
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @UseInterceptors(
+    FileInterceptor('file', {
+      limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
+      fileFilter: (_req, file, cb) => {
+        if (file.mimetype !== 'application/json') {
+          return cb(new BadRequestException('Only JSON files are allowed'), false);
+        }
+        cb(null, true);
+      },
+    }),
+  )
+  @Post('import')
+  async importCanvas(
+    @LoginedUser() user: User,
+    @UploadedFile() file: Express.Multer.File,
+    @Body() body: ImportCanvasRequest,
+  ) {
+    const canvas = await this.canvasService.importCanvas(user, {
+      file: file.buffer,
+      canvasId: body.canvasId,
+    });
+    return buildSuccessResponse(canvasPO2DTO(canvas));
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('export')
+  async exportCanvas(
+    @LoginedUser() user: User,
+    @Query('canvasId') canvasId: string,
+  ): Promise<ExportCanvasResponse> {
+    const downloadUrl = await this.canvasService.exportCanvas(user, canvasId);
+    return buildSuccessResponse({ downloadUrl });
   }
 
   @UseGuards(JwtAuthGuard)
@@ -156,5 +212,22 @@ export class CanvasController {
   ): Promise<CreateCanvasVersionResponse> {
     const result = await this.canvasSyncService.createCanvasVersion(user, body);
     return buildSuccessResponse(result);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('workflow/variables')
+  async getWorkflowVariables(@LoginedUser() user: User, @Query('canvasId') canvasId: string) {
+    const variables = await this.canvasService.getWorkflowVariables(user, { canvasId });
+    return buildSuccessResponse(variables);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('workflow/variables')
+  async updateWorkflowVariables(
+    @LoginedUser() user: User,
+    @Body() body: { canvasId: string; variables: WorkflowVariable[] },
+  ) {
+    const variables = await this.canvasService.updateWorkflowVariables(user, body);
+    return buildSuccessResponse(variables);
   }
 }

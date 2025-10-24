@@ -50,7 +50,6 @@ export {
   useQuickSearchStateStore,
   useQuickSearchStateStoreShallow,
 } from './stores/quick-search-state';
-export { useReferencesStore, useReferencesStoreShallow } from './stores/references';
 export { useSearchStateStore, useSearchStateStoreShallow } from './stores/search-state';
 export { useSearchStore, useSearchStoreShallow } from './stores/search';
 export { useSiderStore, useSiderStoreShallow } from './stores/sider';
@@ -67,7 +66,13 @@ export {
   useMultilingualSearchStoreShallow,
 } from './stores/multilingual-search';
 export { useThemeStore, useThemeStoreShallow } from './stores/theme';
+export { useToolStore, useToolStoreShallow } from './stores/tool';
 export { type LocalSettings, useUserStore, useUserStoreShallow } from './stores/user';
+export {
+  useImageUploadStore,
+  useImageUploadStoreShallow,
+  type UploadProgress,
+} from './stores/image-upload';
 export {
   createAutoEvictionStorage,
   AutoEvictionStorageManager,

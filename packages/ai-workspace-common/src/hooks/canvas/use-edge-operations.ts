@@ -10,14 +10,14 @@ import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/ca
 export const useEdgeOperations = () => {
   const { getState, setState } = useStoreApi<CanvasNode<any>>();
   const edgeStyles = useEdgeStyles();
-  const { syncCanvasData } = useCanvasContext();
+  const { forceSyncState } = useCanvasContext();
 
   const updateEdgesWithSync = useCallback(
     (edges: Edge[]) => {
       setState({ edges });
-      syncCanvasData();
+      forceSyncState();
     },
-    [setState, syncCanvasData],
+    [setState, forceSyncState],
   );
 
   const onEdgesChange = useCallback(

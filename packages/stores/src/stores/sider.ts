@@ -1,16 +1,7 @@
 import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
 import { useShallow } from 'zustand/react/shallow';
-import { SourceObject } from '../types/common';
-
-export interface SiderData {
-  id: string;
-  name: string;
-  updatedAt: string;
-  type: 'canvas' | 'document' | 'resource' | 'project';
-  description?: string;
-  coverUrl?: string;
-}
+import { SourceObject, SiderData } from '../types/common';
 
 export enum SettingsModalActiveTab {
   Language = 'language',
@@ -20,7 +11,7 @@ export enum SettingsModalActiveTab {
   ModelConfig = 'modelConfig',
   ParserConfig = 'parserConfig',
   DefaultModel = 'defaultModel',
-  McpServer = 'mcpServer',
+  ToolsConfig = 'toolsConfig',
   Appearance = 'appearance',
 }
 

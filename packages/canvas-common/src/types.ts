@@ -6,8 +6,10 @@ import {
   Artifact,
   CanvasNodeType,
   CodeArtifactType,
+  GenericToolset,
   IndexError,
   IndexStatus,
+  MediaModelParameter,
   MediaType,
   ModelInfo,
   ProviderItem,
@@ -22,6 +24,7 @@ import { IContextItem } from '@refly/common-types';
 
 export type CanvasNodeData<T = Record<string, unknown>> = {
   title: string;
+  editedTitle?: string; // manually edited title
   entityId: string;
   createdAt?: string;
   contentPreview?: string;
@@ -53,6 +56,7 @@ export interface DocumentNodeMeta {
   style?: React.CSSProperties;
   originalWidth?: number;
   shareId?: string;
+  parentResultId?: string;
 }
 
 export interface ResourceNodeMeta {
@@ -79,6 +83,7 @@ export interface CodeArtifactNodeMeta {
   originalWidth?: number;
   activeTab?: 'code' | 'preview';
   code?: string; // @deprecated
+  parentResultId?: string;
 }
 
 export type SkillNodeMeta = {
@@ -86,6 +91,7 @@ export type SkillNodeMeta = {
   resultId?: string;
   version?: number;
   selectedSkill?: Skill;
+  selectedToolsets?: GenericToolset[];
   modelInfo?: ModelInfo | null;
   contextItems?: IContextItem[];
   tplConfig?: SkillTemplateConfig;
@@ -94,6 +100,7 @@ export type SkillNodeMeta = {
   style?: React.CSSProperties;
   originalWidth?: number;
   projectId?: string;
+  structuredData?: Record<string, unknown>;
 };
 
 export type MediaSkillNodeMeta = {
@@ -113,9 +120,12 @@ export type MediaSkillNodeMeta = {
 export type MediaSkillResponseNodeMeta = {
   prompt: string;
   status: ActionStatus;
+  contextItems?: IContextItem[];
   mediaType?: MediaType;
   resultId?: string;
   selectedModel?: ProviderItem | null;
+  modelInfo?: ModelInfo;
+  inputParameters?: MediaModelParameter[];
 };
 
 export type ToolNodeMeta = {
@@ -136,6 +146,7 @@ export type ResponseNodeMeta = {
   errors?: string[];
   structuredData?: Record<string, unknown>;
   selectedSkill?: Skill;
+  selectedToolsets?: GenericToolset[];
   contextItems?: IContextItem[];
   tplConfig?: SkillTemplateConfig;
   runtimeConfig?: SkillRuntimeConfig;
@@ -159,6 +170,9 @@ export type ImageNodeMeta = {
   sizeMode?: 'compact' | 'adaptive';
   style?: React.CSSProperties;
   originalWidth?: number;
+  contextItems?: IContextItem[];
+  modelInfo?: ModelInfo;
+  parentResultId?: string;
 };
 
 // Website node metadata

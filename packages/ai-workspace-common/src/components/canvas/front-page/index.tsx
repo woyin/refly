@@ -1,256 +1,173 @@
 import { memo, useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Skill } from '@refly/openapi-schema';
-import { ChatInput } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/chat-input';
-import { useCreateCanvas } from '@refly-packages/ai-workspace-common/hooks/canvas/use-create-canvas';
-import { useFrontPageStoreShallow } from '@refly/stores';
-import { SkillDisplay } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/skill-display';
-import {
-  getSkillIcon,
-  IconRight,
-} from '@refly-packages/ai-workspace-common/components/common/icon';
-import { Form, Button } from 'antd';
-import { ConfigManager } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/config-manager';
-import { Actions } from './action';
-import { useChatStoreShallow } from '@refly/stores';
+import { Button } from 'antd';
 import { TemplateList } from '@refly-packages/ai-workspace-common/components/canvas-template/template-list';
 import { canvasTemplateEnabled } from '@refly/ui-kit';
-import { useCanvasTemplateModalShallow } from '@refly/stores';
-import { Title } from './title';
-import { useAbortAction } from '@refly-packages/ai-workspace-common/hooks/canvas/use-abort-action';
+import { useSiderStoreShallow } from '@refly/stores';
 import cn from 'classnames';
-import { MediaChatInput } from '@refly-packages/ai-workspace-common/components/canvas/nodes/media/media-input';
-import { logEvent } from '@refly/telemetry-web';
+import { DocAdd, ArrowRight } from 'refly-icons';
+import { RecentWorkflow } from './recent-workflow';
+import { useListCanvasTemplateCategories } from '@refly-packages/ai-workspace-common/queries/queries';
+import { useCreateCanvas } from '@refly-packages/ai-workspace-common/hooks/canvas/use-create-canvas';
+import { useNavigate } from 'react-router-dom';
+import { Helmet } from 'react-helmet';
+import { useHandleSiderData } from '@refly-packages/ai-workspace-common/hooks/use-handle-sider-data';
 
-export const FrontPage = memo(({ projectId }: { projectId: string | null }) => {
+const ModuleContainer = ({
+  title,
+  children,
+  className,
+  handleTitleClick,
+}: {
+  title: string;
+  children?: React.ReactNode;
+  className?: string;
+  handleTitleClick?: () => void;
+}) => {
+  return (
+    <div className={cn('flex flex-col gap-4 mb-10', className)}>
+      <div className="text-[18px] leading-7 font-semibold text-refly-text-1 flex items-center gap-2 justify-between">
+        {title}
+        {handleTitleClick && (
+          <Button className="!h-8 !w-8 p-0" type="text" size="small" onClick={handleTitleClick}>
+            <ArrowRight size={20} />
+          </Button>
+        )}
+      </div>
+      {children}
+    </div>
+  );
+};
+
+export const FrontPage = memo(() => {
   const { t, i18n } = useTranslation();
-  const [form] = Form.useForm();
-  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
-  const [isExecuting, setIsExecuting] = useState<boolean>(false);
+  const navigate = useNavigate();
+  const { getCanvasList } = useHandleSiderData();
+
+  const { canvasList } = useSiderStoreShallow((state) => ({
+    canvasList: state.canvasList,
+  }));
+  const canvases = canvasList?.slice(0, 4);
+
+  const { debouncedCreateCanvas, isCreating: createCanvasLoading } = useCreateCanvas({});
+
+  const { data } = useListCanvasTemplateCategories({}, undefined, {
+    enabled: true,
+  });
+  const showTemplateCategories = false;
+  const templateCategories = [
+    { categoryId: '', labelDict: { en: 'All', 'zh-CN': '全部' } },
+    ...(data?.data ?? []),
+  ];
 
   const templateLanguage = i18n.language;
-  const templateCategoryId = '';
+  const [templateCategoryId, setTemplateCategoryId] = useState('');
 
-  const { skillSelectedModel, setSkillSelectedModel, chatMode } = useChatStoreShallow((state) => ({
-    skillSelectedModel: state.skillSelectedModel,
-    setSkillSelectedModel: state.setSkillSelectedModel,
-    chatMode: state.chatMode,
-  }));
+  const handleNewWorkflow = useCallback(() => {
+    debouncedCreateCanvas();
+  }, [debouncedCreateCanvas]);
 
-  const {
-    query,
-    selectedSkill,
-    setQuery,
-    setSelectedSkill,
-    tplConfig,
-    setTplConfig,
-    runtimeConfig,
-    setRuntimeConfig,
-    reset,
-  } = useFrontPageStoreShallow((state) => ({
-    query: state.query,
-    selectedSkill: state.selectedSkill,
-    setQuery: state.setQuery,
-    setSelectedSkill: state.setSelectedSkill,
-    tplConfig: state.tplConfig,
-    setTplConfig: state.setTplConfig,
-    runtimeConfig: state.runtimeConfig,
-    setRuntimeConfig: state.setRuntimeConfig,
-    reset: state.reset,
-  }));
-
-  const { debouncedCreateCanvas, isCreating } = useCreateCanvas({
-    projectId: projectId ?? undefined,
-    afterCreateSuccess: () => {
-      // When canvas is created successfully, data is already in the store
-      // No need to use localStorage anymore
+  const handleTemplateCategoryClick = useCallback(
+    (categoryId: string) => {
+      setTemplateCategoryId(categoryId);
     },
-  });
-  const { setVisible: setCanvasTemplateModalVisible } = useCanvasTemplateModalShallow((state) => ({
-    setVisible: state.setVisible,
-  }));
-
-  const { abortAction } = useAbortAction({ source: 'front-page' });
-
-  const handleSelectSkill = useCallback(
-    (skill: Skill | null) => {
-      setSelectedSkill(skill);
-      setTplConfig(skill?.tplConfig ?? null);
-    },
-    [setSelectedSkill, setTplConfig],
+    [setTemplateCategoryId],
   );
 
-  const handleSendMessage = useCallback(() => {
-    if (!query?.trim()) return;
+  const handleViewGuide = useCallback(() => {
+    window.open('https://reflydoc.notion.site/how-to-use-refly', '_blank');
+  }, []);
 
-    logEvent('home::send_message', Date.now(), {
-      chatMode,
-      model: skillSelectedModel?.name,
-    });
-
-    setIsExecuting(true);
-    debouncedCreateCanvas('front-page', {
-      isPilotActivated: chatMode === 'agent',
-      isAsk: chatMode === 'ask',
-    });
-  }, [query, debouncedCreateCanvas, chatMode]);
-
-  const handleAbort = useCallback(() => {
-    setIsExecuting(false);
-    abortAction();
-  }, [abortAction]);
+  const handleViewAllWorkflows = useCallback(() => {
+    navigate('/workflow-list');
+  }, []);
 
   useEffect(() => {
-    if (!isCreating && isExecuting) {
-      setIsExecuting(false);
-    }
-  }, [isCreating, isExecuting]);
-
-  const handleViewAllTemplates = useCallback(() => {
-    setCanvasTemplateModalVisible(true);
-  }, [setCanvasTemplateModalVisible]);
-
-  useEffect(() => {
-    return () => {
-      reset();
-    };
-  }, [reset]);
+    getCanvasList();
+  }, []);
 
   return (
     <div
       className={cn(
-        'h-full flex bg-refly-bg-content-z2 overflow-y-auto rounded-lg border border-solid border-refly-Card-Border shadow-sm',
+        'w-full h-full bg-refly-bg-content-z2 overflow-y-auto p-5 rounded-xl border border-solid border-refly-Card-Border',
       )}
       id="front-page-scrollable-div"
     >
-      <div
-        className={cn(
-          'relative w-full h-full p-6 max-w-4xl mx-auto z-10',
-          canvasTemplateEnabled ? '' : 'flex flex-col justify-center',
-        )}
-      >
-        <Title />
-
-        <div className="w-full rounded-[12px] shadow-refly-m overflow-hidden border border-solid border-refly-primary-default">
-          <div className="p-4">
-            {selectedSkill && (
-              <div className="flex w-full justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="w-6 h-6 rounded bg-[#6172F3] shadow-lg flex items-center justify-center flex-shrink-0">
-                    {getSkillIcon(selectedSkill.name, 'w-4 h-4 text-white')}
-                  </div>
-                  <span className="text-sm font-medium leading-normal text-[rgba(0,0,0,0.8)] truncate dark:text-[rgba(225,225,225,0.8)]">
-                    {t(`${selectedSkill.name}.name`, { ns: 'skill' })}
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Button
-                    type="text"
-                    size="small"
-                    onClick={() => {
-                      handleSelectSkill(null);
-                    }}
-                  >
-                    {t('common.cancel')}
-                  </Button>
-                </div>
-              </div>
-            )}
-
-            {chatMode === 'media' ? (
-              <MediaChatInput
-                readonly={false}
-                query={query}
-                setQuery={setQuery}
-                size="medium"
-                showChatModeSelector
-              />
-            ) : (
-              <>
-                <SkillDisplay
-                  containCnt={7}
-                  selectedSkill={selectedSkill}
-                  setSelectedSkill={handleSelectSkill}
-                />
-                <div className="flex flex-col">
-                  <ChatInput
-                    readonly={false}
-                    query={query}
-                    setQuery={setQuery}
-                    selectedSkillName={selectedSkill?.name ?? null}
-                    handleSendMessage={handleSendMessage}
-                    handleSelectSkill={handleSelectSkill}
-                    maxRows={6}
-                    inputClassName="px-3 py-4 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-
-                  {selectedSkill?.configSchema?.items?.length > 0 && (
-                    <ConfigManager
-                      readonly={false}
-                      key={selectedSkill?.name}
-                      form={form}
-                      formErrors={formErrors}
-                      setFormErrors={setFormErrors}
-                      schema={selectedSkill?.configSchema}
-                      tplConfig={tplConfig}
-                      fieldPrefix="tplConfig"
-                      configScope="runtime"
-                      resetConfig={() => {
-                        const defaultConfig = selectedSkill?.tplConfig ?? {};
-                        setTplConfig(defaultConfig);
-                        form.setFieldValue('tplConfig', defaultConfig);
-                      }}
-                      onFormValuesChange={(_changedValues, allValues) => {
-                        setTplConfig(allValues.tplConfig);
-                      }}
-                    />
-                  )}
-
-                  <Actions
-                    query={query}
-                    model={skillSelectedModel}
-                    setModel={setSkillSelectedModel}
-                    runtimeConfig={runtimeConfig}
-                    setRuntimeConfig={setRuntimeConfig}
-                    handleSendMessage={handleSendMessage}
-                    handleAbort={handleAbort}
-                    loading={isCreating}
-                    isExecuting={isExecuting}
-                  />
-                </div>
-              </>
-            )}
-          </div>
+      <Helmet>
+        <title>{t('loggedHomePage.siderMenu.home')}</title>
+      </Helmet>
+      <div className="p-4 rounded-xl flex flex-wrap items-center gap-6 bg-gradient-tools-open bg-refly-bg-body-z0 dark:bg-gradient-to-br dark:from-emerald-500/20 dark:via-cyan-500/15 dark:to-blue-500/10 dark:bg-refly-bg-body-z0">
+        <div className="text-xl leading-7">
+          <span className="text-refly-primary-default font-[800] mr-2">
+            {t('frontPage.guide.title')}
+          </span>
+          <span className="text-refly-text-0">{t('frontPage.guide.description')}</span>
         </div>
+        <Button type="primary" onClick={handleViewGuide} className="font-semibold">
+          {t('frontPage.guide.view')}
+        </Button>
+      </div>
 
-        {canvasTemplateEnabled && (
-          <div className="h-full flex flex-col mt-10">
-            <div className="flex justify-between items-center mx-2">
-              <div>
-                <h3 className="text-base font-medium">{t('frontPage.fromCommunity')}</h3>
-                <p className="text-xs text-gray-500 mt-1">{t('frontPage.fromCommunityDesc')}</p>
-              </div>
-              <Button
-                type="text"
-                size="small"
-                className="text-xs text-gray-500 gap-1 hover:!text-green-500 transition-colors"
-                onClick={handleViewAllTemplates}
-              >
-                {t('common.viewAll')} <IconRight className="w-3 h-3" />
-              </Button>
+      <ModuleContainer title={t('frontPage.newWorkflow.title')} className="mt-[120px]">
+        <Button
+          className="w-fit h-fit flex items-center gap-2  border-[1px] border-solid border-refly-Card-Border rounded-xl p-3 cursor-pointer bg-transparent hover:bg-refly-fill-hover transition-colors"
+          onClick={handleNewWorkflow}
+          loading={createCanvasLoading}
+        >
+          <DocAdd size={42} color="var(--refly-primary-default)" />
+          <div className="flex flex-col gap-1 w-[184px]">
+            <div className="text-left text-base leading-[26px] font-semibold text-refly-text-0">
+              {t('frontPage.newWorkflow.buttonText')}
             </div>
-            <div className="flex-1">
-              <TemplateList
-                source="front-page"
-                scrollableTargetId="front-page-scrollable-div"
-                language={templateLanguage}
-                categoryId={templateCategoryId}
-                className="!bg-transparent !px-0"
-              />
+            <div className="text-left text-xs text-refly-text-3 leading-4 font-normal">
+              {t('frontPage.newWorkflow.buttonDescription')}
             </div>
           </div>
-        )}
-      </div>
+        </Button>
+      </ModuleContainer>
+
+      {canvases?.length > 0 && (
+        <ModuleContainer
+          title={t('frontPage.recentWorkflows.title')}
+          handleTitleClick={handleViewAllWorkflows}
+        >
+          <RecentWorkflow canvases={canvases} />
+        </ModuleContainer>
+      )}
+
+      {canvasTemplateEnabled && (
+        <ModuleContainer title={t('frontPage.template.title')}>
+          {showTemplateCategories && templateCategories.length > 1 && (
+            <div className="flex items-center gap-2 flex-wrap">
+              {templateCategories.map((category) => (
+                <div
+                  key={category.categoryId}
+                  className={cn(
+                    'flex-shrink-0 whitespace-nowrap px-3 py-1.5 text-sm text-refly-text-0 leading-5 cursor-pointer rounded-[40px] hover:bg-refly-tertiary-hover',
+                    {
+                      '!bg-refly-primary-default text-white font-semibold':
+                        category.categoryId === templateCategoryId,
+                    },
+                  )}
+                  onClick={() => handleTemplateCategoryClick(category.categoryId)}
+                >
+                  {category.labelDict?.[templateLanguage]}
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div className="flex-1">
+            <TemplateList
+              source="front-page"
+              scrollableTargetId="front-page-scrollable-div"
+              language={templateLanguage}
+              categoryId={templateCategoryId}
+              className="!bg-transparent !px-0 !pt-0 -ml-2 -mt-2"
+            />
+          </div>
+        </ModuleContainer>
+      )}
     </div>
   );
 });

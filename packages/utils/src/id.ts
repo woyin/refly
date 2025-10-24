@@ -2,6 +2,7 @@ import md5 from 'md5';
 import { v4 as UUIDV4 } from 'uuid';
 import { createId } from '@paralleldrive/cuid2';
 import { getYYYYMM, getYYYYMMDD } from './time';
+import { CanvasNodeType } from '@refly/openapi-schema';
 
 export enum IDPrefix {
   UID = 'u-',
@@ -21,8 +22,11 @@ export enum IDPrefix {
   SKILL_JOB = 'sj-',
   PILOT_SESSION = 'ps-',
   PILOT_STEP = 'pst-',
+  WORKFLOW_EXECUTION = 'we-',
+  WORKFLOW_NODE_EXECUTION = 'wne-',
   PROVIDER = 'pr-',
   PROVIDER_ITEM = 'pi-',
+  TOOLSET = 'ts-',
   CONTENT_SELECTOR = 'cs-',
   MEMO = 'm-',
   VERIFICATION_SESSION = 'vs-',
@@ -37,6 +41,11 @@ export enum IDPrefix {
   CREDIT_RECHARGE = 'cr-',
   CREDIT_USAGE = 'cu-',
   CREDIT_DEBT = 'cd-',
+  NODE = 'node-',
+  VARIABLE_EXTRACTION_SESSION = 'ves-',
+  START = 'start-',
+  VARIABLE = 'var-',
+  WorkflowApp = 'wa-',
 }
 
 export function genUID(): string {
@@ -61,6 +70,18 @@ export function genPilotSessionID(): string {
 
 export function genPilotStepID(): string {
   return IDPrefix.PILOT_STEP + createId();
+}
+
+export function genVariableExtractionSessionID(): string {
+  return IDPrefix.VARIABLE_EXTRACTION_SESSION + createId();
+}
+
+export function genWorkflowExecutionID(): string {
+  return IDPrefix.WORKFLOW_EXECUTION + createId();
+}
+
+export function genWorkflowNodeExecutionID(): string {
+  return IDPrefix.WORKFLOW_NODE_EXECUTION + createId();
 }
 
 export function genActionResultID(): string {
@@ -103,6 +124,48 @@ export function genAudioID(): string {
   return IDPrefix.AUDIO + createId();
 }
 
+export function genMediaID(mediaType: 'image' | 'video' | 'audio'): string {
+  switch (mediaType) {
+    case 'image':
+      return IDPrefix.IMAGE + createId();
+    case 'video':
+      return IDPrefix.VIDEO + createId();
+    case 'audio':
+      return IDPrefix.AUDIO + createId();
+    default:
+      return `media-${createId()}`;
+  }
+}
+
+export function genNodeEntityId(nodeType: CanvasNodeType): string {
+  switch (nodeType) {
+    case 'skillResponse':
+      return IDPrefix.ACTION_RESULT + createId();
+    case 'document':
+      return IDPrefix.DOCUMENT + createId();
+    case 'resource':
+      return IDPrefix.RESOURCE + createId();
+    case 'memo':
+      return IDPrefix.MEMO + createId();
+    case 'codeArtifact':
+      return IDPrefix.CODE_ARTIFACT + createId();
+    case 'mediaSkillResponse':
+      return IDPrefix.MEDIA_SKILL_RESPONSE + createId();
+    case 'mediaSkill':
+      return IDPrefix.MEDIA_SKILL + createId();
+    case 'image':
+      return IDPrefix.IMAGE + createId();
+    case 'video':
+      return IDPrefix.VIDEO + createId();
+    case 'audio':
+      return IDPrefix.AUDIO + createId();
+    case 'start':
+      return IDPrefix.START + createId();
+    default:
+      return createId();
+  }
+}
+
 export function genMediaSkillResponseID(): string {
   return IDPrefix.MEDIA_SKILL_RESPONSE + createId();
 }
@@ -125,6 +188,10 @@ export function genProviderID(): string {
 
 export function genProviderItemID(): string {
   return IDPrefix.PROVIDER_ITEM + createId();
+}
+
+export function genToolsetID(): string {
+  return IDPrefix.TOOLSET + createId();
 }
 
 export function genSkillID(): string {
@@ -153,6 +220,10 @@ export function genProjectID(): string {
 
 export function genMcpServerID(): string {
   return IDPrefix.MCP_SERVER + createId();
+}
+
+export function genVariableID(): string {
+  return IDPrefix.VARIABLE + createId();
 }
 
 export const genUniqueId = () => {
@@ -190,4 +261,16 @@ export const genCreditUsageId = () => {
 export function genCreditDebtId() {
   const timestamp = Date.now();
   return `${IDPrefix.CREDIT_DEBT}${timestamp}-${createId()}`;
+}
+
+export function genStartID(): string {
+  return IDPrefix.START + createId();
+}
+
+export function genNodeID(): string {
+  return IDPrefix.NODE + createId();
+}
+
+export function genWorkflowAppID(): string {
+  return IDPrefix.WorkflowApp + createId();
 }

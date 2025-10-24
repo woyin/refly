@@ -5,6 +5,7 @@ import { logEvent } from '@refly/telemetry-web';
 import './index.scss';
 import { useSiderStoreShallow, useSubscriptionStoreShallow } from '@refly/stores';
 import { PriceContent } from './priceContent';
+import { useEffect } from 'react';
 
 export const SubscribeModal = () => {
   const { t } = useTranslation('ui');
@@ -23,6 +24,12 @@ export const SubscribeModal = () => {
   const { setShowSettingModal } = useSiderStoreShallow((state) => ({
     setShowSettingModal: state.setShowSettingModal,
   }));
+
+  useEffect(() => {
+    if (visible) {
+      logEvent('enter_pricing_page', 'settings');
+    }
+  }, [visible]);
 
   return (
     <Modal
@@ -47,7 +54,7 @@ export const SubscribeModal = () => {
       }}
     >
       <div className="w-full h-full overflow-auto flex flex-col items-center gap-3 py-8">
-        <div className="font-bold text-2xl m-auto flex items-center gap-2 text-[color:var(--text-icon-refly-text-0,#1C1F23)] [font-family:'PingFang_SC'] text-[22px] font-semibold leading-8">
+        <div className="font-bold text-2xl m-auto flex items-center gap-2 text-refly-text-0 text-[22px] font-semibold leading-8">
           {t('subscription.modalTitle')}
         </div>
         <PriceContent source="modal" />

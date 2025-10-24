@@ -1,5 +1,4 @@
 import { Module } from '@nestjs/common';
-import { BullModule } from '@nestjs/bullmq';
 import { ConfigService } from '@nestjs/config';
 import { CommonModule } from '../common/common.module';
 import { MiscModule } from '../misc/misc.module';
@@ -7,24 +6,24 @@ import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 
 import { AuthService } from './auth.service';
-import { AuthProcessor } from './auth.processor';
 import { AuthController } from './auth.controller';
 import { GithubOauthStrategy } from './strategy/github-oauth.strategy';
 import { GoogleOauthStrategy } from './strategy/google-oauth.strategy';
-
-import { QUEUE_SEND_VERIFICATION_EMAIL } from '../../utils/const';
+import { TwitterOauthStrategy } from './strategy/twitter-oauth.strategy';
+import { NotionOauthStrategy } from './strategy/notion-oauth.strategy';
 import { ProviderModule } from '../provider/provider.module';
-import { isDesktop } from '../../utils/runtime';
+import { NotificationModule } from '../notification/notification.module';
+import { GoogleToolOauthStrategy } from './strategy/google-tool-oauth.strategy';
 
 @Module({
   imports: [
     CommonModule,
     MiscModule,
     ProviderModule,
+    NotificationModule,
     PassportModule.register({
       session: true,
     }),
-    ...(isDesktop() ? [] : [BullModule.registerQueue({ name: QUEUE_SEND_VERIFICATION_EMAIL })]),
     JwtModule.registerAsync({
       global: true,
       useFactory: async (configService: ConfigService) => ({
@@ -40,9 +39,11 @@ import { isDesktop } from '../../utils/runtime';
   ],
   providers: [
     AuthService,
-    ...(isDesktop() ? [] : [AuthProcessor]),
     GithubOauthStrategy,
     GoogleOauthStrategy,
+    GoogleToolOauthStrategy,
+    TwitterOauthStrategy,
+    NotionOauthStrategy,
   ],
   exports: [AuthService],
   controllers: [AuthController],

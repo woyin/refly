@@ -5,25 +5,32 @@ import {
   ListCodeArtifactsData,
   UpsertCodeArtifactRequest,
   User,
+  CanvasNode,
 } from '@refly/openapi-schema';
 import { streamToString } from '../../utils';
-import { CanvasNotFoundError, CodeArtifactNotFoundError, ParamsError } from '@refly/errors';
-import { genCodeArtifactID } from '@refly/utils';
+import {
+  ActionResultNotFoundError,
+  CanvasNotFoundError,
+  CodeArtifactNotFoundError,
+  ParamsError,
+} from '@refly/errors';
+import { genCodeArtifactID, safeParseJSON } from '@refly/utils';
 import { OSS_INTERNAL, ObjectStorageService } from '../common/object-storage';
 import { CodeArtifact as CodeArtifactModel } from '../../generated/client';
+import { CanvasSyncService } from '../canvas-sync/canvas-sync.service';
 
 @Injectable()
 export class CodeArtifactService {
   constructor(
     private readonly prisma: PrismaService,
+    private readonly canvasSyncService: CanvasSyncService,
     @Inject(OSS_INTERNAL) private oss: ObjectStorageService,
   ) {}
 
-  async createCodeArtifact(user: User, body: UpsertCodeArtifactRequest) {
+  private async doCreateCodeArtifact(user: User, param: UpsertCodeArtifactRequest) {
     const { uid } = user;
-    const { title, type, language, content, canvasId } = body;
-    const artifactId = genCodeArtifactID();
-    const storageKey = `code-artifact/${artifactId}`;
+    const { title, type, language, content, previewStorageKey, resultId, canvasId, resultVersion } =
+      param;
 
     if (canvasId) {
       const canvas = await this.prisma.canvas.findUnique({
@@ -35,15 +42,37 @@ export class CodeArtifactService {
       }
     }
 
-    const codeArtifact = await this.prisma.codeArtifact.create({
-      data: {
+    if (param.artifactId) {
+      const existingArtifact = await this.prisma.codeArtifact.findUnique({
+        where: { artifactId: param.artifactId },
+        select: { uid: true, deletedAt: true },
+      });
+      if (existingArtifact && existingArtifact.uid !== uid && !existingArtifact.deletedAt) {
+        throw new ParamsError(`Code artifact ${param.artifactId} already exists for another user`);
+      }
+    }
+
+    const artifactId = param.artifactId ?? genCodeArtifactID();
+    const storageKey = `code-artifact/${artifactId}`;
+
+    const codeArtifact = await this.prisma.codeArtifact.upsert({
+      where: { artifactId },
+      create: {
         artifactId,
         title,
         type,
         language,
         storageKey,
+        previewStorageKey,
         uid,
         canvasId,
+        resultId,
+        resultVersion,
+      },
+      update: {
+        title,
+        type,
+        language,
       },
     });
 
@@ -51,7 +80,130 @@ export class CodeArtifactService {
       await this.oss.putObject(storageKey, content);
     }
 
+    if (resultId && canvasId) {
+      await this.canvasSyncService.addNodeToCanvas(
+        user,
+        canvasId,
+        {
+          type: 'codeArtifact',
+          data: {
+            title,
+            entityId: codeArtifact.artifactId,
+            metadata: {
+              status: 'finish',
+              parentResultId: param.resultId,
+            },
+            // Use the first 10 lines of content for preview
+            contentPreview: (content?.split(/\r?\n/) ?? []).slice(0, 10).join('\n'),
+          },
+        },
+        [{ type: 'skillResponse', entityId: param.resultId }],
+        { autoLayout: true },
+      );
+    }
+
     return codeArtifact;
+  }
+
+  async createCodeArtifact(user: User, param: UpsertCodeArtifactRequest) {
+    // Store workflow node execution to update status at the end
+    let nodeExecutionToUpdate: { nodeExecutionId: string; nodeData: CanvasNode } | null = null;
+
+    // Check if this code artifact is created by a workflow node execution
+    if (param.resultId) {
+      const result = await this.prisma.actionResult.findFirst({
+        where: { resultId: param.resultId, uid: user.uid },
+        orderBy: { version: 'desc' },
+      });
+      if (!result) {
+        throw new ActionResultNotFoundError(`Action result ${param.resultId} not found`);
+      }
+
+      param.resultVersion = result.version;
+      if (result.targetType === 'canvas') {
+        if (param.canvasId && param.canvasId !== result.targetId) {
+          throw new ParamsError('resultId target canvasId mismatch');
+        }
+        param.canvasId = result.targetId;
+      }
+
+      if (result.workflowNodeExecutionId) {
+        const nodeExecution = await this.prisma.workflowNodeExecution.findUnique({
+          where: {
+            nodeExecutionId: result.workflowNodeExecutionId,
+          },
+        });
+        if (nodeExecution?.childNodeIds) {
+          const childNodeIds = safeParseJSON(nodeExecution.childNodeIds) as string[];
+          const docNodeExecution = await this.prisma.workflowNodeExecution.findFirst({
+            where: {
+              nodeId: { in: childNodeIds },
+              status: 'waiting',
+              nodeType: 'codeArtifact',
+              executionId: nodeExecution.executionId,
+            },
+            orderBy: {
+              createdAt: 'asc',
+            },
+          });
+          if (docNodeExecution?.entityId) {
+            param.artifactId = docNodeExecution.entityId;
+            const nodeData: CanvasNode = safeParseJSON(docNodeExecution.nodeData);
+            nodeExecutionToUpdate = {
+              nodeExecutionId: docNodeExecution.nodeExecutionId,
+              nodeData,
+            };
+          }
+        }
+      }
+    }
+
+    try {
+      const codeArtifact = await this.doCreateCodeArtifact(user, param);
+
+      // Update workflow node execution status to finish if exists
+      if (nodeExecutionToUpdate) {
+        await this.prisma.workflowNodeExecution.update({
+          where: {
+            nodeExecutionId: nodeExecutionToUpdate.nodeExecutionId,
+          },
+          data: {
+            title: param.title,
+            entityId: param.artifactId,
+            status: 'finish',
+            nodeData: JSON.stringify({
+              ...nodeExecutionToUpdate.nodeData,
+              data: {
+                ...nodeExecutionToUpdate.nodeData.data,
+                title: param.title,
+                entityId: param.artifactId,
+              },
+            }),
+          },
+        });
+      }
+
+      return codeArtifact;
+    } catch (error) {
+      // Update workflow node execution status to failed if exists
+      if (nodeExecutionToUpdate) {
+        try {
+          await this.prisma.workflowNodeExecution.update({
+            where: {
+              nodeExecutionId: nodeExecutionToUpdate.nodeExecutionId,
+            },
+            data: {
+              status: 'failed',
+            },
+          });
+        } catch (updateError) {
+          console.error(
+            `Failed to update workflow node execution status to failed: ${updateError.message}`,
+          );
+        }
+      }
+      throw error;
+    }
   }
 
   async updateCodeArtifact(user: User, body: UpsertCodeArtifactRequest) {

@@ -192,9 +192,10 @@ export const CreateNodeMenu: FC<CreateNodeMenuProps> = memo(
         case 'skill':
         case 'mediaSkill':
         case 'mediaSkillResponse':
+          return [createMemoItem];
         case 'audio':
         case 'video':
-          return [createMemoItem];
+          return [askAI, createMemoItem];
 
         case 'document':
           return [askAI, duplicateDocumentItem, createMemoItem];
@@ -205,13 +206,12 @@ export const CreateNodeMenu: FC<CreateNodeMenuProps> = memo(
         case 'codeArtifact':
         case 'website':
         case 'image':
+        case 'group':
+        case 'start':
           return [askAI, createMemoItem];
 
         case 'memo':
           return [askAI, createMemoItem, duplicateMemoItem];
-
-        case 'group':
-          return [askAI, createMemoItem];
 
         default:
           return [];

@@ -5,13 +5,13 @@ import { useMutation, UseMutationOptions, useQuery, UseQueryOptions } from '@tan
 import {
   abortAction,
   addNodesToCanvasPage,
-  addReferences,
   autoNameCanvas,
   batchCreateProviderItems,
   batchCreateResource,
   batchUpdateDocument,
   batchUpdateProviderItems,
   checkSettingsField,
+  checkToolOauthStatus,
   checkVerification,
   convert,
   createCanvas,
@@ -33,7 +33,9 @@ import {
   createShare,
   createSkillInstance,
   createSkillTrigger,
+  createToolset,
   createVerification,
+  createWorkflowApp,
   deleteCanvas,
   deleteDocument,
   deleteLabelClass,
@@ -45,17 +47,21 @@ import {
   deleteProjectItems,
   deleteProvider,
   deleteProviderItem,
-  deleteReferences,
   deleteResource,
   deleteShare,
   deleteSkillInstance,
   deleteSkillTrigger,
+  deleteToolset,
+  deleteWorkflowApp,
   duplicateCanvas,
   duplicateShare,
   emailLogin,
   emailSignup,
+  executeWorkflowApp,
   exportCanvas,
   exportDocument,
+  extractVariables,
+  generateAppTemplate,
   generateMedia,
   getActionResult,
   getAuthConfig,
@@ -77,8 +83,13 @@ import {
   getSettings,
   getSubscriptionPlans,
   getSubscriptionUsage,
+  getWorkflowAppDetail,
+  getWorkflowDetail,
+  getWorkflowVariables,
   importCanvas,
+  initializeWorkflow,
   invokeSkill,
+  listAccounts,
   listActions,
   listCanvases,
   listCanvasTemplateCategories,
@@ -100,10 +111,14 @@ import {
   listSkillInstances,
   listSkills,
   listSkillTriggers,
+  listTools,
+  listToolsetInventory,
+  listToolsets,
+  listWorkflowApps,
   logout,
   multiLingualWebSearch,
   pinSkillInstance,
-  queryReferences,
+  recoverPilotSession,
   refreshToken,
   reindexResource,
   resendVerification,
@@ -133,6 +148,8 @@ import {
   updateSettings,
   updateSkillInstance,
   updateSkillTrigger,
+  updateToolset,
+  updateWorkflowVariables,
   upload,
   validateMcpServer,
 } from '../requests/services.gen';
@@ -141,8 +158,6 @@ import {
   AbortActionError,
   AddNodesToCanvasPageData,
   AddNodesToCanvasPageError,
-  AddReferencesData,
-  AddReferencesError,
   AutoNameCanvasData,
   AutoNameCanvasError,
   BatchCreateProviderItemsData,
@@ -155,6 +170,8 @@ import {
   BatchUpdateProviderItemsError,
   CheckSettingsFieldData,
   CheckSettingsFieldError,
+  CheckToolOauthStatusData,
+  CheckToolOauthStatusError,
   CheckVerificationData,
   CheckVerificationError,
   ConvertData,
@@ -196,8 +213,12 @@ import {
   CreateSkillInstanceError,
   CreateSkillTriggerData,
   CreateSkillTriggerError,
+  CreateToolsetData,
+  CreateToolsetError,
   CreateVerificationData,
   CreateVerificationError,
+  CreateWorkflowAppData,
+  CreateWorkflowAppError,
   DeleteCanvasData,
   DeleteCanvasError,
   DeleteDocumentData,
@@ -220,8 +241,6 @@ import {
   DeleteProviderError,
   DeleteProviderItemData,
   DeleteProviderItemError,
-  DeleteReferencesData,
-  DeleteReferencesError,
   DeleteResourceData,
   DeleteResourceError,
   DeleteShareData,
@@ -230,6 +249,10 @@ import {
   DeleteSkillInstanceError,
   DeleteSkillTriggerData,
   DeleteSkillTriggerError,
+  DeleteToolsetData,
+  DeleteToolsetError,
+  DeleteWorkflowAppData,
+  DeleteWorkflowAppError,
   DuplicateCanvasData,
   DuplicateCanvasError,
   DuplicateShareData,
@@ -238,10 +261,16 @@ import {
   EmailLoginError,
   EmailSignupData,
   EmailSignupError,
+  ExecuteWorkflowAppData,
+  ExecuteWorkflowAppError,
   ExportCanvasData,
   ExportCanvasError,
   ExportDocumentData,
   ExportDocumentError,
+  ExtractVariablesData,
+  ExtractVariablesError,
+  GenerateAppTemplateData,
+  GenerateAppTemplateError,
   GenerateMediaData,
   GenerateMediaError,
   GetActionResultData,
@@ -278,10 +307,20 @@ import {
   GetSettingsError,
   GetSubscriptionPlansError,
   GetSubscriptionUsageError,
+  GetWorkflowAppDetailData,
+  GetWorkflowAppDetailError,
+  GetWorkflowDetailData,
+  GetWorkflowDetailError,
+  GetWorkflowVariablesData,
+  GetWorkflowVariablesError,
   ImportCanvasData,
   ImportCanvasError,
+  InitializeWorkflowData,
+  InitializeWorkflowError,
   InvokeSkillData,
   InvokeSkillError,
+  ListAccountsData,
+  ListAccountsError,
   ListActionsError,
   ListCanvasesData,
   ListCanvasesError,
@@ -320,13 +359,20 @@ import {
   ListSkillsError,
   ListSkillTriggersData,
   ListSkillTriggersError,
+  ListToolsData,
+  ListToolsError,
+  ListToolsetInventoryError,
+  ListToolsetsData,
+  ListToolsetsError,
+  ListWorkflowAppsData,
+  ListWorkflowAppsError,
   LogoutError,
   MultiLingualWebSearchData,
   MultiLingualWebSearchError,
   PinSkillInstanceData,
   PinSkillInstanceError,
-  QueryReferencesData,
-  QueryReferencesError,
+  RecoverPilotSessionData,
+  RecoverPilotSessionError,
   RefreshTokenError,
   ReindexResourceData,
   ReindexResourceError,
@@ -383,6 +429,10 @@ import {
   UpdateSkillInstanceError,
   UpdateSkillTriggerData,
   UpdateSkillTriggerError,
+  UpdateToolsetData,
+  UpdateToolsetError,
+  UpdateWorkflowVariablesData,
+  UpdateWorkflowVariablesError,
   UploadData,
   UploadError,
   ValidateMcpServerData,
@@ -462,6 +512,38 @@ export const useGetAuthConfig = <
     queryKey: Common.UseGetAuthConfigKeyFn(clientOptions, queryKey),
     queryFn: () =>
       getAuthConfig({ ...clientOptions }).then((response) => response.data as TData) as TData,
+    ...options,
+  });
+export const useListAccounts = <
+  TData = Common.ListAccountsDefaultResponse,
+  TError = ListAccountsError,
+  TQueryKey extends Array<unknown> = unknown[],
+>(
+  clientOptions: Options<ListAccountsData, true> = {},
+  queryKey?: TQueryKey,
+  options?: Omit<UseQueryOptions<TData, TError>, 'queryKey' | 'queryFn'>,
+) =>
+  useQuery<TData, TError>({
+    queryKey: Common.UseListAccountsKeyFn(clientOptions, queryKey),
+    queryFn: () =>
+      listAccounts({ ...clientOptions }).then((response) => response.data as TData) as TData,
+    ...options,
+  });
+export const useCheckToolOauthStatus = <
+  TData = Common.CheckToolOauthStatusDefaultResponse,
+  TError = CheckToolOauthStatusError,
+  TQueryKey extends Array<unknown> = unknown[],
+>(
+  clientOptions: Options<CheckToolOauthStatusData, true>,
+  queryKey?: TQueryKey,
+  options?: Omit<UseQueryOptions<TData, TError>, 'queryKey' | 'queryFn'>,
+) =>
+  useQuery<TData, TError>({
+    queryKey: Common.UseCheckToolOauthStatusKeyFn(clientOptions, queryKey),
+    queryFn: () =>
+      checkToolOauthStatus({ ...clientOptions }).then(
+        (response) => response.data as TData,
+      ) as TData,
     ...options,
   });
 export const useGetCollabToken = <
@@ -567,6 +649,23 @@ export const useGetCanvasTransactions = <
     queryKey: Common.UseGetCanvasTransactionsKeyFn(clientOptions, queryKey),
     queryFn: () =>
       getCanvasTransactions({ ...clientOptions }).then(
+        (response) => response.data as TData,
+      ) as TData,
+    ...options,
+  });
+export const useGetWorkflowVariables = <
+  TData = Common.GetWorkflowVariablesDefaultResponse,
+  TError = GetWorkflowVariablesError,
+  TQueryKey extends Array<unknown> = unknown[],
+>(
+  clientOptions: Options<GetWorkflowVariablesData, true>,
+  queryKey?: TQueryKey,
+  options?: Omit<UseQueryOptions<TData, TError>, 'queryKey' | 'queryFn'>,
+) =>
+  useQuery<TData, TError>({
+    queryKey: Common.UseGetWorkflowVariablesKeyFn(clientOptions, queryKey),
+    queryFn: () =>
+      getWorkflowVariables({ ...clientOptions }).then(
         (response) => response.data as TData,
       ) as TData,
     ...options,
@@ -892,6 +991,53 @@ export const useGetPilotSessionDetail = <
       ) as TData,
     ...options,
   });
+export const useGetWorkflowDetail = <
+  TData = Common.GetWorkflowDetailDefaultResponse,
+  TError = GetWorkflowDetailError,
+  TQueryKey extends Array<unknown> = unknown[],
+>(
+  clientOptions: Options<GetWorkflowDetailData, true>,
+  queryKey?: TQueryKey,
+  options?: Omit<UseQueryOptions<TData, TError>, 'queryKey' | 'queryFn'>,
+) =>
+  useQuery<TData, TError>({
+    queryKey: Common.UseGetWorkflowDetailKeyFn(clientOptions, queryKey),
+    queryFn: () =>
+      getWorkflowDetail({ ...clientOptions }).then((response) => response.data as TData) as TData,
+    ...options,
+  });
+export const useGetWorkflowAppDetail = <
+  TData = Common.GetWorkflowAppDetailDefaultResponse,
+  TError = GetWorkflowAppDetailError,
+  TQueryKey extends Array<unknown> = unknown[],
+>(
+  clientOptions: Options<GetWorkflowAppDetailData, true>,
+  queryKey?: TQueryKey,
+  options?: Omit<UseQueryOptions<TData, TError>, 'queryKey' | 'queryFn'>,
+) =>
+  useQuery<TData, TError>({
+    queryKey: Common.UseGetWorkflowAppDetailKeyFn(clientOptions, queryKey),
+    queryFn: () =>
+      getWorkflowAppDetail({ ...clientOptions }).then(
+        (response) => response.data as TData,
+      ) as TData,
+    ...options,
+  });
+export const useListWorkflowApps = <
+  TData = Common.ListWorkflowAppsDefaultResponse,
+  TError = ListWorkflowAppsError,
+  TQueryKey extends Array<unknown> = unknown[],
+>(
+  clientOptions: Options<ListWorkflowAppsData, true> = {},
+  queryKey?: TQueryKey,
+  options?: Omit<UseQueryOptions<TData, TError>, 'queryKey' | 'queryFn'>,
+) =>
+  useQuery<TData, TError>({
+    queryKey: Common.UseListWorkflowAppsKeyFn(clientOptions, queryKey),
+    queryFn: () =>
+      listWorkflowApps({ ...clientOptions }).then((response) => response.data as TData) as TData,
+    ...options,
+  });
 export const useGetSettings = <
   TData = Common.GetSettingsDefaultResponse,
   TError = GetSettingsError,
@@ -1063,6 +1209,53 @@ export const useListProviderItemOptions = <
       ) as TData,
     ...options,
   });
+export const useListTools = <
+  TData = Common.ListToolsDefaultResponse,
+  TError = ListToolsError,
+  TQueryKey extends Array<unknown> = unknown[],
+>(
+  clientOptions: Options<ListToolsData, true> = {},
+  queryKey?: TQueryKey,
+  options?: Omit<UseQueryOptions<TData, TError>, 'queryKey' | 'queryFn'>,
+) =>
+  useQuery<TData, TError>({
+    queryKey: Common.UseListToolsKeyFn(clientOptions, queryKey),
+    queryFn: () =>
+      listTools({ ...clientOptions }).then((response) => response.data as TData) as TData,
+    ...options,
+  });
+export const useListToolsetInventory = <
+  TData = Common.ListToolsetInventoryDefaultResponse,
+  TError = ListToolsetInventoryError,
+  TQueryKey extends Array<unknown> = unknown[],
+>(
+  clientOptions: Options<unknown, true> = {},
+  queryKey?: TQueryKey,
+  options?: Omit<UseQueryOptions<TData, TError>, 'queryKey' | 'queryFn'>,
+) =>
+  useQuery<TData, TError>({
+    queryKey: Common.UseListToolsetInventoryKeyFn(clientOptions, queryKey),
+    queryFn: () =>
+      listToolsetInventory({ ...clientOptions }).then(
+        (response) => response.data as TData,
+      ) as TData,
+    ...options,
+  });
+export const useListToolsets = <
+  TData = Common.ListToolsetsDefaultResponse,
+  TError = ListToolsetsError,
+  TQueryKey extends Array<unknown> = unknown[],
+>(
+  clientOptions: Options<ListToolsetsData, true> = {},
+  queryKey?: TQueryKey,
+  options?: Omit<UseQueryOptions<TData, TError>, 'queryKey' | 'queryFn'>,
+) =>
+  useQuery<TData, TError>({
+    queryKey: Common.UseListToolsetsKeyFn(clientOptions, queryKey),
+    queryFn: () =>
+      listToolsets({ ...clientOptions }).then((response) => response.data as TData) as TData,
+    ...options,
+  });
 export const useServeStatic = <
   TData = Common.ServeStaticDefaultResponse,
   TError = ServeStaticError,
@@ -1076,6 +1269,40 @@ export const useServeStatic = <
     queryKey: Common.UseServeStaticKeyFn(clientOptions, queryKey),
     queryFn: () =>
       serveStatic({ ...clientOptions }).then((response) => response.data as TData) as TData,
+    ...options,
+  });
+export const useExtractVariables = <
+  TData = Common.ExtractVariablesMutationResult,
+  TError = ExtractVariablesError,
+  TQueryKey extends Array<unknown> = unknown[],
+  TContext = unknown,
+>(
+  mutationKey?: TQueryKey,
+  options?: Omit<
+    UseMutationOptions<TData, TError, Options<ExtractVariablesData, true>, TContext>,
+    'mutationKey' | 'mutationFn'
+  >,
+) =>
+  useMutation<TData, TError, Options<ExtractVariablesData, true>, TContext>({
+    mutationKey: Common.UseExtractVariablesKeyFn(mutationKey),
+    mutationFn: (clientOptions) => extractVariables(clientOptions) as unknown as Promise<TData>,
+    ...options,
+  });
+export const useGenerateAppTemplate = <
+  TData = Common.GenerateAppTemplateMutationResult,
+  TError = GenerateAppTemplateError,
+  TQueryKey extends Array<unknown> = unknown[],
+  TContext = unknown,
+>(
+  mutationKey?: TQueryKey,
+  options?: Omit<
+    UseMutationOptions<TData, TError, Options<GenerateAppTemplateData, true>, TContext>,
+    'mutationKey' | 'mutationFn'
+  >,
+) =>
+  useMutation<TData, TError, Options<GenerateAppTemplateData, true>, TContext>({
+    mutationKey: Common.UseGenerateAppTemplateKeyFn(mutationKey),
+    mutationFn: (clientOptions) => generateAppTemplate(clientOptions) as unknown as Promise<TData>,
     ...options,
   });
 export const useCreateMcpServer = <
@@ -1452,6 +1679,24 @@ export const useCreateCanvasVersion = <
     mutationFn: (clientOptions) => createCanvasVersion(clientOptions) as unknown as Promise<TData>,
     ...options,
   });
+export const useUpdateWorkflowVariables = <
+  TData = Common.UpdateWorkflowVariablesMutationResult,
+  TError = UpdateWorkflowVariablesError,
+  TQueryKey extends Array<unknown> = unknown[],
+  TContext = unknown,
+>(
+  mutationKey?: TQueryKey,
+  options?: Omit<
+    UseMutationOptions<TData, TError, Options<UpdateWorkflowVariablesData, true>, TContext>,
+    'mutationKey' | 'mutationFn'
+  >,
+) =>
+  useMutation<TData, TError, Options<UpdateWorkflowVariablesData, true>, TContext>({
+    mutationKey: Common.UseUpdateWorkflowVariablesKeyFn(mutationKey),
+    mutationFn: (clientOptions) =>
+      updateWorkflowVariables(clientOptions) as unknown as Promise<TData>,
+    ...options,
+  });
 export const useCreateCanvasTemplate = <
   TData = Common.CreateCanvasTemplateMutationResult,
   TError = CreateCanvasTemplateError,
@@ -1655,57 +1900,6 @@ export const useBatchUpdateDocument = <
   useMutation<TData, TError, Options<BatchUpdateDocumentData, true>, TContext>({
     mutationKey: Common.UseBatchUpdateDocumentKeyFn(mutationKey),
     mutationFn: (clientOptions) => batchUpdateDocument(clientOptions) as unknown as Promise<TData>,
-    ...options,
-  });
-export const useQueryReferences = <
-  TData = Common.QueryReferencesMutationResult,
-  TError = QueryReferencesError,
-  TQueryKey extends Array<unknown> = unknown[],
-  TContext = unknown,
->(
-  mutationKey?: TQueryKey,
-  options?: Omit<
-    UseMutationOptions<TData, TError, Options<QueryReferencesData, true>, TContext>,
-    'mutationKey' | 'mutationFn'
-  >,
-) =>
-  useMutation<TData, TError, Options<QueryReferencesData, true>, TContext>({
-    mutationKey: Common.UseQueryReferencesKeyFn(mutationKey),
-    mutationFn: (clientOptions) => queryReferences(clientOptions) as unknown as Promise<TData>,
-    ...options,
-  });
-export const useAddReferences = <
-  TData = Common.AddReferencesMutationResult,
-  TError = AddReferencesError,
-  TQueryKey extends Array<unknown> = unknown[],
-  TContext = unknown,
->(
-  mutationKey?: TQueryKey,
-  options?: Omit<
-    UseMutationOptions<TData, TError, Options<AddReferencesData, true>, TContext>,
-    'mutationKey' | 'mutationFn'
-  >,
-) =>
-  useMutation<TData, TError, Options<AddReferencesData, true>, TContext>({
-    mutationKey: Common.UseAddReferencesKeyFn(mutationKey),
-    mutationFn: (clientOptions) => addReferences(clientOptions) as unknown as Promise<TData>,
-    ...options,
-  });
-export const useDeleteReferences = <
-  TData = Common.DeleteReferencesMutationResult,
-  TError = DeleteReferencesError,
-  TQueryKey extends Array<unknown> = unknown[],
-  TContext = unknown,
->(
-  mutationKey?: TQueryKey,
-  options?: Omit<
-    UseMutationOptions<TData, TError, Options<DeleteReferencesData, true>, TContext>,
-    'mutationKey' | 'mutationFn'
-  >,
-) =>
-  useMutation<TData, TError, Options<DeleteReferencesData, true>, TContext>({
-    mutationKey: Common.UseDeleteReferencesKeyFn(mutationKey),
-    mutationFn: (clientOptions) => deleteReferences(clientOptions) as unknown as Promise<TData>,
     ...options,
   });
 export const useCreateProject = <
@@ -2218,6 +2412,91 @@ export const useUpdatePilotSession = <
     mutationFn: (clientOptions) => updatePilotSession(clientOptions) as unknown as Promise<TData>,
     ...options,
   });
+export const useRecoverPilotSession = <
+  TData = Common.RecoverPilotSessionMutationResult,
+  TError = RecoverPilotSessionError,
+  TQueryKey extends Array<unknown> = unknown[],
+  TContext = unknown,
+>(
+  mutationKey?: TQueryKey,
+  options?: Omit<
+    UseMutationOptions<TData, TError, Options<RecoverPilotSessionData, true>, TContext>,
+    'mutationKey' | 'mutationFn'
+  >,
+) =>
+  useMutation<TData, TError, Options<RecoverPilotSessionData, true>, TContext>({
+    mutationKey: Common.UseRecoverPilotSessionKeyFn(mutationKey),
+    mutationFn: (clientOptions) => recoverPilotSession(clientOptions) as unknown as Promise<TData>,
+    ...options,
+  });
+export const useInitializeWorkflow = <
+  TData = Common.InitializeWorkflowMutationResult,
+  TError = InitializeWorkflowError,
+  TQueryKey extends Array<unknown> = unknown[],
+  TContext = unknown,
+>(
+  mutationKey?: TQueryKey,
+  options?: Omit<
+    UseMutationOptions<TData, TError, Options<InitializeWorkflowData, true>, TContext>,
+    'mutationKey' | 'mutationFn'
+  >,
+) =>
+  useMutation<TData, TError, Options<InitializeWorkflowData, true>, TContext>({
+    mutationKey: Common.UseInitializeWorkflowKeyFn(mutationKey),
+    mutationFn: (clientOptions) => initializeWorkflow(clientOptions) as unknown as Promise<TData>,
+    ...options,
+  });
+export const useCreateWorkflowApp = <
+  TData = Common.CreateWorkflowAppMutationResult,
+  TError = CreateWorkflowAppError,
+  TQueryKey extends Array<unknown> = unknown[],
+  TContext = unknown,
+>(
+  mutationKey?: TQueryKey,
+  options?: Omit<
+    UseMutationOptions<TData, TError, Options<CreateWorkflowAppData, true>, TContext>,
+    'mutationKey' | 'mutationFn'
+  >,
+) =>
+  useMutation<TData, TError, Options<CreateWorkflowAppData, true>, TContext>({
+    mutationKey: Common.UseCreateWorkflowAppKeyFn(mutationKey),
+    mutationFn: (clientOptions) => createWorkflowApp(clientOptions) as unknown as Promise<TData>,
+    ...options,
+  });
+export const useDeleteWorkflowApp = <
+  TData = Common.DeleteWorkflowAppMutationResult,
+  TError = DeleteWorkflowAppError,
+  TQueryKey extends Array<unknown> = unknown[],
+  TContext = unknown,
+>(
+  mutationKey?: TQueryKey,
+  options?: Omit<
+    UseMutationOptions<TData, TError, Options<DeleteWorkflowAppData, true>, TContext>,
+    'mutationKey' | 'mutationFn'
+  >,
+) =>
+  useMutation<TData, TError, Options<DeleteWorkflowAppData, true>, TContext>({
+    mutationKey: Common.UseDeleteWorkflowAppKeyFn(mutationKey),
+    mutationFn: (clientOptions) => deleteWorkflowApp(clientOptions) as unknown as Promise<TData>,
+    ...options,
+  });
+export const useExecuteWorkflowApp = <
+  TData = Common.ExecuteWorkflowAppMutationResult,
+  TError = ExecuteWorkflowAppError,
+  TQueryKey extends Array<unknown> = unknown[],
+  TContext = unknown,
+>(
+  mutationKey?: TQueryKey,
+  options?: Omit<
+    UseMutationOptions<TData, TError, Options<ExecuteWorkflowAppData, true>, TContext>,
+    'mutationKey' | 'mutationFn'
+  >,
+) =>
+  useMutation<TData, TError, Options<ExecuteWorkflowAppData, true>, TContext>({
+    mutationKey: Common.UseExecuteWorkflowAppKeyFn(mutationKey),
+    mutationFn: (clientOptions) => executeWorkflowApp(clientOptions) as unknown as Promise<TData>,
+    ...options,
+  });
 export const useCreateCheckoutSession = <
   TData = Common.CreateCheckoutSessionMutationResult,
   TError = CreateCheckoutSessionError,
@@ -2442,6 +2721,57 @@ export const useDeleteProviderItem = <
   useMutation<TData, TError, Options<DeleteProviderItemData, true>, TContext>({
     mutationKey: Common.UseDeleteProviderItemKeyFn(mutationKey),
     mutationFn: (clientOptions) => deleteProviderItem(clientOptions) as unknown as Promise<TData>,
+    ...options,
+  });
+export const useCreateToolset = <
+  TData = Common.CreateToolsetMutationResult,
+  TError = CreateToolsetError,
+  TQueryKey extends Array<unknown> = unknown[],
+  TContext = unknown,
+>(
+  mutationKey?: TQueryKey,
+  options?: Omit<
+    UseMutationOptions<TData, TError, Options<CreateToolsetData, true>, TContext>,
+    'mutationKey' | 'mutationFn'
+  >,
+) =>
+  useMutation<TData, TError, Options<CreateToolsetData, true>, TContext>({
+    mutationKey: Common.UseCreateToolsetKeyFn(mutationKey),
+    mutationFn: (clientOptions) => createToolset(clientOptions) as unknown as Promise<TData>,
+    ...options,
+  });
+export const useUpdateToolset = <
+  TData = Common.UpdateToolsetMutationResult,
+  TError = UpdateToolsetError,
+  TQueryKey extends Array<unknown> = unknown[],
+  TContext = unknown,
+>(
+  mutationKey?: TQueryKey,
+  options?: Omit<
+    UseMutationOptions<TData, TError, Options<UpdateToolsetData, true>, TContext>,
+    'mutationKey' | 'mutationFn'
+  >,
+) =>
+  useMutation<TData, TError, Options<UpdateToolsetData, true>, TContext>({
+    mutationKey: Common.UseUpdateToolsetKeyFn(mutationKey),
+    mutationFn: (clientOptions) => updateToolset(clientOptions) as unknown as Promise<TData>,
+    ...options,
+  });
+export const useDeleteToolset = <
+  TData = Common.DeleteToolsetMutationResult,
+  TError = DeleteToolsetError,
+  TQueryKey extends Array<unknown> = unknown[],
+  TContext = unknown,
+>(
+  mutationKey?: TQueryKey,
+  options?: Omit<
+    UseMutationOptions<TData, TError, Options<DeleteToolsetData, true>, TContext>,
+    'mutationKey' | 'mutationFn'
+  >,
+) =>
+  useMutation<TData, TError, Options<DeleteToolsetData, true>, TContext>({
+    mutationKey: Common.UseDeleteToolsetKeyFn(mutationKey),
+    mutationFn: (clientOptions) => deleteToolset(clientOptions) as unknown as Promise<TData>,
     ...options,
   });
 export const useScrape = <

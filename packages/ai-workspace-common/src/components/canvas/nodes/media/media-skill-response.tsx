@@ -1,12 +1,17 @@
 import { memo, useState, useCallback, useRef, useMemo, useEffect } from 'react';
 import { useReactFlow, Position } from '@xyflow/react';
-import { CanvasNode, CanvasNodeData, ResponseNodeMeta } from '@refly/canvas-common';
+import {
+  CanvasNode,
+  CanvasNodeData,
+  convertContextItemsToNodeFilters,
+  ResponseNodeMeta,
+} from '@refly/canvas-common';
 import { useNodeHoverEffect } from '@refly-packages/ai-workspace-common/hooks/canvas/use-node-hover';
 import {
   useNodeSize,
   MAX_HEIGHT_CLASS,
 } from '@refly-packages/ai-workspace-common/hooks/canvas/use-node-size';
-import { getNodeCommonStyles } from '../index';
+import { getNodeCommonStyles } from '../shared/styles';
 import { CustomHandle } from '../shared/custom-handle';
 import { useActionResultStoreShallow } from '@refly/stores';
 import { useActionPolling } from '@refly-packages/ai-workspace-common/hooks/canvas/use-action-polling';
@@ -22,7 +27,7 @@ import {
   IconRerun,
 } from '@refly-packages/ai-workspace-common/components/common/icon';
 import { HiOutlineFilm, HiOutlineSpeakerWave } from 'react-icons/hi2';
-import { genImageID, genVideoID, genAudioID } from '@refly/utils/id';
+import { genMediaID } from '@refly/utils/id';
 import { Button, Spin, message } from 'antd';
 import { cn } from '@refly/utils/cn';
 import { NodeProps } from '@xyflow/react';
@@ -37,6 +42,8 @@ import { CanvasNodeType } from '@refly/openapi-schema';
 import { useSetNodeDataByEntity } from '@refly-packages/ai-workspace-common/hooks/canvas';
 import { MediaType } from '@refly-packages/ai-workspace-common/events/nodeOperations';
 import { useSubscriptionUsage } from '@refly-packages/ai-workspace-common/hooks/use-subscription-usage';
+import { IContextItem } from '@refly/common-types';
+import { MediaModelParameter } from '@refly/openapi-schema';
 
 interface MediaSkillResponseNodeMeta extends ResponseNodeMeta {
   mediaType?: MediaType;
@@ -44,6 +51,7 @@ interface MediaSkillResponseNodeMeta extends ResponseNodeMeta {
   model?: string;
   resultId?: string;
   providerItemId?: string;
+  inputParameters?: MediaModelParameter[];
 }
 
 interface MediaSkillResponseNodeProps extends NodeProps {
@@ -135,17 +143,12 @@ const MediaSkillResponseNode = memo(
           refetchUsage();
         }
       }
-    }, [result, resultId, refetchUsage]);
+    }, [result, resultId]);
 
     const handleCreateMediaNode = useCallback(
       async (outputUrl: string, storageKey: string) => {
         try {
-          const entityId =
-            mediaType === 'image'
-              ? genImageID()
-              : mediaType === 'video'
-                ? genVideoID()
-                : genAudioID();
+          const entityId = genMediaID(mediaType);
 
           const urlKey =
             mediaType === 'image' ? 'imageUrl' : mediaType === 'video' ? 'videoUrl' : 'audioUrl';
@@ -158,7 +161,7 @@ const MediaSkillResponseNode = memo(
           const newNode: Partial<CanvasNode<any>> = {
             type: mediaType as CanvasNodeType,
             data: {
-              title: prompt,
+              title: currentNode?.data?.title as string,
               entityId,
               metadata: {
                 [urlKey]: outputUrl,
@@ -166,6 +169,8 @@ const MediaSkillResponseNode = memo(
                 prompt: nodeMeta?.prompt,
                 resultId: nodeMeta?.resultId,
                 selectedModel: nodeMeta?.selectedModel,
+                contextItems: nodeMeta?.contextItems,
+                modelInfo: nodeMeta?.modelInfo,
               },
             },
             position: nodePosition,
@@ -180,9 +185,7 @@ const MediaSkillResponseNode = memo(
 
           // Find the mediaSkill node that connects to this node
           const mediaSkillNode = nodes?.find((node) => {
-            return (
-              node.type === 'mediaSkill' && incomingEdges.some((edge) => edge.source === node.id)
-            );
+            return node.type === 'skill' && incomingEdges.some((edge) => edge.source === node.id);
           });
 
           const connectedTo: CanvasNodeFilter[] = [];
@@ -190,11 +193,19 @@ const MediaSkillResponseNode = memo(
           if (mediaSkillNode) {
             // Connect the new media node to the mediaSkill node's source
             connectedTo.push({
-              type: 'mediaSkill' as CanvasNodeType,
+              type: 'skill' as CanvasNodeType,
               entityId: mediaSkillNode.data?.entityId as string,
               handleType: 'source',
             });
           }
+
+          // Add the new media node at the same position
+          addNode(
+            newNode,
+            convertContextItemsToNodeFilters(data.metadata?.contextItems as IContextItem[]),
+            true,
+            true,
+          );
 
           // Delete this MediaSkillResponse node
           deleteNode(
@@ -208,9 +219,6 @@ const MediaSkillResponseNode = memo(
               showMessage: false,
             },
           );
-
-          // Add the new media node at the same position
-          addNode(newNode, connectedTo, false, true);
 
           message.success(
             t('canvas.nodes.mediaSkillResponse.success', 'Media generated successfully!'),
@@ -249,6 +257,7 @@ const MediaSkillResponseNode = memo(
             providerItemId,
             targetType: 'canvas',
             targetId: canvasId,
+            inputParameters: data?.metadata?.inputParameters,
           },
         });
 

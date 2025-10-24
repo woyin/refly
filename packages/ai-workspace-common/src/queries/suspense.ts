@@ -4,6 +4,7 @@ import { type Options } from '@hey-api/client-fetch';
 import { UseQueryOptions, useSuspenseQuery } from '@tanstack/react-query';
 import {
   checkSettingsField,
+  checkToolOauthStatus,
   exportCanvas,
   exportDocument,
   getActionResult,
@@ -26,6 +27,10 @@ import {
   getSettings,
   getSubscriptionPlans,
   getSubscriptionUsage,
+  getWorkflowAppDetail,
+  getWorkflowDetail,
+  getWorkflowVariables,
+  listAccounts,
   listActions,
   listCanvases,
   listCanvasTemplateCategories,
@@ -47,11 +52,17 @@ import {
   listSkillInstances,
   listSkills,
   listSkillTriggers,
+  listTools,
+  listToolsetInventory,
+  listToolsets,
+  listWorkflowApps,
   serveStatic,
 } from '../requests/services.gen';
 import {
   CheckSettingsFieldData,
   CheckSettingsFieldError,
+  CheckToolOauthStatusData,
+  CheckToolOauthStatusError,
   ExportCanvasData,
   ExportCanvasError,
   ExportDocumentData,
@@ -90,6 +101,14 @@ import {
   GetSettingsError,
   GetSubscriptionPlansError,
   GetSubscriptionUsageError,
+  GetWorkflowAppDetailData,
+  GetWorkflowAppDetailError,
+  GetWorkflowDetailData,
+  GetWorkflowDetailError,
+  GetWorkflowVariablesData,
+  GetWorkflowVariablesError,
+  ListAccountsData,
+  ListAccountsError,
   ListActionsError,
   ListCanvasesData,
   ListCanvasesError,
@@ -128,6 +147,13 @@ import {
   ListSkillsError,
   ListSkillTriggersData,
   ListSkillTriggersError,
+  ListToolsData,
+  ListToolsError,
+  ListToolsetInventoryError,
+  ListToolsetsData,
+  ListToolsetsError,
+  ListWorkflowAppsData,
+  ListWorkflowAppsError,
   ServeStaticError,
 } from '../requests/types.gen';
 import * as Common from './common';
@@ -204,6 +230,38 @@ export const useGetAuthConfigSuspense = <
     queryKey: Common.UseGetAuthConfigKeyFn(clientOptions, queryKey),
     queryFn: () =>
       getAuthConfig({ ...clientOptions }).then((response) => response.data as TData) as TData,
+    ...options,
+  });
+export const useListAccountsSuspense = <
+  TData = Common.ListAccountsDefaultResponse,
+  TError = ListAccountsError,
+  TQueryKey extends Array<unknown> = unknown[],
+>(
+  clientOptions: Options<ListAccountsData, true> = {},
+  queryKey?: TQueryKey,
+  options?: Omit<UseQueryOptions<TData, TError>, 'queryKey' | 'queryFn'>,
+) =>
+  useSuspenseQuery<TData, TError>({
+    queryKey: Common.UseListAccountsKeyFn(clientOptions, queryKey),
+    queryFn: () =>
+      listAccounts({ ...clientOptions }).then((response) => response.data as TData) as TData,
+    ...options,
+  });
+export const useCheckToolOauthStatusSuspense = <
+  TData = Common.CheckToolOauthStatusDefaultResponse,
+  TError = CheckToolOauthStatusError,
+  TQueryKey extends Array<unknown> = unknown[],
+>(
+  clientOptions: Options<CheckToolOauthStatusData, true>,
+  queryKey?: TQueryKey,
+  options?: Omit<UseQueryOptions<TData, TError>, 'queryKey' | 'queryFn'>,
+) =>
+  useSuspenseQuery<TData, TError>({
+    queryKey: Common.UseCheckToolOauthStatusKeyFn(clientOptions, queryKey),
+    queryFn: () =>
+      checkToolOauthStatus({ ...clientOptions }).then(
+        (response) => response.data as TData,
+      ) as TData,
     ...options,
   });
 export const useGetCollabTokenSuspense = <
@@ -309,6 +367,23 @@ export const useGetCanvasTransactionsSuspense = <
     queryKey: Common.UseGetCanvasTransactionsKeyFn(clientOptions, queryKey),
     queryFn: () =>
       getCanvasTransactions({ ...clientOptions }).then(
+        (response) => response.data as TData,
+      ) as TData,
+    ...options,
+  });
+export const useGetWorkflowVariablesSuspense = <
+  TData = Common.GetWorkflowVariablesDefaultResponse,
+  TError = GetWorkflowVariablesError,
+  TQueryKey extends Array<unknown> = unknown[],
+>(
+  clientOptions: Options<GetWorkflowVariablesData, true>,
+  queryKey?: TQueryKey,
+  options?: Omit<UseQueryOptions<TData, TError>, 'queryKey' | 'queryFn'>,
+) =>
+  useSuspenseQuery<TData, TError>({
+    queryKey: Common.UseGetWorkflowVariablesKeyFn(clientOptions, queryKey),
+    queryFn: () =>
+      getWorkflowVariables({ ...clientOptions }).then(
         (response) => response.data as TData,
       ) as TData,
     ...options,
@@ -634,6 +709,53 @@ export const useGetPilotSessionDetailSuspense = <
       ) as TData,
     ...options,
   });
+export const useGetWorkflowDetailSuspense = <
+  TData = Common.GetWorkflowDetailDefaultResponse,
+  TError = GetWorkflowDetailError,
+  TQueryKey extends Array<unknown> = unknown[],
+>(
+  clientOptions: Options<GetWorkflowDetailData, true>,
+  queryKey?: TQueryKey,
+  options?: Omit<UseQueryOptions<TData, TError>, 'queryKey' | 'queryFn'>,
+) =>
+  useSuspenseQuery<TData, TError>({
+    queryKey: Common.UseGetWorkflowDetailKeyFn(clientOptions, queryKey),
+    queryFn: () =>
+      getWorkflowDetail({ ...clientOptions }).then((response) => response.data as TData) as TData,
+    ...options,
+  });
+export const useGetWorkflowAppDetailSuspense = <
+  TData = Common.GetWorkflowAppDetailDefaultResponse,
+  TError = GetWorkflowAppDetailError,
+  TQueryKey extends Array<unknown> = unknown[],
+>(
+  clientOptions: Options<GetWorkflowAppDetailData, true>,
+  queryKey?: TQueryKey,
+  options?: Omit<UseQueryOptions<TData, TError>, 'queryKey' | 'queryFn'>,
+) =>
+  useSuspenseQuery<TData, TError>({
+    queryKey: Common.UseGetWorkflowAppDetailKeyFn(clientOptions, queryKey),
+    queryFn: () =>
+      getWorkflowAppDetail({ ...clientOptions }).then(
+        (response) => response.data as TData,
+      ) as TData,
+    ...options,
+  });
+export const useListWorkflowAppsSuspense = <
+  TData = Common.ListWorkflowAppsDefaultResponse,
+  TError = ListWorkflowAppsError,
+  TQueryKey extends Array<unknown> = unknown[],
+>(
+  clientOptions: Options<ListWorkflowAppsData, true> = {},
+  queryKey?: TQueryKey,
+  options?: Omit<UseQueryOptions<TData, TError>, 'queryKey' | 'queryFn'>,
+) =>
+  useSuspenseQuery<TData, TError>({
+    queryKey: Common.UseListWorkflowAppsKeyFn(clientOptions, queryKey),
+    queryFn: () =>
+      listWorkflowApps({ ...clientOptions }).then((response) => response.data as TData) as TData,
+    ...options,
+  });
 export const useGetSettingsSuspense = <
   TData = Common.GetSettingsDefaultResponse,
   TError = GetSettingsError,
@@ -803,6 +925,53 @@ export const useListProviderItemOptionsSuspense = <
       listProviderItemOptions({ ...clientOptions }).then(
         (response) => response.data as TData,
       ) as TData,
+    ...options,
+  });
+export const useListToolsSuspense = <
+  TData = Common.ListToolsDefaultResponse,
+  TError = ListToolsError,
+  TQueryKey extends Array<unknown> = unknown[],
+>(
+  clientOptions: Options<ListToolsData, true> = {},
+  queryKey?: TQueryKey,
+  options?: Omit<UseQueryOptions<TData, TError>, 'queryKey' | 'queryFn'>,
+) =>
+  useSuspenseQuery<TData, TError>({
+    queryKey: Common.UseListToolsKeyFn(clientOptions, queryKey),
+    queryFn: () =>
+      listTools({ ...clientOptions }).then((response) => response.data as TData) as TData,
+    ...options,
+  });
+export const useListToolsetInventorySuspense = <
+  TData = Common.ListToolsetInventoryDefaultResponse,
+  TError = ListToolsetInventoryError,
+  TQueryKey extends Array<unknown> = unknown[],
+>(
+  clientOptions: Options<unknown, true> = {},
+  queryKey?: TQueryKey,
+  options?: Omit<UseQueryOptions<TData, TError>, 'queryKey' | 'queryFn'>,
+) =>
+  useSuspenseQuery<TData, TError>({
+    queryKey: Common.UseListToolsetInventoryKeyFn(clientOptions, queryKey),
+    queryFn: () =>
+      listToolsetInventory({ ...clientOptions }).then(
+        (response) => response.data as TData,
+      ) as TData,
+    ...options,
+  });
+export const useListToolsetsSuspense = <
+  TData = Common.ListToolsetsDefaultResponse,
+  TError = ListToolsetsError,
+  TQueryKey extends Array<unknown> = unknown[],
+>(
+  clientOptions: Options<ListToolsetsData, true> = {},
+  queryKey?: TQueryKey,
+  options?: Omit<UseQueryOptions<TData, TError>, 'queryKey' | 'queryFn'>,
+) =>
+  useSuspenseQuery<TData, TError>({
+    queryKey: Common.UseListToolsetsKeyFn(clientOptions, queryKey),
+    queryFn: () =>
+      listToolsets({ ...clientOptions }).then((response) => response.data as TData) as TData,
     ...options,
   });
 export const useServeStaticSuspense = <

@@ -6,6 +6,7 @@ import {
   SkillContextContentItem,
   SkillContextResourceItem,
   Source,
+  SkillContext,
 } from '@refly/openapi-schema';
 
 export const countToken = (content: MessageContent) => {
@@ -44,13 +45,12 @@ export const countContextTokens = (context: IContext) => {
   );
 };
 
-export const checkHasContext = (context: IContext) => {
+export const checkHasContext = (context: SkillContext) => {
   return (
     context?.contentList?.length > 0 ||
     context?.resources?.length > 0 ||
     context?.documents?.length > 0 ||
-    context?.webSearchSources?.length > 0 ||
-    context?.librarySearchSources?.length > 0
+    context?.mediaList?.length > 0
   );
 };
 

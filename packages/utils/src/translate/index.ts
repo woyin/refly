@@ -139,8 +139,86 @@ export async function detectLanguage(text: string): Promise<LangCode> {
     return (detectedLang as LangCode) || 'en';
   } catch (error) {
     console.error('Language detection error after retries:', error);
-    return 'en';
+    return detectLanguageFromCharacter(text)?.language as LangCode;
   }
+}
+
+interface LanguageDetectionResult {
+  language: LangCode;
+  isEnglish: boolean;
+  confidence: number;
+}
+
+/**
+ * Detect the language of the given prompt
+ * @param prompt The input prompt to analyze
+ * @returns Language detection result
+ */
+export function detectLanguageFromCharacter(prompt: string): LanguageDetectionResult {
+  if (!prompt?.trim()) {
+    return {
+      language: 'en',
+      isEnglish: true,
+      confidence: 1.0,
+    } as const;
+  }
+
+  const chineseMatches = prompt.match(/[\u4e00-\u9fff]/g);
+  const chineseCharCount = chineseMatches?.length || 0;
+  const totalCharCount = prompt.length;
+  const chineseRatio = chineseCharCount / totalCharCount;
+
+  // Japanese character detection (Hiragana, Katakana, Kanji)
+  const japaneseRegex = /[\u3040-\u309f\u30a0-\u30ff\u4e00-\u9fff]/g;
+  const japaneseMatches = prompt.match(japaneseRegex);
+  const japaneseCharCount = japaneseMatches?.length || 0;
+  const japaneseRatio = japaneseCharCount / totalCharCount;
+
+  // Korean character detection
+  const koreanRegex = /[\uac00-\ud7af]/g;
+  const koreanMatches = prompt.match(koreanRegex);
+  const koreanCharCount = koreanMatches?.length || 0;
+  const koreanRatio = koreanCharCount / totalCharCount;
+
+  // English detection (basic Latin characters)
+  const englishRegex = /[a-zA-Z]/g;
+  const englishMatches = prompt.match(englishRegex);
+  const englishCharCount = englishMatches?.length || 0;
+  const englishRatio = englishCharCount / totalCharCount;
+
+  // Determine language based on character ratios
+  const threshold = 0.1; // 10% threshold for language detection
+
+  if (chineseRatio > threshold) {
+    return {
+      language: 'zh-Hans',
+      isEnglish: false,
+      confidence: Math.min(chineseRatio * 2, 1.0),
+    };
+  }
+
+  if (japaneseRatio > threshold) {
+    return {
+      language: 'ja',
+      isEnglish: false,
+      confidence: Math.min(japaneseRatio * 2, 1.0),
+    };
+  }
+
+  if (koreanRatio > threshold) {
+    return {
+      language: 'ko',
+      isEnglish: false,
+      confidence: Math.min(koreanRatio * 2, 1.0),
+    };
+  }
+
+  // Default to English if no other language is detected with sufficient confidence
+  return {
+    language: 'en',
+    isEnglish: true,
+    confidence: Math.min(englishRatio * 2, 1.0),
+  };
 }
 
 // Translation function

@@ -4,30 +4,20 @@ import { z } from 'zod';
 import { Runnable, RunnableConfig } from '@langchain/core/runnables';
 import { BaseSkill, BaseSkillState, SkillRunnableConfig, baseStateGraphArgs } from '../base';
 import { safeStringifyJSON } from '@refly/utils';
-import {
-  Artifact,
-  Icon,
-  SkillInvocationConfig,
-  SkillTemplateConfigDefinition,
-  Source,
-} from '@refly/openapi-schema';
+import { Artifact, Icon, SkillTemplateConfigDefinition } from '@refly/openapi-schema';
 // types
 import { GraphState } from '../scheduler/types';
 // utils
-import { prepareContext } from '../scheduler/utils/context';
 import { truncateMessages, truncateSource } from '../scheduler/utils/truncator';
 import { countToken } from '../scheduler/utils/token';
 import { buildFinalRequestMessages, SkillPromptModule } from '../scheduler/utils/message';
-import { processQuery } from '../scheduler/utils/queryProcessor';
-import { extractAndCrawlUrls } from '../scheduler/utils/extract-weblink';
-import { processContextUrls } from '../utils/url-processing';
 
 // prompts
-import * as generateDocument from '../scheduler/module/generateDocument';
+import { generateDocPromptModule } from '../scheduler/module/generateDocument';
 import { extractStructuredData } from '../scheduler/utils/extractor';
 import { BaseMessage, HumanMessage } from '@langchain/core/dist/messages';
 import { truncateTextWithToken } from '../scheduler/utils/truncator';
-import { checkModelContextLenSupport } from '../scheduler/utils/model';
+import { getTitlePrompt } from '../scheduler/module/generateDocument/prompt';
 
 // Add title schema with reason
 const titleSchema = z.object({
@@ -44,8 +34,6 @@ export class GenerateDoc extends BaseSkill {
   configSchema: SkillTemplateConfigDefinition = {
     items: [],
   };
-
-  invocationConfig: SkillInvocationConfig = {};
 
   description = 'Generate a document according to the user query';
 
@@ -64,114 +52,19 @@ export class GenerateDoc extends BaseSkill {
     module: SkillPromptModule,
   ) => {
     config.metadata.step = { name: 'analyzeQuery' };
-    const { messages = [], images = [] } = state;
-    const { locale = 'en', modelConfigMap, project, runtimeConfig } = config.configurable;
+    const { query, messages = [], images = [] } = state;
+    const { locale = 'en', modelConfigMap, project, preprocessResult } = config.configurable;
+    const { optimizedQuery, rewrittenQueries, context, sources, usedChatHistory } =
+      preprocessResult;
     const modelInfo = modelConfigMap.chat;
 
     // Extract customInstructions from project if available
     const customInstructions = project?.customInstructions;
 
-    // Only enable knowledge base search if both projectId AND runtimeConfig.enabledKnowledgeBase are true
-    const projectId = project?.projectId;
-    const enableKnowledgeBaseSearch = !!projectId && !!runtimeConfig?.enabledKnowledgeBase;
+    this.engine.logger.log(`context: ${safeStringifyJSON(context)}`);
 
-    this.engine.logger.log(
-      `ProjectId: ${projectId}, Enable KB Search: ${enableKnowledgeBaseSearch}`,
-    );
-
-    // Update tplConfig with knowledge base search setting
-    config.configurable.tplConfig = {
-      ...config.configurable.tplConfig,
-      enableKnowledgeBaseSearch: {
-        value: enableKnowledgeBaseSearch,
-        label: 'Knowledge Base Search',
-        displayValue: enableKnowledgeBaseSearch ? 'true' : 'false',
-      },
-    };
-
-    // Use shared query processor
-    const {
-      optimizedQuery,
-      query,
-      usedChatHistory,
-      hasContext,
-      remainingTokens,
-      mentionedContext,
-      rewrittenQueries,
-    } = await processQuery({
-      config,
-      ctxThis: this,
-      state,
-    });
-
-    // Extract URLs from the query and crawl them with optimized concurrent processing
-    const { sources: queryUrlSources, analysis } = await extractAndCrawlUrls(query, config, this, {
-      concurrencyLimit: 5,
-      batchSize: 8,
-    });
-
-    this.engine.logger.log(`URL extraction analysis: ${safeStringifyJSON(analysis)}`);
-    this.engine.logger.log(`Extracted query URL sources count: ${queryUrlSources.length}`);
-
-    // Process URLs from frontend context if available
-    const contextUrls = config.configurable?.urls || [];
-    const contextUrlSources = await processContextUrls(contextUrls, config, this);
-
-    if (contextUrlSources.length > 0) {
-      this.engine.logger.log(`Added ${contextUrlSources.length} URL sources from context`);
-    }
-
-    // Combine URL sources from context and query extraction
-    const urlSources = [...contextUrlSources, ...(queryUrlSources || [])];
-    this.engine.logger.log(`Total combined URL sources: ${urlSources.length}`);
-
-    let context = '';
-    let sources: Source[] = [];
-
-    // Consider URL sources for context preparation
-    const hasUrlSources = urlSources.length > 0;
-    const needPrepareContext =
-      (hasContext || hasUrlSources || enableKnowledgeBaseSearch) && remainingTokens > 0;
-    const isModelContextLenSupport = checkModelContextLenSupport(modelInfo);
-
-    this.engine.logger.log(`optimizedQuery: ${optimizedQuery}`);
-    this.engine.logger.log(`mentionedContext: ${safeStringifyJSON(mentionedContext)}`);
-    this.engine.logger.log(`hasUrlSources: ${hasUrlSources}`);
-
-    if (needPrepareContext) {
-      config.metadata.step = { name: 'analyzeContext' };
-      const preparedRes = await prepareContext(
-        {
-          query: optimizedQuery,
-          mentionedContext,
-          maxTokens: remainingTokens,
-          enableMentionedContext: hasContext,
-          rewrittenQueries,
-          urlSources, // Pass combined URL sources to prepareContext
-        },
-        {
-          config,
-          ctxThis: this,
-          state,
-          tplConfig: {
-            ...(config?.configurable?.tplConfig || {}),
-            enableKnowledgeBaseSearch: {
-              value: enableKnowledgeBaseSearch,
-              label: 'Knowledge Base Search',
-              displayValue: enableKnowledgeBaseSearch ? 'true' : 'false',
-            },
-          },
-        },
-      );
-
-      context = preparedRes.contextStr;
-      sources = preparedRes.sources;
-
-      this.engine.logger.log(`context: ${safeStringifyJSON(context)}`);
-
-      if (sources.length > 0) {
-        this.emitEvent({ structuredData: { sources: truncateSource(sources) } }, config);
-      }
+    if (sources.length > 0) {
+      this.emitEvent({ structuredData: { sources: truncateSource(sources) } }, config);
     }
 
     const requestMessages = buildFinalRequestMessages({
@@ -179,7 +72,6 @@ export class GenerateDoc extends BaseSkill {
       locale,
       chatHistory: usedChatHistory,
       messages,
-      needPrepareContext: needPrepareContext && isModelContextLenSupport,
       context,
       images,
       originalQuery: query,
@@ -220,7 +112,7 @@ export class GenerateDoc extends BaseSkill {
     // Prepare recent chat history
     const recentHistory = truncateMessages(chatHistory); // Limit chat history tokens
 
-    const titlePrompt = `${generateDocument.getTitlePrompt(locale, uiLocale)}
+    const titlePrompt = `${getTitlePrompt(locale, uiLocale)}
 
 USER QUERY:
 ${query}
@@ -281,12 +173,7 @@ ${recentHistory.map((msg) => `${(msg as HumanMessage)?.getType?.()}: ${msg.conte
 
     const model = this.engine.chatModel({ temperature: 0.1 });
 
-    const module = {
-      buildSystemPrompt: (locale: string, needPrepareContext: boolean) =>
-        generateDocument.buildGenerateDocumentSystemPrompt(locale, needPrepareContext),
-      buildUserPrompt: generateDocument.buildGenerateDocumentUserPrompt,
-      buildContextUserPrompt: generateDocument.buildGenerateDocumentContextUserPrompt,
-    };
+    const module = generateDocPromptModule;
 
     const { optimizedQuery, requestMessages, context, sources, usedChatHistory } =
       await this.commonPreprocess(state, config, module);
@@ -308,7 +195,7 @@ ${recentHistory.map((msg) => `${(msg as HumanMessage)?.getType?.()}: ${msg.conte
     }
 
     // Create document with generated title
-    const res = await this.engine.service.createDocument(user, {
+    const doc = await this.engine.service.createDocument(user, {
       title: documentTitle || optimizedQuery,
       initialContent: '',
     });
@@ -318,8 +205,8 @@ ${recentHistory.map((msg) => `${(msg as HumanMessage)?.getType?.()}: ${msg.conte
 
     const artifact: Artifact = {
       type: 'document',
-      entityId: res.data?.docId || '',
-      title: res.data?.title || '',
+      entityId: doc?.docId || '',
+      title: doc?.title || '',
     };
     this.emitEvent(
       {
