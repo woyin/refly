@@ -1188,7 +1188,7 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
 
         {/* Display the not found overlay when shareNotFound is true */}
         {readonly && shareNotFound && <NotFoundOverlay />}
-        <ToolbarButtons />
+        <ToolbarButtons canvasId={canvasId} />
 
         {/* <div
           className="absolute top-[64px] bottom-0 right-2 overflow-x-auto preview-container z-20"

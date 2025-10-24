@@ -1286,6 +1286,8 @@ const translations = {
         layout: 'Auto Layout',
         mode: 'Interaction Mode',
         help: 'Help & Documentation',
+        resourceLibrary: 'Resource Library',
+        toolDependencies: 'Tool Dependencies',
       },
       openDocs: 'Documentation',
       openTour: 'Feature Highlights',

@@ -1274,6 +1274,8 @@ const translations = {
         layout: '自动布局',
         mode: '交互模式',
         help: '帮助与文档',
+        resourceLibrary: '资源库',
+        toolDependencies: '依赖',
       },
       openDocs: '帮助文档',
       openTour: '功能亮点',

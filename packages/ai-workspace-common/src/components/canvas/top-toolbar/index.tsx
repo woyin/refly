@@ -15,7 +15,6 @@ import { IconLink } from '@refly-packages/ai-workspace-common/components/common/
 import { Copy, Play } from 'refly-icons';
 import { useDuplicateCanvas } from '@refly-packages/ai-workspace-common/hooks/use-duplicate-canvas';
 import { useAuthStoreShallow } from '@refly/stores';
-import { ToolsDependency } from '../tools-dependency';
 import cn from 'classnames';
 import { logEvent } from '@refly/telemetry-web';
 import { ActionsInCanvasDropdown } from '@refly-packages/ai-workspace-common/components/canvas/top-toolbar/actions-in-canvas-dropdown';
@@ -33,10 +32,13 @@ export const TopToolbar: FC<TopToolbarProps> = memo(({ canvasId }) => {
   const { setLoginModalOpen } = useAuthStoreShallow((state) => ({
     setLoginModalOpen: state.setLoginModalOpen,
   }));
-  const { showWorkflowRun, setShowWorkflowRun } = useCanvasResourcesPanelStoreShallow((state) => ({
-    showWorkflowRun: state.showWorkflowRun,
-    setShowWorkflowRun: state.setShowWorkflowRun,
-  }));
+  const { showWorkflowRun, setShowWorkflowRun, setSidePanelVisible } =
+    useCanvasResourcesPanelStoreShallow((state) => ({
+      showWorkflowRun: state.showWorkflowRun,
+      setShowWorkflowRun: state.setShowWorkflowRun,
+      setSidePanelVisible: state.setSidePanelVisible,
+      sidePanelVisible: state.sidePanelVisible,
+    }));
   const [canvasTitleMode, setCanvasTitleMode] = useState<CanvasTitleMode>('view');
 
   const isShareCanvas = useMatch('/share/canvas/:canvasId');
@@ -73,6 +75,9 @@ export const TopToolbar: FC<TopToolbarProps> = memo(({ canvasId }) => {
       return;
     }
     setShowWorkflowRun(!showWorkflowRun);
+    if (showWorkflowRun) {
+      setSidePanelVisible(false);
+    }
   };
 
   const handleRename = useCallback(() => {
@@ -133,8 +138,6 @@ export const TopToolbar: FC<TopToolbarProps> = memo(({ canvasId }) => {
               {t('canvas.toolbar.tooltip.initializeWorkflow')}
             </Button>
           )}
-
-          <ToolsDependency canvasId={canvasId} />
 
           {isPreviewCanvas ? (
             <Button

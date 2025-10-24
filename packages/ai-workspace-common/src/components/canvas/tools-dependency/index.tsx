@@ -1,6 +1,6 @@
 import { Button, Popover, Input, Segmented, Dropdown, Badge, Typography, Tooltip } from 'antd';
 import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
-import { Tools, Close, Mcp, Cancelled } from 'refly-icons';
+import { Close, Mcp, Cancelled } from 'refly-icons';
 import { useTranslation } from 'react-i18next';
 import {
   useListTools,
@@ -18,6 +18,7 @@ import { NodeIcon } from '@refly-packages/ai-workspace-common/components/canvas/
 import { extractToolsetsWithNodes } from '@refly/canvas-common';
 import { useOpenInstallTool } from '@refly-packages/ai-workspace-common/hooks/use-open-install-tool';
 import { useOpenInstallMcp } from '@refly-packages/ai-workspace-common/hooks/use-open-install-mcp';
+import { IoWarningOutline } from 'react-icons/io5';
 
 const isToolsetInstalled = (
   toolset: GenericToolset,
@@ -811,9 +812,9 @@ export const ToolsDependency = ({ canvasId, canvasData }: ToolsDependencyProps) 
   }, []);
 
   // Only show the tools dependency button if there are uninstalled tools
-  if (uninstalledCount === 0) {
-    return null;
-  }
+  // if (uninstalledCount === 0) {
+  //   return null;
+  // }
 
   return (
     <Popover
@@ -852,16 +853,19 @@ export const ToolsDependency = ({ canvasId, canvasData }: ToolsDependencyProps) 
         <Button
           type="text"
           icon={
-            <Tools
-              size={20}
-              color={open ? 'var(--refly-primary-default)' : 'var(--refly-text-0)'}
+            <IoWarningOutline
+              size={16}
+              color="var(--refly-func-warning-default)"
+              className="flex items-center"
             />
           }
           className={cn(
-            '!p-0 h-[30px] w-[30px] flex items-center justify-center',
-            open && '!bg-gradient-tools-open',
+            'p-2 flex items-center justify-center font-semibold',
+            open && '!bg-refly-fill-hover',
           )}
-        />
+        >
+          {t('canvas.toolbar.tooltip.toolDependencies')}
+        </Button>
       </Badge>
     </Popover>
   );
