@@ -6,7 +6,7 @@ import { CanvasService } from '../canvas/canvas.service';
 import { McpServerService } from '../mcp-server/mcp-server.service';
 import { CanvasSyncService } from '../canvas-sync/canvas-sync.service';
 import { getQueueToken } from '@nestjs/bullmq';
-import { QUEUE_SYNC_WORKFLOW, QUEUE_RUN_WORKFLOW } from '../../utils/const';
+import { QUEUE_RUN_WORKFLOW } from '../../utils/const';
 
 describe('WorkflowService', () => {
   let service: WorkflowService;
@@ -59,12 +59,6 @@ describe('WorkflowService', () => {
           provide: CanvasSyncService,
           useValue: {
             getState: jest.fn(),
-          },
-        },
-        {
-          provide: getQueueToken(QUEUE_SYNC_WORKFLOW),
-          useValue: {
-            add: jest.fn(),
           },
         },
         {

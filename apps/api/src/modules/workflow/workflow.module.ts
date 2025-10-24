@@ -6,8 +6,8 @@ import { CanvasSyncModule } from '../canvas-sync/canvas-sync.module';
 import { SkillModule } from '../skill/skill.module';
 import { WorkflowService } from './workflow.service';
 import { WorkflowController } from './workflow.controller';
-import { SyncWorkflowProcessor, RunWorkflowProcessor } from './workflow.processor';
-import { QUEUE_SYNC_WORKFLOW, QUEUE_RUN_WORKFLOW } from '../../utils/const';
+import { RunWorkflowProcessor, PollWorkflowProcessor } from './workflow.processor';
+import { QUEUE_RUN_WORKFLOW, QUEUE_POLL_WORKFLOW } from '../../utils/const';
 import { isDesktop } from '../../utils/runtime';
 
 @Module({
@@ -19,14 +19,14 @@ import { isDesktop } from '../../utils/runtime';
     ...(isDesktop()
       ? []
       : [
-          BullModule.registerQueue({ name: QUEUE_SYNC_WORKFLOW }),
           BullModule.registerQueue({ name: QUEUE_RUN_WORKFLOW }),
+          BullModule.registerQueue({ name: QUEUE_POLL_WORKFLOW }),
         ]),
   ],
   controllers: [WorkflowController],
   providers: [
     WorkflowService,
-    ...(isDesktop() ? [] : [SyncWorkflowProcessor, RunWorkflowProcessor]),
+    ...(isDesktop() ? [] : [RunWorkflowProcessor, PollWorkflowProcessor]),
   ],
   exports: [WorkflowService],
 })

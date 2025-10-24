@@ -13,15 +13,16 @@ import { pick } from '@refly/utils';
 
 type JobUser = Pick<User, 'uid'>;
 
-export interface SyncWorkflowJobData {
-  user: Pick<User, 'uid'>;
-  nodeExecutionId: string;
-}
-
 export interface RunWorkflowJobData {
   user: JobUser;
   executionId: string;
   nodeId: string;
+}
+
+export interface PollWorkflowJobData {
+  user: JobUser;
+  executionId: string;
+  delayMs?: number;
 }
 
 export interface InitializeWorkflowResponse {
