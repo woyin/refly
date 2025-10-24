@@ -175,7 +175,7 @@ export const CanvasTitle = memo(
 
     if (mode === 'edit') {
       return (
-        <div className="w-80 py-1 px-1.5 group flex items-center gap-2 text-sm font-semibold">
+        <div className="w-80 h-[30px] px-1.5 group flex items-center gap-2 text-sm font-semibold">
           <CanvasTitleSyncStatus
             canvasLoading={canvasLoading}
             syncFailureCount={syncFailureCount}
@@ -194,10 +194,11 @@ export const CanvasTitle = memo(
                 <Tooltip title={t('canvas.toolbar.autoName')}>
                   <Button
                     type="text"
-                    className="auto-name-button absolute right-0.5 top-1/2 -translate-y-1/2 p-1 text-gray-500"
+                    size="small"
+                    className="auto-name-button absolute right-0.5 top-1/2 -translate-y-1/2 text-refly-text-2"
                     onClick={handleAutoName}
                     loading={isLoading}
-                    icon={<LuSparkles className="h-4 w-4 flex items-center" />}
+                    icon={<LuSparkles className="h-3.5 w-3.5 flex items-center" />}
                   />
                 </Tooltip>
               }

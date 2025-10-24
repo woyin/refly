@@ -1264,7 +1264,7 @@ const translations = {
       tooltip: {
         undo: '撤销',
         redo: '重做',
-        initializeWorkflow: '运行调试',
+        initializeWorkflow: '调试',
         initializeWorkflowInNewCanvas: '初始化工作流到新画布',
         zoom: '缩放百分比',
         zoomReset: '重置',

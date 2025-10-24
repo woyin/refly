@@ -16,13 +16,10 @@ import { IconLink } from '@refly-packages/ai-workspace-common/components/common/
 import { Copy, Play } from 'refly-icons';
 import { useDuplicateCanvas } from '@refly-packages/ai-workspace-common/hooks/use-duplicate-canvas';
 import { useAuthStoreShallow } from '@refly/stores';
-import { TooltipButton } from './buttons';
 import { ToolsDependency } from '../tools-dependency';
 import cn from 'classnames';
 import { logEvent } from '@refly/telemetry-web';
 import { ActionsInCanvasDropdown } from '@refly-packages/ai-workspace-common/components/canvas/top-toolbar/actions-in-canvas-dropdown';
-
-const buttonClass = '!p-0 h-[30px] w-[30px] flex items-center justify-center ';
 
 interface TopToolbarProps {
   canvasId: string;
@@ -123,16 +120,19 @@ export const TopToolbar: FC<TopToolbarProps> = memo(({ canvasId }) => {
 
         <div className="flex items-center gap-2">
           {!readonly && !isPreviewCanvas && (
-            <TooltipButton
-              tooltip={t('canvas.toolbar.tooltip.initializeWorkflow') || 'Initialize Workflow'}
+            <Button
+              type="text"
               onClick={handleInitializeWorkflow}
-              className={cn(buttonClass, showWorkflowRun && '!bg-gradient-tools-open')}
+              className={cn(showWorkflowRun && '!bg-gradient-tools-open')}
+              icon={
+                <Play
+                  size={16}
+                  color={showWorkflowRun ? 'var(--refly-primary-default)' : 'var(--refly-text-0)'}
+                />
+              }
             >
-              <Play
-                size={16}
-                color={showWorkflowRun ? 'var(--refly-primary-default)' : 'var(--refly-text-0)'}
-              />
-            </TooltipButton>
+              {t('canvas.toolbar.tooltip.initializeWorkflow')}
+            </Button>
           )}
 
           <ToolsDependency canvasId={canvasId} />
