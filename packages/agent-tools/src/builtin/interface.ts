@@ -105,6 +105,8 @@ export interface ReflyService {
   processURL: (url: string) => Promise<string>;
   batchProcessURL: (urls: string[]) => Promise<string[]>;
 
+  downloadFileFromUrl: (url: string) => Promise<Buffer>;
+
   // Generate JWT token for user (same as AuthService.login)
   generateJwtToken: (user: User) => Promise<string>;
 
