@@ -57,8 +57,6 @@ const WhyChooseRefly: React.FC = memo(() => {
           className="absolute inset-0"
           style={{
             borderRadius: '16px',
-            background:
-              'linear-gradient(101deg, rgba(169, 255, 226, 0.08) 0%, rgba(10, 193, 142, 0.08) 100%), var(--bg---refly-bg-content-z2, #FFF)',
           }}
         />
 
