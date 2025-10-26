@@ -173,7 +173,7 @@ const FooterSection: React.FC = () => {
         <div className="flex items-center" style={{ gap: '16px' }}>
           {/* Twitter/X icon */}
           <a
-            href="https://twitter.com/refly_ai"
+            href="https://x.com/reflyai"
             target="_blank"
             rel="noopener noreferrer"
             className="w-6 h-6 hover:opacity-70 transition-opacity"
