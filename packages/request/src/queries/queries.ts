@@ -10,6 +10,7 @@ import {
   batchCreateResource,
   batchUpdateDocument,
   batchUpdateProviderItems,
+  chatWithCopilot,
   checkSettingsField,
   checkToolOauthStatus,
   checkVerification,
@@ -71,6 +72,7 @@ import {
   getCanvasTransactions,
   getCodeArtifactDetail,
   getCollabToken,
+  getCopilotSessionDetail,
   getCreditBalance,
   getCreditRecharge,
   getCreditUsage,
@@ -95,6 +97,7 @@ import {
   listCanvasTemplateCategories,
   listCanvasTemplates,
   listCodeArtifacts,
+  listCopilotSessions,
   listDocuments,
   listLabelClasses,
   listLabelInstances,
@@ -168,6 +171,8 @@ import {
   BatchUpdateDocumentError,
   BatchUpdateProviderItemsData,
   BatchUpdateProviderItemsError,
+  ChatWithCopilotData,
+  ChatWithCopilotError,
   CheckSettingsFieldData,
   CheckSettingsFieldError,
   CheckToolOauthStatusData,
@@ -287,6 +292,8 @@ import {
   GetCodeArtifactDetailData,
   GetCodeArtifactDetailError,
   GetCollabTokenError,
+  GetCopilotSessionDetailData,
+  GetCopilotSessionDetailError,
   GetCreditBalanceError,
   GetCreditRechargeData,
   GetCreditRechargeError,
@@ -329,6 +336,8 @@ import {
   ListCanvasTemplatesError,
   ListCodeArtifactsData,
   ListCodeArtifactsError,
+  ListCopilotSessionsData,
+  ListCopilotSessionsError,
   ListDocumentsData,
   ListDocumentsError,
   ListLabelClassesData,
@@ -987,6 +996,38 @@ export const useGetPilotSessionDetail = <
     queryKey: Common.UseGetPilotSessionDetailKeyFn(clientOptions, queryKey),
     queryFn: () =>
       getPilotSessionDetail({ ...clientOptions }).then(
+        (response) => response.data as TData,
+      ) as TData,
+    ...options,
+  });
+export const useListCopilotSessions = <
+  TData = Common.ListCopilotSessionsDefaultResponse,
+  TError = ListCopilotSessionsError,
+  TQueryKey extends Array<unknown> = unknown[],
+>(
+  clientOptions: Options<ListCopilotSessionsData, true> = {},
+  queryKey?: TQueryKey,
+  options?: Omit<UseQueryOptions<TData, TError>, 'queryKey' | 'queryFn'>,
+) =>
+  useQuery<TData, TError>({
+    queryKey: Common.UseListCopilotSessionsKeyFn(clientOptions, queryKey),
+    queryFn: () =>
+      listCopilotSessions({ ...clientOptions }).then((response) => response.data as TData) as TData,
+    ...options,
+  });
+export const useGetCopilotSessionDetail = <
+  TData = Common.GetCopilotSessionDetailDefaultResponse,
+  TError = GetCopilotSessionDetailError,
+  TQueryKey extends Array<unknown> = unknown[],
+>(
+  clientOptions: Options<GetCopilotSessionDetailData, true>,
+  queryKey?: TQueryKey,
+  options?: Omit<UseQueryOptions<TData, TError>, 'queryKey' | 'queryFn'>,
+) =>
+  useQuery<TData, TError>({
+    queryKey: Common.UseGetCopilotSessionDetailKeyFn(clientOptions, queryKey),
+    queryFn: () =>
+      getCopilotSessionDetail({ ...clientOptions }).then(
         (response) => response.data as TData,
       ) as TData,
     ...options,
@@ -2427,6 +2468,23 @@ export const useRecoverPilotSession = <
   useMutation<TData, TError, Options<RecoverPilotSessionData, true>, TContext>({
     mutationKey: Common.UseRecoverPilotSessionKeyFn(mutationKey),
     mutationFn: (clientOptions) => recoverPilotSession(clientOptions) as unknown as Promise<TData>,
+    ...options,
+  });
+export const useChatWithCopilot = <
+  TData = Common.ChatWithCopilotMutationResult,
+  TError = ChatWithCopilotError,
+  TQueryKey extends Array<unknown> = unknown[],
+  TContext = unknown,
+>(
+  mutationKey?: TQueryKey,
+  options?: Omit<
+    UseMutationOptions<TData, TError, Options<ChatWithCopilotData, true>, TContext>,
+    'mutationKey' | 'mutationFn'
+  >,
+) =>
+  useMutation<TData, TError, Options<ChatWithCopilotData, true>, TContext>({
+    mutationKey: Common.UseChatWithCopilotKeyFn(mutationKey),
+    mutationFn: (clientOptions) => chatWithCopilot(clientOptions) as unknown as Promise<TData>,
     ...options,
   });
 export const useInitializeWorkflow = <

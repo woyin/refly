@@ -10,6 +10,7 @@ import {
   batchCreateResource,
   batchUpdateDocument,
   batchUpdateProviderItems,
+  chatWithCopilot,
   checkSettingsField,
   checkToolOauthStatus,
   checkVerification,
@@ -71,6 +72,7 @@ import {
   getCanvasTransactions,
   getCodeArtifactDetail,
   getCollabToken,
+  getCopilotSessionDetail,
   getCreditBalance,
   getCreditRecharge,
   getCreditUsage,
@@ -95,6 +97,7 @@ import {
   listCanvasTemplateCategories,
   listCanvasTemplates,
   listCodeArtifacts,
+  listCopilotSessions,
   listDocuments,
   listLabelClasses,
   listLabelInstances,
@@ -543,6 +546,30 @@ export const UseGetPilotSessionDetailKeyFn = (
   clientOptions: Options<unknown, true>,
   queryKey?: Array<unknown>,
 ) => [useGetPilotSessionDetailKey, ...(queryKey ?? [clientOptions])];
+export type ListCopilotSessionsDefaultResponse = Awaited<
+  ReturnType<typeof listCopilotSessions>
+>['data'];
+export type ListCopilotSessionsQueryResult<
+  TData = ListCopilotSessionsDefaultResponse,
+  TError = unknown,
+> = UseQueryResult<TData, TError>;
+export const useListCopilotSessionsKey = 'ListCopilotSessions';
+export const UseListCopilotSessionsKeyFn = (
+  clientOptions: Options<unknown, true> = {},
+  queryKey?: Array<unknown>,
+) => [useListCopilotSessionsKey, ...(queryKey ?? [clientOptions])];
+export type GetCopilotSessionDetailDefaultResponse = Awaited<
+  ReturnType<typeof getCopilotSessionDetail>
+>['data'];
+export type GetCopilotSessionDetailQueryResult<
+  TData = GetCopilotSessionDetailDefaultResponse,
+  TError = unknown,
+> = UseQueryResult<TData, TError>;
+export const useGetCopilotSessionDetailKey = 'GetCopilotSessionDetail';
+export const UseGetCopilotSessionDetailKeyFn = (
+  clientOptions: Options<unknown, true>,
+  queryKey?: Array<unknown>,
+) => [useGetCopilotSessionDetailKey, ...(queryKey ?? [clientOptions])];
 export type GetWorkflowDetailDefaultResponse = Awaited<
   ReturnType<typeof getWorkflowDetail>
 >['data'];
@@ -1151,6 +1178,12 @@ export type RecoverPilotSessionMutationResult = Awaited<ReturnType<typeof recove
 export const useRecoverPilotSessionKey = 'RecoverPilotSession';
 export const UseRecoverPilotSessionKeyFn = (mutationKey?: Array<unknown>) => [
   useRecoverPilotSessionKey,
+  ...(mutationKey ?? []),
+];
+export type ChatWithCopilotMutationResult = Awaited<ReturnType<typeof chatWithCopilot>>;
+export const useChatWithCopilotKey = 'ChatWithCopilot';
+export const UseChatWithCopilotKeyFn = (mutationKey?: Array<unknown>) => [
+  useChatWithCopilotKey,
   ...(mutationKey ?? []),
 ];
 export type InitializeWorkflowMutationResult = Awaited<ReturnType<typeof initializeWorkflow>>;

@@ -4295,6 +4295,66 @@ export type GetPilotSessionDetailResponse = BaseResponse & {
   data?: PilotSession;
 };
 
+export type CopilotSession = {
+  /**
+   * Copilot session ID
+   */
+  sessionId?: string;
+  /**
+   * Copilot session title
+   */
+  title?: string;
+  /**
+   * Copilot session input
+   */
+  input?: SkillInput;
+  /**
+   * Copilot session canvas ID
+   */
+  canvasId?: string;
+  /**
+   * Copilot session created at
+   */
+  createdAt?: string;
+  /**
+   * Copilot session updated at
+   */
+  updatedAt?: string;
+  /**
+   * Copilot session results (only returned in detail API)
+   */
+  results?: Array<ActionResult>;
+};
+
+export type ListCopilotSessionsResponse = BaseResponse & {
+  /**
+   * Copilot session list
+   */
+  data?: Array<CopilotSession>;
+};
+
+export type GetCopilotSessionDetailResponse = BaseResponse & {
+  /**
+   * Copilot session detail
+   */
+  data?: CopilotSession;
+};
+
+export type CopilotChatRequest = {
+  /**
+   * Copilot session ID (if not passed, a new session will be created)
+   */
+  sessionId?: string;
+  /**
+   * Copilot session input
+   */
+  input: SkillInput;
+  /**
+   * Canvas ID
+   */
+  canvasId: string;
+};
+
 export type UpdateUserSettingsRequest = {
   /**
    * User name
@@ -7601,6 +7661,40 @@ export type RecoverPilotSessionData = {
 export type RecoverPilotSessionResponse = BaseResponse;
 
 export type RecoverPilotSessionError = unknown;
+
+export type ListCopilotSessionsData = {
+  query?: {
+    /**
+     * Canvas ID
+     */
+    canvasId?: string;
+  };
+};
+
+export type ListCopilotSessionsResponse2 = ListCopilotSessionsResponse;
+
+export type ListCopilotSessionsError = unknown;
+
+export type GetCopilotSessionDetailData = {
+  query: {
+    /**
+     * Copilot session ID
+     */
+    sessionId: string;
+  };
+};
+
+export type GetCopilotSessionDetailResponse2 = GetCopilotSessionDetailResponse;
+
+export type GetCopilotSessionDetailError = unknown;
+
+export type ChatWithCopilotData = {
+  body: CopilotChatRequest;
+};
+
+export type ChatWithCopilotResponse = string;
+
+export type ChatWithCopilotError = unknown;
 
 export type InitializeWorkflowData = {
   body: InitializeWorkflowRequest;

@@ -15,6 +15,7 @@ import {
   getCanvasTransactions,
   getCodeArtifactDetail,
   getCollabToken,
+  getCopilotSessionDetail,
   getCreditBalance,
   getCreditRecharge,
   getCreditUsage,
@@ -36,6 +37,7 @@ import {
   listCanvasTemplateCategories,
   listCanvasTemplates,
   listCodeArtifacts,
+  listCopilotSessions,
   listDocuments,
   listLabelClasses,
   listLabelInstances,
@@ -69,6 +71,7 @@ import {
   GetCanvasStateData,
   GetCanvasTransactionsData,
   GetCodeArtifactDetailData,
+  GetCopilotSessionDetailData,
   GetCreditRechargeData,
   GetCreditUsageData,
   GetDocumentDetailData,
@@ -84,6 +87,7 @@ import {
   ListCanvasesData,
   ListCanvasTemplatesData,
   ListCodeArtifactsData,
+  ListCopilotSessionsData,
   ListDocumentsData,
   ListLabelClassesData,
   ListLabelInstancesData,
@@ -391,6 +395,22 @@ export const prefetchUseGetPilotSessionDetail = (
   queryClient.prefetchQuery({
     queryKey: Common.UseGetPilotSessionDetailKeyFn(clientOptions),
     queryFn: () => getPilotSessionDetail({ ...clientOptions }).then((response) => response.data),
+  });
+export const prefetchUseListCopilotSessions = (
+  queryClient: QueryClient,
+  clientOptions: Options<ListCopilotSessionsData, true> = {},
+) =>
+  queryClient.prefetchQuery({
+    queryKey: Common.UseListCopilotSessionsKeyFn(clientOptions),
+    queryFn: () => listCopilotSessions({ ...clientOptions }).then((response) => response.data),
+  });
+export const prefetchUseGetCopilotSessionDetail = (
+  queryClient: QueryClient,
+  clientOptions: Options<GetCopilotSessionDetailData, true>,
+) =>
+  queryClient.prefetchQuery({
+    queryKey: Common.UseGetCopilotSessionDetailKeyFn(clientOptions),
+    queryFn: () => getCopilotSessionDetail({ ...clientOptions }).then((response) => response.data),
   });
 export const prefetchUseGetWorkflowDetail = (
   queryClient: QueryClient,

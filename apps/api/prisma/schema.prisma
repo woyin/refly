@@ -150,6 +150,8 @@ model ActionResult {
   pilotStepId             String?      @map("pilot_step_id")
   /// Pilot session id
   pilotSessionId          String?      @map("pilot_session_id")
+  /// Copilot session id
+  copilotSessionId        String?      @map("copilot_session_id")
   /// Workflow execution id
   workflowExecutionId     String?      @map("workflow_execution_id")
   /// Workflow node execution id
@@ -169,6 +171,7 @@ model ActionResult {
   @@index([targetType, targetId])
   @@index([pilotStepId])
   @@index([status, updatedAt])
+  @@index([copilotSessionId])
   @@map("action_results")
 }
 
@@ -272,6 +275,28 @@ model PilotStep {
 
   @@index([sessionId, createdAt])
   @@map("pilot_steps")
+}
+
+model CopilotSession {
+  /// Primary key
+  pk        BigInt   @id @default(autoincrement())
+  /// Session id
+  sessionId String   @unique @map("session_id")
+  /// UID
+  uid       String   @map("uid")
+  /// Session title
+  title     String   @map("title")
+  /// Input (JSON)
+  input     String   @map("input")
+  /// Canvas id
+  canvasId  String   @map("canvas_id")
+  /// Create timestamp
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  /// Update timestamp
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz()
+
+  @@index([uid, canvasId])
+  @@map("copilot_sessions")
 }
 
 model WorkflowExecution {

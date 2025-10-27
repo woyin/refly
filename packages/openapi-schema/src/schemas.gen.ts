@@ -6027,6 +6027,99 @@ export const GetPilotSessionDetailResponseSchema = {
   ],
 } as const;
 
+export const CopilotSessionSchema = {
+  type: 'object',
+  properties: {
+    sessionId: {
+      type: 'string',
+      description: 'Copilot session ID',
+    },
+    title: {
+      type: 'string',
+      description: 'Copilot session title',
+    },
+    input: {
+      description: 'Copilot session input',
+      $ref: '#/components/schemas/SkillInput',
+    },
+    canvasId: {
+      type: 'string',
+      description: 'Copilot session canvas ID',
+    },
+    createdAt: {
+      type: 'string',
+      description: 'Copilot session created at',
+    },
+    updatedAt: {
+      type: 'string',
+      description: 'Copilot session updated at',
+    },
+    results: {
+      type: 'array',
+      description: 'Copilot session results (only returned in detail API)',
+      items: {
+        $ref: '#/components/schemas/ActionResult',
+      },
+    },
+  },
+} as const;
+
+export const ListCopilotSessionsResponseSchema = {
+  allOf: [
+    {
+      $ref: '#/components/schemas/BaseResponse',
+    },
+    {
+      type: 'object',
+      properties: {
+        data: {
+          type: 'array',
+          description: 'Copilot session list',
+          items: {
+            $ref: '#/components/schemas/CopilotSession',
+          },
+        },
+      },
+    },
+  ],
+} as const;
+
+export const GetCopilotSessionDetailResponseSchema = {
+  allOf: [
+    {
+      $ref: '#/components/schemas/BaseResponse',
+    },
+    {
+      type: 'object',
+      properties: {
+        data: {
+          description: 'Copilot session detail',
+          $ref: '#/components/schemas/CopilotSession',
+        },
+      },
+    },
+  ],
+} as const;
+
+export const CopilotChatRequestSchema = {
+  type: 'object',
+  required: ['input', 'canvasId'],
+  properties: {
+    sessionId: {
+      type: 'string',
+      description: 'Copilot session ID (if not passed, a new session will be created)',
+    },
+    input: {
+      description: 'Copilot session input',
+      $ref: '#/components/schemas/SkillInput',
+    },
+    canvasId: {
+      type: 'string',
+      description: 'Canvas ID',
+    },
+  },
+} as const;
+
 export const UpdateUserSettingsRequestSchema = {
   type: 'object',
   properties: {
