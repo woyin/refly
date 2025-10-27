@@ -405,18 +405,14 @@ export const CreateVariablesModal: React.FC<CreateVariablesModalProps> = React.m
           finalValue = textValue ? [{ type: 'text', text: textValue }] : [];
         } else if (variableType === 'resource') {
           // For resource type, construct value array from fileList
+          const currentEntityId = defaultValue?.value?.[0]?.resource?.entityId;
           finalValue = fileList.map((file) => ({
             type: 'resource',
             resource: {
               name: file.name || '',
               storageKey: file.url || '',
               fileType: getFileType(file.name),
-              ...(defaultValue?.value
-                ? {
-                    entityId: defaultValue.value.find((v) => v.resource?.storageKey === file.url)
-                      ?.resource?.entityId,
-                  }
-                : {}),
+              ...(currentEntityId ? { entityId: currentEntityId } : {}),
             },
           }));
         } else if (variableType === 'option') {
