@@ -15,15 +15,6 @@ import { getFileType } from '../workflow-variables/utils';
 import { ToolsDependencyChecker } from '@refly-packages/ai-workspace-common/components/canvas/tools-dependency';
 import { MixedTextEditor } from '@refly-packages/ai-workspace-common/components/workflow-app/mixed-text-editor';
 
-const RequiredTagText = () => {
-  const { t } = useTranslation();
-  return (
-    <div className="flex-shrink-0 text-[10px] text-refly-text-2 leading-[16px] px-1 border-[1px] border-solid border-refly-Card-Border rounded-[4px]">
-      {t('canvas.workflow.variables.required') || 'Required'}
-    </div>
-  );
-};
-
 const EmptyContent = () => {
   const { t } = useTranslation();
   return (
@@ -42,7 +33,7 @@ const EmptyContent = () => {
   );
 };
 
-const FormItemLabel = ({ name, required }: { name: string; required: boolean }) => {
+const FormItemLabel = ({ name }: { name: string; required: boolean }) => {
   return (
     <div className="flex items-center gap-2 min-w-0">
       <Typography.Paragraph
@@ -51,8 +42,6 @@ const FormItemLabel = ({ name, required }: { name: string; required: boolean }) 
       >
         {name}
       </Typography.Paragraph>
-
-      {required && <RequiredTagText />}
     </div>
   );
 };
