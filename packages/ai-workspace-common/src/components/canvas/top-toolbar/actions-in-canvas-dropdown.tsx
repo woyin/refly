@@ -41,10 +41,10 @@ const MenuItemLabel = memo<MenuItemLabelProps>(
       >
         <div className="flex items-center gap-1">
           {icon ? icon : null}
-          <span>{text}</span>
+          <span className="select-none">{text}</span>
           {loading && <Spin size="small" className="text-refly-text-3" />}
         </div>
-        {shortcut && <span className="text-xs text-refly-text-2">{shortcut}</span>}
+        {shortcut && <span className="text-xs text-refly-text-2 select-none">{shortcut}</span>}
       </div>
     );
   },

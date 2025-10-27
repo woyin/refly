@@ -1,18 +1,19 @@
 import { memo, useState } from 'react';
 import { ChatComposer } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/chat-composer';
 import { GenericToolset } from '@refly-packages/ai-workspace-common/requests/types.gen';
-import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
 import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
+import { IContextItem } from '@refly/common-types/src/context';
 
 interface ChatBoxProps {
+  canvasId: string;
   sessionId?: string;
   query: string;
   setQuery: (query: string) => void;
 }
 
-export const ChatBox = memo(({ sessionId, query, setQuery }: ChatBoxProps) => {
+export const ChatBox = memo(({ canvasId, sessionId, query, setQuery }: ChatBoxProps) => {
   console.log('sessionId', sessionId);
-  const { canvasId } = useCanvasContext();
+  const [contextItems, setContextItems] = useState<IContextItem[]>([]);
 
   const [isExecuting, setIsExecuting] = useState(false);
   const [selectedToolsets, setSelectedToolsets] = useState<GenericToolset[]>([]);
@@ -40,8 +41,8 @@ export const ChatBox = memo(({ sessionId, query, setQuery }: ChatBoxProps) => {
         setQuery={setQuery}
         handleSendMessage={handleSendMessage}
         handleAbort={() => {}}
-        contextItems={[]}
-        setContextItems={() => {}}
+        contextItems={contextItems}
+        setContextItems={setContextItems}
         modelInfo={null}
         setModelInfo={() => {}}
         enableRichInput={true}
