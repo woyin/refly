@@ -1,8 +1,10 @@
-import { memo, useCallback } from 'react';
+import { memo, useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button, Divider, Tooltip } from 'antd';
 import { History, SideLeft, NewConversation } from 'refly-icons';
 import { ChatBox } from './chat-box';
+import { Greeting } from './greeting';
+import { SessionDetail } from './session-detail';
 
 interface CopilotHeaderProps {
   copilotWidth: number;
@@ -69,14 +71,29 @@ interface CopilotProps {
 }
 
 export const Copilot = memo(({ copilotWidth, setCopilotWidth }: CopilotProps) => {
+  const [query, setQuery] = useState('');
+  const [sessionId, setSessionId] = useState<string | undefined>(undefined);
+
+  const handleQueryClick = useCallback((query: string) => {
+    setQuery(query);
+  }, []);
+
+  console.log('sessionId', setSessionId);
+
   return (
     <div className="w-full h-full flex flex-col bg-refly-bg-content-z2 border-solid border-r-[1px] border-y-0 border-l-0 border-refly-Card-Border shadow-lg">
       <CopilotHeader copilotWidth={copilotWidth} setCopilotWidth={setCopilotWidth} />
 
-      <div className="flex-grow overflow-hidden">kkk</div>
+      <div className="flex-grow overflow-hidden">
+        {sessionId ? (
+          <SessionDetail sessionId={sessionId} />
+        ) : (
+          <Greeting onQueryClick={handleQueryClick} />
+        )}
+      </div>
 
-      <div>
-        <ChatBox />
+      <div className="w-full p-3 pt-2">
+        <ChatBox query={query} setQuery={setQuery} sessionId={sessionId} />
       </div>
     </div>
   );

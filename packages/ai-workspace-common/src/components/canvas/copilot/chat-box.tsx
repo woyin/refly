@@ -6,13 +6,14 @@ import getClient from '@refly-packages/ai-workspace-common/requests/proxiedReque
 
 interface ChatBoxProps {
   sessionId?: string;
+  query: string;
+  setQuery: (query: string) => void;
 }
 
-export const ChatBox = memo(({ sessionId }: ChatBoxProps) => {
+export const ChatBox = memo(({ sessionId, query, setQuery }: ChatBoxProps) => {
   console.log('sessionId', sessionId);
   const { canvasId } = useCanvasContext();
 
-  const [query, setQuery] = useState('');
   const [isExecuting, setIsExecuting] = useState(false);
   const [selectedToolsets, setSelectedToolsets] = useState<GenericToolset[]>([]);
   const handleSendMessage = async () => {
@@ -33,23 +34,21 @@ export const ChatBox = memo(({ sessionId }: ChatBoxProps) => {
     }
   };
   return (
-    <div className="w-full h-full px-4 pb-4 z-10 rounded-2xl">
-      <div className="w-full px-4 py-3 rounded-xl overflow-hidden border-[1px] border-solid border-refly-primary-default ">
-        <ChatComposer
-          query={query}
-          setQuery={setQuery}
-          handleSendMessage={handleSendMessage}
-          handleAbort={() => {}}
-          contextItems={[]}
-          setContextItems={() => {}}
-          modelInfo={null}
-          setModelInfo={() => {}}
-          enableRichInput={true}
-          selectedToolsets={selectedToolsets}
-          onSelectedToolsetsChange={setSelectedToolsets}
-          isExecuting={isExecuting}
-        />
-      </div>
+    <div className="w-full px-4 py-3 rounded-xl overflow-hidden border-[1px] border-solid border-refly-primary-default ">
+      <ChatComposer
+        query={query}
+        setQuery={setQuery}
+        handleSendMessage={handleSendMessage}
+        handleAbort={() => {}}
+        contextItems={[]}
+        setContextItems={() => {}}
+        modelInfo={null}
+        setModelInfo={() => {}}
+        enableRichInput={true}
+        selectedToolsets={selectedToolsets}
+        onSelectedToolsetsChange={setSelectedToolsets}
+        isExecuting={isExecuting}
+      />
     </div>
   );
 });

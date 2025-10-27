@@ -53,6 +53,7 @@
   --refly-func-success-default: #3bb346;
   --refly-func-success-hover: #30953b;
   --refly-func-success-active: #25772f;
+  --refly-text-placeholder: #8f959e;
 }
 
 /* Dark Theme */
@@ -110,4 +111,5 @@
   --refly-func-success-default: #5dc264;
   --refly-func-success-hover: #7fd184;
   --refly-func-success-active: #a6e1a8;
+  --refly-text-placeholder:rgba(117, 117, 117, 1);
 }

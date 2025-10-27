@@ -3033,7 +3033,13 @@ const translations = {
       newConversation: '新建会话',
       close: '关闭',
     },
-    greeting: '嗨，{{name}}',
+    greeting: {
+      title: '工作流Copilot为你服务',
+      youCanTry: '您可以试试询问以下问题',
+      query1: '帮我追踪并分析巴菲特本季度的美股持仓变动。',
+      query2: '帮我抓取今天的 Product Hunt Top 10，生成总结文档和产品播客，并把链接发到我的邮箱。',
+      query3: '帮我生成一组新海诚风格、讲述“从小到大”成长故事的序列动画场景。',
+    },
     addContext: '添加上下文',
     moreSettings: '更多设置',
     baseContextCard: {
