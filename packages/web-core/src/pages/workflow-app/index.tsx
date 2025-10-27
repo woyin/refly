@@ -86,7 +86,6 @@ const WorkflowAppPage: React.FC = () => {
   useEffect(() => {
     if (urlExecutionId) {
       setExecutionId(urlExecutionId);
-      setIsRunning(true);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [urlExecutionId]);
@@ -95,7 +94,7 @@ const WorkflowAppPage: React.FC = () => {
     return workflowApp?.variables ?? [];
   }, [workflowApp]);
 
-  const { data: workflowDetail } = useWorkflowExecutionPolling({
+  const { data: workflowDetail, status } = useWorkflowExecutionPolling({
     executionId,
     enabled: true,
     interval: 1000,
@@ -135,6 +134,23 @@ const WorkflowAppPage: React.FC = () => {
       });
     },
   });
+
+  // Update isRunning based on actual execution status from polling
+  useEffect(() => {
+    if (executionId) {
+      if (status) {
+        // Set isRunning based on actual status when available
+        setIsRunning(status === 'init' || status === 'executing');
+      } else {
+        // When status is null but executionId exists, conservatively assume it's running
+        // This handles the initial loading state when restoring from URL
+        setIsRunning(true);
+      }
+    } else {
+      // Clear isRunning when there's no executionId
+      setIsRunning(false);
+    }
+  }, [executionId, status]);
 
   const nodeExecutions = useMemo(() => {
     // Use current workflowDetail if available, otherwise use final cached results
