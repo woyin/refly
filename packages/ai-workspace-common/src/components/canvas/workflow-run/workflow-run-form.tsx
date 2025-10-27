@@ -575,10 +575,10 @@ export const WorkflowRunForm = ({
           )}
 
           <div className="p-3 sm:p-4 border-t border-refly-Card-Border bg-refly-bg-control-z0 rounded-b-lg">
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               <Button
                 className={cn(
-                  'flex-1 h-9 sm:h-10 text-sm sm:text-base',
+                  'flex-1 h-9 sm:h-10 text-sm sm:text-base min-w-0',
                   (!isFormValid || isPolling) &&
                     'bg-refly-bg-control-z1 hover:!bg-refly-tertiary-hover !text-refly-text-3 font-semibold',
                 )}
@@ -595,23 +595,29 @@ export const WorkflowRunForm = ({
 
               {onCopyWorkflow && workflowApp?.remixEnabled && (
                 <Button
-                  className="h-9 sm:h-10 text-sm sm:text-base"
+                  className="h-9 sm:h-10 px-2 sm:px-4"
                   type="default"
                   icon={<Copy size={14} className="sm:w-4 sm:h-4" />}
                   onClick={onCopyWorkflow}
+                  title={t('canvas.workflow.run.copyWorkflow') || 'Copy Workflow'}
                 >
-                  {t('canvas.workflow.run.copyWorkflow') || 'Copy Workflow'}
+                  <span className="hidden sm:inline">
+                    {t('canvas.workflow.run.copyWorkflow') || 'Copy Workflow'}
+                  </span>
                 </Button>
               )}
 
               {onCopyShareLink && (
                 <Button
-                  className="h-9 sm:h-10 text-sm sm:text-base"
+                  className="h-9 sm:h-10 px-2 sm:px-4"
                   type="default"
                   icon={<IconShare size={14} className="sm:w-4 sm:h-4" />}
                   onClick={onCopyShareLink}
+                  title={t('canvas.workflow.run.copyShareLink') || 'Copy Share Link'}
                 >
-                  {t('canvas.workflow.run.copyShareLink') || 'Copy Share Link'}
+                  <span className="hidden sm:inline">
+                    {t('canvas.workflow.run.copyShareLink') || 'Copy Share Link'}
+                  </span>
                 </Button>
               )}
             </div>
