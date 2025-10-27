@@ -247,19 +247,20 @@ const WorkflowAppPage: React.FC = () => {
   ]);
 
   const handleCopyShareLink = useCallback(async () => {
+    const shareUrl = window.location.origin + window.location.pathname;
     logEvent('duplicate_workflow_publish', Date.now(), {
       shareId,
-      shareUrl: window.location.href,
+      shareUrl,
     });
     try {
-      // Copy current browser URL to clipboard
-      await navigator.clipboard.writeText(window.location.href);
+      // Copy URL without query parameters to clipboard
+      await navigator.clipboard.writeText(shareUrl);
       message.success(t('canvas.workflow.run.shareLinkCopied') || 'Share link copied to clipboard');
     } catch (error) {
       console.error('Failed to copy share link:', error);
       message.error(t('canvas.workflow.run.shareLinkCopyFailed') || 'Failed to copy share link');
     }
-  }, [t]);
+  }, [t, shareId]);
 
   const segmentedOptions = useMemo(() => {
     return [
