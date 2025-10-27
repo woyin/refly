@@ -22,7 +22,7 @@ import { ChatComposer } from '@refly-packages/ai-workspace-common/components/can
 import type { IContextItem } from '@refly/common-types';
 import { CanvasNodeFilter, convertContextItemsToNodeFilters } from '@refly/canvas-common';
 import { nodeOperationsEmitter } from '@refly-packages/ai-workspace-common/events/nodeOperations';
-import { useGetWorkflowVariables } from '@refly-packages/ai-workspace-common/queries/queries';
+import { useVariablesManagement } from '@refly-packages/ai-workspace-common/hooks/use-variables-management';
 
 /**
  * NoSession
@@ -78,11 +78,7 @@ export const NoSession = memo(
       [setQuery, canvasId],
     );
 
-    const { data: workflowVariables } = useGetWorkflowVariables({
-      query: {
-        canvasId,
-      },
-    });
+    const { data: workflowVariables } = useVariablesManagement(canvasId);
 
     const handleCreatePilotSession = useCallback(
       async (param: CreatePilotSessionRequest) => {
@@ -160,7 +156,7 @@ export const NoSession = memo(
         }
 
         // Process query with workflow variables
-        const variables = workflowVariables?.data ?? [];
+        const variables = workflowVariables;
         const { processedQuery } = processQueryWithMentions(query, {
           replaceVars: true,
           variables,
