@@ -1,4 +1,14 @@
-import { Button, Popover, Input, Segmented, Dropdown, Badge, Typography, Tooltip } from 'antd';
+import {
+  Button,
+  Popover,
+  Input,
+  Segmented,
+  Dropdown,
+  Badge,
+  Typography,
+  Tooltip,
+  Divider,
+} from 'antd';
 import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { Close, Mcp, Cancelled } from 'refly-icons';
 import { useTranslation } from 'react-i18next';
@@ -811,10 +821,10 @@ export const ToolsDependency = ({ canvasId, canvasData }: ToolsDependencyProps) 
     setActiveTab('all');
   }, []);
 
-  // // Only show the tools dependency button if there are uninstalled tools
-  // if (uninstalledCount === 0) {
-  //   return null;
-  // }
+  // Only show the tools dependency button if there are uninstalled tools
+  if (uninstalledCount === 0) {
+    return null;
+  }
 
   return (
     <Popover
@@ -849,24 +859,27 @@ export const ToolsDependency = ({ canvasId, canvasData }: ToolsDependencyProps) 
       }
       arrow={false}
     >
-      <Badge count={uninstalledCount} size="small" offset={[-2, 0]}>
-        <Button
-          type="text"
-          icon={
-            <IoWarningOutline
-              size={16}
-              color="var(--refly-func-warning-default)"
-              className="flex items-center"
-            />
-          }
-          className={cn(
-            'p-2 flex items-center justify-center font-semibold',
-            open && '!bg-refly-fill-hover',
-          )}
-        >
-          {t('canvas.toolbar.tooltip.toolDependencies')}
-        </Button>
-      </Badge>
+      <div className="flex items-center">
+        <Badge count={uninstalledCount} size="small" offset={[-2, 0]}>
+          <Button
+            type="text"
+            icon={
+              <IoWarningOutline
+                size={16}
+                color="var(--refly-func-warning-default)"
+                className="flex items-center"
+              />
+            }
+            className={cn(
+              'p-2 flex items-center justify-center font-semibold',
+              open && '!bg-refly-fill-hover',
+            )}
+          >
+            {t('canvas.toolbar.tooltip.toolDependencies')}
+          </Button>
+        </Badge>
+        <Divider type="vertical" className="m-0 ml-2 h-5 bg-refly-Card-Border" />
+      </div>
     </Popover>
   );
 };

@@ -108,10 +108,10 @@ export const CanvasResourcesWidescreenModal = memo(() => {
           padding: 0,
         },
       }}
-      className="flex flex-col"
+      className="resources-widescreen-modal flex flex-col"
       destroyOnHidden
     >
-      <div className="flex w-full h-[calc(100vh-16px)]">
+      <div className="flex w-full h-[calc(100vh-56px)]">
         {!hideLeftOverview && (
           <div className="w-[360px] flex h-full border-r border-refly-Card-Border">
             <ResourceOverview />

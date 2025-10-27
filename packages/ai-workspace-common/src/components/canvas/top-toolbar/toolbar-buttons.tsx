@@ -3,8 +3,9 @@ import { useTranslation } from 'react-i18next';
 import { useCanvasResourcesPanelStoreShallow } from '@refly/stores';
 import { useCallback } from 'react';
 import { Divider, Button } from 'antd';
-import { Resource, SideLeft } from 'refly-icons';
+import { Resource, SideLeft, SideRight } from 'refly-icons';
 import { ToolsDependency } from '../tools-dependency';
+import { cn } from '@refly/utils/cn';
 
 interface ToolbarButtonsProps {
   canvasId: string;
@@ -41,29 +42,26 @@ export const ToolbarButtons = memo(
     const handleCopilotOpen = useCallback(() => {
       if (copilotWidth === 0) {
         setCopilotWidth(400);
+      } else {
+        setCopilotWidth(0);
       }
     }, [copilotWidth, setCopilotWidth]);
 
     return (
       <div className="absolute top-0 left-0 right-0 z-20 p-2 flex items-center justify-center">
         <div className="flex items-center gap-2 p-2 bg-refly-bg-content-z2 rounded-2xl border-solid border-[1px] border-refly-Card-Border">
-          {copilotWidth === 0 && (
-            <>
-              <Button
-                type="text"
-                icon={<SideLeft size={18} />}
-                onClick={handleCopilotOpen}
-                className="p-2 font-semibold"
-              >
-                Copilot
-              </Button>
-              <Divider type="vertical" className="m-0 h-5 bg-refly-Card-Border" />
-            </>
-          )}
-
-          <ToolsDependency canvasId={canvasId} />
+          <Button
+            type="text"
+            icon={copilotWidth === 0 ? <SideLeft size={18} /> : <SideRight size={18} />}
+            onClick={handleCopilotOpen}
+            className={cn('p-2 font-semibold', copilotWidth !== 0 ? 'bg-refly-fill-hover' : '')}
+          >
+            Copilot
+          </Button>
 
           <Divider type="vertical" className="m-0 h-5 bg-refly-Card-Border" />
+
+          <ToolsDependency canvasId={canvasId} />
 
           <Button
             type="text"
