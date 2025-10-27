@@ -3027,11 +3027,12 @@ const translations = {
     },
   },
   copilot: {
-    quickActions: '快捷操作',
-    selectedSkillHeader: {
-      title: '和 {{name}} 聊聊',
+    title: '工作流助手',
+    header: {
+      history: '历史会话',
+      newConversation: '新建会话',
+      close: '关闭',
     },
-    tokenUsageTotal: '{{count}} tokens',
     greeting: '嗨，{{name}}',
     addContext: '添加上下文',
     moreSettings: '更多设置',

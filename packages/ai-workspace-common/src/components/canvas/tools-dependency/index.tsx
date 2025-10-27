@@ -811,7 +811,7 @@ export const ToolsDependency = ({ canvasId, canvasData }: ToolsDependencyProps) 
     setActiveTab('all');
   }, []);
 
-  // Only show the tools dependency button if there are uninstalled tools
+  // // Only show the tools dependency button if there are uninstalled tools
   // if (uninstalledCount === 0) {
   //   return null;
   // }

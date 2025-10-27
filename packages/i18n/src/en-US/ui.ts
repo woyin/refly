@@ -3043,11 +3043,12 @@ const translations = {
     },
   },
   copilot: {
-    quickActions: 'Quick Actions',
-    selectedSkillHeader: {
-      title: 'Chat with {{name}}',
+    title: 'Workflow Assistant',
+    header: {
+      history: 'Chat History',
+      newConversation: 'New Chat',
+      close: 'Close',
     },
-    tokenUsageTotal: '{{count}} tokens',
     greeting: 'Hello, {{name}}',
     addContext: 'Add Context',
     moreSettings: 'More Settings',

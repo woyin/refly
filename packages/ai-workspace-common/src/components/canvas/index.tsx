@@ -120,7 +120,13 @@ interface ContextMenuState {
 // Add new memoized components
 const MemoizedBackground = memo(Background);
 
-const Flow = memo(({ canvasId }: { canvasId: string }) => {
+interface FlowProps {
+  canvasId: string;
+  copilotWidth: number;
+  setCopilotWidth: (width: number | null) => void;
+}
+
+const Flow = memo(({ canvasId, copilotWidth, setCopilotWidth }: FlowProps) => {
   const { t } = useTranslation();
 
   useHandleOrphanNode();
@@ -1187,7 +1193,11 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
 
         {/* Display the not found overlay when shareNotFound is true */}
         {readonly && shareNotFound && <NotFoundOverlay />}
-        <ToolbarButtons canvasId={canvasId} />
+        <ToolbarButtons
+          canvasId={canvasId}
+          copilotWidth={copilotWidth}
+          setCopilotWidth={setCopilotWidth}
+        />
 
         <UnifiedContextMenu
           open={contextMenu.open}
@@ -1230,6 +1240,8 @@ export const Canvas = (props: { canvasId: string; readonly?: boolean }) => {
     showWorkflowRun: state.showWorkflowRun,
   }));
 
+  const [copilotWidth, setCopilotWidth] = useState(400);
+
   useEffect(() => {
     if (sidePanelVisible && resourcesPanelWidth === 0) {
       setResourcesPanelWidth(400);
@@ -1255,11 +1267,19 @@ export const Canvas = (props: { canvasId: string; readonly?: boolean }) => {
   // Handle panel resize
   const handleRightPanelResize = useCallback(
     (sizes: number[]) => {
-      if (sizes.length >= 3 && sizes[2] !== 0) {
+      if (sizes.length < 3) {
+        return;
+      }
+
+      if (sizes[0] !== 0) {
+        setCopilotWidth(sizes[0]);
+      }
+
+      if (sizes[2] !== 0) {
         setResourcesPanelWidth(sizes[2]);
       }
     },
-    [setResourcesPanelWidth],
+    [setResourcesPanelWidth, setCopilotWidth],
   );
 
   // Calculate max width as 50% of parent container
@@ -1327,12 +1347,16 @@ export const Canvas = (props: { canvasId: string; readonly?: boolean }) => {
             className="canvas-splitter w-full bg-refly-bg-content-z2 rounded-xl border-solid border-[1px] border-refly-Card-Border flex-grow overflow-hidden"
             onResize={handleRightPanelResize}
           >
-            <Splitter.Panel defaultSize={400} min={400} max={maxPanelWidth}>
-              <Copilot />
+            <Splitter.Panel size={copilotWidth} min={400} max={maxPanelWidth}>
+              <Copilot copilotWidth={copilotWidth} setCopilotWidth={setCopilotWidth} />
             </Splitter.Panel>
 
             <Splitter.Panel className="shadow-refly-m">
-              <Flow canvasId={canvasId} />
+              <Flow
+                canvasId={canvasId}
+                copilotWidth={copilotWidth}
+                setCopilotWidth={setCopilotWidth}
+              />
             </Splitter.Panel>
 
             <Splitter.Panel
