@@ -1,7 +1,7 @@
 import React, { memo, useCallback, useMemo, useState, useEffect } from 'react';
 import { useFetchShareData } from '@refly-packages/ai-workspace-common/hooks/use-fetch-share-data';
 import { message, Segmented, notification, Skeleton } from 'antd';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { CanvasNodeType, WorkflowNodeExecution, WorkflowVariable } from '@refly/openapi-schema';
 import { GithubStar } from '@refly-packages/ai-workspace-common/components/common/github-star';
@@ -47,6 +47,7 @@ const WorkflowAppPage: React.FC = () => {
   const { t } = useTranslation();
   const { shareId: routeShareId } = useParams();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const shareId = routeShareId ?? '';
   const [executionId, setExecutionId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<string>('runLogs');
@@ -80,11 +81,20 @@ const WorkflowAppPage: React.FC = () => {
     }
   }, [shareId]);
 
+  const urlExecutionId = searchParams.get('executionId');
+  // Restore executionId from URL on page load
+  useEffect(() => {
+    if (urlExecutionId) {
+      setExecutionId(urlExecutionId);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [urlExecutionId]);
+
   const workflowVariables = useMemo(() => {
     return workflowApp?.variables ?? [];
   }, [workflowApp]);
 
-  const { data: workflowDetail } = useWorkflowExecutionPolling({
+  const { data: workflowDetail, status } = useWorkflowExecutionPolling({
     executionId,
     enabled: true,
     interval: 1000,
@@ -99,14 +109,12 @@ const WorkflowAppPage: React.FC = () => {
       setExecutionId(null);
       // Reset running state when workflow completes
       setIsRunning(false);
+      // Clear executionId from URL
 
       // Refresh credit balance after workflow completion
       refetchUsage();
 
       if (status === 'finish') {
-        notification.success({
-          message: t('workflowApp.run.completed') || 'App run successfully',
-        });
         // Auto switch to products tab when workflow completes successfully
         products.length > 0 && setActiveTab('products');
       } else if (status === 'failed') {
@@ -120,11 +128,29 @@ const WorkflowAppPage: React.FC = () => {
       setExecutionId(null);
       // Reset running state on error
       setIsRunning(false);
+      // Clear executionId from URL
       notification.error({
         message: t('workflowApp.run.error') || 'Run error',
       });
     },
   });
+
+  // Update isRunning based on actual execution status from polling
+  useEffect(() => {
+    if (executionId) {
+      if (status) {
+        // Set isRunning based on actual status when available
+        setIsRunning(status === 'init' || status === 'executing');
+      } else {
+        // When status is null but executionId exists, conservatively assume it's running
+        // This handles the initial loading state when restoring from URL
+        setIsRunning(true);
+      }
+    } else {
+      // Clear isRunning when there's no executionId
+      setIsRunning(false);
+    }
+  }, [executionId, status]);
 
   const nodeExecutions = useMemo(() => {
     // Use current workflowDetail if available, otherwise use final cached results
@@ -185,6 +211,9 @@ const WorkflowAppPage: React.FC = () => {
         const newExecutionId = data?.data?.executionId ?? null;
         if (newExecutionId) {
           setExecutionId(newExecutionId);
+          // Update URL with executionId to enable page refresh recovery
+          setSearchParams({ executionId: newExecutionId });
+
           message.success('Workflow started');
           // Auto switch to runLogs tab when workflow starts
           setActiveTab('runLogs');
@@ -200,7 +229,7 @@ const WorkflowAppPage: React.FC = () => {
         setIsRunning(false);
       }
     },
-    [shareId, isLoggedRef, navigate],
+    [shareId, isLoggedRef, navigate, setSearchParams],
   );
 
   const handleCopyWorkflow = useCallback(() => {
@@ -234,19 +263,20 @@ const WorkflowAppPage: React.FC = () => {
   ]);
 
   const handleCopyShareLink = useCallback(async () => {
+    const shareUrl = window.location.origin + window.location.pathname;
     logEvent('duplicate_workflow_publish', Date.now(), {
       shareId,
-      shareUrl: window.location.href,
+      shareUrl,
     });
     try {
-      // Copy current browser URL to clipboard
-      await navigator.clipboard.writeText(window.location.href);
+      // Copy URL without query parameters to clipboard
+      await navigator.clipboard.writeText(shareUrl);
       message.success(t('canvas.workflow.run.shareLinkCopied') || 'Share link copied to clipboard');
     } catch (error) {
       console.error('Failed to copy share link:', error);
       message.error(t('canvas.workflow.run.shareLinkCopyFailed') || 'Failed to copy share link');
     }
-  }, [t]);
+  }, [t, shareId]);
 
   const segmentedOptions = useMemo(() => {
     return [
