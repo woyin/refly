@@ -67,12 +67,12 @@ import SessionHeader from '@refly-packages/ai-workspace-common/components/pilot/
 import { CanvasResources, CanvasResourcesWidescreenModal } from './canvas-resources';
 import { ResourceOverview } from './canvas-resources/share/resource-overview';
 import { ToolbarButtons } from './top-toolbar/toolbar-buttons';
-// import { NodePreviewContainer } from '@refly-packages/ai-workspace-common/components/canvas/node-preview';
 import { useHandleOrphanNode } from '@refly-packages/ai-workspace-common/hooks/use-handle-orphan-node';
 import { WorkflowRun } from './workflow-run';
 import { useMatch } from '@refly-packages/ai-workspace-common/utils/router';
 import { Logo } from '@refly-packages/ai-workspace-common/components/common/logo';
 import { UploadNotification } from '@refly-packages/ai-workspace-common/components/common/upload-notification';
+import { Copilot } from './copilot';
 
 const GRID_SIZE = 10;
 
@@ -126,7 +126,6 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
   useHandleOrphanNode();
 
   useCanvasInitialActions(canvasId);
-  // useFollowPilotSteps();
 
   const { addNode } = useAddNode();
   const { nodes, edges } = useStore(
@@ -1043,7 +1042,7 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
         />
       </Modal>
 
-      <div className="w-full h-full relative flex flex-col overflow-hidden border-[1px] border-solid border-refly-Card-Border rounded-xl shadow-sm">
+      <div className="w-full h-full relative flex flex-col overflow-hidden shadow-sm">
         {!readonly && (
           <AnimatePresence mode="wait">
             {isPilotOpen ? (
@@ -1190,17 +1189,6 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
         {readonly && shareNotFound && <NotFoundOverlay />}
         <ToolbarButtons canvasId={canvasId} />
 
-        {/* <div
-          className="absolute top-[64px] bottom-0 right-2 overflow-x-auto preview-container z-20"
-          style={{
-            maxWidth: 'calc(100% - 12px)',
-          }}
-        >
-          <div className="relative h-full overflow-y-hidden">
-            <NodePreviewContainer canvasId={canvasId} />
-          </div>
-        </div> */}
-
         <UnifiedContextMenu
           open={contextMenu.open}
           position={contextMenu.position}
@@ -1243,6 +1231,12 @@ export const Canvas = (props: { canvasId: string; readonly?: boolean }) => {
   }));
 
   useEffect(() => {
+    if (sidePanelVisible && resourcesPanelWidth === 0) {
+      setResourcesPanelWidth(400);
+    }
+  }, [sidePanelVisible, resourcesPanelWidth, setResourcesPanelWidth]);
+
+  useEffect(() => {
     if (readonly) {
       return;
     }
@@ -1259,10 +1253,10 @@ export const Canvas = (props: { canvasId: string; readonly?: boolean }) => {
   }, [canvasId, setCurrentCanvasId]);
 
   // Handle panel resize
-  const handlePanelResize = useCallback(
+  const handleRightPanelResize = useCallback(
     (sizes: number[]) => {
-      if (sizes.length >= 2) {
-        setResourcesPanelWidth(sizes[1]);
+      if (sizes.length >= 3 && sizes[2] !== 0) {
+        setResourcesPanelWidth(sizes[2]);
       }
     },
     [setResourcesPanelWidth],
@@ -1330,16 +1324,20 @@ export const Canvas = (props: { canvasId: string; readonly?: boolean }) => {
           <TopToolbar canvasId={canvasId} />
 
           <Splitter
-            className="canvas-splitter w-full flex-grow overflow-hidden"
-            onResize={handlePanelResize}
+            className="canvas-splitter w-full bg-refly-bg-content-z2 rounded-xl border-solid border-[1px] border-refly-Card-Border flex-grow overflow-hidden"
+            onResize={handleRightPanelResize}
           >
-            <Splitter.Panel>
+            <Splitter.Panel defaultSize={400} min={400} max={maxPanelWidth}>
+              <Copilot />
+            </Splitter.Panel>
+
+            <Splitter.Panel className="shadow-refly-m">
               <Flow canvasId={canvasId} />
             </Splitter.Panel>
 
             <Splitter.Panel
               size={sidePanelVisible ? resourcesPanelWidth : 0}
-              min={480}
+              min={400}
               max={maxPanelWidth}
             >
               {showWorkflowRun && !readonly && !isPreviewCanvas ? (

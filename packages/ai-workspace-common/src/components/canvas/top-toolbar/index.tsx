@@ -127,7 +127,9 @@ export const TopToolbar: FC<TopToolbarProps> = memo(({ canvasId }) => {
             <Button
               type="text"
               onClick={handleInitializeWorkflow}
-              className={cn(showWorkflowRun && '!bg-gradient-tools-open')}
+              className={cn(
+                showWorkflowRun && '!bg-gradient-tools-open !text-refly-primary-default',
+              )}
               icon={
                 <Play
                   size={16}

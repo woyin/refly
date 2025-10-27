@@ -137,10 +137,6 @@
 }
 
 .canvas-splitter {
-  .ant-splitter-bar {
-    width: 3px!important;
-  }
-
   .ant-splitter-bar-dragger {
     &::before {
       background: transparent!important;

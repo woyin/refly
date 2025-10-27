@@ -1,4 +1,4 @@
-import { memo, useEffect, useMemo } from 'react';
+import { memo, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useCanvasResourcesPanelStoreShallow } from '@refly/stores';
 import { useCallback } from 'react';
@@ -25,12 +25,7 @@ export const ToolbarButtons = memo(({ canvasId }: ToolbarButtonsProps) => {
     return sidePanelVisible && !showWorkflowRun;
   }, [sidePanelVisible, showWorkflowRun]);
 
-  useEffect(() => {
-    console.log('isResourceLibraryVisible', isResourceLibraryVisible);
-  }, [isResourceLibraryVisible]);
-
   const handleResourcesPanelOpen = useCallback(() => {
-    console.log('isResourceLibraryVisible', isResourceLibraryVisible);
     if (isResourceLibraryVisible) {
       setSidePanelVisible(false);
       setShowWorkflowRun(false);
