@@ -81,15 +81,15 @@ const WorkflowAppPage: React.FC = () => {
     }
   }, [shareId]);
 
+  const urlExecutionId = searchParams.get('executionId');
   // Restore executionId from URL on page load
   useEffect(() => {
-    const urlExecutionId = searchParams.get('executionId');
     if (urlExecutionId) {
       setExecutionId(urlExecutionId);
       setIsRunning(true);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [urlExecutionId]);
 
   const workflowVariables = useMemo(() => {
     return workflowApp?.variables ?? [];
