@@ -1163,6 +1163,10 @@ export const ResourceSchema = {
       type: 'string',
       description: 'Preview content for this resource',
     },
+    shareId: {
+      type: 'string',
+      description: 'Share ID',
+    },
     content: {
       type: 'string',
       description: 'Document content for this resource (only returned in getResourceDetail API)',
@@ -3283,6 +3287,26 @@ export const GetCanvasDataResponseSchema = {
       properties: {
         data: {
           $ref: '#/components/schemas/RawCanvasData',
+        },
+      },
+    },
+  ],
+} as const;
+
+export const SharedCanvasDataSchema = {
+  allOf: [
+    {
+      $ref: '#/components/schemas/RawCanvasData',
+    },
+    {
+      type: 'object',
+      properties: {
+        resources: {
+          type: 'array',
+          description: 'Resources in the canvas',
+          items: {
+            $ref: '#/components/schemas/Resource',
+          },
         },
       },
     },

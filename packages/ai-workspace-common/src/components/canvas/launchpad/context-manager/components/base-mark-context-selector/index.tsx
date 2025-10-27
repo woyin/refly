@@ -11,9 +11,7 @@ import { ReloadOutlined } from '@ant-design/icons';
 import { IContextItem } from '@refly/common-types';
 import { useContextPanelStoreShallow } from '@refly/stores';
 import { useCanvasData } from '@refly-packages/ai-workspace-common/hooks/canvas/use-canvas-data';
-import { useListResources } from '@refly-packages/ai-workspace-common/queries/queries';
-import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
-import { useGetProjectCanvasId } from '@refly-packages/ai-workspace-common/hooks/use-get-project-canvasId';
+import { useFetchResources } from '@refly-packages/ai-workspace-common/hooks/use-fetch-resources';
 import { CONTEXT_FILTER_NODE_TYPES } from '@refly/canvas-common';
 
 import './index.scss';
@@ -76,15 +74,7 @@ export const BaseMarkContextSelector = (props: BaseMarkContextSelectorProps) => 
   }, [onClickOutside]);
 
   const { nodes } = useCanvasData();
-  const { canvasId } = useCanvasContext();
-  const { projectId } = useGetProjectCanvasId();
-  const { data: resourcesData } = useListResources({
-    query: {
-      canvasId,
-      projectId,
-    },
-  });
-  const resources = resourcesData?.data ?? [];
+  const { data: resources } = useFetchResources();
   const targetNodes = nodes.filter((node) => !CONTEXT_FILTER_NODE_TYPES.includes(node?.type));
 
   const handleClear = () => {

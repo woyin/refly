@@ -13,28 +13,19 @@ import { ResultList } from '../result-list';
 import { MyUploadList } from '../my-upload';
 import { useRealtimeCanvasData } from '@refly-packages/ai-workspace-common/hooks/canvas/use-realtime-canvas-data';
 import { useCreateDocument } from '@refly-packages/ai-workspace-common/hooks/canvas/use-create-document';
-import { useListResources } from '@refly-packages/ai-workspace-common/queries/queries';
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
-import { useGetProjectCanvasId } from '@refly-packages/ai-workspace-common/hooks/use-get-project-canvasId';
+import { useFetchResources } from '@refly-packages/ai-workspace-common/hooks/use-fetch-resources';
 
 export const ResourceOverview = memo(() => {
   const { t } = useTranslation();
   const { nodes } = useRealtimeCanvasData();
-  const { canvasId } = useCanvasContext();
-  const { projectId } = useGetProjectCanvasId();
+  const { shareLoading, shareData } = useCanvasContext();
   const { createSingleDocumentInCanvas, isCreating: isCreatingDocument } = useCreateDocument();
-
   const {
-    data: resourcesData,
+    data: resources,
     isLoading: isLoadingResources,
     refetch: refetchResources,
-  } = useListResources({
-    query: {
-      canvasId,
-      projectId,
-    },
-  });
-  const resources = resourcesData?.data ?? [];
+  } = useFetchResources();
   const pollingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const startPolling = useCallback(() => {
@@ -127,6 +118,25 @@ export const ResourceOverview = memo(() => {
       return true;
     }
 
+    // If shareData is present, check shared resources and nodes
+    if (shareData) {
+      return (
+        (shareData.nodes?.filter((node) =>
+          [
+            'skillResponse',
+            'document',
+            'resource',
+            'codeArtifact',
+            'image',
+            'video',
+            'audio',
+            'website',
+          ].includes(node.type),
+        ).length ?? 0) > 0 || (shareData.resources?.length ?? 0) > 0
+      );
+    }
+
+    // Otherwise check local data
     return (
       nodes.filter((node) =>
         [
@@ -141,7 +151,7 @@ export const ResourceOverview = memo(() => {
         ].includes(node.type),
       ).length > 0 || resources.length > 0
     );
-  }, [nodes, isLoadingResources, resources]);
+  }, [nodes, isLoadingResources, resources, shareData]);
 
   useEffect(() => {
     if (parentType) {
@@ -151,7 +161,7 @@ export const ResourceOverview = memo(() => {
 
   return (
     <div className="p-4 flex-grow flex flex-col gap-4 overflow-hidden">
-      {isLoadingResources ? (
+      {isLoadingResources || shareLoading ? (
         <div className="h-full flex flex-col items-center justify-center gap-4">
           <div className="text-refly-text-2 text-sm leading-5">{t('common.loading')}</div>
         </div>

@@ -19,9 +19,8 @@ import type { WorkflowVariable, VariableValue } from '@refly/openapi-schema';
 import { useVariableView } from '@refly-packages/ai-workspace-common/hooks/canvas';
 import './index.scss';
 import { RESOURCE_TYPE } from './constants';
-import { useGetProjectCanvasId } from '@refly-packages/ai-workspace-common/hooks/use-get-project-canvasId';
-import { useListResources } from '@refly-packages/ai-workspace-common/queries/queries';
 import { logEvent } from '@refly/telemetry-web';
+import { useFetchResources } from '@refly-packages/ai-workspace-common/hooks/use-fetch-resources';
 
 export const CreateVariablesModal: React.FC<CreateVariablesModalProps> = React.memo(
   ({
@@ -54,13 +53,7 @@ export const CreateVariablesModal: React.FC<CreateVariablesModalProps> = React.m
       return t(`canvas.workflow.variables.${mode === 'create' ? 'addTitle' : 'editTitle'}`);
     }, [t, mode, disableChangeVariableType, variableType]);
 
-    const { projectId } = useGetProjectCanvasId();
-    const { refetch: refetchResources } = useListResources({
-      query: {
-        canvasId,
-        projectId,
-      },
-    });
+    const { refetch: refetchResources } = useFetchResources();
 
     const variableTypeOptions = useMemo(() => {
       return [

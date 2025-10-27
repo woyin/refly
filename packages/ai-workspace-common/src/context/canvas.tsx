@@ -19,8 +19,8 @@ import {
   CanvasTransaction,
   VersionConflict,
   WorkflowVariable,
+  SharedCanvasData,
 } from '@refly/openapi-schema';
-import { RawCanvasData } from '@refly-packages/ai-workspace-common/requests/types.gen';
 import { useFetchShareData } from '@refly-packages/ai-workspace-common/hooks/use-fetch-share-data';
 import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
 import {
@@ -65,7 +65,7 @@ interface CanvasContextType {
   shareLoading: boolean;
   syncFailureCount: number;
   shareNotFound?: boolean;
-  shareData?: RawCanvasData;
+  shareData?: SharedCanvasData;
   lastUpdated?: number;
   workflow: {
     workflowVariables: WorkflowVariable[];
@@ -213,7 +213,7 @@ export const CanvasProvider = ({
     data: canvasData,
     error: canvasError,
     loading: shareLoading,
-  } = useFetchShareData<RawCanvasData>(readonly ? canvasId : undefined);
+  } = useFetchShareData<SharedCanvasData>(readonly ? canvasId : undefined);
 
   const finalVariables = useMemo(() => {
     if (readonly) {
