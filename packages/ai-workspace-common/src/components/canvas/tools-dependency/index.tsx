@@ -676,13 +676,13 @@ export const ToolsDependency = ({ canvasId }: { canvasId: string }) => {
   const { isLogin } = useUserStoreShallow((state) => ({
     isLogin: state.isLogin,
   }));
-  const { shareData } = useCanvasContext();
+  const { shareData, readonly } = useCanvasContext();
 
   const { data: canvasResponse, isLoading: canvasLoading } = useGetCanvasData(
-    { query: { canvasId, source: 'ToolsDependency' } },
+    { query: { canvasId } },
     [],
     {
-      enabled: !!canvasId && !shareData && isLogin,
+      enabled: !!canvasId && !shareData && isLogin && !readonly,
       refetchOnWindowFocus: false,
     },
   );
