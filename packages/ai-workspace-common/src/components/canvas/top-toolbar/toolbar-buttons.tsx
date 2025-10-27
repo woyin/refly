@@ -52,7 +52,7 @@ export const ToolbarButtons = memo(
         <div className="flex items-center gap-2 p-2 bg-refly-bg-content-z2 rounded-2xl border-solid border-[1px] border-refly-Card-Border">
           <Button
             type="text"
-            icon={copilotWidth === 0 ? <SideLeft size={18} /> : <SideRight size={18} />}
+            icon={copilotWidth === 0 ? <SideRight size={18} /> : <SideLeft size={18} />}
             onClick={handleCopilotOpen}
             className={cn('p-2 font-semibold', copilotWidth !== 0 ? 'bg-refly-fill-hover' : '')}
           >
