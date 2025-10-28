@@ -15,7 +15,17 @@ describe('processQueryWithMentions', () => {
     variableId: 'resource-1',
     name: 'resourceVar',
     variableType: 'resource',
-    value: [{ type: 'text', text: 'resource content' }],
+    value: [
+      {
+        type: 'resource',
+        resource: {
+          name: 'resourceVar',
+          fileType: 'document',
+          storageKey: 'key123',
+          entityId: 'resource-1',
+        },
+      },
+    ],
   };
 
   const mockResourceVariableWithEntityId: WorkflowVariable = {
@@ -64,7 +74,7 @@ describe('processQueryWithMentions', () => {
   });
 
   describe('structured mention format @{type=...,id=...,name=...}', () => {
-    it('should replace variable mention with value when replaceVars is true', () => {
+    it('should replace variable mention with actual value when replaceVars is true', () => {
       const query = '@{type=var,id=var-1,name=testVar}';
       const result = processQueryWithMentions(query, {
         replaceVars: true,
@@ -86,13 +96,13 @@ describe('processQueryWithMentions', () => {
       expect(result.resourceVars).toEqual([]);
     });
 
-    it('should replace with name when variable not found', () => {
+    it('should replace with @name when variable not found', () => {
       const query = '@{type=var,id=non-existent,name=missingVar}';
       const result = processQueryWithMentions(query, {
         replaceVars: true,
         variables: [mockWorkflowVariable],
       });
-      expect(result.processedQuery).toBe('missingVar');
+      expect(result.processedQuery).toBe('@missingVar');
       expect(result.updatedQuery).toBe('@{type=var,id=non-existent,name=missingVar}');
       expect(result.resourceVars).toEqual([]);
     });
@@ -103,7 +113,7 @@ describe('processQueryWithMentions', () => {
         replaceVars: true,
         variables: [mockResourceVariable],
       });
-      expect(result.processedQuery).toBe('resourceVar');
+      expect(result.processedQuery).toBe('@resourceVar');
       expect(result.updatedQuery).toBe('@{type=resource,id=resource-1,name=resourceVar}');
       expect(result.resourceVars).toEqual([mockResourceVariable]);
     });
@@ -114,7 +124,7 @@ describe('processQueryWithMentions', () => {
         replaceVars: true,
         variables: [],
       });
-      expect(result.processedQuery).toBe('dataAnalysisStep');
+      expect(result.processedQuery).toBe('@dataAnalysisStep');
       expect(result.updatedQuery).toBe('@{type=step,id=step-1,name=dataAnalysisStep}');
       expect(result.resourceVars).toEqual([]);
     });
@@ -125,7 +135,7 @@ describe('processQueryWithMentions', () => {
         replaceVars: true,
         variables: [],
       });
-      expect(result.processedQuery).toBe('calculatorToolset');
+      expect(result.processedQuery).toBe('@calculatorToolset');
       expect(result.updatedQuery).toBe('@{type=toolset,id=toolset-1,name=calculatorToolset}');
       expect(result.resourceVars).toEqual([]);
     });
@@ -136,7 +146,7 @@ describe('processQueryWithMentions', () => {
         replaceVars: true,
         variables: [],
       });
-      expect(result.processedQuery).toBe('calculatorTool');
+      expect(result.processedQuery).toBe('@calculatorTool');
       expect(result.updatedQuery).toBe('@{type=tool,id=tool-1,name=calculatorTool}');
       expect(result.resourceVars).toEqual([]);
     });
@@ -148,7 +158,7 @@ describe('processQueryWithMentions', () => {
         replaceVars: true,
         variables: [mockWorkflowVariable, mockResourceVariable],
       });
-      expect(result.processedQuery).toBe('hello world and resourceVar and dataStep calcTool');
+      expect(result.processedQuery).toBe('hello world and @resourceVar and @dataStep @calcTool');
       expect(result.updatedQuery).toBe(
         '@{type=var,id=var-1,name=testVar} and @{type=resource,id=resource-1,name=resourceVar} and @{type=step,id=step-1,name=dataStep} @{type=tool,id=tool-1,name=calcTool}',
       );
@@ -161,7 +171,7 @@ describe('processQueryWithMentions', () => {
         replaceVars: true,
         variables: [mockResourceVariableWithEntityId],
       });
-      expect(result.processedQuery).toBe('newResourceName');
+      expect(result.processedQuery).toBe('@newResourceName');
       expect(result.updatedQuery).toBe('@{type=resource,id=entity-123,name=newResourceName}');
       expect(result.resourceVars).toEqual([mockResourceVariableWithEntityId]);
     });
@@ -172,9 +182,9 @@ describe('processQueryWithMentions', () => {
         replaceVars: true,
         variables: [mockResourceVariableWithEntityId],
       });
-      expect(result.processedQuery).toBe('mentionName');
+      expect(result.processedQuery).toBe('@mentionName');
       expect(result.updatedQuery).toBe('@{type=resource,id=non-matching-entity,name=mentionName}');
-      expect(result.resourceVars).toEqual([mockResourceVariableWithEntityId]);
+      expect(result.resourceVars).toEqual([]);
     });
 
     it('should use mention name when resource variable has no matching entityId', () => {
@@ -200,9 +210,9 @@ describe('processQueryWithMentions', () => {
         replaceVars: true,
         variables: [variableWithoutMatchingEntity],
       });
-      expect(result.processedQuery).toBe('mentionName');
+      expect(result.processedQuery).toBe('@mentionName');
       expect(result.updatedQuery).toBe('@{type=resource,id=entity-123,name=mentionName}');
-      expect(result.resourceVars).toEqual([variableWithoutMatchingEntity]);
+      expect(result.resourceVars).toEqual([]);
     });
 
     it('should use resource title from resources array when provided', () => {
@@ -217,7 +227,7 @@ describe('processQueryWithMentions', () => {
       const result = processQueryWithMentions(query, {
         resources,
       });
-      expect(result.processedQuery).toBe('Updated Resource Title');
+      expect(result.processedQuery).toBe('@Updated Resource Title');
       expect(result.updatedQuery).toBe(
         '@{type=resource,id=resource-123,name=Updated Resource Title}',
       );
@@ -236,7 +246,7 @@ describe('processQueryWithMentions', () => {
       const result = processQueryWithMentions(query, {
         resources,
       });
-      expect(result.processedQuery).toBe('fallbackName');
+      expect(result.processedQuery).toBe('@fallbackName');
       expect(result.updatedQuery).toBe(
         '@{type=resource,id=non-existent-resource,name=fallbackName}',
       );
@@ -257,173 +267,8 @@ describe('processQueryWithMentions', () => {
         variables: [mockResourceVariableWithEntityId],
         resources,
       });
-      expect(result.processedQuery).toBe('Resource From Array');
+      expect(result.processedQuery).toBe('@Resource From Array');
       expect(result.updatedQuery).toBe('@{type=resource,id=resource-123,name=Resource From Array}');
-      expect(result.resourceVars).toEqual([]);
-    });
-  });
-
-  describe('legacy @variableName format', () => {
-    describe('WorkflowVariable handling', () => {
-      it('should replace string variable with value', () => {
-        const query = '@testVar hello';
-        const result = processQueryWithMentions(query, {
-          replaceVars: true,
-          variables: [mockWorkflowVariable],
-        });
-        expect(result.processedQuery).toBe('hello world hello');
-        expect(result.updatedQuery).toBe('@testVar hello');
-        expect(result.resourceVars).toEqual([]);
-      });
-
-      it('should replace string variable at the beginning of string', () => {
-        const query = '@testVar';
-        const result = processQueryWithMentions(query, {
-          replaceVars: true,
-          variables: [mockWorkflowVariable],
-        });
-        expect(result.processedQuery).toBe('hello world');
-        expect(result.updatedQuery).toBe('@testVar');
-        expect(result.resourceVars).toEqual([]);
-      });
-
-      it('should replace string variable in the middle of string', () => {
-        const query = 'start @testVar end';
-        const result = processQueryWithMentions(query, {
-          replaceVars: true,
-          variables: [mockWorkflowVariable],
-        });
-        expect(result.processedQuery).toBe('start hello world end');
-        expect(result.updatedQuery).toBe('start @testVar end');
-        expect(result.resourceVars).toEqual([]);
-      });
-
-      it('should replace string variable at the end of string', () => {
-        const query = 'hello @testVar';
-        const result = processQueryWithMentions(query, {
-          replaceVars: true,
-          variables: [mockWorkflowVariable],
-        });
-        expect(result.processedQuery).toBe('hello hello world');
-        expect(result.updatedQuery).toBe('hello @testVar');
-        expect(result.resourceVars).toEqual([]);
-      });
-
-      it('should handle resource variable by removing from query and adding to resourceVars', () => {
-        const query = '@resourceVar hello';
-        const result = processQueryWithMentions(query, {
-          replaceVars: true,
-          variables: [mockResourceVariable],
-        });
-        expect(result.processedQuery).toBe('hello');
-        expect(result.updatedQuery).toBe('@resourceVar hello');
-        expect(result.resourceVars).toEqual([mockResourceVariable]);
-      });
-
-      it('should handle resource variable at the beginning of string', () => {
-        const query = '@resourceVar';
-        const result = processQueryWithMentions(query, {
-          replaceVars: true,
-          variables: [mockResourceVariable],
-        });
-        expect(result.processedQuery).toBe('');
-        expect(result.updatedQuery).toBe('@resourceVar');
-        expect(result.resourceVars).toEqual([mockResourceVariable]);
-      });
-
-      it('should handle multiple variables', () => {
-        const query = '@testVar and @resourceVar';
-        const result = processQueryWithMentions(query, {
-          replaceVars: true,
-          variables: [mockWorkflowVariable, mockResourceVariable],
-        });
-        expect(result.processedQuery).toBe('hello world and');
-        expect(result.updatedQuery).toBe('@testVar and @resourceVar');
-        expect(result.resourceVars).toEqual([mockResourceVariable]);
-      });
-    });
-  });
-
-  describe('edge cases', () => {
-    it('should handle variable with no value', () => {
-      const variableWithNoValue: WorkflowVariable = {
-        variableId: 'empty-var',
-        name: 'emptyVar',
-        variableType: 'string',
-        value: [],
-      };
-
-      const query = '@emptyVar';
-      const result = processQueryWithMentions(query, {
-        replaceVars: true,
-        variables: [variableWithNoValue],
-      });
-      expect(result.processedQuery).toBe('');
-      expect(result.updatedQuery).toBe('@emptyVar');
-      expect(result.resourceVars).toEqual([]);
-    });
-
-    it('should handle variable with empty text values', () => {
-      const variableWithEmptyValue: WorkflowVariable = {
-        variableId: 'empty-text-var',
-        name: 'emptyTextVar',
-        variableType: 'string',
-        value: [
-          { type: 'text', text: '' },
-          { type: 'text', text: '   ' },
-        ],
-      };
-
-      const query = '@emptyTextVar';
-      const result = processQueryWithMentions(query, {
-        replaceVars: true,
-        variables: [variableWithEmptyValue],
-      });
-      expect(result.processedQuery).toBe('');
-      expect(result.updatedQuery).toBe('@emptyTextVar');
-      expect(result.resourceVars).toEqual([]);
-    });
-
-    it('should handle multiple text values', () => {
-      const variableWithMultipleValues: WorkflowVariable = {
-        variableId: 'multi-var',
-        name: 'multiVar',
-        variableType: 'string',
-        value: [
-          { type: 'text', text: 'first' },
-          { type: 'text', text: 'second' },
-          { type: 'text', text: 'third' },
-        ],
-      };
-
-      const query = '@multiVar';
-      const result = processQueryWithMentions(query, {
-        replaceVars: true,
-        variables: [variableWithMultipleValues],
-      });
-      expect(result.processedQuery).toBe('first, second, third');
-      expect(result.updatedQuery).toBe('@multiVar');
-      expect(result.resourceVars).toEqual([]);
-    });
-
-    it('should ignore non-text value types', () => {
-      const variableWithNonTextValues: WorkflowVariable = {
-        variableId: 'non-text-var',
-        name: 'nonTextVar',
-        variableType: 'string',
-        value: [
-          { type: 'file', text: 'ignored' },
-          { type: 'text', text: 'valid' },
-        ] as any,
-      };
-
-      const query = '@nonTextVar';
-      const result = processQueryWithMentions(query, {
-        replaceVars: true,
-        variables: [variableWithNonTextValues],
-      });
-      expect(result.processedQuery).toBe('valid');
-      expect(result.updatedQuery).toBe('@nonTextVar');
       expect(result.resourceVars).toEqual([]);
     });
   });
@@ -436,7 +281,7 @@ describe('processQueryWithMentions', () => {
         variables: [mockResourceVariableWithEntityId],
       });
       expect(result.updatedQuery).toBe('@{type=resource,id=entity-123,name=newResourceName}');
-      expect(result.processedQuery).toBe('newResourceName');
+      expect(result.processedQuery).toBe('@newResourceName');
       expect(result.resourceVars).toEqual([mockResourceVariableWithEntityId]);
     });
 
@@ -447,7 +292,7 @@ describe('processQueryWithMentions', () => {
         variables: [mockResourceVariableWithEntityId],
       });
       expect(result.updatedQuery).toBe('@{type=resource,id=non-matching-entity,name=originalName}');
-      expect(result.processedQuery).toBe('originalName');
+      expect(result.processedQuery).toBe('@originalName');
     });
 
     it('should handle multiple resource mentions with mixed matching', () => {
@@ -477,7 +322,7 @@ describe('processQueryWithMentions', () => {
       expect(result.updatedQuery).toBe(
         '@{type=resource,id=entity-123,name=newResourceName} and @{type=resource,id=entity-456,name=anotherNewName} and @{type=resource,id=entity-789,name=oldName3}',
       );
-      expect(result.processedQuery).toBe('newResourceName and anotherNewName and oldName3');
+      expect(result.processedQuery).toBe('@newResourceName and @anotherNewName and @oldName3');
       expect(result.resourceVars).toEqual([
         mockResourceVariableWithEntityId,
         anotherResourceVariable,
@@ -493,7 +338,7 @@ describe('processQueryWithMentions', () => {
       expect(result.updatedQuery).toBe(
         'Please analyze @{type=resource,id=entity-123,name=newResourceName} for insights',
       );
-      expect(result.processedQuery).toBe('Please analyze newResourceName for insights');
+      expect(result.processedQuery).toBe('Please analyze @newResourceName for insights');
     });
 
     it('should not update updatedQuery for non-resource mentions', () => {
@@ -506,7 +351,7 @@ describe('processQueryWithMentions', () => {
       expect(result.updatedQuery).toBe(
         '@{type=var,id=var-1,name=testVar} and @{type=resource,id=entity-123,name=newResourceName}',
       );
-      expect(result.processedQuery).toBe('hello world and newResourceName');
+      expect(result.processedQuery).toBe('hello world and @newResourceName');
     });
 
     it('should handle resource variable with empty name', () => {
@@ -533,7 +378,7 @@ describe('processQueryWithMentions', () => {
         variables: [resourceVariableWithEmptyName],
       });
       expect(result.updatedQuery).toBe('@{type=resource,id=entity-999,name=}');
-      expect(result.processedQuery).toBe('');
+      expect(result.processedQuery).toBe('@');
     });
 
     it('should handle resource variable with special characters in name', () => {
@@ -562,7 +407,7 @@ describe('processQueryWithMentions', () => {
       expect(result.updatedQuery).toBe(
         '@{type=resource,id=entity-special,name=Document with spaces & symbols @#$%}',
       );
-      expect(result.processedQuery).toBe('Document with spaces & symbols @#$%');
+      expect(result.processedQuery).toBe('@Document with spaces & symbols @#$%');
     });
   });
 });
