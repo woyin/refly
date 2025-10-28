@@ -535,6 +535,25 @@ export class CanvasSyncService {
     );
   }
 
+  async addNodeToCanvasWithoutCanvasId(
+    user: User,
+    node: Pick<CanvasNode, 'type' | 'data'> & Partial<Pick<CanvasNode, 'id'>>,
+    connectTo?: CanvasNodeFilter[],
+    options?: { autoLayout?: boolean },
+  ) {
+    const parentResult = await this.prisma.actionResult.findFirst({
+      select: {
+        targetId: true,
+        targetType: true,
+        workflowNodeExecutionId: true,
+      },
+      where: { resultId: node.data?.metadata?.parentResultId },
+      orderBy: { version: 'desc' },
+    });
+
+    this.addNodeToCanvas(user, parentResult.targetId, node, connectTo, options);
+  }
+
   async createCanvasVersion(
     user: User,
     param: CreateCanvasVersionRequest,
