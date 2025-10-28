@@ -1,7 +1,7 @@
 import { Segmented, Tooltip } from 'antd';
 import { memo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Agent, Chat } from 'refly-icons';
+import { Chat } from 'refly-icons';
 import { ChatMode } from '@refly/stores';
 import cn from 'classnames';
 
@@ -44,18 +44,18 @@ export const ChatModeSelector = memo(
         value={chatMode}
         onChange={(value) => setChatMode(value as ChatMode)}
         options={[
-          {
-            label: (
-              <ModeOptionLabel
-                icon={<Agent size={20} />}
-                mode="agent"
-                currentMode={chatMode}
-                tooltipKey="mode.agentDescription"
-                labelKey="mode.agent"
-              />
-            ),
-            value: 'agent',
-          },
+          // {
+          //   label: (
+          //     <ModeOptionLabel
+          //       icon={<Agent size={20} />}
+          //       mode="agent"
+          //       currentMode={chatMode}
+          //       tooltipKey="mode.agentDescription"
+          //       labelKey="mode.agent"
+          //     />
+          //   ),
+          //   value: 'agent',
+          // },
           {
             label: (
               <ModeOptionLabel
