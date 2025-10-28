@@ -204,6 +204,63 @@ describe('processQueryWithMentions', () => {
       expect(result.updatedQuery).toBe('@{type=resource,id=entity-123,name=mentionName}');
       expect(result.resourceVars).toEqual([variableWithoutMatchingEntity]);
     });
+
+    it('should use resource title from resources array when provided', () => {
+      const query = '@{type=resource,id=resource-123,name=oldName}';
+      const resources = [
+        {
+          resourceId: 'resource-123',
+          title: 'Updated Resource Title',
+          resourceType: 'document' as const,
+        },
+      ];
+      const result = processQueryWithMentions(query, {
+        resources,
+      });
+      expect(result.processedQuery).toBe('Updated Resource Title');
+      expect(result.updatedQuery).toBe(
+        '@{type=resource,id=resource-123,name=Updated Resource Title}',
+      );
+      expect(result.resourceVars).toEqual([]);
+    });
+
+    it('should fallback to mention name when resource not found in resources array', () => {
+      const query = '@{type=resource,id=non-existent-resource,name=fallbackName}';
+      const resources = [
+        {
+          resourceId: 'resource-123',
+          title: 'Some Resource',
+          resourceType: 'document' as const,
+        },
+      ];
+      const result = processQueryWithMentions(query, {
+        resources,
+      });
+      expect(result.processedQuery).toBe('fallbackName');
+      expect(result.updatedQuery).toBe(
+        '@{type=resource,id=non-existent-resource,name=fallbackName}',
+      );
+      expect(result.resourceVars).toEqual([]);
+    });
+
+    it('should prioritize resources array over variables when both are provided', () => {
+      const query = '@{type=resource,id=resource-123,name=mentionName}';
+      const resources = [
+        {
+          resourceId: 'resource-123',
+          title: 'Resource From Array',
+          resourceType: 'document' as const,
+        },
+      ];
+      const result = processQueryWithMentions(query, {
+        replaceVars: true,
+        variables: [mockResourceVariableWithEntityId],
+        resources,
+      });
+      expect(result.processedQuery).toBe('Resource From Array');
+      expect(result.updatedQuery).toBe('@{type=resource,id=resource-123,name=Resource From Array}');
+      expect(result.resourceVars).toEqual([]);
+    });
   });
 
   describe('legacy @variableName format', () => {
