@@ -4,7 +4,6 @@ export * from './firecrawl';
 export * from './calculator';
 export * from './inventory';
 export * from './jina';
-export * from './e2b';
 export * from './code-interpreter';
 export * from './google-docs';
 export * from './google-drive';

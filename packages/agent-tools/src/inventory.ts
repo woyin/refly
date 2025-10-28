@@ -17,7 +17,6 @@ import { FalVideoToolset, FalVideoToolsetDefinition } from './fal-video';
 import { PerplexityToolset, PerplexityToolsetDefinition } from './perplexity';
 import { ProductHuntToolset, ProductHuntToolsetDefinition } from './producthunt';
 import { BrowserUseToolset, BrowserUseToolsetDefinition } from './browser-use';
-import { E2BToolset, E2BToolsetDefinition } from './e2b';
 import { ScaleboxToolset, ScaleboxToolsetDefinition } from './scalebox';
 import { ApifyToolset, ApifyToolsetDefinition } from './apify';
 import { NovitaSandboxToolset, NovitaSandboxToolsetDefinition } from './novita-sandbox';
@@ -98,10 +97,6 @@ export const toolsetInventory: Record<
   [BrowserUseToolsetDefinition.key]: {
     class: BrowserUseToolset,
     definition: BrowserUseToolsetDefinition,
-  },
-  [E2BToolsetDefinition.key]: {
-    class: E2BToolset,
-    definition: E2BToolsetDefinition,
   },
   [ScaleboxToolsetDefinition.key]: {
     class: ScaleboxToolset,
