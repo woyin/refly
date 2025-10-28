@@ -183,6 +183,7 @@ export class ScaleboxCreate extends AgentBaseTool<ScaleboxToolParams> {
           info: info ?? {},
         },
         summary: 'Sandbox created successfully',
+        creditCost: 1,
       };
     } catch (error) {
       return {

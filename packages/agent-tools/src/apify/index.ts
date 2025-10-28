@@ -1,8 +1,70 @@
 import { z } from 'zod/v3';
-import { ApifyClient, ActorStoreList, Actor, Build } from 'apify-client';
+import { ApifyClient, ActorStoreList, Actor, Build, ActorRun } from 'apify-client';
 
 // Types for actor pricing and search results
 type ActorPricingModel = 'FREE' | 'PAY_PER_EVENT' | 'FLAT_PRICE_PER_MONTH';
+
+/**
+ * Calculate credit cost based on Apify Actor pricing
+ * 1 USD = 140 credits, round up to minimum 1 credit
+ */
+function calculateCreditCost(run: ActorRun, itemsLength?: number): number {
+  // Priority 1: Use usageTotalUsd if available
+  if (run.usageTotalUsd !== undefined) {
+    const costInCredits = run.usageTotalUsd * 140;
+    return Math.max(1, Math.ceil(costInCredits));
+  }
+
+  // Priority 2: Calculate based on pricing model
+  if (!run.pricingInfo) {
+    return 0; // No pricing info means free
+  }
+
+  const pricingInfo = run.pricingInfo;
+  let totalCostUsd = 0;
+
+  switch (pricingInfo.pricingModel) {
+    case 'FREE':
+      totalCostUsd = 0;
+      break;
+
+    case 'PRICE_PER_DATASET_ITEM':
+      if (itemsLength !== undefined) {
+        totalCostUsd = itemsLength * pricingInfo.pricePerUnitUsd;
+      }
+      break;
+
+    case 'PAY_PER_EVENT':
+      if (run.chargedEventCounts) {
+        const { pricingPerEvent } = pricingInfo;
+        totalCostUsd = Object.entries(run.chargedEventCounts).reduce((total, [eventKey, count]) => {
+          const eventPrice = pricingPerEvent.actorChargeEvents[eventKey]?.eventPriceUsd || 0;
+          return total + eventPrice * count;
+        }, 0);
+      }
+      break;
+
+    case 'FLAT_PRICE_PER_MONTH':
+      // Monthly pricing - for single runs, we might need to prorate, but for now use the full price
+      totalCostUsd = pricingInfo.pricePerUnitUsd ?? (itemsLength ?? 0) * 0.002;
+      break;
+
+    default:
+      totalCostUsd = 0;
+  }
+
+  // Apply minimum charge if specified
+  if (
+    pricingInfo.pricingModel === 'PAY_PER_EVENT' &&
+    pricingInfo.minimalMaxTotalChargeUsd !== undefined
+  ) {
+    totalCostUsd = Math.max(totalCostUsd, pricingInfo.minimalMaxTotalChargeUsd);
+  }
+
+  // Convert to credits: 1 USD = 140 credits, minimum 1 credit
+  const costInCredits = totalCostUsd * 140;
+  return Math.max(1, Math.ceil(costInCredits));
+}
 
 interface ExtendedActorStoreList extends ActorStoreList {
   // Extended properties if needed
@@ -146,6 +208,9 @@ export class ApifyRunActor extends AgentBaseTool<ApifyToolParams> {
       // Fetch and return Actor results from the run's dataset
       const { items } = await client.dataset(run.defaultDatasetId).listItems();
 
+      // Calculate credit cost
+      const creditCost = calculateCreditCost(run, items.length);
+
       return {
         status: 'success',
         data: {
@@ -153,6 +218,7 @@ export class ApifyRunActor extends AgentBaseTool<ApifyToolParams> {
           items,
           datasetUrl: `https://console.apify.com/storage/datasets/${run.defaultDatasetId}`,
         },
+        creditCost,
         summary: `Successfully ran Actor "${input.actorId}" and retrieved ${items.length} results`,
       };
     } catch (error) {
