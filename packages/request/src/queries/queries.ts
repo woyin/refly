@@ -10,7 +10,6 @@ import {
   batchCreateResource,
   batchUpdateDocument,
   batchUpdateProviderItems,
-  chatWithCopilot,
   checkSettingsField,
   checkToolOauthStatus,
   checkVerification,
@@ -171,8 +170,6 @@ import {
   BatchUpdateDocumentError,
   BatchUpdateProviderItemsData,
   BatchUpdateProviderItemsError,
-  ChatWithCopilotData,
-  ChatWithCopilotError,
   CheckSettingsFieldData,
   CheckSettingsFieldError,
   CheckToolOauthStatusData,
@@ -2468,23 +2465,6 @@ export const useRecoverPilotSession = <
   useMutation<TData, TError, Options<RecoverPilotSessionData, true>, TContext>({
     mutationKey: Common.UseRecoverPilotSessionKeyFn(mutationKey),
     mutationFn: (clientOptions) => recoverPilotSession(clientOptions) as unknown as Promise<TData>,
-    ...options,
-  });
-export const useChatWithCopilot = <
-  TData = Common.ChatWithCopilotMutationResult,
-  TError = ChatWithCopilotError,
-  TQueryKey extends Array<unknown> = unknown[],
-  TContext = unknown,
->(
-  mutationKey?: TQueryKey,
-  options?: Omit<
-    UseMutationOptions<TData, TError, Options<ChatWithCopilotData, true>, TContext>,
-    'mutationKey' | 'mutationFn'
-  >,
-) =>
-  useMutation<TData, TError, Options<ChatWithCopilotData, true>, TContext>({
-    mutationKey: Common.UseChatWithCopilotKeyFn(mutationKey),
-    mutationFn: (clientOptions) => chatWithCopilot(clientOptions) as unknown as Promise<TData>,
     ...options,
   });
 export const useInitializeWorkflow = <

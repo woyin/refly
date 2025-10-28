@@ -327,9 +327,6 @@ import type {
   GetCopilotSessionDetailData,
   GetCopilotSessionDetailError,
   GetCopilotSessionDetailResponse2,
-  ChatWithCopilotData,
-  ChatWithCopilotError,
-  ChatWithCopilotResponse,
   InitializeWorkflowData,
   InitializeWorkflowError,
   InitializeWorkflowResponse2,
@@ -2191,23 +2188,6 @@ export const getCopilotSessionDetail = <ThrowOnError extends boolean = false>(
   >({
     ...options,
     url: '/copilot/session/detail',
-  });
-};
-
-/**
- * Chat with copilot
- * Chat with copilot
- */
-export const chatWithCopilot = <ThrowOnError extends boolean = false>(
-  options: Options<ChatWithCopilotData, ThrowOnError>,
-) => {
-  return (options?.client ?? client).post<
-    ChatWithCopilotResponse,
-    ChatWithCopilotError,
-    ThrowOnError
-  >({
-    ...options,
-    url: '/copilot/chat',
   });
 };
 

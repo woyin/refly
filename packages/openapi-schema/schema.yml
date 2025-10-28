@@ -2695,26 +2695,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/GetCopilotSessionDetailResponse'
-  /copilot/chat:
-    post:
-      tags:
-        - copilot
-      summary: Chat with copilot
-      description: Chat with copilot
-      operationId: chatWithCopilot
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CopilotChatRequest'
-      responses:
-        '200':
-          description: successful operation
-          content:
-            text/event-stream:
-              schema:
-                type: string
   /workflow/initialize:
     post:
       tags:
@@ -7559,6 +7539,11 @@ components:
         - skill
         - tool
         - media
+    AgentMode:
+      type: string
+      enum:
+        - copilot_agent
+        - node_agent
     InvokeSkillRequest:
       type: object
       properties:
@@ -7625,6 +7610,13 @@ components:
           description: Selected toolsets
           items:
             $ref: '#/components/schemas/GenericToolset'
+        mode:
+          description: Agent mode
+          $ref: '#/components/schemas/AgentMode'
+          default: node_agent
+        copilotSessionId:
+          type: string
+          description: Copilot session ID
         workflowExecutionId:
           type: string
           description: Workflow execution ID for workflow context
@@ -7992,9 +7984,6 @@ components:
         title:
           type: string
           description: Copilot session title
-        input:
-          description: Copilot session input
-          $ref: '#/components/schemas/SkillInput'
         canvasId:
           type: string
           description: Copilot session canvas ID
@@ -8027,21 +8016,6 @@ components:
             data:
               description: Copilot session detail
               $ref: '#/components/schemas/CopilotSession'
-    CopilotChatRequest:
-      type: object
-      required:
-        - input
-        - canvasId
-      properties:
-        sessionId:
-          type: string
-          description: Copilot session ID (if not passed, a new session will be created)
-        input:
-          description: Copilot session input
-          $ref: '#/components/schemas/SkillInput'
-        canvasId:
-          type: string
-          description: Canvas ID
     UpdateUserSettingsRequest:
       type: object
       properties:

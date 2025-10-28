@@ -3885,6 +3885,8 @@ export type SelectionKey =
 
 export type ActionType = 'skill' | 'tool' | 'media';
 
+export type AgentMode = 'copilot_agent' | 'node_agent';
+
 export type InvokeSkillRequest = {
   /**
    * Skill input
@@ -3959,6 +3961,14 @@ export type InvokeSkillRequest = {
    * Selected toolsets
    */
   toolsets?: Array<GenericToolset>;
+  /**
+   * Agent mode
+   */
+  mode?: AgentMode;
+  /**
+   * Copilot session ID
+   */
+  copilotSessionId?: string;
   /**
    * Workflow execution ID for workflow context
    */
@@ -4316,10 +4326,6 @@ export type CopilotSession = {
    */
   title?: string;
   /**
-   * Copilot session input
-   */
-  input?: SkillInput;
-  /**
    * Copilot session canvas ID
    */
   canvasId?: string;
@@ -4349,21 +4355,6 @@ export type GetCopilotSessionDetailResponse = BaseResponse & {
    * Copilot session detail
    */
   data?: CopilotSession;
-};
-
-export type CopilotChatRequest = {
-  /**
-   * Copilot session ID (if not passed, a new session will be created)
-   */
-  sessionId?: string;
-  /**
-   * Copilot session input
-   */
-  input: SkillInput;
-  /**
-   * Canvas ID
-   */
-  canvasId: string;
 };
 
 export type UpdateUserSettingsRequest = {
@@ -7698,14 +7689,6 @@ export type GetCopilotSessionDetailData = {
 export type GetCopilotSessionDetailResponse2 = GetCopilotSessionDetailResponse;
 
 export type GetCopilotSessionDetailError = unknown;
-
-export type ChatWithCopilotData = {
-  body: CopilotChatRequest;
-};
-
-export type ChatWithCopilotResponse = string;
-
-export type ChatWithCopilotError = unknown;
 
 export type InitializeWorkflowData = {
   body: InitializeWorkflowRequest;

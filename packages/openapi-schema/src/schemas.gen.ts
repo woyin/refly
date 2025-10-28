@@ -5444,6 +5444,11 @@ export const ActionTypeSchema = {
   enum: ['skill', 'tool', 'media'],
 } as const;
 
+export const AgentModeSchema = {
+  type: 'string',
+  enum: ['copilot_agent', 'node_agent'],
+} as const;
+
 export const InvokeSkillRequestSchema = {
   type: 'object',
   properties: {
@@ -5528,6 +5533,15 @@ export const InvokeSkillRequestSchema = {
       items: {
         $ref: '#/components/schemas/GenericToolset',
       },
+    },
+    mode: {
+      description: 'Agent mode',
+      $ref: '#/components/schemas/AgentMode',
+      default: 'node_agent',
+    },
+    copilotSessionId: {
+      type: 'string',
+      description: 'Copilot session ID',
     },
     workflowExecutionId: {
       type: 'string',
@@ -6062,10 +6076,6 @@ export const CopilotSessionSchema = {
       type: 'string',
       description: 'Copilot session title',
     },
-    input: {
-      description: 'Copilot session input',
-      $ref: '#/components/schemas/SkillInput',
-    },
     canvasId: {
       type: 'string',
       description: 'Copilot session canvas ID',
@@ -6123,25 +6133,6 @@ export const GetCopilotSessionDetailResponseSchema = {
       },
     },
   ],
-} as const;
-
-export const CopilotChatRequestSchema = {
-  type: 'object',
-  required: ['input', 'canvasId'],
-  properties: {
-    sessionId: {
-      type: 'string',
-      description: 'Copilot session ID (if not passed, a new session will be created)',
-    },
-    input: {
-      description: 'Copilot session input',
-      $ref: '#/components/schemas/SkillInput',
-    },
-    canvasId: {
-      type: 'string',
-      description: 'Canvas ID',
-    },
-  },
 } as const;
 
 export const UpdateUserSettingsRequestSchema = {

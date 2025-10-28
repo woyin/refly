@@ -10,7 +10,6 @@ import {
   batchCreateResource,
   batchUpdateDocument,
   batchUpdateProviderItems,
-  chatWithCopilot,
   checkSettingsField,
   checkToolOauthStatus,
   checkVerification,
@@ -1178,12 +1177,6 @@ export type RecoverPilotSessionMutationResult = Awaited<ReturnType<typeof recove
 export const useRecoverPilotSessionKey = 'RecoverPilotSession';
 export const UseRecoverPilotSessionKeyFn = (mutationKey?: Array<unknown>) => [
   useRecoverPilotSessionKey,
-  ...(mutationKey ?? []),
-];
-export type ChatWithCopilotMutationResult = Awaited<ReturnType<typeof chatWithCopilot>>;
-export const useChatWithCopilotKey = 'ChatWithCopilot';
-export const UseChatWithCopilotKeyFn = (mutationKey?: Array<unknown>) => [
-  useChatWithCopilotKey,
   ...(mutationKey ?? []),
 ];
 export type InitializeWorkflowMutationResult = Awaited<ReturnType<typeof initializeWorkflow>>;
