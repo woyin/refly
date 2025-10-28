@@ -10,6 +10,7 @@ import { Checked } from 'refly-icons';
 import type { UploadFile, UploadProps } from 'antd/es/upload/interface';
 import { logEvent } from '@refly/telemetry-web';
 import { MultiSelectResult } from './multi-select-result';
+import { SelectedResultsGrid } from './selected-results-grid';
 import { useRealtimeCanvasData } from '@refly-packages/ai-workspace-common/hooks/canvas/use-realtime-canvas-data';
 
 interface CreateWorkflowAppModalProps {
@@ -477,11 +478,8 @@ export const CreateWorkflowAppModal = ({
                     options={resultNodes}
                   />
                 </div>
-                <div className="w-full h-[190px] rounded-lg border border-solid border-[rgba(0,0,0,0.1)] bg-[#FBFBFB] p-3">
-                  {/* Content preview area - will display run results */}
-                  <div className="w-full h-full flex items-center justify-center text-refly-text-2 text-sm">
-                    {/* Placeholder for now */}
-                  </div>
+                <div className="w-full rounded-lg border border-solid border-[rgba(0,0,0,0.1)] bg-[#FBFBFB] p-3">
+                  <SelectedResultsGrid selectedResults={selectedResults} options={resultNodes} />
                 </div>
               </div>
 

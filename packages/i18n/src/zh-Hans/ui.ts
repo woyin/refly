@@ -3417,6 +3417,7 @@ const translations = {
     resultsSelected: '个结果已选择',
     selectResults: '选择结果',
     noResultsAvailable: '暂无可用结果',
+    noResultsSelected: '暂无选择结果',
     run: {
       completed: 'App 运行成功',
       failed: 'App 运行失败',

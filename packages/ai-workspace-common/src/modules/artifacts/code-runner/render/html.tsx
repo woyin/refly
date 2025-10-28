@@ -13,6 +13,7 @@ interface HTMLRendererProps {
   width?: string;
   height?: string;
   showActions?: boolean;
+  purePreview?: boolean;
 }
 
 const HTMLRenderer = memo(
@@ -22,6 +23,7 @@ const HTMLRenderer = memo(
     width = '100%',
     height = '100%',
     showActions = true,
+    purePreview = false,
   }: HTMLRendererProps) => {
     const { t } = useTranslation();
     const iframeRef = useRef<HTMLIFrameElement>(null);
@@ -235,7 +237,7 @@ const HTMLRenderer = memo(
         <div className="w-full h-full overflow-hidden bg-white">
           <iframe
             ref={iframeRef}
-            style={{ border: 'none', width, height }}
+            style={{ border: 'none', width, height, minHeight: '100%', minWidth: '100%' }}
             title="html-renderer"
             className="w-full h-full"
             sandbox="allow-same-origin allow-scripts allow-popups allow-popups-to-escape-sandbox allow-top-navigation"
@@ -244,7 +246,7 @@ const HTMLRenderer = memo(
         </div>
 
         {/* Action Buttons - conditionally rendered based on showActions prop */}
-        {showActions && (
+        {!purePreview && showActions && (
           <div className="absolute bottom-2 right-2 z-10">
             <Space.Compact className="shadow-sm rounded-md overflow-hidden backdrop-blur-sm">
               <Tooltip title={t('common.preview', 'Preview')}>

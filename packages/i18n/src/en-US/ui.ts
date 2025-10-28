@@ -3675,6 +3675,7 @@ const translations = {
     resultsSelected: 'results selected',
     selectResults: 'Select Results',
     noResultsAvailable: 'No results available',
+    noResultsSelected: 'No results selected',
     run: {
       completed: 'App run successfully',
       failed: 'App run failed',

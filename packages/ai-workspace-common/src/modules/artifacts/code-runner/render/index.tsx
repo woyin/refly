@@ -18,6 +18,7 @@ interface RendererProps {
   onChange?: (content: string, type: CodeArtifactType) => void;
   readonly?: boolean;
   showActions?: boolean;
+  purePreview?: boolean;
 }
 
 const Renderer = memo<RendererProps>(
@@ -32,6 +33,7 @@ const Renderer = memo<RendererProps>(
     onChange,
     readonly,
     showActions = true,
+    purePreview = false,
   }) => {
     // Memoize the onChange callback for mind map to prevent unnecessary re-renders
     const memoizedMindMapOnChange = useMemo(() => {
@@ -48,6 +50,7 @@ const Renderer = memo<RendererProps>(
             language={language}
             onRequestFix={onRequestFix}
             showActions={showActions}
+            purePreview={purePreview}
           />
         );
       }
@@ -60,6 +63,7 @@ const Renderer = memo<RendererProps>(
             width={width}
             height={height}
             showActions={showActions}
+            purePreview={purePreview}
           />
         );
       }
@@ -95,6 +99,7 @@ const Renderer = memo<RendererProps>(
             width={width}
             height={height}
             showActions={showActions}
+            purePreview={purePreview}
           />
         );
       }
@@ -107,6 +112,7 @@ const Renderer = memo<RendererProps>(
             width={width}
             height={height}
             showActions={showActions}
+            purePreview={purePreview}
           />
         );
       }
@@ -123,7 +129,8 @@ const Renderer = memo<RendererProps>(
       prevProps.width === nextProps.width &&
       prevProps.height === nextProps.height &&
       prevProps.onChange === nextProps.onChange &&
-      prevProps.showActions === nextProps.showActions
+      prevProps.showActions === nextProps.showActions &&
+      prevProps.purePreview === nextProps.purePreview
     );
   },
 );
