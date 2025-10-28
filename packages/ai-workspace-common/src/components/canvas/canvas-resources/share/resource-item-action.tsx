@@ -10,8 +10,7 @@ import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/ca
 import { CreateVariablesModal } from '../../workflow-variables/create-variables-modal';
 import type { WorkflowVariable, VariableValue, VariableResourceType } from '@refly/openapi-schema';
 import { useDeleteResource } from '@refly-packages/ai-workspace-common/hooks/canvas/use-delete-resource';
-import { useListResources } from '@refly-packages/ai-workspace-common/queries';
-import { useGetProjectCanvasId } from '@refly-packages/ai-workspace-common/hooks/use-get-project-canvasId';
+import { useFetchResources } from '@refly-packages/ai-workspace-common/hooks/use-fetch-resources';
 
 export const ResourceItemAction = ({
   node,
@@ -25,13 +24,7 @@ export const ResourceItemAction = ({
   const { deleteNode } = useDeleteNode();
   const { activeNode, setActiveNode } = useActiveNode(canvasId);
   const { deleteResource } = useDeleteResource();
-  const { projectId } = useGetProjectCanvasId();
-  const { refetch: refetchResources } = useListResources({
-    query: {
-      canvasId,
-      projectId,
-    },
-  });
+  const { refetch: refetchResources } = useFetchResources();
 
   // Safely extract workflowVariables with fallback to prevent runtime crashes
   const workflowVariables = workflow?.workflowVariables ?? [];

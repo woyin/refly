@@ -3867,6 +3867,35 @@ const translations = {
     unpublishFailed: '{{title}} 取消发布失败',
     deleteConfirm: '确定要撤销模版{{title}}吗',
   },
+  whyChooseRefly: {
+    title: '为什么选择 Refly 构建 Workflow？',
+    features: {
+      everyoneCanUse: {
+        title: '人人可用',
+        description: '零代码上手，非技术用户也能\n轻松搭建并运行完整工作流。',
+      },
+      configureOnce: {
+        title: '一次配置，反复使用',
+        description: '模板一键运行，避免重复设置，\n节省时间与精力。',
+      },
+      contextPreserved: {
+        title: '上下文不丢失',
+        description: '全局 Memory / Knowledge\n让输出结果稳定、可控、可复现。',
+      },
+      directDelivery: {
+        title: '直接交付',
+        description: '生成的不是中间结果，\n而是可直接使用的成品。',
+      },
+      distributable: {
+        title: '可分发可变现',
+        description: '将你的流程打包成作品，\n分享、售卖、形成持续增长飞轮。',
+      },
+      moreFeatures: {
+        title: '更多精彩，等你发现',
+        description: '',
+      },
+    },
+  },
 };
 
 export default translations;

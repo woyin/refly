@@ -29,6 +29,7 @@ import { extractToolsetsWithNodes } from '@refly/canvas-common';
 import { useOpenInstallTool } from '@refly-packages/ai-workspace-common/hooks/use-open-install-tool';
 import { useOpenInstallMcp } from '@refly-packages/ai-workspace-common/hooks/use-open-install-mcp';
 import { IoWarningOutline } from 'react-icons/io5';
+import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
 
 const isToolsetInstalled = (
   toolset: GenericToolset,
@@ -450,12 +451,7 @@ const ToolsDependencyContent = React.memo(
   },
 );
 
-interface ToolsDependencyProps {
-  canvasId?: string;
-  canvasData?: RawCanvasData;
-}
-
-export const ToolsDependencyChecker = ({ canvasId, canvasData }: ToolsDependencyProps) => {
+export const ToolsDependencyChecker = ({ canvasData }: { canvasData?: RawCanvasData }) => {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -464,16 +460,7 @@ export const ToolsDependencyChecker = ({ canvasId, canvasData }: ToolsDependency
     isLogin: state.isLogin,
   }));
 
-  const { data: canvasResponse, isLoading: canvasLoading } = useGetCanvasData(
-    { query: { canvasId } },
-    [],
-    {
-      enabled: !canvasData && !!canvasId,
-      refetchOnWindowFocus: false,
-    },
-  );
-
-  const nodes = canvasData?.nodes || canvasResponse?.data?.nodes || [];
+  const nodes = canvasData?.nodes || [];
 
   const { data, isLoading: toolsLoading } = useListTools({ query: { enabled: true } }, [], {
     enabled: isLogin,
@@ -643,7 +630,7 @@ export const ToolsDependencyChecker = ({ canvasId, canvasData }: ToolsDependency
     </Tooltip>
   );
 
-  return canvasLoading || toolsLoading ? null : (
+  return toolsLoading ? null : (
     <Popover
       className="tools-in-canvas"
       open={open}
@@ -672,7 +659,7 @@ export const ToolsDependencyChecker = ({ canvasId, canvasData }: ToolsDependency
           totalCount={toolsetsWithNodes.length}
           setOpen={setOpen}
           showReferencedNodesDisplay={false}
-          isLoading={canvasLoading || toolsLoading}
+          isLoading={toolsLoading}
         />
       }
       arrow={false}
@@ -692,7 +679,7 @@ export const ToolsDependencyChecker = ({ canvasId, canvasData }: ToolsDependency
   );
 };
 
-export const ToolsDependency = ({ canvasId, canvasData }: ToolsDependencyProps) => {
+export const ToolsDependency = ({ canvasId }: { canvasId: string }) => {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -700,17 +687,18 @@ export const ToolsDependency = ({ canvasId, canvasData }: ToolsDependencyProps) 
   const { isLogin } = useUserStoreShallow((state) => ({
     isLogin: state.isLogin,
   }));
+  const { shareData, readonly } = useCanvasContext();
 
   const { data: canvasResponse, isLoading: canvasLoading } = useGetCanvasData(
     { query: { canvasId } },
     [],
     {
-      enabled: !canvasData && !!canvasId,
+      enabled: !!canvasId && !shareData && isLogin && !readonly,
       refetchOnWindowFocus: false,
     },
   );
 
-  const nodes = canvasData?.nodes || canvasResponse?.data?.nodes || [];
+  const nodes = shareData?.nodes || canvasResponse?.data?.nodes || [];
 
   const { data, isLoading: toolsLoading } = useListTools({ query: { enabled: true } }, [], {
     enabled: isLogin,

@@ -19,8 +19,8 @@ import {
   CanvasTransaction,
   VersionConflict,
   WorkflowVariable,
+  SharedCanvasData,
 } from '@refly/openapi-schema';
-import { RawCanvasData } from '@refly-packages/ai-workspace-common/requests/types.gen';
 import { useFetchShareData } from '@refly-packages/ai-workspace-common/hooks/use-fetch-share-data';
 import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
 import {
@@ -35,10 +35,8 @@ import {
 import { useCanvasStore, useCanvasStoreShallow } from '@refly/stores';
 import { useDebouncedCallback } from 'use-debounce';
 import { IContextItem } from '@refly/common-types';
-import {
-  useGetCanvasDetail,
-  useGetWorkflowVariables,
-} from '@refly-packages/ai-workspace-common/queries';
+import { useGetCanvasDetail } from '@refly-packages/ai-workspace-common/queries';
+import { useVariablesManagement } from '@refly-packages/ai-workspace-common/hooks/use-variables-management';
 import { useTranslation } from 'react-i18next';
 import dayjs from 'dayjs';
 import { logEvent } from '@refly/telemetry-web';
@@ -65,7 +63,7 @@ interface CanvasContextType {
   shareLoading: boolean;
   syncFailureCount: number;
   shareNotFound?: boolean;
-  shareData?: RawCanvasData;
+  shareData?: SharedCanvasData;
   lastUpdated?: number;
   workflow: {
     workflowVariables: WorkflowVariable[];
@@ -204,22 +202,20 @@ export const CanvasProvider = ({
     data: workflowVariables,
     refetch: refetchWorkflowVariables,
     isLoading: workflowVariablesLoading,
-  } = useGetWorkflowVariables({ query: { canvasId } }, undefined, {
-    enabled: !readonly && !!canvasId,
-  });
+  } = useVariablesManagement(canvasId);
 
   // Use the hook to fetch canvas data when in readonly mode
   const {
     data: canvasData,
     error: canvasError,
     loading: shareLoading,
-  } = useFetchShareData<RawCanvasData>(readonly ? canvasId : undefined);
+  } = useFetchShareData<SharedCanvasData>(readonly ? canvasId : undefined);
 
   const finalVariables = useMemo(() => {
     if (readonly) {
       return canvasData?.variables ?? [];
     }
-    return workflowVariables?.data ?? [];
+    return workflowVariables;
   }, [readonly, workflowVariables, canvasData]);
 
   // Check if it's a 404 error

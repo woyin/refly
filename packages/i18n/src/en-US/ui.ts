@@ -3834,6 +3834,38 @@ const translations = {
     unpublishFailed: '{{title}} unpublish failed',
     deleteConfirm: 'Are you sure you want to revoke the template {{title}}?',
   },
+  whyChooseRefly: {
+    title: 'Why Choose Refly to Build Workflow?',
+    features: {
+      everyoneCanUse: {
+        title: 'Everyone Can Use',
+        description:
+          'Zero-code setup, non-technical users can\neasily build and run complete workflows.',
+      },
+      configureOnce: {
+        title: 'Configure Once, Use Repeatedly',
+        description: 'One-click template execution, avoid repetitive\nsetup, save time and effort.',
+      },
+      contextPreserved: {
+        title: 'Context Never Lost',
+        description:
+          'Global Memory / Knowledge\nensures stable, controllable, and reproducible outputs.',
+      },
+      directDelivery: {
+        title: 'Direct Delivery',
+        description: 'Generates not intermediate results,\nbut ready-to-use final products.',
+      },
+      distributable: {
+        title: 'Distributable & Monetizable',
+        description:
+          'Package your workflows into products,\nshare, sell, and create sustainable growth flywheels.',
+      },
+      moreFeatures: {
+        title: 'More Amazing Features Await Discovery',
+        description: '',
+      },
+    },
+  },
 };
 
 export default translations;
