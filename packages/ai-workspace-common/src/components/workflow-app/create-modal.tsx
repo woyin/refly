@@ -288,8 +288,13 @@ export const CreateWorkflowAppModal = ({
 
         const messageInstance = messageApi.open({
           content: <SuccessMessage shareId={shareId} onClose={() => messageInstance()} />,
-          duration: 0, // Set to 0 to prevent auto-close
+          duration: 2000, // Auto close after 3000ms
         });
+
+        // Ensure the message closes after 3000ms
+        setTimeout(() => {
+          messageInstance();
+        }, 2000);
 
         onPublishSuccess?.();
       } else if (!data?.success) {

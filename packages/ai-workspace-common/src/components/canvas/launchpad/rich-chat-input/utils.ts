@@ -210,7 +210,7 @@ export const buildNodesFromContent = (
   const findResourceMeta = (tokenId: string, tokenName: string) => {
     if (!tokenId && !tokenName) return null;
 
-    const resourceSources: MentionItemSource[] = ['resultRecord', 'resourceLibrary', 'myUpload'];
+    const resourceSources: MentionItemSource[] = ['resourceLibrary', 'myUpload'];
 
     const foundFromAll = (allItems || []).find((it: any) => {
       if (!resourceSources.includes(it.source)) return false;
@@ -228,6 +228,7 @@ export const buildNodesFromContent = (
 
     if (foundFromAll) {
       return {
+        label: foundFromAll?.name ?? '',
         variableType: foundFromAll?.variableType ?? 'resource',
         source: foundFromAll?.source,
         entityId: foundFromAll?.entityId ?? foundFromAll?.nodeId,
@@ -313,6 +314,7 @@ export const buildNodesFromContent = (
           }
 
           // Map type to source and variableType
+          let label = tokenName || tokenId;
           let source = 'variables';
           let variableType = 'string';
           let toolInfo: any = null;
@@ -329,6 +331,7 @@ export const buildNodesFromContent = (
             toolInfo = meta;
           } else if (tokenType === 'resource') {
             const meta = findResourceMeta(tokenId, tokenName);
+            label = meta?.label ?? tokenName;
             source = meta?.source ?? 'resultRecord';
             variableType = meta?.variableType ?? 'resource';
             toolInfo = meta;
@@ -348,7 +351,7 @@ export const buildNodesFromContent = (
             type: 'mention',
             attrs: {
               id: tokenId || tokenName,
-              label: tokenName || tokenId,
+              label,
               variableType,
               source,
               entityId: tokenId || undefined,

@@ -33,13 +33,13 @@ import { useContextPanelStore } from '@refly/stores';
 import { edgeEventsEmitter } from '@refly-packages/ai-workspace-common/events/edge';
 import { useSelectedNodeZIndex } from '@refly-packages/ai-workspace-common/hooks/canvas/use-selected-node-zIndex';
 import { NodeActionButtons } from './shared/node-action-buttons';
-import { useGetWorkflowVariables } from '@refly-packages/ai-workspace-common/queries';
 import { GenericToolset } from '@refly/openapi-schema';
 import { nodeOperationsEmitter } from '@refly-packages/ai-workspace-common/events/nodeOperations';
 import { useExtractVariables } from '@refly-packages/ai-workspace-common/queries';
 import type { ExtractVariablesRequest, VariableExtractionResult } from '@refly/openapi-schema';
 import { useTranslation } from 'react-i18next';
 import { logEvent } from '@refly/telemetry-web';
+import { useVariablesManagement } from '@refly-packages/ai-workspace-common/hooks/use-variables-management';
 
 const NODE_WIDTH = 480;
 const NODE_SIDE_CONFIG = { width: NODE_WIDTH, height: 'auto' };
@@ -86,11 +86,7 @@ export const SkillNode = memo(
       metadataSelectedToolsets ?? selectedToolsetsFromStore ?? [],
     );
 
-    const { data: workflowVariables, refetch: refetchWorkflowVariables } = useGetWorkflowVariables({
-      query: {
-        canvasId,
-      },
-    });
+    const { data: workflowVariables } = useVariablesManagement(canvasId);
     const extractVariablesMutation = useExtractVariables();
 
     // Check if node has any connections
@@ -304,7 +300,7 @@ export const SkillNode = memo(
       });
 
       // Process query with workflow variables
-      const variables = workflowVariables?.data ?? [];
+      const variables = workflowVariables;
       const { processedQuery } = processQueryWithMentions(originalQuery, {
         replaceVars: true,
         variables,
@@ -405,25 +401,7 @@ export const SkillNode = memo(
         };
 
         try {
-          const _result = await extractVariablesMutation.mutateAsync({ body: payload });
-          console.log('🚀 ~ handleExtractVariables ~ _result:', _result);
-          // const extractionData = result?.data;
-
-          // if (extractionData) {
-          //   setExtractionResult(extractionData);
-          //   // Update the query with processed prompt
-          //   setQuery(extractionData.processedPrompt);
-          //   setLocalQuery(extractionData.processedPrompt);
-          //   updateNodeData({
-          //     title: extractionData.processedPrompt,
-          //     metadata: {
-          //       ...data?.metadata,
-          //       query: extractionData.processedPrompt,
-          //     },
-          //   });
-          // }
-          // Refresh workflow variables so RichChatInput can render latest variables
-          // await refetchWorkflowVariables();
+          await extractVariablesMutation.mutateAsync({ body: payload });
         } catch {
           // No-op: UI toasts can be added by caller if needed
         } finally {
@@ -468,7 +446,6 @@ export const SkillNode = memo(
       canvasId,
       getNode,
       extractVariablesMutation,
-      refetchWorkflowVariables,
       updateNodeData,
       setQuery,
       setLocalQuery,

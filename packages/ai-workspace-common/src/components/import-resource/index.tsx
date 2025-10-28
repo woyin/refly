@@ -62,11 +62,8 @@ export const ImportResourceModal = memo(() => {
   const { refetchUsage, storageUsage } = useSubscriptionUsage();
   const canImportCount = getAvailableFileCount(storageUsage);
   const { updateSourceList } = useUpdateSourceList();
-  const { refetch: refetchResources } = useListResources({
-    query: {
-      canvasId,
-      projectId,
-    },
+  const { refetch: refetchResources } = useListResources({ query: { canvasId, projectId } }, [], {
+    enabled: false,
   });
 
   const [currentProjectId, setCurrentProjectId] = useState<string | undefined>(projectId);

@@ -3673,7 +3673,7 @@ const translations = {
     run: {
       completed: 'App run successfully',
       failed: 'App run failed',
-      error: 'Run error',
+      error: 'Run failed',
       loginRequired: 'Please login to run this workflow',
       loginRequiredCopy: 'Please login to copy this workflow',
       workflowStarted: 'Workflow started',
