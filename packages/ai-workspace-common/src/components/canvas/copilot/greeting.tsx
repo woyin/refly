@@ -18,7 +18,7 @@ export const Greeting = memo(({ onQueryClick }: GreetingProps) => {
   }, [t]);
 
   return (
-    <div className="w-full px-4 flex flex-col gap-8 items-center justify-center">
+    <div className="w-full h-full px-4 flex flex-col gap-8 items-center justify-center">
       <div className="text-refly-text-0 text-lg font-semibold leading-7">
         {t('copilot.greeting.title')}
       </div>

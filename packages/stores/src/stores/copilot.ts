@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { devtools } from 'zustand/middleware';
+import { devtools, persist } from 'zustand/middleware';
 import { useShallow } from 'zustand/react/shallow';
 
 interface CopilotState {
@@ -13,18 +13,28 @@ interface CopilotState {
 }
 
 export const useCopilotStore = create<CopilotState>()(
-  devtools((set) => ({
-    isCopilotOpen: false,
-    currentSessionId: {},
-    setIsCopilotOpen: (val: boolean) => set({ isCopilotOpen: val }),
-    setCurrentSessionId: (canvasId: string, sessionId: string | null) =>
-      set((state) => ({
-        currentSessionId: {
-          ...state.currentSessionId,
-          [canvasId]: sessionId,
-        },
-      })),
-  })),
+  devtools(
+    persist(
+      (set) => ({
+        isCopilotOpen: false,
+        currentSessionId: {},
+        setIsCopilotOpen: (val: boolean) => set({ isCopilotOpen: val }),
+        setCurrentSessionId: (canvasId: string, sessionId: string | null) =>
+          set((state) => ({
+            currentSessionId: {
+              ...state.currentSessionId,
+              [canvasId]: sessionId,
+            },
+          })),
+      }),
+      {
+        name: 'copilot-storage',
+        partialize: (state) => ({
+          currentSessionId: state.currentSessionId,
+        }),
+      },
+    ),
+  ),
 );
 
 export const useCopilotStoreShallow = <T>(selector: (state: CopilotState) => T) => {
