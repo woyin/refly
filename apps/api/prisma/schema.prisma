@@ -286,8 +286,6 @@ model CopilotSession {
   uid       String   @map("uid")
   /// Session title
   title     String   @map("title")
-  /// Input (JSON)
-  input     String   @map("input")
   /// Canvas id
   canvasId  String   @map("canvas_id")
   /// Create timestamp

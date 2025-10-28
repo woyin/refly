@@ -37,7 +37,13 @@ import {
 } from '@refly/openapi-schema';
 import { BaseSkill } from '@refly/skill-template';
 import { purgeContextForActionResult, purgeToolsets } from '@refly/canvas-common';
-import { genActionResultID, genSkillID, genSkillTriggerID, safeParseJSON } from '@refly/utils';
+import {
+  genActionResultID,
+  genSkillID,
+  genSkillTriggerID,
+  genCopilotSessionID,
+  safeParseJSON,
+} from '@refly/utils';
 import { PrismaService } from '../common/prisma.service';
 import { QUEUE_SKILL, pick, QUEUE_CHECK_STUCK_ACTIONS } from '../../utils';
 import { InvokeSkillJobData } from './skill.dto';
@@ -57,6 +63,7 @@ import { providerPO2DTO, providerItemPO2DTO } from '../provider/provider.dto';
 import { codeArtifactPO2DTO } from '../code-artifact/code-artifact.dto';
 import { SkillInvokerService } from './skill-invoker.service';
 import { ActionService } from '../action/action.service';
+import { CopilotService } from '../copilot/copilot.service';
 import { ConfigService } from '@nestjs/config';
 import { ToolService } from '../tool/tool.service';
 import { DocumentService } from '../knowledge/document.service';
@@ -91,6 +98,7 @@ export class SkillService implements OnModuleInit {
     private readonly toolService: ToolService,
     private readonly skillInvokerService: SkillInvokerService,
     private readonly actionService: ActionService,
+    private readonly copilotService: CopilotService,
     @Optional()
     @InjectQueue(QUEUE_SKILL)
     private skillQueue?: Queue<InvokeSkillJobData>,
@@ -650,6 +658,38 @@ export class SkillService implements OnModuleInit {
     const resultId = param.resultId;
     const modelConfigMap = data.modelConfigMap ?? {};
 
+    // Handle copilot session logic
+    let copilotSessionId = param.copilotSessionId;
+    if (param.mode === 'copilot_agent') {
+      if (!copilotSessionId) {
+        // Create new copilot session
+        const sessionId = genCopilotSessionID();
+        const canvasId = param.target?.entityId || 'default';
+        const session = await this.prisma.copilotSession.create({
+          data: {
+            sessionId,
+            uid,
+            title: param.input.query || param.input.originalQuery || 'New Copilot Session',
+            canvasId,
+          },
+        });
+        copilotSessionId = session.sessionId;
+        this.logger.log(`Created new copilot session: ${sessionId} for user: ${uid}`);
+      } else {
+        // Check if the copilot session exists
+        const existingSession = await this.prisma.copilotSession.findFirst({
+          where: {
+            sessionId: copilotSessionId,
+            uid,
+          },
+        });
+        if (!existingSession) {
+          throw new Error(`Copilot session ${copilotSessionId} not found for user ${uid}`);
+        }
+        this.logger.log(`Using existing copilot session: ${copilotSessionId} for user: ${uid}`);
+      }
+    }
+
     const purgeResultHistory = (resultHistory: ActionResult[] = []) => {
       // remove extra unnecessary fields from result history to save storage
       return resultHistory?.map((r) => pick(r, ['resultId', 'title']));
@@ -659,7 +699,10 @@ export class SkillService implements OnModuleInit {
       if (existingResult.pilotStepId) {
         const result = await this.prisma.actionResult.update({
           where: { pk: existingResult.pk },
-          data: { status: 'executing' },
+          data: {
+            status: 'executing',
+            copilotSessionId,
+          },
         });
         data.result = actionResultPO2DTO(result);
         if (param.workflowExecutionId && param.workflowNodeExecutionId) {
@@ -689,6 +732,7 @@ export class SkillService implements OnModuleInit {
               history: JSON.stringify(purgeResultHistory(param.resultHistory)),
               toolsets: JSON.stringify(purgeToolsets(param.toolsets)),
               providerItemId: providerItem.itemId,
+              copilotSessionId,
               workflowExecutionId: param.workflowExecutionId,
               workflowNodeExecutionId: param.workflowNodeExecutionId,
             },
@@ -722,6 +766,7 @@ export class SkillService implements OnModuleInit {
           history: JSON.stringify(purgeResultHistory(param.resultHistory)),
           toolsets: JSON.stringify(purgeToolsets(param.toolsets)),
           providerItemId: providerItem.itemId,
+          copilotSessionId,
           workflowExecutionId: param.workflowExecutionId,
           workflowNodeExecutionId: param.workflowNodeExecutionId,
         },

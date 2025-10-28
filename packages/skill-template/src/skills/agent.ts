@@ -11,8 +11,8 @@ import { buildFinalRequestMessages, SkillPromptModule } from '../scheduler/utils
 
 // prompts
 import * as commonQnA from '../scheduler/module/commonQnA';
-import { buildSystemPrompt } from '../mcp/core/prompt';
-import { ITool, ToolInputSchema } from '../mcp/core/prompt';
+import { ITool, ToolInputSchema, buildSystemPrompt } from '../prompts/node-agent';
+import { buildWorkflowCopilotPrompt } from '../prompts/copilot-agent';
 import { zodToJsonSchema } from 'zod-to-json-schema';
 
 import { AIMessage, ToolMessage } from '@langchain/core/messages';
@@ -325,7 +325,7 @@ export class Agent extends BaseSkill {
     config: SkillRunnableConfig,
   ): Promise<Partial<GraphState>> => {
     const { currentSkill, user } = config.configurable;
-    const { locale = 'auto' } = config.configurable;
+    const { locale = 'auto', mode = 'node_agent' } = config.configurable;
 
     const project = config.configurable?.project as
       | { projectId: string; customInstructions?: string }
@@ -338,11 +338,12 @@ export class Agent extends BaseSkill {
     );
 
     const module: SkillPromptModule = {
-      buildSystemPrompt: toolsAvailable
-        ? () => {
-            return buildSystemPrompt(convertToTools(tools), locale);
-          }
-        : commonQnA.buildCommonQnASystemPrompt,
+      buildSystemPrompt:
+        mode === 'copilot_agent'
+          ? () => buildWorkflowCopilotPrompt()
+          : toolsAvailable
+            ? () => buildSystemPrompt(convertToTools(tools), locale)
+            : commonQnA.buildCommonQnASystemPrompt,
       buildContextUserPrompt: commonQnA.buildCommonQnAContextUserPrompt,
       buildUserPrompt: commonQnA.buildCommonQnAUserPrompt,
     };

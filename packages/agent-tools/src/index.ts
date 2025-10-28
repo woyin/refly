@@ -1,5 +1,6 @@
 export * from './base';
 export * from './builtin';
+export * from './copilot';
 export * from './firecrawl';
 export * from './calculator';
 export * from './inventory';
