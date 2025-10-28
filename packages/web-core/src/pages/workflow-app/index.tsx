@@ -105,13 +105,13 @@ const WorkflowAppPage: React.FC = () => {
 
       if (status === 'finish') {
         notification.success({
-          message: t('workflowApp.run.completed') || 'App run successfully',
+          message: t('workflowApp.run.completed'),
         });
         // Auto switch to products tab when workflow completes successfully
         products.length > 0 && setActiveTab('products');
       } else if (status === 'failed') {
         notification.error({
-          message: t('workflowApp.run.failed') || 'App run failed',
+          message: t('workflowApp.run.failed'),
         });
       }
     },
@@ -121,7 +121,7 @@ const WorkflowAppPage: React.FC = () => {
       // Reset running state on error
       setIsRunning(false);
       notification.error({
-        message: t('workflowApp.run.error') || 'Run error',
+        message: t('workflowApp.run.error'),
       });
     },
   });
@@ -158,7 +158,7 @@ const WorkflowAppPage: React.FC = () => {
       });
       // Check if user is logged in before executing workflow
       if (!isLoggedRef.current) {
-        message.warning('Please login to run this workflow');
+        message.warning(t('workflowApp.run.loginRequired'));
         // Redirect to login with return URL
         const returnUrl = encodeURIComponent(window.location.pathname + window.location.search);
         navigate(`/?autoLogin=true&returnUrl=${returnUrl}`);
@@ -176,7 +176,7 @@ const WorkflowAppPage: React.FC = () => {
         });
 
         if (error) {
-          message.error(`executeWorkflowApp error: ${error}`);
+          message.error(t('workflowApp.run.executeError'));
           // Reset running state on error
           setIsRunning(false);
           return;
@@ -185,17 +185,17 @@ const WorkflowAppPage: React.FC = () => {
         const newExecutionId = data?.data?.executionId ?? null;
         if (newExecutionId) {
           setExecutionId(newExecutionId);
-          message.success('Workflow started');
+          message.success(t('workflowApp.run.workflowStarted'));
           // Auto switch to runLogs tab when workflow starts
           setActiveTab('runLogs');
         } else {
-          message.error('Failed to get execution ID');
+          message.error(t('workflowApp.run.executionIdFailed'));
           // Reset running state on failure
           setIsRunning(false);
         }
       } catch (error) {
         console.error('Error executing workflow app:', error);
-        message.error('Failed to execute workflow');
+        message.error(t('workflowApp.run.executeFailed'));
         // Reset running state on error
         setIsRunning(false);
       }
@@ -210,7 +210,7 @@ const WorkflowAppPage: React.FC = () => {
 
     // Check if user is logged in before copying workflow
     if (!isLoggedRef.current) {
-      message.warning('Please login to copy this workflow');
+      message.warning(t('workflowApp.run.loginRequiredCopy'));
       // Redirect to login with return URL
       const returnUrl = encodeURIComponent(window.location.pathname + window.location.search);
       navigate(`/?autoLogin=true&returnUrl=${returnUrl}`);
@@ -241,10 +241,10 @@ const WorkflowAppPage: React.FC = () => {
     try {
       // Copy current browser URL to clipboard
       await navigator.clipboard.writeText(window.location.href);
-      message.success(t('canvas.workflow.run.shareLinkCopied') || 'Share link copied to clipboard');
+      message.success(t('canvas.workflow.run.shareLinkCopied'));
     } catch (error) {
       console.error('Failed to copy share link:', error);
-      message.error(t('canvas.workflow.run.shareLinkCopyFailed') || 'Failed to copy share link');
+      message.error(t('canvas.workflow.run.shareLinkCopyFailed'));
     }
   }, [t]);
 
