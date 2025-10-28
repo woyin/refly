@@ -1,10 +1,10 @@
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useListProviderItems } from '@refly-packages/ai-workspace-common/queries/queries';
 import { useUserStoreShallow } from '@refly/stores';
 import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
 import { ProviderItem } from '@refly-packages/ai-workspace-common/requests/types.gen';
 import { Select, message, Skeleton } from 'antd';
+import { useFetchProviderItems } from '@refly-packages/ai-workspace-common/hooks/use-fetch-provider-items';
 
 type ModelSelectProps = {
   value?: ProviderItem;
@@ -63,15 +63,14 @@ export const DefaultModel = React.memo(({ visible }: { visible: boolean }) => {
     setUserProfile: state?.setUserProfile,
   }));
 
-  const { data, isLoading, refetch } = useListProviderItems({
-    query: {
-      enabled: true,
-      category: 'llm',
-      isGlobal: userProfile?.preferences?.providerMode === 'global',
-    },
+  const {
+    data: llmProviders,
+    isLoading,
+    refetch,
+  } = useFetchProviderItems({
+    enabled: true,
+    category: 'llm',
   });
-
-  const llmProviders = useMemo(() => data?.data ?? [], [data?.data]);
 
   const defaultPreferences = useMemo(
     () => userProfile?.preferences ?? {},

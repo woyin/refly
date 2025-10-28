@@ -21,7 +21,7 @@ import { GenericToolset } from '@refly/openapi-schema';
 import { useSetNodeDataByEntity } from '@refly-packages/ai-workspace-common/hooks/canvas';
 import { nodeOperationsEmitter } from '@refly-packages/ai-workspace-common/events/nodeOperations';
 import { useAddNode } from '@refly-packages/ai-workspace-common/hooks/canvas/use-add-node';
-import { useGetWorkflowVariables } from '@refly-packages/ai-workspace-common/queries';
+import { useVariablesManagement } from '@refly-packages/ai-workspace-common/hooks/use-variables-management';
 
 interface EditChatInputProps {
   enabled: boolean;
@@ -255,7 +255,7 @@ const EditChatInputComponent = (props: EditChatInputProps) => {
     deleteElements({ edges: edgesToDelete });
 
     // Process query with workflow variables
-    const variables = workflowVariables?.data ?? [];
+    const variables = workflowVariables;
     const { processedQuery } = processQueryWithMentions(editQuery, {
       replaceVars: true,
       variables,
@@ -354,11 +354,7 @@ const EditChatInputComponent = (props: EditChatInputProps) => {
   );
 
   // Fetch workflow variables for mentions (startNode/resourceLibrary)
-  const { data: workflowVariables } = useGetWorkflowVariables({
-    query: {
-      canvasId,
-    },
-  });
+  const { data: workflowVariables } = useVariablesManagement(canvasId);
 
   if (!enabled) {
     return null;

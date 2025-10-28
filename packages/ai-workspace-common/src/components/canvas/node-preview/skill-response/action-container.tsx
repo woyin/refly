@@ -6,14 +6,14 @@ import { ActionResult, ActionStep, ModelInfo, Source } from '@refly/openapi-sche
 import { CheckCircleOutlined, CopyOutlined, ImportOutlined } from '@ant-design/icons';
 import { copyToClipboard } from '@refly-packages/ai-workspace-common/utils';
 import { parseMarkdownCitationsAndCanvasTags, safeParseJSON } from '@refly/utils/parse';
-import { useDocumentStoreShallow, useUserStoreShallow } from '@refly/stores';
+import { useDocumentStoreShallow } from '@refly/stores';
 import { useCreateDocument } from '@refly-packages/ai-workspace-common/hooks/canvas/use-create-document';
 import { editorEmitter, EditorOperation } from '@refly/utils/event-emitter/editor';
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
-import { useListProviderItems } from '@refly-packages/ai-workspace-common/queries';
 import { FollowingActions } from '../sharedComponents/following-actions';
 import { IContextItem } from '@refly/common-types';
 import { convertResultContextToItems } from '@refly/canvas-common';
+import { useFetchProviderItems } from '@refly-packages/ai-workspace-common/hooks/use-fetch-provider-items';
 
 interface ActionContainerProps {
   step: ActionStep;
@@ -88,32 +88,23 @@ const ActionContainerComponent = ({ result, step, nodeId }: ActionContainerProps
     [sources, t],
   );
 
-  const { userProfile } = useUserStoreShallow((state) => ({
-    userProfile: state.userProfile,
-  }));
-
-  const { data: providerItemList } = useListProviderItems({
-    query: {
-      category: 'llm',
-      enabled: true,
-      isGlobal: userProfile?.preferences?.providerMode === 'global',
-    },
+  const { data: providerItemList } = useFetchProviderItems({
+    category: 'llm',
+    enabled: true,
   });
 
   const tokenUsage = step?.tokenUsage?.[0];
 
   const providerItem = useMemo(() => {
-    if (!tokenUsage || !providerItemList?.data) return null;
+    if (!tokenUsage || !providerItemList) return null;
 
     // If providerItemId is provided, use it to find the provider item
     if (tokenUsage?.providerItemId) {
-      return providerItemList?.data?.find((item) => item.itemId === tokenUsage?.providerItemId);
+      return providerItemList?.find((item) => item.itemId === tokenUsage?.providerItemId);
     }
 
     // Fallback to modelName if providerItemId is not provided
-    return (
-      providerItemList?.data?.find((item) => item.config?.modelId === tokenUsage?.modelName) || null
-    );
+    return providerItemList?.find((item) => item.config?.modelId === tokenUsage?.modelName) || null;
   }, [providerItemList, tokenUsage]);
 
   const initContextItems = useMemo(() => {
