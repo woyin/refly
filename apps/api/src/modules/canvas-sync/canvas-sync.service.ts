@@ -13,6 +13,7 @@ import {
   CanvasData,
   CanvasNode,
   GenericToolset,
+  SyncCanvasStateResult,
 } from '@refly/openapi-schema';
 import {
   getCanvasDataFromState,
@@ -349,7 +350,7 @@ export class CanvasSyncService {
     user: User,
     param: SyncCanvasStateRequest,
     options?: { releaseLock?: LockReleaseFn },
-  ) {
+  ): Promise<SyncCanvasStateResult> {
     const { canvasId, transactions, version } = param;
 
     const versionToSync =
@@ -380,9 +381,18 @@ export class CanvasSyncService {
 
     try {
       const state = await this.getState(user, { canvasId, version: versionToSync });
-      updateCanvasState(state, transactions);
+      // Ensure all incoming transactions are stamped with syncedAt before persisting
+      const stampedTransactions = (transactions ?? []).map((tx) => ({
+        ...tx,
+        syncedAt: tx?.syncedAt ?? Date.now(),
+      }));
+      updateCanvasState(state, stampedTransactions);
       state.updatedAt = Date.now();
       await this.saveState(canvasId, state);
+
+      return {
+        transactions: stampedTransactions,
+      };
     } catch (err) {
       this.logger.error(
         `[syncState] error syncing canvas state for canvas ${canvasId}: ${err?.stack}`,
