@@ -1007,7 +1007,7 @@ const Flow = memo(({ canvasId, copilotWidth, setCopilotWidth }: FlowProps) => {
           extra={t('canvas.connectionTimeout.extra')}
         />
       </Modal>
-      <div className="w-full h-[calc(100vh-16px)] relative flex flex-col overflow-hidden border-[1px] border-solid border-refly-Card-Border rounded-xl shadow-sm">
+      <div className="w-full h-full relative flex flex-col overflow-hidden shadow-sm">
         <div className="flex-grow relative">
           <style>{selectionStyles}</style>
           {readonly && (
