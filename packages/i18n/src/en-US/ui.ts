@@ -3670,6 +3670,8 @@ const translations = {
     coverImageRequired: 'Cover image is required',
     enableRemix: 'Enable Remix',
     remixHint: 'Allow others to remix and modify this workflow app',
+    runResult: 'Run Result',
+    changeResult: 'Change Result',
     run: {
       completed: 'App run successfully',
       failed: 'App run failed',

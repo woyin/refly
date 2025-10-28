@@ -3412,6 +3412,8 @@ const translations = {
     coverImageRequired: '封面图片为必填项',
     enableRemix: '启用 Remix',
     remixHint: '允许其他人Remix和修改此工作流应用',
+    runResult: '运行结果',
+    changeResult: '更换结果',
     run: {
       completed: 'App 运行成功',
       failed: 'App 运行失败',

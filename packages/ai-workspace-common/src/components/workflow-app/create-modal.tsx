@@ -1,5 +1,5 @@
 import { memo, useCallback, useEffect, useMemo, useState } from 'react';
-import { Button, Form, Input, message, Modal, Upload, Image, Switch, Spin } from 'antd';
+import { Button, Form, Input, message, Modal, Upload, Image, Switch, Spin, Select } from 'antd';
 import { PlusOutlined, LoadingOutlined } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
 import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
@@ -112,6 +112,9 @@ export const CreateWorkflowAppModal = ({
   // App data loading state
   const [appData, setAppData] = useState<any>(null);
   const [loadingAppData, setLoadingAppData] = useState(false);
+
+  // Run result selection state
+  const [selectedResult, setSelectedResult] = useState<string>('latest');
 
   const { workflow } = useCanvasContext();
   const { workflowVariables } = workflow ?? {};
@@ -339,6 +342,7 @@ export const CreateWorkflowAppModal = ({
         setCoverFileList([]);
         setCoverStorageKey(undefined);
         setAppData(null);
+        setSelectedResult('latest');
       }
 
       // Reset preview state
@@ -443,6 +447,54 @@ export const CreateWorkflowAppModal = ({
                     autoSize={{ minRows: 3, maxRows: 6 }}
                   />
                 </Form.Item>
+              </div>
+
+              {/* Run Result */}
+              <div className="flex flex-col gap-2 mt-5">
+                <div className="flex items-center justify-between h-4">
+                  <div className="text-xs font-semibold text-refly-text-0 leading-[1.33]">
+                    {t('workflowApp.runResult')}
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <Select
+                      value={selectedResult}
+                      onChange={setSelectedResult}
+                      size="small"
+                      bordered={false}
+                      suffixIcon={null}
+                      className="!text-xs !font-semibold !text-refly-text-0 [&_.ant-select-selector]:!border-0 [&_.ant-select-selector]:!h-4 [&_.ant-select-selector]:!bg-transparent [&_.ant-select-selector]:!px-0 [&_.ant-select-selector]:!shadow-none [&_.ant-select-selector]:!min-h-4 [&_.ant-select-selection-item]:!text-xs [&_.ant-select-selection-item]:!font-semibold [&_.ant-select-selection-item]:!text-refly-text-0 [&_.ant-select-selection-item]:!leading-4 [&_.ant-select-selection-item]:!py-0 [&_.ant-select-selection-search]:!hidden"
+                      dropdownStyle={{ minWidth: '120px' }}
+                    >
+                      <Select.Option value="latest" className="!text-xs !font-semibold">
+                        {t('workflowApp.changeResult')}
+                      </Select.Option>
+                      {/* TODO: Add more result options from workflow executions */}
+                    </Select>
+                    <svg
+                      className="text-refly-text-2"
+                      width="14"
+                      height="14"
+                      viewBox="0 0 14 14"
+                      fill="none"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path
+                        d="M2.28 4.34L7 9.06L11.72 4.34"
+                        stroke="currentColor"
+                        strokeWidth="1.5"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                  </div>
+                </div>
+                <div className="w-full h-[190px] rounded-lg border border-solid border-[rgba(0,0,0,0.1)] bg-[#FBFBFB] p-3">
+                  {/* Content preview area - will display run results */}
+                  <div className="w-full h-full flex items-center justify-center text-refly-text-2 text-sm">
+                    {/* Placeholder for now */}
+                    No results yet
+                  </div>
+                </div>
               </div>
 
               {/* Remix Settings */}
