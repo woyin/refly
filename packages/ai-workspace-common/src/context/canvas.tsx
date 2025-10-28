@@ -86,12 +86,13 @@ const getCanvasState = async (canvasId: string): Promise<CanvasState | undefined
 const pollCanvasTransactions = async (
   canvasId: string,
   version: string,
+  since: number,
 ): Promise<CanvasTransaction[]> => {
   const { data, error } = await getClient().getCanvasTransactions({
     query: {
       canvasId,
       version,
-      since: Date.now() - 60000, // 1 minute ago
+      since,
     },
   });
   if (error) {
@@ -662,6 +663,7 @@ export const CanvasProvider = ({
 
     let polling = true;
     let intervalId: NodeJS.Timeout | null = null;
+    let pollCount = 0;
 
     const poll = async () => {
       if (!polling) return;
@@ -681,8 +683,11 @@ export const CanvasProvider = ({
         const version = localState?.version ?? '';
         const localTxIds = new Set(localState?.transactions?.map((tx) => tx.txId) ?? []);
 
+        pollCount += 1;
+
         // Pull new transactions from server
-        const remoteTxs = await pollCanvasTransactions(canvasId, version);
+        const since = Date.now() - 60000; // 1 minute ago
+        const remoteTxs = await pollCanvasTransactions(canvasId, version, since);
         setSyncFailureCount(0);
 
         // Filter out transactions that already exist locally
@@ -696,6 +701,27 @@ export const CanvasProvider = ({
           updatedState.transactions.sort((a, b) => a.createdAt - b.createdAt);
           await set(`canvas-state:${canvasId}`, updatedState);
           updateCanvasDataFromState(updatedState);
+        }
+
+        // Every 5 polls, run a full consistency check with since=0
+        if (pollCount % 5 === 0) {
+          const fullRemoteTxs = await pollCanvasTransactions(canvasId, version, 0);
+          setSyncFailureCount(0);
+
+          const remoteAllTxIds = new Set(fullRemoteTxs?.map((tx) => tx?.txId) ?? []);
+          const missingLocalTxs = Array.isArray(localState?.transactions)
+            ? localState.transactions.filter(
+                (tx) => !!tx?.txId && !tx?.revoked && !remoteAllTxIds.has(tx.txId),
+              )
+            : [];
+
+          if (missingLocalTxs.length > 0) {
+            try {
+              await syncWithRemote(missingLocalTxs);
+            } catch (_) {
+              // Intentionally ignore push errors here; rely on later sync cycles
+            }
+          }
         }
       } catch (err) {
         console.error('[pollCanvasTransactions] failed:', err);
