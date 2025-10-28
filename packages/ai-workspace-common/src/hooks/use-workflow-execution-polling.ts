@@ -192,9 +192,6 @@ export const useWorkflowExecutionPolling = ({
       return;
     }
 
-    console.log('currentStatus', currentStatus);
-    console.log('status', status);
-
     if (currentStatus !== status) {
       setStatus(currentStatus);
       onStatusChangeRef.current?.(currentStatus);
