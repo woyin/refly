@@ -23,7 +23,13 @@ import {
   type AgentToolConstructor,
   type ToolCallResult,
 } from '../base';
-import type { ToolsetDefinition } from '@refly/openapi-schema';
+import type {
+  ToolsetDefinition,
+  User,
+  EntityType,
+  FileVisibility,
+  UploadResponse,
+} from '@refly/openapi-schema';
 
 // Toolset definition
 export const ApifyToolsetDefinition: ToolsetDefinition = {
@@ -90,8 +96,22 @@ export const ApifyToolsetDefinition: ToolsetDefinition = {
   configItems: [],
 };
 
+export interface ReflyService {
+  uploadFile: (
+    user: User,
+    param: {
+      file: { buffer: Buffer; mimetype?: string; originalname: string };
+      entityId?: string;
+      entityType?: EntityType;
+      visibility?: FileVisibility;
+      storageKey?: string;
+    },
+  ) => Promise<UploadResponse['data']>;
+}
 interface ApifyToolParams extends ToolParams {
   apiToken: string;
+  user: User;
+  reflyService: ReflyService;
 }
 
 // runActor
@@ -429,10 +449,60 @@ USAGE EXAMPLES:
         };
       }
 
+      // Convert dataset items to CSV and upload via Refly service
+      const items = Array.isArray(v?.items) ? (v.items as Record<string, any>[]) : [];
+
+      // Helper to convert items to CSV string
+      const toCsv = (rows: Record<string, any>[]): string => {
+        if (!Array.isArray(rows) || rows.length === 0) {
+          return '';
+        }
+
+        const headers: string[] = [];
+        for (const row of rows) {
+          const keys = Object.keys(row ?? {});
+          for (const key of keys) {
+            if (!headers.includes(key)) headers.push(key);
+          }
+        }
+
+        const escapeValue = (value: unknown): string => {
+          if (value == null) return '';
+          const normalized =
+            typeof value === 'object' ? (JSON.stringify(value) ?? '') : String(value ?? '');
+          const escaped = normalized.replace(/"/g, '""');
+          const needsQuotes = /[",\n\r]/.test(escaped);
+          return needsQuotes ? `"${escaped}"` : escaped;
+        };
+
+        const lines: string[] = [];
+        lines.push(headers.join(','));
+        for (const row of rows) {
+          const values = headers.map((h) => escapeValue((row as Record<string, any>)?.[h]));
+          lines.push(values.join(','));
+        }
+        return lines.join('\n');
+      };
+
+      let storageKey: string | undefined;
+      try {
+        const csv = toCsv(items);
+        const buffer = Buffer.from(csv ?? '', 'utf8');
+        const ts = new Date().toISOString().replace(/[:.]/g, '-');
+        const originalname = `${input?.datasetId ?? 'dataset'}-${ts}.csv`;
+        const uploadRes = await this.params?.reflyService?.uploadFile?.(this.params?.user, {
+          file: { buffer, mimetype: 'text/csv', originalname },
+        });
+        storageKey = uploadRes?.storageKey ?? undefined;
+      } catch {
+        // Ignore upload errors; continue returning the dataset items
+        storageKey = undefined;
+      }
+
       return {
         status: 'success',
-        data: v,
-        summary: `Successfully retrieved ${v.items.length} items from dataset "${input.datasetId}"`,
+        data: { storageKey },
+        summary: `Successfully retrieved ${v.items?.length ?? 0} items from dataset "${input.datasetId}"${storageKey ? ` and uploaded CSV (storageKey: ${storageKey})` : ''}`,
       };
     } catch (error) {
       return {

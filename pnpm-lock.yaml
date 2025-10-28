@@ -900,12 +900,18 @@ importers:
       '@notionhq/client':
         specifier: ^5.1.0
         version: 5.1.0
+      '@refly/canvas-common':
+        specifier: workspace:*
+        version: link:../canvas-common
       '@refly/openapi-schema':
         specifier: workspace:*
         version: link:../openapi-schema
+      '@refly/utils':
+        specifier: workspace:*
+        version: link:../utils
       '@scalebox/sdk':
-        specifier: ^2.3.0
-        version: 2.3.0
+        specifier: ^3.0.0
+        version: 3.0.0
       apify-client:
         specifier: ^2.19.0
         version: 2.19.0(debug@4.4.1)
@@ -6484,8 +6490,8 @@ packages:
       webpack-hot-middleware:
         optional: true
 
-  '@scalebox/sdk@2.3.0':
-    resolution: {integrity: sha512-NkrET2+uFjd2R4/+f6M6MtILHDamN79Y3zYG6TcgrluwQfRYh5xA5ZT056mF4ATlmmSTBwuSj2dT1U8UhfzD0A==}
+  '@scalebox/sdk@3.0.0':
+    resolution: {integrity: sha512-OpvUSD44AjrQkctPFJszhpJPkw2FJG7bdVFNq+Nzvl/Z5Y+cjVtkga3RC5G3J6x6d+Y3bfbsCEr3WQvXq84nfA==}
     engines: {node: '>=18'}
 
   '@scarf/scarf@1.4.0':
@@ -23116,7 +23122,7 @@ snapshots:
       html-entities: 2.6.0
       react-refresh: 0.17.0
 
-  '@scalebox/sdk@2.3.0':
+  '@scalebox/sdk@3.0.0':
     dependencies:
       '@bufbuild/protobuf': 2.10.0
       '@connectrpc/connect': 2.1.0(@bufbuild/protobuf@2.10.0)
@@ -29520,7 +29526,7 @@ snapshots:
       isstream: 0.1.2
       jsonwebtoken: 9.0.2
       mime-types: 2.1.35
-      retry-axios: 2.6.0(axios@1.11.0)
+      retry-axios: 2.6.0(axios@1.11.0(debug@4.4.1))
       tough-cookie: 4.1.4
     transitivePeerDependencies:
       - supports-color
@@ -32236,7 +32242,7 @@ snapshots:
 
   nice-grpc@2.1.12:
     dependencies:
-      '@grpc/grpc-js': 1.13.4
+      '@grpc/grpc-js': 1.14.0
       abort-controller-x: 0.4.3
       nice-grpc-common: 2.0.2
 
@@ -34725,7 +34731,7 @@ snapshots:
       onetime: 7.0.0
       signal-exit: 4.1.0
 
-  retry-axios@2.6.0(axios@1.11.0):
+  retry-axios@2.6.0(axios@1.11.0(debug@4.4.1)):
     dependencies:
       axios: 1.11.0(debug@4.4.1)
 

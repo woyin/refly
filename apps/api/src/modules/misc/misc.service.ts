@@ -454,7 +454,11 @@ export class MiscService implements OnModuleInit {
   async uploadFile(
     user: User,
     param: {
-      file: Pick<Express.Multer.File, 'buffer' | 'mimetype' | 'originalname'>;
+      file: {
+        buffer: Buffer;
+        mimetype?: string;
+        originalname: string;
+      };
       entityId?: string;
       entityType?: EntityType;
       visibility?: FileVisibility;
@@ -528,6 +532,63 @@ export class MiscService implements OnModuleInit {
       storageKey,
       url: this.generateFileURL({ visibility, storageKey }),
     };
+  }
+
+  async uploadBase64(
+    user: User,
+    param: {
+      base64: string;
+      filename?: string;
+      entityId?: string;
+      entityType?: EntityType;
+      visibility?: FileVisibility;
+      storageKey?: string;
+    },
+  ): Promise<UploadResponse['data']> {
+    const { base64, filename, entityId, entityType, storageKey } = param ?? {};
+    if (!base64 || typeof base64 !== 'string') {
+      throw new ParamsError('Base64 string is required');
+    }
+
+    let contentType: string | undefined;
+    let dataPart = base64;
+    const dataUrlMatch = base64.match(/^data:(.*?);base64,(.*)$/);
+    if (dataUrlMatch?.[2]) {
+      contentType = dataUrlMatch[1] ?? undefined;
+      dataPart = dataUrlMatch[2] ?? '';
+    }
+
+    let buffer: Buffer;
+    try {
+      buffer = Buffer.from(dataPart, 'base64');
+    } catch {
+      throw new ParamsError('Invalid base64 data');
+    }
+
+    let finalFilename = filename ?? 'file';
+    if (!path.extname(finalFilename)) {
+      const extFromMime = contentType ? mime.getExtension(contentType) : undefined;
+      if (extFromMime) {
+        finalFilename = `${finalFilename}.${extFromMime}`;
+      }
+    }
+
+    const inferredContentType =
+      contentType ?? mime.getType(finalFilename) ?? 'application/octet-stream';
+
+    const visibility = param?.visibility ?? 'private';
+
+    return this.uploadFile(user, {
+      file: {
+        buffer,
+        mimetype: inferredContentType,
+        originalname: finalFilename,
+      },
+      entityId,
+      entityType,
+      visibility,
+      storageKey,
+    });
   }
 
   /**

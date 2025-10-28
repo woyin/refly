@@ -5,8 +5,40 @@ import {
   type AgentToolConstructor,
   type ToolCallResult,
 } from '../base';
-import { ToolsetDefinition } from '@refly/openapi-schema';
+import {
+  ToolsetDefinition,
+  User,
+  EntityType,
+  FileVisibility,
+  UploadResponse,
+  CanvasNode,
+  CanvasNodeType,
+} from '@refly/openapi-schema';
 import { Sandbox, CodeInterpreter, type WriteInfo } from '@scalebox/sdk';
+import { ToolParams } from '@langchain/core/tools';
+import { RunnableConfig } from '@langchain/core/runnables';
+import { CanvasNodeFilter } from '@refly/canvas-common';
+import { genImageID } from '@refly/utils';
+export interface ReflyService {
+  downloadFile: (storageKey: string) => Promise<Buffer>;
+  uploadBase64: (
+    user: User,
+    param: {
+      base64: string;
+      filename?: string;
+      entityId?: string;
+      entityType?: EntityType;
+      visibility?: FileVisibility;
+      storageKey?: string;
+    },
+  ) => Promise<UploadResponse['data']>;
+  addNodeToCanvasWithoutCanvasId: (
+    user: User,
+    node: Pick<CanvasNode, 'type' | 'data'> & Partial<Pick<CanvasNode, 'id'>>,
+    connectTo?: CanvasNodeFilter[],
+    options?: { autoLayout?: boolean },
+  ) => Promise<void>;
+}
 
 /**
  * Toolset definition for Scalebox SDK.
@@ -100,8 +132,10 @@ export const ScaleboxToolsetDefinition: ToolsetDefinition = {
   configItems: [],
 };
 
-interface ScaleboxToolParams {
+interface ScaleboxToolParams extends ToolParams {
+  user: User;
   apiKey: string;
+  reflyService: ReflyService;
 }
 
 function ensureApiKey(apiKey: string): void {
@@ -401,10 +435,16 @@ export class ScaleboxFilesWrite extends AgentBaseTool<ScaleboxToolParams> {
     sandboxId: z.string(),
     path: z.string(),
     content: z.string().optional(),
-    url: z.string().optional().describe('URL to fetch file content from'),
+    storageKey: z
+      .string()
+      .optional()
+      .describe(
+        'Internal storage key (static/UUID.extension format like "static/026d104f-241e-4e40-bcae-d74daf140c13.mp3"). ',
+      ),
   });
 
-  description = 'Write a file to sandbox, optionally fetching content from a URL';
+  description =
+    'Write a file to sandbox. Provide content directly, fetch from external URL, or use internal storage key. Path should be an absolute path starting from root (/).';
   protected params: ScaleboxToolParams;
 
   constructor(params: ScaleboxToolParams) {
@@ -422,8 +462,12 @@ export class ScaleboxFilesWrite extends AgentBaseTool<ScaleboxToolParams> {
       let content: string | ArrayBuffer | Blob | ReadableStream;
 
       // If URL is provided, fetch content from URL
-      if (input?.url) {
-        content = await this.fetchContentFromUrl(input.url);
+      if (input?.storageKey) {
+        const buffer = await this.params.reflyService?.downloadFile(input.storageKey);
+        content = buffer.buffer.slice(
+          buffer.byteOffset,
+          buffer.byteOffset + buffer.byteLength,
+        ) as ArrayBuffer;
       } else if (input?.content) {
         content = input.content;
       } else {
@@ -437,8 +481,8 @@ export class ScaleboxFilesWrite extends AgentBaseTool<ScaleboxToolParams> {
         data: {
           writeInfo: {
             name: writeInfo?.name ?? '',
-            type: writeInfo?.type ?? 'file',
-            path: writeInfo?.path ?? input?.path ?? '',
+            type: writeInfo?.type ?? '',
+            path: writeInfo?.path ?? '',
           },
         },
         summary: 'File written successfully',
@@ -449,40 +493,6 @@ export class ScaleboxFilesWrite extends AgentBaseTool<ScaleboxToolParams> {
         error: 'Failed to write file',
         summary: error instanceof Error ? error.message : 'Unknown error during files.write',
       };
-    }
-  }
-
-  /**
-   * Fetch content from URL and return appropriate data type for Scalebox write method
-   */
-  private async fetchContentFromUrl(
-    url: string,
-  ): Promise<string | ArrayBuffer | Blob | ReadableStream> {
-    try {
-      const response = await fetch(url);
-
-      if (!response.ok) {
-        throw new Error(`Failed to fetch from URL: ${response.status} ${response.statusText}`);
-      }
-
-      // For binary files, return ArrayBuffer
-      const contentType = response.headers.get('content-type') ?? '';
-      if (
-        contentType.includes('application/') ||
-        contentType.includes('image/') ||
-        contentType.includes('audio/') ||
-        contentType.includes('video/') ||
-        contentType.includes('font/')
-      ) {
-        return await response.arrayBuffer();
-      }
-
-      // For text files, return string
-      return await response.text();
-    } catch (error) {
-      throw new Error(
-        `Failed to fetch content from URL ${url}: ${error instanceof Error ? error.message : 'Unknown error'}`,
-      );
     }
   }
 }
@@ -511,9 +521,7 @@ export class ScaleboxFilesList extends AgentBaseTool<ScaleboxToolParams> {
         apiKey: this.params?.apiKey ?? '',
       });
       const items = await sbx?.files?.list?.(input?.path ?? '/');
-      const list = items ?? [];
-      const safe = Array.isArray(list) ? list : [];
-      return { status: 'success', data: { items: safe }, summary: 'Directory listed' };
+      return { status: 'success', data: { items }, summary: 'Directory listed' };
     } catch (error) {
       return {
         status: 'error',
@@ -641,7 +649,8 @@ export class ScaleboxCommandsRun extends AgentBaseTool<ScaleboxToolParams> {
     command: z.string().describe('Command to run'),
   });
 
-  description = 'Run a shell command synchronously';
+  description =
+    'Run a shell command synchronously. Commands execute in /workspace directory by default, so use absolute paths for file operations.';
   protected params: ScaleboxToolParams;
 
   constructor(params: ScaleboxToolParams) {
@@ -739,7 +748,8 @@ export class ScaleboxRunCode extends AgentBaseTool<ScaleboxToolParams> {
       .describe('Execution language'),
   });
 
-  description = 'Run code in a specified language using sandbox.runCode';
+  description =
+    'Run code in a specified language using sandbox.runCode. Code execution happens in /workspace directory by default, so use absolute paths for file operations.';
   protected params: ScaleboxToolParams;
 
   constructor(params: ScaleboxToolParams) {
@@ -747,7 +757,11 @@ export class ScaleboxRunCode extends AgentBaseTool<ScaleboxToolParams> {
     this.params = params;
   }
 
-  async _call(input: z.infer<typeof this.schema>): Promise<ToolCallResult> {
+  async _call(
+    input: z.infer<typeof this.schema>,
+    _?: any,
+    config?: RunnableConfig,
+  ): Promise<ToolCallResult> {
     ensureApiKey(this.params?.apiKey ?? '');
     try {
       const sbx = await Sandbox.connect(input?.sandboxId ?? '', {
@@ -758,9 +772,72 @@ export class ScaleboxRunCode extends AgentBaseTool<ScaleboxToolParams> {
       });
       const stdout = res?.logs?.stdout ?? '';
       const stderr = res?.logs?.stderr ?? '';
+      const results = res?.results ?? [];
+      const pngResults = Array.isArray(results) ? results.filter((r: any) => !!(r?.png ?? '')) : [];
+      const entityId = genImageID();
+
+      const uploads = await Promise.all(
+        pngResults.map(async (r: any, idx: number) => {
+          const raw = r?.png ?? '';
+          const hasDataUrlPrefix = typeof raw === 'string' && raw.startsWith('data:');
+          const base64 = hasDataUrlPrefix ? raw : `data:image/png;base64,${raw}`;
+          try {
+            const uploaded = await this.params?.reflyService?.uploadBase64?.(this.params?.user, {
+              base64,
+              filename: `code-output-${idx + 1}.png`,
+              entityId,
+            });
+            return uploaded ?? null;
+          } catch {
+            return null;
+          }
+        }),
+      );
+
+      const storageKeys = (uploads ?? []).map((u) => u?.storageKey ?? '').filter((k) => !!k);
+
+      // Add uploaded images to canvas as image nodes when canvasId is available
+      const parentResultId = config?.configurable?.resultId ?? '';
+      if ((uploads?.length ?? 0) > 0) {
+        const connectTo = parentResultId
+          ? ([
+              { type: 'skillResponse' as CanvasNodeType, entityId: parentResultId },
+            ] as CanvasNodeFilter[])
+          : undefined;
+        await Promise.all(
+          (uploads ?? []).map(async (u, idx) => {
+            const storageKey = u?.storageKey ?? '';
+            const url = u?.url ?? '';
+            if (!storageKey || !url) return;
+            const title = `Code Output ${idx + 1}`;
+            try {
+              await this.params?.reflyService?.addNodeToCanvasWithoutCanvasId?.(
+                this.params?.user,
+                {
+                  type: 'image',
+                  data: {
+                    title,
+                    entityId,
+                    metadata: {
+                      storageKey,
+                      imageUrl: url,
+                      parentResultId,
+                    },
+                  },
+                },
+                connectTo,
+                { autoLayout: true },
+              );
+            } catch {
+              // Swallow individual failures to avoid blocking others
+            }
+          }),
+        );
+      }
+
       return {
         status: 'success',
-        data: { logs: { stdout, stderr }, result: res ?? {} },
+        data: { logs: { stdout, stderr }, storageKeys },
         summary: 'Code executed',
       };
     } catch (error) {

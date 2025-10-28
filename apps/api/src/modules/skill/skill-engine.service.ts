@@ -3,6 +3,7 @@ import { ModuleRef } from '@nestjs/core';
 import { ReflyService } from '@refly/agent-tools';
 import { SkillEngine, SkillEngineOptions, SkillRunnableConfig } from '@refly/skill-template';
 import { CanvasService } from '../canvas/canvas.service';
+import { CanvasSyncService } from '../canvas-sync/canvas-sync.service';
 import { ProviderService } from '../provider/provider.service';
 import { RAGService } from '../rag/rag.service';
 import { SearchService } from '../search/search.service';
@@ -41,7 +42,7 @@ export class SkillEngineService implements OnModuleInit {
   private codeArtifactService: CodeArtifactService;
   private miscService: MiscService;
   private engine: SkillEngine;
-
+  private canvasSyncService: CanvasSyncService;
   constructor(
     private moduleRef: ModuleRef,
     private config: ConfigService,
@@ -61,6 +62,7 @@ export class SkillEngineService implements OnModuleInit {
     this.notificationService = this.moduleRef.get(NotificationService, { strict: false });
     this.codeArtifactService = this.moduleRef.get(CodeArtifactService, { strict: false });
     this.miscService = this.moduleRef.get(MiscService, { strict: false });
+    this.canvasSyncService = this.moduleRef.get(CanvasSyncService, { strict: false });
   }
 
   /**
@@ -206,9 +208,24 @@ export class SkillEngineService implements OnModuleInit {
         const result = await this.notificationService.batchProcessURL(urls);
         return result;
       },
+      downloadFile: async (storageKey) => {
+        const result = await this.miscService.downloadFile({ storageKey, visibility: 'private' });
+        return result;
+      },
       downloadFileFromUrl: async (url) => {
         const result = await this.miscService.downloadFileFromUrl(url);
         return result;
+      },
+      uploadFile: async (user, param) => {
+        const result = await this.miscService.uploadFile(user, param);
+        return result;
+      },
+      uploadBase64: async (user, param) => {
+        const result = await this.miscService.uploadBase64(user, param);
+        return result;
+      },
+      addNodeToCanvasWithoutCanvasId: async (user, node, connectTo, options) => {
+        await this.canvasSyncService.addNodeToCanvasWithoutCanvasId(user, node, connectTo, options);
       },
     };
   };
