@@ -3414,6 +3414,9 @@ const translations = {
     remixHint: '允许其他人Remix和修改此工作流应用',
     runResult: '运行结果',
     changeResult: '更换结果',
+    resultsSelected: '个结果已选择',
+    selectResults: '选择结果',
+    noResultsAvailable: '暂无可用结果',
     run: {
       completed: 'App 运行成功',
       failed: 'App 运行失败',

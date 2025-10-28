@@ -3672,6 +3672,9 @@ const translations = {
     remixHint: 'Allow others to remix and modify this workflow app',
     runResult: 'Run Result',
     changeResult: 'Change Result',
+    resultsSelected: 'results selected',
+    selectResults: 'Select Results',
+    noResultsAvailable: 'No results available',
     run: {
       completed: 'App run successfully',
       failed: 'App run failed',
