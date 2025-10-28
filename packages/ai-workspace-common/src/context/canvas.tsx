@@ -362,58 +362,69 @@ export const CanvasProvider = ({
   // Sync canvas state with remote
   const syncWithRemote = useCallback(
     async (transactions?: CanvasTransaction[]) => {
-      const state = await get<CanvasState>(`canvas-state:${canvasId}`);
-      if (!state) {
+      // Prevent multiple concurrent sync operations
+      if (isSyncingRemoteRef.current) {
         return;
       }
 
-      // If the number of transactions is greater than the threshold, create a new version
-      if (shouldCreateNewVersion(state)) {
-        const finalState = await handleCreateCanvasVersion(canvasId, state);
-        if (finalState) {
-          await set(`canvas-state:${canvasId}`, finalState);
+      isSyncingRemoteRef.current = true;
+
+      try {
+        const state = await get<CanvasState>(`canvas-state:${canvasId}`);
+        if (!state) {
+          return;
         }
-        return;
-      }
 
-      const toSync = transactions ?? state?.transactions?.filter((tx) => !tx?.syncedAt) ?? [];
-
-      if (!toSync?.length) {
-        return;
-      }
-
-      const { error, data } = await getClient().syncCanvasState({
-        body: {
-          canvasId,
-          version: state.version,
-          transactions: toSync,
-        },
-      });
-
-      if (!error && data?.success) {
-        setSyncFailureCount(0);
-
-        // Create a map of txId to syncedAt from the returned transactions
-        const syncedTransactions = data?.data?.transactions ?? [];
-        const syncedAtMap = new Map<string, number>();
-
-        for (const tx of syncedTransactions) {
-          if (tx?.txId && tx?.syncedAt) {
-            syncedAtMap.set(tx.txId, tx.syncedAt);
+        // If the number of transactions is greater than the threshold, create a new version
+        if (shouldCreateNewVersion(state)) {
+          const finalState = await handleCreateCanvasVersion(canvasId, state);
+          if (finalState) {
+            await set(`canvas-state:${canvasId}`, finalState);
           }
+          return;
         }
 
-        await update<CanvasState>(`canvas-state:${canvasId}`, (current) => ({
-          ...current,
-          nodes: current?.nodes ?? [],
-          edges: current?.edges ?? [],
-          transactions: current?.transactions?.map((tx) => ({
-            ...tx,
-            syncedAt: syncedAtMap.get(tx.txId) ?? tx.syncedAt,
-          })),
-        }));
-      } else {
-        setSyncFailureCount((count) => count + 1);
+        const toSync = transactions ?? state?.transactions?.filter((tx) => !tx?.syncedAt) ?? [];
+
+        if (!toSync?.length) {
+          return;
+        }
+
+        const { error, data } = await getClient().syncCanvasState({
+          body: {
+            canvasId,
+            version: state.version,
+            transactions: toSync,
+          },
+        });
+
+        if (!error && data?.success) {
+          setSyncFailureCount(0);
+
+          // Create a map of txId to syncedAt from the returned transactions
+          const syncedTransactions = data?.data?.transactions ?? [];
+          const syncedAtMap = new Map<string, number>();
+
+          for (const tx of syncedTransactions) {
+            if (tx?.txId && tx?.syncedAt) {
+              syncedAtMap.set(tx.txId, tx.syncedAt);
+            }
+          }
+
+          await update<CanvasState>(`canvas-state:${canvasId}`, (current) => ({
+            ...current,
+            nodes: current?.nodes ?? [],
+            edges: current?.edges ?? [],
+            transactions: current?.transactions?.map((tx) => ({
+              ...tx,
+              syncedAt: syncedAtMap.get(tx.txId) ?? tx.syncedAt,
+            })),
+          }));
+        } else {
+          setSyncFailureCount((count) => count + 1);
+        }
+      } finally {
+        isSyncingRemoteRef.current = false;
       }
     },
     [canvasId, handleCreateCanvasVersion],
@@ -424,9 +435,6 @@ export const CanvasProvider = ({
     if (!canvasId || readonly) return;
 
     const intervalId = setInterval(async () => {
-      // Prevent multiple instances from running simultaneously
-      if (isSyncingRemoteRef.current) return;
-
       const { canvasInitializedAt } = useCanvasStore.getState();
       const initTs = canvasInitializedAt[canvasId];
 
@@ -435,13 +443,10 @@ export const CanvasProvider = ({
         return;
       }
 
-      isSyncingRemoteRef.current = true;
       try {
         await syncWithRemote();
       } catch (error) {
         console.error('Canvas sync failed:', error);
-      } finally {
-        isSyncingRemoteRef.current = false;
       }
     }, SYNC_REMOTE_INTERVAL);
 
