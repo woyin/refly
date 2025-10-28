@@ -1163,6 +1163,10 @@ export const ResourceSchema = {
       type: 'string',
       description: 'Preview content for this resource',
     },
+    shareId: {
+      type: 'string',
+      description: 'Share ID',
+    },
     content: {
       type: 'string',
       description: 'Document content for this resource (only returned in getResourceDetail API)',
@@ -3289,6 +3293,26 @@ export const GetCanvasDataResponseSchema = {
   ],
 } as const;
 
+export const SharedCanvasDataSchema = {
+  allOf: [
+    {
+      $ref: '#/components/schemas/RawCanvasData',
+    },
+    {
+      type: 'object',
+      properties: {
+        resources: {
+          type: 'array',
+          description: 'Resources in the canvas',
+          items: {
+            $ref: '#/components/schemas/Resource',
+          },
+        },
+      },
+    },
+  ],
+} as const;
+
 export const ExportCanvasResponseSchema = {
   allOf: [
     {
@@ -4750,6 +4774,10 @@ export const DuplicateShareRequestSchema = {
     canvasId: {
       type: 'string',
       description: 'Target canvas ID',
+    },
+    title: {
+      type: 'string',
+      description: 'Custom title for the duplicated entity',
     },
   },
 } as const;

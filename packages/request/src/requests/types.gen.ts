@@ -805,6 +805,10 @@ export type Resource = {
    */
   contentPreview?: string;
   /**
+   * Share ID
+   */
+  shareId?: string;
+  /**
    * Document content for this resource (only returned in getResourceDetail API)
    */
   content?: string;
@@ -2476,6 +2480,13 @@ export type GetCanvasDataResponse = BaseResponse & {
   data?: RawCanvasData;
 };
 
+export type SharedCanvasData = RawCanvasData & {
+  /**
+   * Resources in the canvas
+   */
+  resources?: Array<Resource>;
+};
+
 export type ExportCanvasResponse = BaseResponse & {
   data?: {
     /**
@@ -3427,6 +3438,10 @@ export type DuplicateShareRequest = {
    * Target canvas ID
    */
   canvasId?: string;
+  /**
+   * Custom title for the duplicated entity
+   */
+  title?: string;
 };
 
 export type DuplicateShareResponse = BaseResponse & {

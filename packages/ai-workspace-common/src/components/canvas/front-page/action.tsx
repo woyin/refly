@@ -9,7 +9,6 @@ import { ModelInfo, GenericToolset } from '@refly/openapi-schema';
 import { cn } from '@refly/utils/index';
 import { SkillRuntimeConfig } from '@refly/openapi-schema';
 import { useChatStoreShallow } from '@refly/stores';
-import { ChatModeSelector } from './chat-mode-selector';
 import { ToolSelectorPopover } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/tool-selector-panel';
 
 export interface CustomAction {
@@ -58,7 +57,7 @@ export const Actions = memo(
     const userStore = useUserStoreShallow((state) => ({
       isLogin: state.isLogin,
     }));
-    const { chatMode, setChatMode } = useChatStoreShallow((state) => ({
+    const { chatMode } = useChatStoreShallow((state) => ({
       chatMode: state.chatMode,
       setChatMode: state.setChatMode,
     }));
@@ -82,10 +81,6 @@ export const Actions = memo(
     return (
       <div className={cn('flex justify-between items-center', className)} ref={containerRef}>
         <div className="flex items-center">
-          <div className="mr-2">
-            <ChatModeSelector chatMode={chatMode} setChatMode={setChatMode} />
-          </div>
-
           {userStore.isLogin && !isPilotActivated && (
             <div className="mr-2">
               <ModelSelector

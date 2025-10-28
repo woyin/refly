@@ -2,7 +2,6 @@ import { useCallback, useEffect, useMemo, memo, useState, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   useListProviders,
-  useListProviderItems,
   useListProviderItemOptions,
 } from '@refly-packages/ai-workspace-common/queries';
 import {
@@ -32,6 +31,7 @@ import { Provider } from '@refly-packages/ai-workspace-common/requests/types.gen
 import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
 import mediaConfig from './media-config.json';
 import { useUserStoreShallow } from '@refly/stores';
+import { useFetchProviderItems } from '@refly-packages/ai-workspace-common/hooks/use-fetch-provider-items';
 
 // Type definition for media config
 interface MediaModelConfig {
@@ -211,18 +211,10 @@ export const ModelFormModal = memo(
     };
 
     const { data: globalProviderItems, isLoading: loadingGlobalProviderItems } =
-      useListProviderItems(
-        {
-          query: {
-            category: filterProviderCategory as ProviderCategory,
-            isGlobal: true,
-          },
-        },
-        undefined,
-        {
-          enabled: Boolean(selectedProviderId && selectedProviderId === 'global'),
-        },
-      );
+      useFetchProviderItems({
+        category: filterProviderCategory as ProviderCategory,
+        isGlobal: true,
+      });
 
     const {
       data: providerItemOptions,
@@ -438,7 +430,7 @@ export const ModelFormModal = memo(
     ]);
 
     const globalModelOptions = useMemo(() => {
-      return globalProviderItems?.data?.map((item) => ({
+      return globalProviderItems?.map((item) => ({
         label: item.name,
         value: item.itemId,
         ...item,

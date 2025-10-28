@@ -5,14 +5,15 @@ import { MiscService } from '../misc/misc.service';
 import * as Y from 'yjs';
 import {
   ActionResult,
+  CanvasNode,
   CodeArtifact,
   Document,
   DuplicateShareRequest,
   Entity,
   EntityType,
   GenericToolset,
-  RawCanvasData,
   Resource,
+  SharedCanvasData,
   User,
 } from '@refly/openapi-schema';
 import {
@@ -23,7 +24,7 @@ import {
   CanvasNotFoundError,
   ProjectNotFoundError,
 } from '@refly/errors';
-import pLimit from 'p-limit';
+import pLimit, { type Limit } from 'p-limit';
 import { SubscriptionService } from '../subscription/subscription.service';
 import {
   genActionResultID,
@@ -499,13 +500,13 @@ export class ShareDuplicationService {
   private async extractCanvasData(
     record: any,
     shareId: string,
-  ): Promise<{ canvasData: RawCanvasData; isWorkflowApp: boolean }> {
+  ): Promise<{ canvasData: SharedCanvasData; isWorkflowApp: boolean }> {
     const dataBuffer = await this.miscService.downloadFile({
       storageKey: record.storageKey,
       visibility: 'public',
     });
 
-    let canvasData: RawCanvasData;
+    let canvasData: SharedCanvasData;
     let isWorkflowApp = false;
 
     // Try to parse as workflow app first
@@ -530,7 +531,7 @@ export class ShareDuplicationService {
    * Helper method to pre-generate entity IDs for canvas nodes
    */
   private preGenerateEntityIds(
-    nodes: any[],
+    nodes: CanvasNode[],
     originalEntityId: string,
     newCanvasId: string,
   ): Record<string, string> {
@@ -572,11 +573,11 @@ export class ShareDuplicationService {
    */
   private createLibEntityDuplicationPromises(
     user: User,
-    nodes: any[],
+    nodes: CanvasNode[],
     projectId: string | undefined,
     newCanvasId: string,
     replaceEntityMap: Record<string, string>,
-    limit: any,
+    limit: Limit,
   ): Promise<void>[] {
     const libEntityNodes = nodes.filter((node) =>
       ['document', 'resource', 'codeArtifact'].includes(node.type),
@@ -631,12 +632,12 @@ export class ShareDuplicationService {
    */
   private createSkillResponseDuplicationPromises(
     user: User,
-    nodes: any[],
+    nodes: CanvasNode[],
     projectId: string | undefined,
     newCanvasId: string,
     replaceEntityMap: Record<string, string>,
     replaceToolsetMap: Record<string, GenericToolset>,
-    limit: any,
+    limit: Limit,
   ): Promise<void>[] {
     const skillResponseNodes = nodes.filter((node) => node.type === 'skillResponse');
 
@@ -694,7 +695,7 @@ export class ShareDuplicationService {
     record: any,
     precomputedStorageQuota?: any,
   ): Promise<Entity> {
-    const { shareId, projectId } = param;
+    const { shareId, projectId, title } = param;
 
     // Extract canvas data (handles both canvas and workflow app formats)
     const { canvasData } = await this.extractCanvasData(record, shareId);
@@ -718,15 +719,37 @@ export class ShareDuplicationService {
       user,
       {
         canvasId: newCanvasId,
-        title: canvasData.title,
+        title: title ?? canvasData.title,
         projectId,
         variables: canvasData.variables,
       },
       state,
     );
 
+    // Add fake nodes for resources to properly duplicate them
+    const nodesWithResources = [
+      ...nodes,
+      ...(canvasData.resources?.map(
+        (resource) =>
+          ({
+            id: resource.resourceId,
+            type: 'resource',
+            position: { x: 0, y: 0 },
+            data: {
+              entityId: resource.resourceId,
+              title: resource.title,
+              metadata: { shareId: resource.shareId },
+            },
+          }) as CanvasNode,
+      ) ?? []),
+    ];
+
     // Pre-generate all new entity IDs upfront for better performance
-    const replaceEntityMap = this.preGenerateEntityIds(nodes, record.entityId, newCanvasId);
+    const replaceEntityMap = this.preGenerateEntityIds(
+      nodesWithResources,
+      record.entityId,
+      newCanvasId,
+    );
 
     // Convert toolsets
     const { replaceToolsetMap } = await this.toolService.importToolsetsFromNodes(user, nodes);
@@ -738,7 +761,7 @@ export class ShareDuplicationService {
     // Prepare duplication tasks in parallel
     const libDupPromises = this.createLibEntityDuplicationPromises(
       user,
-      nodes,
+      nodesWithResources,
       projectId,
       newCanvasId,
       replaceEntityMap,
@@ -747,7 +770,7 @@ export class ShareDuplicationService {
 
     const skillDupPromises = this.createSkillResponseDuplicationPromises(
       user,
-      nodes,
+      nodesWithResources,
       projectId,
       newCanvasId,
       replaceEntityMap,

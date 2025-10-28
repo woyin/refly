@@ -4419,6 +4419,9 @@ components:
         contentPreview:
           type: string
           description: Preview content for this resource
+        shareId:
+          type: string
+          description: Share ID
         content:
           type: string
           description: Document content for this resource (only returned in getResourceDetail API)
@@ -6045,6 +6048,16 @@ components:
           properties:
             data:
               $ref: '#/components/schemas/RawCanvasData'
+    SharedCanvasData:
+      allOf:
+        - $ref: '#/components/schemas/RawCanvasData'
+        - type: object
+          properties:
+            resources:
+              type: array
+              description: Resources in the canvas
+              items:
+                $ref: '#/components/schemas/Resource'
     ExportCanvasResponse:
       allOf:
         - $ref: '#/components/schemas/BaseResponse'
@@ -7029,6 +7042,9 @@ components:
         canvasId:
           type: string
           description: Target canvas ID
+        title:
+          type: string
+          description: Custom title for the duplicated entity
     DuplicateShareResponse:
       allOf:
         - $ref: '#/components/schemas/BaseResponse'

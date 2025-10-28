@@ -6,12 +6,10 @@ import {
   CanvasNode,
   WorkflowVariable,
   NodeDiff,
-  ActionStatus,
 } from '@refly/openapi-schema';
 import {
   CanvasNodeFilter,
   prepareNodeExecutions,
-  pickReadyChildNodes,
   convertContextItemsToInvokeParams,
   ResponseNodeMeta,
   sortNodeExecutionsByExecutionOrder,
@@ -29,8 +27,11 @@ import {
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { WorkflowNodeExecution as WorkflowNodeExecutionPO } from '../../generated/client';
-import { QUEUE_RUN_WORKFLOW } from '../../utils/const';
+import { QUEUE_POLL_WORKFLOW, QUEUE_RUN_WORKFLOW } from '../../utils/const';
 import { CanvasNotFoundError, WorkflowExecutionNotFoundError } from '@refly/errors';
+import { RedisService } from '../common/redis.service';
+
+const WORKFLOW_POLL_INTERVAL = 1500;
 
 @Injectable()
 export class WorkflowService {
@@ -38,10 +39,12 @@ export class WorkflowService {
 
   constructor(
     private readonly prisma: PrismaService,
+    private readonly redis: RedisService,
     private readonly skillService: SkillService,
     private readonly canvasService: CanvasService,
     private readonly canvasSyncService: CanvasSyncService,
     @InjectQueue(QUEUE_RUN_WORKFLOW) private readonly runWorkflowQueue?: Queue,
+    @InjectQueue(QUEUE_POLL_WORKFLOW) private readonly pollWorkflowQueue?: Queue,
   ) {}
 
   /**
@@ -175,6 +178,16 @@ export class WorkflowService {
     this.logger.log(
       `Workflow execution ${executionId} initialized with ${nodeExecutions.length} nodes`,
     );
+
+    // Trigger a poll job for this execution; subsequent polls will re-schedule themselves as needed
+    if (this.pollWorkflowQueue) {
+      await this.pollWorkflowQueue.add(
+        'pollWorkflow',
+        { user, executionId },
+        { delay: WORKFLOW_POLL_INTERVAL, removeOnComplete: true },
+      );
+    }
+
     return executionId;
   }
 
@@ -308,111 +321,6 @@ export class WorkflowService {
   }
 
   /**
-   * Sync workflow - called after skill-invoker finishes
-   * @param user - The user with minimal PII (only uid)
-   * @param nodeExecutionId - The node execution ID
-   */
-  async syncWorkflow(user: Pick<User, 'uid'>, nodeExecutionId: string): Promise<void> {
-    try {
-      const nodeExecution = await this.prisma.workflowNodeExecution.findUnique({
-        where: {
-          nodeExecutionId: nodeExecutionId,
-        },
-      });
-
-      if (!nodeExecution) {
-        this.logger.warn(`No node execution found for nodeExecutionId: ${nodeExecutionId}`);
-        return;
-      }
-
-      const { status, canvasId, nodeId, executionId } = nodeExecution;
-
-      // Only update if status is still executing
-      if (status === 'executing') {
-        // Update node status to finish
-        await this.prisma.workflowNodeExecution.update({
-          where: { nodeExecutionId },
-          data: {
-            status: 'finish',
-            progress: 100,
-            endTime: new Date(),
-          },
-        });
-
-        await this.syncNodeDiffToCanvas(user, canvasId, [
-          {
-            type: 'update',
-            id: nodeId,
-            from: { data: { metadata: { status: 'executing' } } },
-            to: { data: { metadata: { status: 'finish' } } },
-          },
-        ]);
-      }
-
-      // Get all child nodes
-      const childNodeIds =
-        (safeParseJSON(nodeExecution.childNodeIds) as string[] | undefined)?.filter(Boolean) ?? [];
-
-      // Fast exit if no children
-      if (!childNodeIds?.length) {
-        await this.updateWorkflowExecutionStats(executionId);
-        this.logger.log(`Synced workflow for nodeExecutionId: ${nodeExecutionId}`);
-        return;
-      }
-
-      // Single-pass load of all nodes for this execution to evaluate readiness in-memory
-      const allNodes = await this.prisma.workflowNodeExecution.findMany({
-        select: {
-          nodeId: true,
-          status: true,
-          parentNodeIds: true,
-        },
-        where: { executionId },
-      });
-
-      const readyChildNodeIds = pickReadyChildNodes(
-        childNodeIds,
-        allNodes.map((n) => ({
-          nodeId: n.nodeId,
-          parentNodeIds: (safeParseJSON(n.parentNodeIds) ?? []) as string[],
-          status: n.status as ActionStatus,
-        })),
-      );
-
-      // Sort ready child nodes by their original order in the canvas to maintain execution order
-      const sortedReadyChildNodeIds = readyChildNodeIds.sort((a, b) => {
-        return a.localeCompare(b);
-      });
-
-      const existingJobs = await this.runWorkflowQueue?.getJobs(['waiting', 'active']);
-
-      for (const childNodeId of sortedReadyChildNodeIds) {
-        const isAlreadyQueued = existingJobs?.some(
-          (job) => job?.data?.executionId === executionId && job?.data?.nodeId === childNodeId,
-        );
-
-        if (!isAlreadyQueued && this.runWorkflowQueue) {
-          await this.runWorkflowQueue.add('runWorkflow', {
-            user: { uid: user.uid },
-            executionId,
-            nodeId: childNodeId,
-          });
-        }
-      }
-
-      // Update workflow execution statistics
-      await this.updateWorkflowExecutionStats(nodeExecution.executionId);
-
-      this.logger.log(`Synced workflow for nodeExecutionId: ${nodeExecutionId}`);
-    } catch (error) {
-      this.logger.error(
-        `Failed to sync workflow for nodeExecutionId ${nodeExecutionId}: ${error.message}`,
-      );
-      throw error;
-    }
-  }
-
-  /**
    * Run workflow node - execute a single node
    * @param user - The user
    * @param executionId - The workflow execution ID
@@ -420,15 +328,25 @@ export class WorkflowService {
    * @param newNodeId - The new node ID for new canvas mode (optional)
    */
   async runWorkflow(user: User, executionId: string, nodeId: string): Promise<void> {
-    try {
-      this.logger.log(`[runWorkflow] executionId: ${executionId}, nodeId: ${nodeId}`);
+    this.logger.log(`[runWorkflow] executionId: ${executionId}, nodeId: ${nodeId}`);
 
-      // Find the workflow node execution by nodeExecutionId
+    // Acquire a distributed lock to avoid duplicate execution across workers
+    const lockKey = `workflow:node:${executionId}:${nodeId}`;
+    const releaseLock = await this.redis.acquireLock(lockKey);
+    if (!releaseLock) {
+      this.logger.warn(`[runWorkflow] lock not acquired for ${lockKey}, skip`);
+      return;
+    }
+
+    let nodeExecutionIdForFailure: string | null = null;
+    try {
+      // Find the workflow node execution and workflow execution
       const [workflowExecution, nodeExecution] = await Promise.all([
         this.prisma.workflowExecution.findUnique({
           select: {
             canvasId: true,
             sourceCanvasId: true,
+            uid: true,
           },
           where: { executionId },
         }),
@@ -441,52 +359,52 @@ export class WorkflowService {
       ]);
 
       if (!workflowExecution) {
-        this.logger.warn(`No workflow execution found for executionId: ${executionId}`);
+        this.logger.warn(
+          `[runWorkflow] No workflow execution found for executionId: ${executionId}`,
+        );
         return;
       }
 
       if (!nodeExecution) {
         this.logger.warn(
-          `Node execution not found for executionId: ${executionId}, nodeId: ${nodeId}`,
+          `[runWorkflow] Node execution not found for executionId: ${executionId}, nodeId: ${nodeId}`,
         );
         return;
       }
+      nodeExecutionIdForFailure = nodeExecution.nodeExecutionId;
 
-      // Check if node is already being processed
-      if (nodeExecution.status === 'executing') {
-        this.logger.warn(`Node ${nodeId} is already being executed`);
+      // Only proceed if current status is waiting; otherwise exit early
+      if (nodeExecution.status !== 'waiting') {
+        this.logger.warn(`[runWorkflow] Node ${nodeId} status is ${nodeExecution.status}, skip`);
         return;
       }
 
-      // Get all parent nodes for this child
+      // Validate parents first
       const parentNodeIds = safeParseJSON(nodeExecution.parentNodeIds) ?? [];
-
-      // Check if all parents are finished
-
       const allParentsFinishedCount = await this.prisma.workflowNodeExecution.count({
         where: {
           executionId: nodeExecution.executionId,
-          nodeId: { in: parentNodeIds },
+          nodeId: { in: parentNodeIds as string[] },
           status: 'finish',
         },
       });
-
-      const allParentsFinished = allParentsFinishedCount === parentNodeIds.length;
+      const allParentsFinished = allParentsFinishedCount === (parentNodeIds?.length ?? 0);
 
       if (!allParentsFinished) {
-        this.logger.warn(`Node ${nodeId} has unfinished parents`);
+        this.logger.warn(`[runWorkflow] Node ${nodeId} has unfinished parents`);
         return;
       }
 
-      // Update node status to executing
-      await this.prisma.workflowNodeExecution.update({
-        where: { nodeExecutionId: nodeExecution.nodeExecutionId },
-        data: {
-          status: 'executing',
-          startTime: new Date(),
-          progress: 0,
-        },
+      // Atomically transition to executing only if still waiting
+      const updateRes = await this.prisma.workflowNodeExecution.updateMany({
+        where: { nodeExecutionId: nodeExecution.nodeExecutionId, status: 'waiting' },
+        data: { status: 'executing', startTime: new Date(), progress: 0 },
       });
+      if ((updateRes?.count ?? 0) === 0) {
+        // Another worker raced and took it
+        this.logger.warn(`Node ${nodeId} status changed concurrently, skip`);
+        return;
+      }
 
       // Execute node based on type
       if (nodeExecution.nodeType === 'skillResponse') {
@@ -502,71 +420,129 @@ export class WorkflowService {
             endTime: new Date(),
           },
         });
-        await this.syncWorkflow(user, nodeExecution.nodeExecutionId);
       }
 
       this.logger.log(`Started execution of node ${nodeId} in workflow ${executionId}`);
     } catch (error) {
-      // Mark node as failed
-      const failedNodeExecution = await this.prisma.workflowNodeExecution.findFirst({
-        where: {
-          executionId,
-          nodeId,
-        },
-      });
-
-      if (failedNodeExecution) {
+      // Only mark as failed if lock was acquired (we are inside lock scope) and node id is known
+      if (nodeExecutionIdForFailure) {
         await this.prisma.workflowNodeExecution.update({
-          where: {
-            nodeExecutionId: failedNodeExecution.nodeExecutionId,
-          },
+          where: { nodeExecutionId: nodeExecutionIdForFailure },
           data: {
             status: 'failed',
-            errorMessage: error.message,
+            errorMessage: (error as any)?.message ?? 'Unknown error',
             endTime: new Date(),
           },
         });
-        await this.updateWorkflowExecutionStats(failedNodeExecution.executionId);
       }
 
-      this.logger.error(`Failed to run workflow node ${nodeId}: ${error.message}`);
+      this.logger.error(`Failed to run workflow node ${nodeId}: ${(error as any)?.message}`);
       throw error;
+    } finally {
+      // Always release the lock
+      try {
+        await releaseLock?.();
+      } catch {
+        this.logger.warn(`[runWorkflow] failed to release lock ${lockKey}`);
+      }
     }
   }
 
   /**
-   * Update workflow execution statistics
-   * @param executionId - The workflow execution ID
+   * Poll one workflow execution: enqueue ready waiting nodes and decide whether to requeue a poll.
    */
-  private async updateWorkflowExecutionStats(executionId: string): Promise<void> {
-    const stats = await this.prisma.workflowNodeExecution.groupBy({
-      by: ['status'],
+  async pollWorkflow(user: Pick<User, 'uid'>, executionId: string): Promise<void> {
+    // Load all nodes for this execution in a single query
+    const allNodes = await this.prisma.workflowNodeExecution.findMany({
+      select: {
+        nodeId: true,
+        nodeType: true,
+        status: true,
+        parentNodeIds: true,
+      },
       where: { executionId },
-      _count: { status: true },
     });
 
-    const executedNodes = stats.find((s) => s.status === 'finish')?._count.status || 0;
-    const failedNodes = stats.find((s) => s.status === 'failed')?._count.status || 0;
-
-    // Check if all nodes are finished
-    const waitingNodes = stats.find((s) => s.status === 'waiting')?._count.status || 0;
-    const executingNodes = stats.find((s) => s.status === 'executing')?._count.status || 0;
-
-    let status = 'executing';
-    if (failedNodes > 0) {
-      status = 'failed';
-    } else if (waitingNodes === 0 && executingNodes === 0) {
-      status = 'finish';
+    if (!allNodes?.length) {
+      return;
     }
 
-    await this.prisma.workflowExecution.update({
-      where: { executionId },
-      data: {
-        executedNodes,
-        failedNodes,
-        status,
-      },
-    });
+    const statusByNodeId = new Map<string, string>();
+    for (const n of allNodes) {
+      if (n?.nodeId) {
+        statusByNodeId.set(n.nodeId, n.status ?? 'waiting');
+      }
+    }
+
+    // Find waiting skillResponse nodes and check parent readiness in-memory
+    const waitingSkillNodes = allNodes.filter(
+      (n) => n.status === 'waiting' && n.nodeType === 'skillResponse',
+    );
+
+    for (const n of waitingSkillNodes) {
+      const parents = (safeParseJSON(n.parentNodeIds) ?? []) as string[];
+      const allParentsFinished =
+        (parents?.length ?? 0) === 0
+          ? true
+          : parents.every((p) => statusByNodeId.get(p) === 'finish');
+
+      if (!allParentsFinished) {
+        continue;
+      }
+
+      if (this.runWorkflowQueue) {
+        await this.runWorkflowQueue.add(
+          'runWorkflow',
+          {
+            user: { uid: user.uid },
+            executionId,
+            nodeId: n.nodeId,
+          },
+          {
+            jobId: `run:${executionId}:${n.nodeId}`,
+            removeOnComplete: true,
+          },
+        );
+        this.logger.log(
+          `[pollWorkflow] Enqueued node ${n.nodeId} for execution ${executionId} as parents are finished`,
+        );
+      }
+    }
+
+    // Determine if we should continue polling for this execution
+    const hasPendingOrExecuting = allNodes.some(
+      (n) => n.status === 'waiting' || n.status === 'executing',
+    );
+
+    // Update workflow execution statistics using in-memory snapshot
+    try {
+      const executedNodes = allNodes.filter((n) => n.status === 'finish')?.length ?? 0;
+      const failedNodes = allNodes.filter((n) => n.status === 'failed')?.length ?? 0;
+      const waitingNodes = allNodes.filter((n) => n.status === 'waiting')?.length ?? 0;
+      const executingNodes = allNodes.filter((n) => n.status === 'executing')?.length ?? 0;
+
+      let status: 'executing' | 'failed' | 'finish' = 'executing';
+      if (failedNodes > 0) {
+        status = 'failed';
+      } else if (waitingNodes === 0 && executingNodes === 0) {
+        status = 'finish';
+      }
+
+      await this.prisma.workflowExecution.update({
+        where: { executionId },
+        data: { executedNodes, failedNodes, status },
+      });
+    } catch (err: any) {
+      this.logger.warn(`[pollWorkflow] failed to update execution stats: ${err?.message ?? err}`);
+    }
+
+    if (hasPendingOrExecuting && this.pollWorkflowQueue) {
+      await this.pollWorkflowQueue.add(
+        'pollWorkflow',
+        { user, executionId },
+        { delay: WORKFLOW_POLL_INTERVAL, removeOnComplete: true },
+      );
+    }
   }
 
   /**

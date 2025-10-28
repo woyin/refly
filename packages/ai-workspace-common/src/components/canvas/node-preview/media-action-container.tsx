@@ -1,8 +1,7 @@
 import { memo, useMemo } from 'react';
 import type { IContextItem } from '@refly/common-types';
-import type { ModelInfo, ProviderItem } from '@refly/openapi-schema';
-import { useListProviderItems } from '@refly-packages/ai-workspace-common/queries';
-import { useUserStoreShallow } from '@refly/stores';
+import type { ModelInfo } from '@refly/openapi-schema';
+import { useFetchProviderItems } from '@refly-packages/ai-workspace-common/hooks/use-fetch-provider-items';
 import { FollowingActions } from '@refly-packages/ai-workspace-common/components/canvas/node-preview/sharedComponents/following-actions';
 import { ModelIcon } from '@lobehub/icons';
 
@@ -27,20 +26,10 @@ const MediaActionContainerComponent = ({
   nodeId,
   storageKey,
 }: MediaActionContainerProps) => {
-  const { userProfile } = useUserStoreShallow((state) => ({ userProfile: state.userProfile }));
-
-  const { data: mediaProviderItems } = useListProviderItems({
-    query: {
-      enabled: true,
-      category: 'mediaGeneration',
-      isGlobal: userProfile?.preferences?.providerMode === 'global',
-    },
+  const { data: providerItemList } = useFetchProviderItems({
+    enabled: true,
+    category: 'mediaGeneration',
   });
-
-  const providerItemList: ProviderItem[] = useMemo(
-    () => mediaProviderItems?.data ?? [],
-    [mediaProviderItems?.data],
-  );
 
   // Default provider item from existing modelInfo or first item
   const defaultProviderItem = useMemo(() => {
