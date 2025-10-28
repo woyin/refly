@@ -17,8 +17,6 @@ import {
 import { Sandbox, CodeInterpreter, type WriteInfo } from '@scalebox/sdk';
 import { ToolParams } from '@langchain/core/tools';
 import { RunnableConfig } from '@langchain/core/runnables';
-import { CanvasNodeFilter } from '@refly/canvas-common';
-import { genImageID } from '@refly/utils';
 export interface ReflyService {
   downloadFile: (storageKey: string) => Promise<Buffer>;
   uploadBase64: (
@@ -35,9 +33,10 @@ export interface ReflyService {
   addNodeToCanvasWithoutCanvasId: (
     user: User,
     node: Pick<CanvasNode, 'type' | 'data'> & Partial<Pick<CanvasNode, 'id'>>,
-    connectTo?: CanvasNodeFilter[],
+    connectTo?: any,
     options?: { autoLayout?: boolean },
   ) => Promise<void>;
+  genImageID: () => Promise<string>;
 }
 
 /**
@@ -774,7 +773,7 @@ export class ScaleboxRunCode extends AgentBaseTool<ScaleboxToolParams> {
       const stderr = res?.logs?.stderr ?? '';
       const results = res?.results ?? [];
       const pngResults = Array.isArray(results) ? results.filter((r: any) => !!(r?.png ?? '')) : [];
-      const entityId = genImageID();
+      const entityId = await this.params?.reflyService?.genImageID?.();
 
       const uploads = await Promise.all(
         pngResults.map(async (r: any, idx: number) => {
@@ -800,9 +799,7 @@ export class ScaleboxRunCode extends AgentBaseTool<ScaleboxToolParams> {
       const parentResultId = config?.configurable?.resultId ?? '';
       if ((uploads?.length ?? 0) > 0) {
         const connectTo = parentResultId
-          ? ([
-              { type: 'skillResponse' as CanvasNodeType, entityId: parentResultId },
-            ] as CanvasNodeFilter[])
+          ? ([{ type: 'skillResponse' as CanvasNodeType, entityId: parentResultId }] as any[])
           : undefined;
         await Promise.all(
           (uploads ?? []).map(async (u, idx) => {

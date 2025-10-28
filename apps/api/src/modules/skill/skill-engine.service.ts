@@ -23,6 +23,7 @@ import { codeArtifactPO2DTO } from '../code-artifact/code-artifact.dto';
 import { ResourceService } from '../knowledge/resource.service';
 import { DocumentService } from '../knowledge/document.service';
 import { MiscService } from '../misc/misc.service';
+import { genImageID } from '@refly/utils';
 
 @Injectable()
 export class SkillEngineService implements OnModuleInit {
@@ -226,6 +227,9 @@ export class SkillEngineService implements OnModuleInit {
       },
       addNodeToCanvasWithoutCanvasId: async (user, node, connectTo, options) => {
         await this.canvasSyncService.addNodeToCanvasWithoutCanvasId(user, node, connectTo, options);
+      },
+      genImageID: async () => {
+        return genImageID();
       },
     };
   };

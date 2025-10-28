@@ -40,7 +40,6 @@ import {
   EntityType,
   CanvasNode,
 } from '@refly/openapi-schema';
-import { CanvasNodeFilter } from '@refly/canvas-common';
 import { Document as LangChainDocument } from '@langchain/core/documents';
 import { RunnableConfig } from '@langchain/core/runnables';
 
@@ -140,9 +139,10 @@ export interface ReflyService {
   addNodeToCanvasWithoutCanvasId: (
     user: User,
     node: Pick<CanvasNode, 'type' | 'data'> & Partial<Pick<CanvasNode, 'id'>>,
-    connectTo?: CanvasNodeFilter[],
+    connectTo?: any,
     options?: { autoLayout?: boolean },
   ) => Promise<void>;
+  genImageID: () => Promise<string>;
   // Generate JWT token for user (same as AuthService.login)
   generateJwtToken: (user: User) => Promise<string>;
 
