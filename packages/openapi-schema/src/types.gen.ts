@@ -3402,6 +3402,10 @@ export type CreateShareRequest = {
    * Cover storage key
    */
   coverStorageKey?: string;
+  /**
+   * Credit usage
+   */
+  creditUsage?: number;
 };
 
 export type CreateShareResponse = BaseResponse & {
@@ -4459,6 +4463,22 @@ export type getCreditBalanceResponse = BaseResponse & {
      * Credit amount
      */
     creditAmount?: number;
+  };
+};
+
+export type GetCreditUsageByResultIdResponse = BaseResponse & {
+  /**
+   * Credit usage by result ID
+   */
+  data?: {
+    /**
+     * Total credit usage by result ID
+     */
+    total?: number;
+    /**
+     * Credit usage list by result ID
+     */
+    usages?: Array<CreditUsage>;
   };
 };
 
@@ -6067,6 +6087,10 @@ export type WorkflowApp = {
    * Cover image URL
    */
   coverUrl?: string;
+  /**
+   * Credit usage
+   */
+  creditUsage?: number;
   /**
    * Workflow app creation timestamp
    */
@@ -7766,6 +7790,19 @@ export type GetCreditUsageError = unknown;
 export type GetCreditBalanceResponse = getCreditBalanceResponse;
 
 export type GetCreditBalanceError = unknown;
+
+export type GetCreditUsageByResultIdData = {
+  query: {
+    /**
+     * Result ID
+     */
+    resultId: string;
+  };
+};
+
+export type GetCreditUsageByResultIdResponse2 = GetCreditUsageByResultIdResponse;
+
+export type GetCreditUsageByResultIdError = unknown;
 
 export type GetSubscriptionPlansResponse2 = GetSubscriptionPlansResponse;
 

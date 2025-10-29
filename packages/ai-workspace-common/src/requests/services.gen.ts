@@ -358,6 +358,9 @@ import type {
   GetCreditUsageResponse2,
   GetCreditBalanceError,
   GetCreditBalanceResponse,
+  GetCreditUsageByResultIdData,
+  GetCreditUsageByResultIdError,
+  GetCreditUsageByResultIdResponse2,
   GetSubscriptionPlansError,
   GetSubscriptionPlansResponse2,
   GetSubscriptionUsageError,
@@ -2363,6 +2366,23 @@ export const getCreditBalance = <ThrowOnError extends boolean = false>(
   >({
     ...options,
     url: '/credit/balance',
+  });
+};
+
+/**
+ * Get credit usage by result ID
+ * Get credit usage by result ID
+ */
+export const getCreditUsageByResultId = <ThrowOnError extends boolean = false>(
+  options: Options<GetCreditUsageByResultIdData, ThrowOnError>,
+) => {
+  return (options?.client ?? client).get<
+    GetCreditUsageByResultIdResponse2,
+    GetCreditUsageByResultIdError,
+    ThrowOnError
+  >({
+    ...options,
+    url: '/credit/result',
   });
 };
 

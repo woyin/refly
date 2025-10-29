@@ -18,6 +18,7 @@ import {
   getCreditBalance,
   getCreditRecharge,
   getCreditUsage,
+  getCreditUsageByResultId,
   getDocumentDetail,
   getPageByCanvasId,
   getPageDetail,
@@ -70,6 +71,7 @@ import {
   GetCanvasTransactionsData,
   GetCodeArtifactDetailData,
   GetCreditRechargeData,
+  GetCreditUsageByResultIdData,
   GetCreditUsageData,
   GetDocumentDetailData,
   GetPageByCanvasIdData,
@@ -455,6 +457,14 @@ export const ensureUseGetCreditBalanceData = (
   queryClient.ensureQueryData({
     queryKey: Common.UseGetCreditBalanceKeyFn(clientOptions),
     queryFn: () => getCreditBalance({ ...clientOptions }).then((response) => response.data),
+  });
+export const ensureUseGetCreditUsageByResultIdData = (
+  queryClient: QueryClient,
+  clientOptions: Options<GetCreditUsageByResultIdData, true>,
+) =>
+  queryClient.ensureQueryData({
+    queryKey: Common.UseGetCreditUsageByResultIdKeyFn(clientOptions),
+    queryFn: () => getCreditUsageByResultId({ ...clientOptions }).then((response) => response.data),
   });
 export const ensureUseGetSubscriptionPlansData = (
   queryClient: QueryClient,

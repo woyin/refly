@@ -2962,6 +2962,28 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/getCreditBalanceResponse'
+
+  /credit/result:
+    get:
+      tags:
+        - credit
+      summary: Get credit usage by result ID
+      description: Get credit usage by result ID
+      operationId: getCreditUsageByResultId
+      parameters:
+        - name: resultId
+          in: query
+          description: Result ID
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetCreditUsageByResultIdResponse'
   /subscription/plans:
     get:
       tags:
@@ -7002,6 +7024,9 @@ components:
         coverStorageKey:
           type: string
           description: Cover storage key
+        creditUsage:
+          type: number
+          description: Credit usage
     CreateShareResponse:
       allOf:
         - $ref: '#/components/schemas/BaseResponse'
@@ -8071,6 +8096,23 @@ components:
                 creditAmount:
                   type: number
                   description: Credit amount
+    GetCreditUsageByResultIdResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            data:
+              type: object
+              description: Credit usage by result ID
+              properties:
+                total:
+                  type: number
+                  description: Total credit usage by result ID
+                usages:
+                  type: array
+                  description: Credit usage list by result ID
+                  items:
+                    $ref: '#/components/schemas/CreditUsage'
     SubscriptionPlan:
       type: object
       properties:
@@ -9712,6 +9754,9 @@ components:
         coverUrl:
           type: string
           description: Cover image URL
+        creditUsage:
+          type: number
+          description: Credit usage
         createdAt:
           type: string
           format: date-time

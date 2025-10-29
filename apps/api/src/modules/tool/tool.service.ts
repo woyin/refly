@@ -833,10 +833,11 @@ export class ToolService {
               name: `${toolset.definition.key}_${tool.name}`,
               description: tool.description,
               schema: tool.schema,
-              func: async (input) => {
+              func: async (input, _config) => {
                 const result = await tool.invoke(input);
                 const isGlobal = t?.isGlobal ?? false;
                 const creditCost = (result as any)?.creditCost ?? 0;
+                const resultId = (_config as any)?.metadata?.resultId as string;
                 if (
                   isGlobal &&
                   result?.status !== 'error' &&
@@ -849,6 +850,7 @@ export class ToolService {
                     timestamp: new Date(),
                     toolsetName: t?.name ?? (toolset.definition.labelDict?.en as string) ?? t?.key,
                     toolName: tool.name,
+                    resultId,
                   };
                   await this.toolCreditUsageQueue.add(
                     `tool_credit_usage:${user.uid}:${toolset.definition.key}:${tool.name}`,

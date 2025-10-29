@@ -1,7 +1,7 @@
 import type { WorkflowVariable, WorkflowExecutionStatus } from '@refly/openapi-schema';
 import { useTranslation } from 'react-i18next';
-import { Button, Input, Select, Form, Typography, message } from 'antd';
-import { Play, Copy } from 'refly-icons';
+import { Button, Input, Select, Form, Typography, message, Tooltip } from 'antd';
+import { Play, Copy, Subscription } from 'refly-icons';
 import { IconShare } from '@refly-packages/ai-workspace-common/components/common/icon';
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import type { UploadFile } from 'antd/es/upload/interface';
@@ -574,6 +574,18 @@ export const WorkflowRunForm = ({
 
           <div className="p-3 sm:p-4 border-t border-refly-Card-Border bg-refly-bg-control-z0 rounded-b-lg">
             <div className="flex flex-wrap gap-2">
+              {workflowApp?.creditUsage && (
+                <Tooltip
+                  title={t('subscription.creditBilling.description.canvasTotal', {
+                    total: workflowApp.creditUsage,
+                  })}
+                >
+                  <div className="flex items-center gap-0.5 text-xs text-refly-text-2">
+                    <Subscription size={12} className="text-[#1C1F23] dark:text-white" />
+                    {workflowApp.creditUsage}
+                  </div>
+                </Tooltip>
+              )}
               <Button
                 className={cn(
                   'flex-1 h-9 sm:h-10 text-sm sm:text-base min-w-0',

@@ -82,6 +82,7 @@ export class CalculatorCalculate extends AgentBaseTool<unknown> {
           sanitizedExpression: sanitizedExpression,
         },
         summary: `Successfully calculated: ${input.expression} = ${result}`,
+        creditCost: 1,
       };
     } catch (error) {
       return {

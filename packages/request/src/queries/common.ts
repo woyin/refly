@@ -74,6 +74,7 @@ import {
   getCreditBalance,
   getCreditRecharge,
   getCreditUsage,
+  getCreditUsageByResultId,
   getDocumentDetail,
   getPageByCanvasId,
   getPageDetail,
@@ -631,6 +632,18 @@ export const UseGetCreditBalanceKeyFn = (
   clientOptions: Options<unknown, true> = {},
   queryKey?: Array<unknown>,
 ) => [useGetCreditBalanceKey, ...(queryKey ?? [clientOptions])];
+export type GetCreditUsageByResultIdDefaultResponse = Awaited<
+  ReturnType<typeof getCreditUsageByResultId>
+>['data'];
+export type GetCreditUsageByResultIdQueryResult<
+  TData = GetCreditUsageByResultIdDefaultResponse,
+  TError = unknown,
+> = UseQueryResult<TData, TError>;
+export const useGetCreditUsageByResultIdKey = 'GetCreditUsageByResultId';
+export const UseGetCreditUsageByResultIdKeyFn = (
+  clientOptions: Options<unknown, true>,
+  queryKey?: Array<unknown>,
+) => [useGetCreditUsageByResultIdKey, ...(queryKey ?? [clientOptions])];
 export type GetSubscriptionPlansDefaultResponse = Awaited<
   ReturnType<typeof getSubscriptionPlans>
 >['data'];

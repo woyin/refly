@@ -7,6 +7,7 @@ import {
   GetCreditRechargeResponse,
   GetCreditUsageResponse,
   GetCreditBalanceResponse,
+  GetCreditUsageByResultIdResponse,
 } from '@refly/openapi-schema';
 import { buildSuccessResponse } from '../../utils';
 
@@ -49,5 +50,15 @@ export class CreditController {
   async getCreditBalance(@LoginedUser() user: User): Promise<GetCreditBalanceResponse> {
     const balance = await this.creditService.getCreditBalance(user);
     return buildSuccessResponse(balance);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('/result')
+  async getCreditUsageByResultId(
+    @Query() query: { resultId: string },
+  ): Promise<GetCreditUsageByResultIdResponse> {
+    const { resultId } = query;
+    const total = await this.creditService.countResultCreditUsage(resultId);
+    return buildSuccessResponse({ total });
   }
 }

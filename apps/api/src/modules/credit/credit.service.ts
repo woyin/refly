@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../common/prisma.service';
 import { RedisService } from '../common/redis.service';
 import { User } from '@refly/openapi-schema';
-import { CreditBilling, CreditRecharge, CreditUsage } from '@refly/openapi-schema';
+import { CreditBilling, CreditRecharge, CreditUsage, RawCanvasData } from '@refly/openapi-schema';
 import {
   CheckRequestCreditUsageResult,
   SyncMediaCreditUsageJobData,
@@ -18,6 +18,7 @@ import {
   genSubscriptionRechargeId,
 } from '@refly/utils';
 import { CreditBalance } from './credit.dto';
+import { CanvasSyncService } from '../canvas-sync/canvas-sync.service';
 
 @Injectable()
 export class CreditService {
@@ -26,6 +27,7 @@ export class CreditService {
   constructor(
     protected readonly prisma: PrismaService,
     private readonly redis: RedisService,
+    private readonly canvasSyncService: CanvasSyncService,
   ) {}
 
   /**
@@ -827,5 +829,28 @@ export class CreditService {
       creditAmount: totalAmount,
       creditBalance: netBalance,
     };
+  }
+
+  async countResultCreditUsage(resultId: string): Promise<number> {
+    const usages = await this.prisma.creditUsage.findMany({
+      where: {
+        actionResultId: resultId,
+      },
+    });
+    return usages.reduce((sum, usage) => {
+      return sum + Number(usage.amount);
+    }, 0);
+  }
+
+  async countCanvasCreditUsage(canvasData: RawCanvasData): Promise<number> {
+    const canvasResultIds = canvasData.nodes
+      .filter((node) => node.type === 'skillResponse')
+      .map((node) => node.data.entityId);
+    const total = await Promise.all(
+      canvasResultIds.map((canvasResultId) => this.countResultCreditUsage(canvasResultId)),
+    );
+    return total.reduce((sum, total) => {
+      return sum + total;
+    }, 0);
   }
 }
