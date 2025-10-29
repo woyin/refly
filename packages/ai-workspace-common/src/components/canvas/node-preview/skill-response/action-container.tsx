@@ -12,7 +12,6 @@ import { editorEmitter, EditorOperation } from '@refly/utils/event-emitter/edito
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
 import { FollowingActions } from '../sharedComponents/following-actions';
 import { IContextItem } from '@refly/common-types';
-import { convertResultContextToItems } from '@refly/canvas-common';
 import { useFetchProviderItems } from '@refly-packages/ai-workspace-common/hooks/use-fetch-provider-items';
 
 interface ActionContainerProps {
@@ -108,39 +107,21 @@ const ActionContainerComponent = ({ result, step, nodeId }: ActionContainerProps
   }, [providerItemList, tokenUsage]);
 
   const initContextItems = useMemo(() => {
-    if (result?.resultId) {
-      // Get the original context items from the result's context and history
-      const originalContextItems = convertResultContextToItems(
-        result.context || {},
-        result.history || [],
-      );
-
-      // Create merged context items similar to skill-response.tsx handleAskAI
-      const currentNodeContext: IContextItem = {
-        type: 'skillResponse',
-        entityId: result.resultId,
-        title: result.title || '',
-        metadata: {
-          withHistory: true,
-        },
-      };
-
-      // Include the original context items from the response
-      const mergedContextItems = [
-        currentNodeContext,
-        // Include the original context items from the response
-        ...originalContextItems.map((item: IContextItem) => ({
-          ...item,
-          metadata: {
-            ...item.metadata,
-            withHistory: undefined,
-          },
-        })),
-      ];
-
-      return mergedContextItems;
+    if (!result.resultId) {
+      return [];
     }
-  }, [result.context, result.history]);
+
+    const currentNodeContext: IContextItem = {
+      type: 'skillResponse',
+      entityId: result.resultId,
+      title: result.title ?? '',
+      metadata: {
+        withHistory: true,
+      },
+    };
+
+    return [currentNodeContext];
+  }, [result.resultId, result.title]);
 
   const initModelInfo = useMemo(() => {
     if (providerItem && providerItem.category === 'llm') {
