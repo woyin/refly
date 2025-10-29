@@ -353,7 +353,7 @@ const DocumentEditorHeader = memo(({ docId, nodeId, readonly }: DocumentEditorHe
   useEffect(() => {
     setTimeout(() => {
       syncTitleToYDoc(node?.data?.title as string);
-    }, 200);
+    }, 100);
   }, []);
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
