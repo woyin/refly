@@ -25,6 +25,7 @@ import { Helmet } from 'react-helmet';
 import FooterSection from '@refly-packages/ai-workspace-common/components/workflow-app/FooterSection';
 import WhyChooseRefly from './WhyChooseRefly';
 import { SettingItem } from '@refly-packages/ai-workspace-common/components/sider/layout';
+import { SelectedResultsGrid } from '@refly-packages/ai-workspace-common/components/workflow-app/selected-results-grid';
 
 // User Avatar component for header
 const UserAvatar = () => {
@@ -326,11 +327,9 @@ const WorkflowAppPage: React.FC = () => {
             {workflowApp?.coverUrl && (
               <div className="absolute inset-0 bg-gradient-to-b from-white/30 to-white dark:from-black/30 dark:to-black backdrop-blur-[20px] pointer-events-none" />
             )}
-
             <Helmet>
               <title>{workflowApp?.title ?? ''}</title>
             </Helmet>
-
             {/* Header - Fixed at top with full transparency */}
             <div className=" top-0 left-0 right-0 z-50 border-b border-white/20 dark:border-[var(--refly-semi-color-border)] h-[64px]">
               <div className="relative mx-auto px-4 sm:px-6 lg:px-8">
@@ -343,7 +342,6 @@ const WorkflowAppPage: React.FC = () => {
                 </div>
               </div>
             </div>
-
             {/* Main Content - flex-1 to take remaining space with top padding for fixed header */}
             <div className="flex-1 pt-16 relative z-10">
               <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
@@ -407,9 +405,25 @@ const WorkflowAppPage: React.FC = () => {
               </div>
             </div>
 
+            <div
+              className="w-full max-w-[800px] mx-auto rounded-lg py-3 px-4 sm:px-6 lg:px-8"
+              style={{
+                borderColor: 'var(--refly-Card-Border)',
+                backgroundColor: 'var(--refly-bg-content-z2)',
+              }}
+            >
+              {/* results grid */}
+              {workflowApp?.resultNodeIds?.length > 0 && (
+                <SelectedResultsGrid
+                  bordered
+                  selectedResults={workflowApp?.resultNodeIds ?? []}
+                  options={workflowApp?.canvasData?.nodes || []}
+                />
+              )}
+            </div>
+
             {/* Why Choose Refly Section */}
             <WhyChooseRefly />
-
             {/* Footer Section - always at bottom */}
             <FooterSection />
           </div>

@@ -1,4 +1,4 @@
-import { memo, useState, useRef } from 'react';
+import { memo, useState, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { CanvasNode } from '@refly/canvas-common';
 import { PreviewComponent } from '@refly-packages/ai-workspace-common/components/canvas/node-preview';
@@ -9,6 +9,7 @@ import AudioBgSvg from './audioBg.svg';
 export interface SelectedResultsGridProps {
   selectedResults: string[];
   options: CanvasNode[];
+  bordered?: boolean;
 }
 
 // Document preview component
@@ -272,11 +273,39 @@ ResultItemPreview.displayName = 'ResultItemPreview';
 
 // Grid component to display selected results in a card layout
 export const SelectedResultsGrid = memo(
-  ({ selectedResults, options }: SelectedResultsGridProps) => {
+  ({ selectedResults, options, bordered = false }: SelectedResultsGridProps) => {
     const { t } = useTranslation();
+    const firstItemRef = useRef<HTMLDivElement>(null);
+    const [itemHeight, setItemHeight] = useState<number | null>(null);
 
     // Filter options to only show selected ones
     const selectedNodes = options.filter((node) => selectedResults.includes(node.id));
+
+    // Measure the actual height of the first item from full rows
+    useEffect(() => {
+      if (firstItemRef.current) {
+        const updateHeight = () => {
+          const height = firstItemRef.current?.offsetHeight;
+          if (height !== undefined && height > 0) {
+            setItemHeight(height);
+          }
+        };
+
+        // Initial measurement
+        updateHeight();
+
+        // Use ResizeObserver to watch for size changes
+        const resizeObserver = new ResizeObserver(() => {
+          updateHeight();
+        });
+
+        resizeObserver.observe(firstItemRef.current);
+
+        return () => {
+          resizeObserver.disconnect();
+        };
+      }
+    }, [selectedNodes.length]);
 
     if (selectedNodes.length === 0) {
       return (
@@ -286,23 +315,108 @@ export const SelectedResultsGrid = memo(
       );
     }
 
+    // Calculate if item is in last row and how many items in last row
+    const totalItems = selectedNodes.length;
+    const itemsPerRow = 3;
+    const fullRows = Math.floor(totalItems / itemsPerRow);
+    const itemsInLastRow = totalItems % itemsPerRow;
+    const isLastRowIncomplete = itemsInLastRow > 0 && itemsInLastRow < itemsPerRow;
+
+    // Separate items into full rows and last row
+    const fullRowItems = selectedNodes.slice(0, fullRows * itemsPerRow);
+    const lastRowItems = isLastRowIncomplete ? selectedNodes.slice(fullRows * itemsPerRow) : [];
+
     return (
       <div className="w-full h-full overflow-y-auto">
-        <div className="grid grid-cols-3 gap-3 cursor-pointer">
-          {selectedNodes.map((node) => (
+        <div className="space-y-3">
+          {/* Full rows */}
+          {fullRowItems.length > 0 && (
             <div
-              key={node.id}
-              className="relative cursor-pointer overflow-hidden border rounded-lg"
+              className="grid grid-cols-3 cursor-pointer"
               style={{
-                height: '77px',
-                borderRadius: '8px',
-                backgroundColor: 'var(--refly-bg-content-z2)',
-                borderColor: 'var(--refly-Card-Border)',
+                gap: bordered ? '10px' : '12px',
               }}
             >
-              <ResultItemPreview node={node} />
+              {fullRowItems.map((node, index) => (
+                <div
+                  key={node.id}
+                  ref={index === 0 ? firstItemRef : null}
+                  className={`relative cursor-pointer overflow-hidden rounded-lg ${
+                    bordered ? 'border' : ''
+                  }`}
+                  style={{
+                    minWidth: '128px',
+                    aspectRatio: '128 / 77',
+                    borderRadius: '8px',
+                    backgroundColor: 'var(--refly-bg-content-z2)',
+                    ...(bordered
+                      ? {
+                          border:
+                            '1px solid var(--border---refly-Card-Border, rgba(0, 0, 0, 0.10))',
+                          padding: '12px',
+                        }
+                      : {}),
+                  }}
+                >
+                  {bordered ? (
+                    <div className="w-full h-full overflow-hidden rounded-lg">
+                      <ResultItemPreview node={node} />
+                    </div>
+                  ) : (
+                    <ResultItemPreview node={node} />
+                  )}
+                </div>
+              ))}
             </div>
-          ))}
+          )}
+
+          {/* Last incomplete row */}
+          {isLastRowIncomplete && lastRowItems.length > 0 && (
+            <div
+              className="flex cursor-pointer"
+              style={{
+                gap: bordered ? '10px' : '12px',
+              }}
+            >
+              {lastRowItems.map((node) => (
+                <div
+                  key={node.id}
+                  className={`relative cursor-pointer overflow-hidden rounded-lg flex-1 ${
+                    bordered ? 'border' : ''
+                  }`}
+                  style={{
+                    minWidth: '128px',
+                    // Use measured height if there are full rows above and height is measured,
+                    // otherwise use aspectRatio (for initial render or when no full rows exist)
+                    height:
+                      fullRows > 0 && itemHeight !== null
+                        ? `${itemHeight}px`
+                        : fullRows === 0
+                          ? undefined
+                          : '77px', // Fallback during measurement
+                    aspectRatio: fullRows > 0 && itemHeight !== null ? undefined : '128 / 77',
+                    borderRadius: '8px',
+                    backgroundColor: 'var(--refly-bg-content-z2)',
+                    ...(bordered
+                      ? {
+                          border:
+                            '1px solid var(--border---refly-Card-Border, rgba(0, 0, 0, 0.10))',
+                          padding: '12px',
+                        }
+                      : {}),
+                  }}
+                >
+                  {bordered ? (
+                    <div className="w-full h-full overflow-hidden rounded-lg">
+                      <ResultItemPreview node={node} />
+                    </div>
+                  ) : (
+                    <ResultItemPreview node={node} />
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     );
