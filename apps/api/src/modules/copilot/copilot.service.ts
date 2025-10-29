@@ -2,12 +2,18 @@ import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../common/prisma.service';
 import { User, ListCopilotSessionsData, GetCopilotSessionDetailData } from '@refly/openapi-schema';
 import { CopilotSession } from '../../generated/client';
+import { CopilotSessionNotFoundError } from '@refly/errors';
+import { ActionService } from '../action/action.service';
+import { ActionDetail } from '../action/action.dto';
 
 @Injectable()
 export class CopilotService {
   private logger = new Logger(CopilotService.name);
 
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private actionService: ActionService,
+  ) {}
 
   async listCopilotSessions(
     user: User,
@@ -31,7 +37,7 @@ export class CopilotService {
   async getCopilotSessionDetail(
     user: User,
     params: GetCopilotSessionDetailData['query'],
-  ): Promise<CopilotSession | null> {
+  ): Promise<CopilotSession & { results: ActionDetail[] }> {
     const { sessionId } = params;
 
     const session = await this.prisma.copilotSession.findFirst({
@@ -41,6 +47,20 @@ export class CopilotService {
       },
     });
 
-    return session;
+    if (!session) {
+      throw new CopilotSessionNotFoundError();
+    }
+
+    const results = await this.prisma.actionResult.findMany({
+      where: {
+        copilotSessionId: sessionId,
+      },
+    });
+    const actionDetails = await this.actionService.batchProcessActionResults(user, results);
+
+    return {
+      ...session,
+      results: actionDetails,
+    };
   }
 }

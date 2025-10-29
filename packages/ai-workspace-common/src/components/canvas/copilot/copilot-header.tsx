@@ -5,6 +5,7 @@ import { History, SideLeft, NewConversation } from 'refly-icons';
 import { useListCopilotSessions } from '@refly-packages/ai-workspace-common/queries';
 import { CopilotSession } from '@refly/openapi-schema';
 import cn from 'classnames';
+import { useCopilotStoreShallow } from '@refly/stores';
 
 const mockSessions = (canvasId: string) => [
   ...(Array.from({ length: 10 }, (_, index) => ({
@@ -19,27 +20,40 @@ const mockSessions = (canvasId: string) => [
 interface CopilotHeaderProps {
   canvasId: string;
   sessionId: string | null;
-  setSessionId: (sessionId: string | null) => void;
   copilotWidth: number;
   setCopilotWidth: (width: number) => void;
 }
 
 export const CopilotHeader = memo(
-  ({ canvasId, sessionId, setSessionId, copilotWidth, setCopilotWidth }: CopilotHeaderProps) => {
+  ({ canvasId, sessionId, copilotWidth, setCopilotWidth }: CopilotHeaderProps) => {
     const { t } = useTranslation();
     const [isHistoryOpen, setIsHistoryOpen] = useState(false);
 
-    const { data, refetch } = useListCopilotSessions(
+    const { currentSessionId, setCurrentSessionId } = useCopilotStoreShallow((state) => ({
+      currentSessionId: state.currentSessionId[canvasId] ?? null,
+      setCurrentSessionId: state.setCurrentSessionId,
+    }));
+
+    const { data } = useListCopilotSessions(
       {
         query: {
-          canvasId: canvasId,
+          canvasId,
         },
       },
       [],
-      { enabled: false },
+      { enabled: !!canvasId },
     );
 
-    console.log('sessions', data, canvasId);
+    console.log('currentSessionId', currentSessionId);
+
+    useEffect(() => {
+      if (data && !currentSessionId) {
+        const sessions = data.data ?? [];
+        if (sessions.length > 0) {
+          setCurrentSessionId(canvasId, sessions[0].sessionId);
+        }
+      }
+    }, [canvasId, data, currentSessionId, setCurrentSessionId]);
 
     const sessionHistory = useMemo(() => {
       return data?.data || mockSessions(canvasId);
@@ -57,18 +71,12 @@ export const CopilotHeader = memo(
       setCopilotWidth(0);
     }, [copilotWidth, setCopilotWidth]);
 
-    useEffect(() => {
-      if (canvasId) {
-        refetch();
-      }
-    }, [canvasId]);
-
     const handleSessionClick = useCallback(
       (sessionId: string) => {
-        setSessionId(sessionId);
+        setCurrentSessionId(canvasId, sessionId);
         setIsHistoryOpen(false);
       },
-      [setSessionId],
+      [canvasId, setCurrentSessionId],
     );
 
     const content = useMemo(() => {
@@ -129,7 +137,7 @@ export const CopilotHeader = memo(
                 size="small"
                 type="text"
                 icon={<NewConversation size={18} />}
-                onClick={() => setSessionId(null)}
+                onClick={() => setCurrentSessionId(canvasId, null)}
               />
             </Tooltip>
           )}

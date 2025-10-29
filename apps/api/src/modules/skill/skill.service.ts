@@ -63,7 +63,6 @@ import { providerPO2DTO, providerItemPO2DTO } from '../provider/provider.dto';
 import { codeArtifactPO2DTO } from '../code-artifact/code-artifact.dto';
 import { SkillInvokerService } from './skill-invoker.service';
 import { ActionService } from '../action/action.service';
-import { CopilotService } from '../copilot/copilot.service';
 import { ConfigService } from '@nestjs/config';
 import { ToolService } from '../tool/tool.service';
 import { DocumentService } from '../knowledge/document.service';
@@ -98,7 +97,6 @@ export class SkillService implements OnModuleInit {
     private readonly toolService: ToolService,
     private readonly skillInvokerService: SkillInvokerService,
     private readonly actionService: ActionService,
-    private readonly copilotService: CopilotService,
     @Optional()
     @InjectQueue(QUEUE_SKILL)
     private skillQueue?: Queue<InvokeSkillJobData>,
@@ -648,6 +646,57 @@ export class SkillService implements OnModuleInit {
     return { data, existingResult, providerItem };
   }
 
+  async prepareCopilotSession(user: User, param: InvokeSkillRequest): Promise<string> {
+    const { uid } = user;
+    const { copilotSessionId } = param;
+    const sessionTitle = param.input.query || param.input.originalQuery || 'New Copilot Session';
+
+    if (!copilotSessionId) {
+      // Create new copilot session
+      const sessionId = genCopilotSessionID();
+      const canvasId = param.target?.entityId || 'default';
+      const session = await this.prisma.copilotSession.create({
+        data: {
+          sessionId,
+          uid,
+          title: sessionTitle,
+          canvasId,
+        },
+      });
+      this.logger.log(`Created new copilot session: ${sessionId} for user: ${uid}`);
+      return session.sessionId;
+    }
+
+    // Check if the copilot session exists
+    const existingSession = await this.prisma.copilotSession.findFirst({
+      where: {
+        sessionId: copilotSessionId,
+      },
+    });
+    if (!existingSession) {
+      // Create new copilot session if not exists
+      const session = await this.prisma.copilotSession.create({
+        data: {
+          sessionId: copilotSessionId,
+          uid,
+          title: sessionTitle,
+          canvasId: param.target?.entityId,
+        },
+      });
+
+      this.logger.log(`Created new copilot session: ${copilotSessionId} for user: ${uid}`);
+      return session.sessionId;
+    }
+
+    // Check if the session belongs to the current user
+    if (existingSession.uid !== uid) {
+      throw new ParamsError(`Copilot session ${copilotSessionId} does not belong to user ${uid}`);
+    }
+
+    this.logger.log(`Reusing existing copilot session: ${copilotSessionId} for user: ${uid}`);
+    return existingSession.sessionId;
+  }
+
   async skillInvokePreCheck(user: User, param: InvokeSkillRequest): Promise<InvokeSkillJobData> {
     const { uid } = user;
 
@@ -659,35 +708,9 @@ export class SkillService implements OnModuleInit {
     const modelConfigMap = data.modelConfigMap ?? {};
 
     // Handle copilot session logic
-    let copilotSessionId = param.copilotSessionId;
+    let copilotSessionId: string | undefined;
     if (param.mode === 'copilot_agent') {
-      if (!copilotSessionId) {
-        // Create new copilot session
-        const sessionId = genCopilotSessionID();
-        const canvasId = param.target?.entityId || 'default';
-        const session = await this.prisma.copilotSession.create({
-          data: {
-            sessionId,
-            uid,
-            title: param.input.query || param.input.originalQuery || 'New Copilot Session',
-            canvasId,
-          },
-        });
-        copilotSessionId = session.sessionId;
-        this.logger.log(`Created new copilot session: ${sessionId} for user: ${uid}`);
-      } else {
-        // Check if the copilot session exists
-        const existingSession = await this.prisma.copilotSession.findFirst({
-          where: {
-            sessionId: copilotSessionId,
-            uid,
-          },
-        });
-        if (!existingSession) {
-          throw new Error(`Copilot session ${copilotSessionId} not found for user ${uid}`);
-        }
-        this.logger.log(`Using existing copilot session: ${copilotSessionId} for user: ${uid}`);
-      }
+      copilotSessionId = await this.prepareCopilotSession(user, param);
     }
 
     const purgeResultHistory = (resultHistory: ActionResult[] = []) => {
