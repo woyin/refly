@@ -16,6 +16,8 @@ import {
   safeParseJSON,
   genDailyCreditRechargeId,
   genSubscriptionRechargeId,
+  genCommissionCreditUsageId,
+  genCommissionCreditRechargeId,
 } from '@refly/utils';
 import { CreditBalance } from './credit.dto';
 import { CanvasSyncService } from '../canvas-sync/canvas-sync.service';
@@ -31,13 +33,19 @@ export class CreditService {
   ) {}
 
   /**
-   * Create daily gift credit recharge for a user
+   * Process credit recharge with debt payment
    * This method handles debt payment first, then creates a new credit recharge record
    */
-  async createDailyGiftCreditRecharge(
+  private async processCreditRecharge(
     uid: string,
     creditAmount: number,
-    description?: string,
+    rechargeData: {
+      rechargeId: string;
+      source: 'gift' | 'subscription' | 'commission';
+      description?: string;
+      createdAt: Date;
+      expiresAt: Date;
+    },
     now: Date = new Date(),
   ): Promise<void> {
     // Check for existing debts
@@ -80,32 +88,22 @@ export class CreditService {
 
     // Create recharge record only if there are remaining credits after debt payment
     const operations = [...debtPaymentOperations];
-    let expiresAt: Date | undefined;
 
     if (remainingCredits > 0) {
-      // Set created time to start of today (00:00:00)
-      const createdAt = new Date(now);
-      createdAt.setHours(0, 0, 0, 0);
-
-      // Set expires time to start of tomorrow (00:00:00)
-      expiresAt = new Date(now);
-      expiresAt.setDate(expiresAt.getDate() + 1);
-      expiresAt.setHours(0, 0, 0, 0);
-
       operations.push(
         this.prisma.creditRecharge.createMany({
           data: [
             {
-              rechargeId: genDailyCreditRechargeId(uid, now),
+              rechargeId: rechargeData.rechargeId,
               uid,
               amount: remainingCredits,
               balance: remainingCredits,
               enabled: true,
-              source: 'gift',
-              description: description ?? 'Daily gift credit recharge',
-              createdAt: createdAt,
+              source: rechargeData.source,
+              description: rechargeData.description,
+              createdAt: rechargeData.createdAt,
               updatedAt: now,
-              expiresAt: expiresAt,
+              expiresAt: rechargeData.expiresAt,
             },
           ],
           skipDuplicates: true,
@@ -117,9 +115,42 @@ export class CreditService {
     await this.prisma.$transaction(operations);
 
     this.logger.log(
-      `Processed daily gift credit recharge for user ${uid}: ${creditAmount} credits total, ` +
+      `Processed ${rechargeData.source} credit recharge for user ${uid}: ${creditAmount} credits total, ` +
         `${creditAmount - remainingCredits} used for debt payment, ` +
-        `${remainingCredits} added as new balance, expires at ${expiresAt?.toISOString() ?? 'N/A'}`,
+        `${remainingCredits} added as new balance, expires at ${rechargeData.expiresAt.toISOString()}`,
+    );
+  }
+
+  /**
+   * Create daily gift credit recharge for a user
+   * This method handles debt payment first, then creates a new credit recharge record
+   */
+  async createDailyGiftCreditRecharge(
+    uid: string,
+    creditAmount: number,
+    description?: string,
+    now: Date = new Date(),
+  ): Promise<void> {
+    // Set created time to start of today (00:00:00)
+    const createdAt = new Date(now);
+    createdAt.setHours(0, 0, 0, 0);
+
+    // Set expires time to start of tomorrow (00:00:00)
+    const expiresAt = new Date(now);
+    expiresAt.setDate(expiresAt.getDate() + 1);
+    expiresAt.setHours(0, 0, 0, 0);
+
+    await this.processCreditRecharge(
+      uid,
+      creditAmount,
+      {
+        rechargeId: genDailyCreditRechargeId(uid, now),
+        source: 'gift',
+        description: description ?? 'Daily gift credit recharge',
+        createdAt,
+        expiresAt,
+      },
+      now,
     );
   }
 
@@ -134,77 +165,45 @@ export class CreditService {
     description?: string,
     now: Date = new Date(),
   ): Promise<void> {
-    // Check for existing debts
-    const activeDebts = await this.prisma.creditDebt.findMany({
-      where: {
-        uid,
-        enabled: true,
-        balance: {
-          gt: 0,
-        },
+    await this.processCreditRecharge(
+      uid,
+      creditAmount,
+      {
+        rechargeId: genSubscriptionRechargeId(uid, now),
+        source: 'subscription',
+        description,
+        createdAt: now,
+        expiresAt,
       },
-      orderBy: {
-        createdAt: 'asc', // Pay off oldest debts first
-      },
-    });
-
-    let remainingCredits = creditAmount;
-    const debtPaymentOperations = [];
-
-    // Pay off debts first
-    for (const debt of activeDebts) {
-      if (remainingCredits <= 0) break;
-
-      const paymentAmount = Math.min(debt.balance, remainingCredits);
-      const newDebtBalance = debt.balance - paymentAmount;
-
-      debtPaymentOperations.push(
-        this.prisma.creditDebt.update({
-          where: { pk: debt.pk },
-          data: {
-            balance: newDebtBalance,
-            enabled: newDebtBalance > 0, // Disable if fully paid
-            updatedAt: now,
-          },
-        }),
-      );
-
-      remainingCredits -= paymentAmount;
-    }
-
-    // Create recharge record only if there are remaining credits after debt payment
-    const operations = [...debtPaymentOperations];
-
-    if (remainingCredits > 0) {
-      operations.push(
-        this.prisma.creditRecharge.createMany({
-          data: [
-            {
-              rechargeId: genSubscriptionRechargeId(uid, now),
-              uid,
-              amount: remainingCredits,
-              balance: remainingCredits,
-              enabled: true,
-              source: 'subscription',
-              description,
-              createdAt: now,
-              updatedAt: now,
-              expiresAt,
-            },
-          ],
-          skipDuplicates: true,
-        }),
-      );
-    }
-
-    // Execute all operations in a transaction
-    await this.prisma.$transaction(operations);
-
-    this.logger.log(
-      `Processed credit recharge for user ${uid}: ${creditAmount} credits total, ` +
-        `${creditAmount - remainingCredits} used for debt payment, ` +
-        `${remainingCredits} added as new balance, expires at ${expiresAt.toISOString()}`,
+      now,
     );
+  }
+
+  async createCommissionCreditUsageAndRecharge(
+    uid: string,
+    shareUserId: string,
+    executionId: string,
+    creditUsage: number,
+  ): Promise<void> {
+    const creditUsageId = genCommissionCreditUsageId(executionId);
+    const creditRechargeId = genCommissionCreditRechargeId(executionId);
+
+    // Calculate expiresAt for commission credit (1 month from now)
+    const now = new Date();
+    const expiresAt = new Date(now);
+    expiresAt.setMonth(expiresAt.getMonth() + 1);
+
+    await this.processCreditRecharge(shareUserId, creditUsage, {
+      rechargeId: creditRechargeId,
+      source: 'commission',
+      description: `Commission credit for sharing execution ${executionId}`,
+      createdAt: now,
+      expiresAt,
+    });
+    await this.deductCreditsAndCreateUsage(uid, creditUsage, {
+      usageId: creditUsageId,
+      createdAt: now,
+    });
   }
 
   /**
@@ -398,7 +397,7 @@ export class CreditService {
     creditCost: number,
     usageData: {
       usageId: string;
-      actionResultId: string;
+      actionResultId?: string;
       providerItemId?: string;
       modelName?: string;
       usageType?: string;
@@ -848,6 +847,20 @@ export class CreditService {
       .map((node) => node.data.entityId);
     const total = await Promise.all(
       canvasResultIds.map((canvasResultId) => this.countResultCreditUsage(canvasResultId)),
+    );
+    return total.reduce((sum, total) => {
+      return sum + total;
+    }, 0);
+  }
+
+  async countCanvasCreditUsageByCanvasId(canvasId: string): Promise<number> {
+    const results = await this.prisma.actionResult.findMany({
+      where: {
+        targetId: canvasId,
+      },
+    });
+    const total = await Promise.all(
+      results.map((result) => this.countResultCreditUsage(result.resultId)),
     );
     return total.reduce((sum, total) => {
       return sum + total;

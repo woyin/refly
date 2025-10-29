@@ -30,6 +30,8 @@ import { WorkflowNodeExecution as WorkflowNodeExecutionPO } from '../../generate
 import { QUEUE_POLL_WORKFLOW, QUEUE_RUN_WORKFLOW } from '../../utils/const';
 import { CanvasNotFoundError, WorkflowExecutionNotFoundError } from '@refly/errors';
 import { RedisService } from '../common/redis.service';
+import { CreditService } from '../credit/credit.service';
+import { ceil } from 'lodash';
 
 const WORKFLOW_POLL_INTERVAL = 1500;
 
@@ -43,6 +45,7 @@ export class WorkflowService {
     private readonly skillService: SkillService,
     private readonly canvasService: CanvasService,
     private readonly canvasSyncService: CanvasSyncService,
+    private readonly creditService: CreditService,
     @InjectQueue(QUEUE_RUN_WORKFLOW) private readonly runWorkflowQueue?: Queue,
     @InjectQueue(QUEUE_POLL_WORKFLOW) private readonly pollWorkflowQueue?: Queue,
   ) {}
@@ -563,6 +566,39 @@ export class WorkflowService {
         status = 'failed';
       } else if (waitingNodes === 0 && executingNodes === 0) {
         status = 'finish';
+
+        // Check workflow execution for appId and validate uid consistency
+        const workflowExecution = await this.prisma.workflowExecution.findUnique({
+          select: {
+            executionId: true,
+            appId: true,
+            canvasId: true,
+          },
+          where: { executionId },
+        });
+
+        if (workflowExecution?.appId) {
+          const workflowApp = await this.prisma.workflowApp.findUnique({
+            select: {
+              appId: true,
+              uid: true,
+            },
+            where: { appId: workflowExecution.appId },
+          });
+
+          if (workflowApp && workflowApp.uid !== user.uid) {
+            const creditUsage = await this.creditService.countCanvasCreditUsageByCanvasId(
+              workflowExecution.canvasId,
+            );
+            const commissionCredit = ceil(creditUsage * 0.2);
+            await this.creditService.createCommissionCreditUsageAndRecharge(
+              user.uid,
+              workflowApp.uid,
+              executionId,
+              commissionCredit,
+            );
+          }
+        }
       }
 
       await this.prisma.workflowExecution.update({
