@@ -2,7 +2,7 @@ import { useMemo, useCallback, memo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button, message, Tooltip } from 'antd';
 import { ModelIcon } from '@lobehub/icons';
-import { ActionResult, ActionStep, ModelInfo, Source } from '@refly/openapi-schema';
+import { ActionResult, ActionStep, GenericToolset, ModelInfo, Source } from '@refly/openapi-schema';
 import { CheckCircleOutlined, CopyOutlined, ImportOutlined } from '@ant-design/icons';
 import { copyToClipboard } from '@refly-packages/ai-workspace-common/utils';
 import { parseMarkdownCitationsAndCanvasTags, safeParseJSON } from '@refly/utils/parse';
@@ -18,11 +18,17 @@ interface ActionContainerProps {
   step: ActionStep;
   result: ActionResult;
   nodeId?: string;
+  initSelectedToolsets?: GenericToolset[];
 }
 
 const buttonClassName = 'text-xs flex justify-center items-center h-6 px-1 rounded-lg';
 
-const ActionContainerComponent = ({ result, step, nodeId }: ActionContainerProps) => {
+const ActionContainerComponent = ({
+  result,
+  step,
+  nodeId,
+  initSelectedToolsets,
+}: ActionContainerProps) => {
   const { t } = useTranslation();
   const { debouncedCreateDocument, isCreating } = useCreateDocument();
   const { readonly } = useCanvasContext();
@@ -155,6 +161,7 @@ const ActionContainerComponent = ({ result, step, nodeId }: ActionContainerProps
           initContextItems={initContextItems}
           initModelInfo={initModelInfo}
           nodeId={nodeId}
+          initSelectedToolsets={initSelectedToolsets}
         />
       )}
 
@@ -209,10 +216,4 @@ const ActionContainerComponent = ({ result, step, nodeId }: ActionContainerProps
   );
 };
 
-export const ActionContainer = memo(ActionContainerComponent, (prevProps, nextProps) => {
-  return (
-    prevProps.step === nextProps.step &&
-    prevProps.result === nextProps.result &&
-    prevProps.nodeId === nextProps.nodeId
-  );
-});
+export const ActionContainer = memo(ActionContainerComponent);
