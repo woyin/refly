@@ -1,21 +1,10 @@
-import { memo, useCallback, useEffect, useMemo, useState } from 'react';
+import { memo, useCallback, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Tooltip, Button, Divider, Popover } from 'antd';
 import { History, SideLeft, NewConversation } from 'refly-icons';
 import { useListCopilotSessions } from '@refly-packages/ai-workspace-common/queries';
-import { CopilotSession } from '@refly/openapi-schema';
 import cn from 'classnames';
 import { useCopilotStoreShallow } from '@refly/stores';
-
-const mockSessions = (canvasId: string) => [
-  ...(Array.from({ length: 10 }, (_, index) => ({
-    sessionId: `history-${index + 1}`,
-    title: `历史会话${index + 1}1111111111`,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    canvasId,
-  })) as CopilotSession[]),
-];
 
 interface CopilotHeaderProps {
   canvasId: string;
@@ -29,8 +18,7 @@ export const CopilotHeader = memo(
     const { t } = useTranslation();
     const [isHistoryOpen, setIsHistoryOpen] = useState(false);
 
-    const { currentSessionId, setCurrentSessionId } = useCopilotStoreShallow((state) => ({
-      currentSessionId: state.currentSessionId[canvasId] ?? null,
+    const { setCurrentSessionId } = useCopilotStoreShallow((state) => ({
       setCurrentSessionId: state.setCurrentSessionId,
     }));
 
@@ -44,20 +32,9 @@ export const CopilotHeader = memo(
       { enabled: !!canvasId },
     );
 
-    console.log('currentSessionId', currentSessionId);
-
-    useEffect(() => {
-      if (data && !currentSessionId) {
-        const sessions = data.data ?? [];
-        if (sessions.length > 0) {
-          setCurrentSessionId(canvasId, sessions[0].sessionId);
-        }
-      }
-    }, [canvasId, data, currentSessionId, setCurrentSessionId]);
-
     const sessionHistory = useMemo(() => {
-      return data?.data || mockSessions(canvasId);
-    }, [data, canvasId]);
+      return data?.data ?? [];
+    }, [data]);
 
     const showDivider = useMemo(() => {
       return sessionHistory.length > 0 || !!sessionId;
@@ -91,7 +68,7 @@ export const CopilotHeader = memo(
               <div className="w-7 h-7 flex items-center justify-center">
                 <History size={20} />
               </div>
-              <div className="max-w-[400px] truncate text-refly-text-0 text-sm leading-5">
+              <div className="min-w-[200px] max-w-[400px] truncate text-refly-text-0 text-sm leading-5">
                 {session.title}
               </div>
             </div>

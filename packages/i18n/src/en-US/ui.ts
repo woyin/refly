@@ -3058,6 +3058,9 @@ const translations = {
       query3:
         'Help me generate a sequence of animation scenes in the style of Makoto Shinkai, telling the story of "growing up" from childhood to adulthood.',
     },
+    sessionDetail: {
+      thinking: 'Thinking...',
+    },
     addContext: 'Add Context',
     moreSettings: 'More Settings',
     baseContextCard: {

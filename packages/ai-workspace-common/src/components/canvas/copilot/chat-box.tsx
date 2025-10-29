@@ -75,7 +75,7 @@ export const ChatBox = memo(({ canvasId, query, setQuery }: ChatBoxProps) => {
         setContextItems={setContextItems}
         modelInfo={null}
         setModelInfo={() => {}}
-        enableRichInput={true}
+        enableRichInput={false}
         selectedToolsets={selectedToolsets}
         onSelectedToolsetsChange={setSelectedToolsets}
         isExecuting={isExecuting}

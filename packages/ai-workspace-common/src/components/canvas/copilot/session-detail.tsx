@@ -4,33 +4,42 @@ import { useGetCopilotSessionDetail } from '@refly-packages/ai-workspace-common/
 import { useActionResultStoreShallow, useCopilotStoreShallow } from '@refly/stores';
 import { ActionResult } from '@refly/openapi-schema';
 import { Markdown } from '@refly-packages/ai-workspace-common/components/markdown';
-import { LoadingOutlined } from '@ant-design/icons';
+import { useTranslation } from 'react-i18next';
 
 interface SessionDetailProps {
   sessionId: string;
 }
 
-const CopilotMessage = memo(({ result }: { result: ActionResult }) => {
+interface CopilotMessageProps {
+  result: ActionResult;
+  isFinal: boolean;
+}
+
+const CopilotMessage = memo(({ result, isFinal }: CopilotMessageProps) => {
   const { input, steps, status } = result;
   const content = steps?.[0]?.content ?? '';
+  console.log('CopilotMessage content', result);
+  const { t } = useTranslation();
+
+  const isThinking = useMemo(() => {
+    return ['waiting', 'executing'].includes(status ?? '') && !content;
+  }, [status, content]);
 
   return (
     <div className="flex flex-col gap-4">
       {/* User query - right aligned blue bubble */}
-      <div className="flex justify-end">
-        <div className="max-w-[80%] rounded-lg bg-refly-primary-default px-3 py-2 text-sm text-white">
+      <div className="flex justify-end pl-5">
+        <div className="rounded-xl bg-[#F2FDFF] text-refly-text-0 px-4 py-3 text-[15px]">
           {input?.query}
         </div>
       </div>
       {/* AI response - left aligned */}
-      <div className="text-sm text-refly-text-secondary-default">
-        {status === 'executing' && !content ? (
-          <LoadingOutlined className="ml-2" />
-        ) : (
-          <Markdown content={content} mode="readonly" />
-        )}
-      </div>
-      <Divider type="horizontal" />
+      {isThinking ? (
+        <div className="mt-4 text-refly-text-2">{t('copilot.sessionDetail.thinking')}</div>
+      ) : (
+        <Markdown content={content} mode="readonly" />
+      )}
+      {!isFinal && <Divider type="horizontal" className="my-[10px] bg-refly-Card-Border h-[1px]" />}
     </div>
   );
 });
@@ -66,6 +75,7 @@ export const SessionDetail = memo(({ sessionId }: SessionDetailProps) => {
   );
 
   useEffect(() => {
+    console.log('SessionDetail sessionId', sessionId);
     if (sessionId) {
       refetch();
     }
@@ -102,9 +112,13 @@ export const SessionDetail = memo(({ sessionId }: SessionDetailProps) => {
       {isLoading ? (
         loadingSkeleton
       ) : (
-        <div>
-          {results.map((result) => (
-            <CopilotMessage key={result.resultId} result={result} />
+        <div className="flex flex-col gap-4">
+          {results.map((result, index) => (
+            <CopilotMessage
+              key={result.resultId}
+              result={result}
+              isFinal={index === results.length - 1}
+            />
           ))}
         </div>
       )}

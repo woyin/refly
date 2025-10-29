@@ -3040,6 +3040,9 @@ const translations = {
       query2: '帮我抓取今天的 Product Hunt Top 10，生成总结文档和产品播客，并把链接发到我的邮箱。',
       query3: '帮我生成一组新海诚风格、讲述“从小到大”成长故事的序列动画场景。',
     },
+    sessionDetail: {
+      thinking: '思考中...',
+    },
     addContext: '添加上下文',
     moreSettings: '更多设置',
     baseContextCard: {
@@ -3424,13 +3427,7 @@ const translations = {
     run: {
       completed: 'App 运行成功',
       failed: 'App 运行失败',
-      error: '运行失败',
-      loginRequired: '请登录以运行此工作流',
-      loginRequiredCopy: '请登录以复制此工作流',
-      workflowStarted: '工作流已启动',
-      executionIdFailed: '获取执行 ID 失败',
-      executeFailed: '执行工作流失败',
-      executeError: '执行工作流失败',
+      error: '运行出错',
     },
   },
   project: {
