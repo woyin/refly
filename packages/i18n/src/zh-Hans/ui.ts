@@ -3418,6 +3418,7 @@ const translations = {
     selectResults: '选择结果',
     noResultsAvailable: '暂无可用结果',
     noResultsSelected: '暂无选择结果',
+    resultPreview: '产物预览',
     run: {
       completed: 'App 运行成功',
       failed: 'App 运行失败',

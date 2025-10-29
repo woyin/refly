@@ -35,7 +35,7 @@ const WhyChooseRefly: React.FC = memo(() => {
   ];
 
   return (
-    <div className="w-full max-w-[800px] mx-auto mt-[80px] md:mt-[160px] mb-[50px] px-4">
+    <div className="w-full max-w-[800px] mx-auto mt-[50px] md:mt-[50px] mb-[50px] px-4">
       {/* Main container with responsive dimensions */}
       <div
         className="relative w-full rounded-2xl overflow-hidden flex flex-col items-center"

@@ -410,15 +410,34 @@ const WorkflowAppPage: React.FC = () => {
               style={{
                 borderColor: 'var(--refly-Card-Border)',
                 backgroundColor: 'var(--refly-bg-content-z2)',
+                marginTop: '50px',
               }}
             >
               {/* results grid */}
               {workflowApp?.resultNodeIds?.length > 0 && (
-                <SelectedResultsGrid
-                  bordered
-                  selectedResults={workflowApp?.resultNodeIds ?? []}
-                  options={workflowApp?.canvasData?.nodes || []}
-                />
+                <div
+                  className="flex flex-col"
+                  style={{
+                    gap: '10px',
+                  }}
+                >
+                  <div
+                    className="text-center text-[var(--refly-text-0)] dark:text-[var(--refly-text-StaticWhite)]"
+                    style={{
+                      fontFamily: 'PingFang SC',
+                      fontWeight: 600,
+                      fontSize: '14px',
+                      lineHeight: '1.4285714285714286em',
+                    }}
+                  >
+                    {t('workflowApp.resultPreview')}
+                  </div>
+                  <SelectedResultsGrid
+                    bordered
+                    selectedResults={workflowApp?.resultNodeIds ?? []}
+                    options={workflowApp?.canvasData?.nodes || []}
+                  />
+                </div>
               )}
             </div>
 
