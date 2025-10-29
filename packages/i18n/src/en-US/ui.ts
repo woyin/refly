@@ -3648,7 +3648,7 @@ const translations = {
     templateDescriptionPlaceholder: 'Please enter template description',
     createSuccess: 'Template created successfully, please view in template library',
     preview: 'Try it',
-    use: 'Make the Same',
+    use: 'Remix',
     duplicateCanvas: 'Remix Workflow',
     canvasTitle: 'Workflow Name',
     duplicateCanvasTitlePlaceholder: 'Please enter canvas name',
@@ -3684,7 +3684,13 @@ const translations = {
     run: {
       completed: 'App run successfully',
       failed: 'App run failed',
-      error: 'Run error',
+      error: 'Run failed',
+      loginRequired: 'Please login to run this workflow',
+      loginRequiredCopy: 'Please login to copy this workflow',
+      workflowStarted: 'Workflow started',
+      executionIdFailed: 'Failed to get execution ID',
+      executeFailed: 'Failed to execute workflow',
+      executeError: 'Failed to execute workflow',
     },
   },
   project: {
