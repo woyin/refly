@@ -406,7 +406,7 @@ const WorkflowAppPage: React.FC = () => {
             </div>
 
             <div
-              className="w-full max-w-[800px] mx-auto rounded-lg py-3 px-4 sm:px-6 lg:px-8"
+              className="w-full max-w-[800px] mx-auto rounded-lg py-3 px-4"
               style={{
                 borderColor: 'var(--refly-Card-Border)',
                 backgroundColor: 'var(--refly-bg-content-z2)',
