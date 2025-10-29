@@ -95,12 +95,7 @@ const VideoPreview = memo(({ node }: { node: CanvasNode }) => {
       </video>
       {/* Play button overlay - only show when not playing */}
       {!isPlaying && (
-        <div
-          className={`absolute inset-0 flex items-center justify-center transition-opacity duration-200 ${
-            isHovered ? 'bg-opacity-20' : 'bg-opacity-30'
-          }`}
-          style={{ backgroundColor: 'var(--refly-modal-mask)' }}
-        >
+        <div className="absolute inset-0 flex items-center justify-center">
           <div
             className={`w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200 ${
               isHovered ? 'scale-110' : ''
@@ -196,12 +191,7 @@ const AudioPreview = memo(({ node }: { node: CanvasNode }) => {
 
       {/* Play button overlay - only show when not playing */}
       {!isPlaying && (
-        <div
-          className={`absolute inset-0 flex items-center justify-center transition-opacity duration-200 ${
-            isHovered ? 'bg-opacity-20' : 'bg-opacity-30'
-          }`}
-          style={{ backgroundColor: 'var(--refly-modal-mask)' }}
-        >
+        <div className="absolute inset-0 flex items-center justify-center">
           <div
             className={`w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200 ${
               isHovered ? 'scale-110' : ''
