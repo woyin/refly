@@ -4,6 +4,7 @@ import { CanvasNode } from '@refly/canvas-common';
 import { PreviewComponent } from '@refly-packages/ai-workspace-common/components/canvas/node-preview';
 import { Markdown } from '@refly-packages/ai-workspace-common/components/markdown';
 import { Play } from 'refly-icons';
+import AudioBgSvg from './audioBg.svg';
 
 export interface SelectedResultsGridProps {
   selectedResults: string[];
@@ -15,7 +16,12 @@ const ResultItemPreview = memo(({ node }: { node: CanvasNode }) => {
   const { t } = useTranslation();
   const [isVideoPlaying, setIsVideoPlaying] = useState(false);
   const [isVideoHovered, setIsVideoHovered] = useState(false);
+  const [isAudioPlaying, setIsAudioPlaying] = useState(false);
+  const [isAudioHovered, setIsAudioHovered] = useState(false);
+  const [videoProgress, setVideoProgress] = useState(0);
+  const [audioProgress, setAudioProgress] = useState(0);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const audioRef = useRef<HTMLAudioElement>(null);
 
   // For document nodes, show the contentPreview as markdown
   if (node.type === 'document' && node.data?.contentPreview) {
@@ -58,6 +64,14 @@ const ResultItemPreview = memo(({ node }: { node: CanvasNode }) => {
 
     const handleVideoEnd = () => {
       setIsVideoPlaying(false);
+      setVideoProgress(0);
+    };
+
+    const handleVideoTimeUpdate = () => {
+      if (videoRef.current) {
+        const progress = (videoRef.current.currentTime / videoRef.current.duration) * 100;
+        setVideoProgress(progress);
+      }
     };
 
     return (
@@ -74,7 +88,10 @@ const ResultItemPreview = memo(({ node }: { node: CanvasNode }) => {
           muted
           preload="metadata"
           onEnded={handleVideoEnd}
-        />
+          onTimeUpdate={handleVideoTimeUpdate}
+        >
+          <track kind="captions" />
+        </video>
         {/* Play button overlay - only show when not playing */}
         {!isVideoPlaying && (
           <div
@@ -93,6 +110,105 @@ const ResultItemPreview = memo(({ node }: { node: CanvasNode }) => {
             >
               <Play color="white" className="w-4 h-4 text-white ml-0.5" />
             </div>
+          </div>
+        )}
+        {/* Progress bar - only show when playing */}
+        {isVideoPlaying && (
+          <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-black bg-opacity-40 rounded-full overflow-hidden">
+            <div
+              className="h-full bg-white rounded-full transition-all duration-300 ease-out"
+              style={{
+                width: `${videoProgress}%`,
+                transition: 'width 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+              }}
+            />
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // For audio nodes, show the audio with fixed background and play button overlay
+  if (node.type === 'audio' && node.data?.metadata?.audioUrl) {
+    const handleAudioClick = () => {
+      if (audioRef.current) {
+        if (isAudioPlaying) {
+          audioRef.current.pause();
+          setIsAudioPlaying(false);
+        } else {
+          audioRef.current.play();
+          setIsAudioPlaying(true);
+        }
+      }
+    };
+
+    const handleAudioEnd = () => {
+      setIsAudioPlaying(false);
+      setAudioProgress(0);
+    };
+
+    const handleAudioTimeUpdate = () => {
+      if (audioRef.current) {
+        const progress = (audioRef.current.currentTime / audioRef.current.duration) * 100;
+        setAudioProgress(progress);
+      }
+    };
+
+    return (
+      <div
+        className="w-full h-full relative overflow-hidden cursor-pointer"
+        onClick={handleAudioClick}
+        onMouseEnter={() => setIsAudioHovered(true)}
+        onMouseLeave={() => setIsAudioHovered(false)}
+        style={{
+          background: 'var(--typeColoful---refly-Colorful-red-light, #FFEFED)',
+        }}
+      >
+        {/* Fixed background pattern */}
+        <div className="absolute inset-0 opacity-30">
+          <div className="w-full h-full flex items-center justify-center">
+            <img src={AudioBgSvg} alt="Audio background" className="w-full h-full object-contain" />
+          </div>
+        </div>
+
+        {/* Hidden audio element */}
+        <audio
+          ref={audioRef}
+          src={node.data.metadata.audioUrl as string}
+          onEnded={handleAudioEnd}
+          onTimeUpdate={handleAudioTimeUpdate}
+        >
+          <track kind="captions" />
+        </audio>
+
+        {/* Play button overlay - only show when not playing */}
+        {!isAudioPlaying && (
+          <div
+            className={`absolute inset-0 flex items-center justify-center transition-opacity duration-200 ${"   isAudioHovered ? 'bg-opacity-20' : 'bg-opacity-30'"}`}
+          >
+            <div
+              className={`w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200 ${
+                isAudioHovered ? 'scale-110' : ''
+              }`}
+              style={{
+                borderRadius: '80px',
+                background: 'rgba(28, 31, 35, 0.60)',
+              }}
+            >
+              <Play color="white" className="w-4 h-4 text-white ml-0.5" />
+            </div>
+          </div>
+        )}
+        {/* Progress bar - only show when playing */}
+        {isAudioPlaying && (
+          <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-black bg-opacity-40 rounded-full overflow-hidden">
+            <div
+              className="h-full bg-white rounded-full transition-all duration-300 ease-out"
+              style={{
+                width: `${audioProgress}%`,
+                transition: 'width 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+              }}
+            />
           </div>
         )}
       </div>
