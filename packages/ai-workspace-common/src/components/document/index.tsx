@@ -353,7 +353,7 @@ const DocumentEditorHeader = memo(({ docId, nodeId, readonly }: DocumentEditorHe
   useEffect(() => {
     const timer = setTimeout(() => {
       syncTitleToYDoc((node?.data?.title as string) ?? '');
-    }, 100);
+    }, 200);
     return () => clearTimeout(timer);
   }, []);
 
