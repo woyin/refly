@@ -269,7 +269,8 @@ export const CreateWorkflowAppModal = ({
           variables: workflowVariables ?? [],
           coverStorageKey,
           remixEnabled,
-        } as any,
+          resultNodeIds: selectedResults,
+        },
       });
 
       const shareId = data?.data?.shareId ?? '';
@@ -377,6 +378,9 @@ export const CreateWorkflowAppModal = ({
         description: appData.description ?? '',
         remixEnabled: appData.remixEnabled ?? false,
       });
+
+      // Set result node IDs if exists
+      setSelectedResults(appData.resultNodeIds ?? []);
 
       // Set cover image if exists
       if (appData.coverUrl) {

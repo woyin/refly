@@ -8516,9 +8516,20 @@ export const CreateWorkflowAppRequestSchema = {
         $ref: '#/components/schemas/WorkflowVariable',
       },
     },
+    resultNodeIds: {
+      type: 'array',
+      description: 'Result node IDs',
+      items: {
+        type: 'string',
+      },
+    },
     coverStorageKey: {
       type: 'string',
       description: 'Cover image storage key',
+    },
+    remixEnabled: {
+      type: 'boolean',
+      description: 'Whether remix is enabled for this app',
     },
   },
 } as const;
@@ -8572,6 +8583,17 @@ export const WorkflowAppSchema = {
       items: {
         $ref: '#/components/schemas/WorkflowVariable',
       },
+    },
+    resultNodeIds: {
+      type: 'array',
+      description: 'Result node IDs',
+      items: {
+        type: 'string',
+      },
+    },
+    remixEnabled: {
+      type: 'boolean',
+      description: 'Whether remix is enabled for this app',
     },
     coverUrl: {
       type: 'string',

@@ -6018,9 +6018,17 @@ export type CreateWorkflowAppRequest = {
    */
   variables: Array<WorkflowVariable>;
   /**
+   * Result node IDs
+   */
+  resultNodeIds?: Array<string>;
+  /**
    * Cover image storage key
    */
   coverStorageKey: string;
+  /**
+   * Whether remix is enabled for this app
+   */
+  remixEnabled?: boolean;
 };
 
 export type DeleteWorkflowAppRequest = {
@@ -6063,6 +6071,14 @@ export type WorkflowApp = {
    * Workflow app variables
    */
   variables: Array<WorkflowVariable>;
+  /**
+   * Result node IDs
+   */
+  resultNodeIds?: Array<string>;
+  /**
+   * Whether remix is enabled for this app
+   */
+  remixEnabled?: boolean;
   /**
    * Cover image URL
    */
