@@ -478,7 +478,13 @@ export const CreateWorkflowAppModal = ({
                     options={resultNodes}
                   />
                 </div>
-                <div className="w-full rounded-lg border border-solid border-[rgba(0,0,0,0.1)] bg-[#FBFBFB] p-3">
+                <div
+                  className="w-full rounded-lg border border-solid p-3"
+                  style={{
+                    borderColor: 'var(--refly-Card-Border)',
+                    backgroundColor: 'var(--refly-bg-content-z2)',
+                  }}
+                >
                   <SelectedResultsGrid selectedResults={selectedResults} options={resultNodes} />
                 </div>
               </div>

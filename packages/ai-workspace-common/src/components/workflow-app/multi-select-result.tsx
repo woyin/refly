@@ -68,8 +68,8 @@ export const MultiSelectResult = memo(
             className="absolute top-full right-0 mt-1 w-80 z-50"
             style={{
               borderRadius: '12px',
-              border: '1px solid var(--border---refly-Card-Border, rgba(0, 0, 0, 0.10))',
-              background: 'var(--bg---refly-bg-body-z0, #FFF)',
+              border: '1px solid var(--refly-Card-Border)',
+              backgroundColor: 'var(--refly-bg-body-z0)',
               boxShadow: '0 2px 20px 4px rgba(0, 0, 0, 0.04)',
             }}
           >
@@ -84,8 +84,17 @@ export const MultiSelectResult = memo(
                     <div
                       key={option.id}
                       className={cn(
-                        'h-9 group p-2 cursor-pointer hover:bg-refly-tertiary-hover flex items-center justify-between gap-2 text-refly-text-0 rounded-lg',
+                        'h-9 group p-2 cursor-pointer flex items-center justify-between gap-2 text-refly-text-0 rounded-lg',
                       )}
+                      style={{
+                        backgroundColor: 'transparent',
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = 'var(--refly-tertiary-hover)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = 'transparent';
+                      }}
                       onClick={() => handleToggleOption(option.id)}
                     >
                       <div className="flex items-center gap-2 flex-1 min-w-0">
@@ -97,17 +106,17 @@ export const MultiSelectResult = memo(
                                 'bg-refly-primary-default border-refly-primary-default',
                             )}
                             style={{
-                              borderRadius: 'var(--radius-checkbox_inner, 3px)',
+                              borderRadius: '3px',
                               border: selectedResults.includes(option.id)
                                 ? '1px solid var(--refly-primary-default)'
-                                : '1px solid var(--border---refly-Control-Border, rgba(0, 0, 0, 0.14))',
-                              background: selectedResults.includes(option.id)
+                                : '1px solid var(--refly-semi-color-border)',
+                              backgroundColor: selectedResults.includes(option.id)
                                 ? 'var(--refly-primary-default)'
-                                : 'var(--bg-control---refly-bg-control-z2, #FFF)',
+                                : 'var(--refly-bg-control-z1)',
                             }}
                           >
                             {selectedResults.includes(option.id) && (
-                              <Checked size={10} color="white" />
+                              <Checked size={10} color="var(--refly-text-StaticWhite)" />
                             )}
                           </div>
                         </div>
@@ -121,7 +130,7 @@ export const MultiSelectResult = memo(
                           className="block flex-1 min-w-0"
                           style={{
                             overflow: 'hidden',
-                            color: 'var(--text-icon-refly-text-0, #1C1F23)',
+                            color: 'var(--refly-text-0)',
                             textOverflow: 'ellipsis',
                             fontFamily: '"PingFang SC"',
                             fontSize: '14px',
