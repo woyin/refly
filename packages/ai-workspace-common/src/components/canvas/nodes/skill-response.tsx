@@ -557,6 +557,7 @@ export const SkillResponseNode = memo(
             .filter(Boolean)
             .join('\n\n')
             .replace(/<tool_use>[\s\S]*?<\/tool_use>/g, '')
+            .replace(/```tool_use[\s\S]*?```/g, '')
             .trim();
 
           const { position, connectTo } = getConnectionInfo(

@@ -1396,6 +1396,10 @@ const translations = {
         duplicateFileName: 'File with the same name already exists, please replace the file',
         tooManyFiles: 'Maximum {{max}} file allowed',
         noSpacesAllowed: 'Variable name cannot contain spaces',
+        optionSelectedDeleteTooltip:
+          'The option has been selected as a variable value, cannot be deleted temporarily',
+        optionSelectedEditTooltip:
+          'The option has been selected as a variable value, cannot be edited temporarily',
       },
       run: {
         title: 'Run Workflow',
