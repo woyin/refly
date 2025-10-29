@@ -128,7 +128,6 @@ export class WorkflowAppService {
           coverStorageKey: coverStorageKey as any,
           templateContent: null,
           remixEnabled,
-          creditUsage,
           updatedAt: new Date(),
         },
       });
@@ -146,7 +145,6 @@ export class WorkflowAppService {
           coverStorageKey: coverStorageKey as any,
           templateContent: null,
           remixEnabled,
-          creditUsage,
         },
       });
     }
