@@ -104,10 +104,35 @@ const getFileExtension = (nodeType: string, metadata?: any): string => {
 };
 
 // Get sanitized filename
-const getSanitizedFileName = (title: string, nodeType: string, metadata?: any): string => {
-  const sanitizedTitle = title?.replace(/[<>:"/\\|?*]/g, '_') || `${nodeType}_${Date.now()}`;
+const getSanitizedFileName = (
+  title: string,
+  nodeType: string,
+  metadata?: any,
+  maxTitleLength = 20,
+): string => {
   const extension = getFileExtension(nodeType, metadata);
-  return `${sanitizedTitle}.${extension}`;
+  const timestamp = Date.now();
+
+  // Sanitize title and truncate to max length
+  let sanitizedTitle = '';
+  if (title) {
+    // Replace spaces with underscores
+    let cleanedTitle = title.replace(/\s+/g, '_');
+    // Remove all special characters, keep only alphanumeric, Chinese characters, and underscores
+    // \w matches [a-zA-Z0-9_], \u4e00-\u9fa5 matches Chinese characters
+    cleanedTitle = cleanedTitle.replace(/[^\w\u4e00-\u9fa5]/g, '');
+    // Remove consecutive underscores
+    cleanedTitle = cleanedTitle.replace(/_+/g, '_');
+    // Trim underscores from start and end
+    cleanedTitle = cleanedTitle.replace(/^_+|_+$/g, '');
+    // Truncate to max length
+    sanitizedTitle = cleanedTitle.slice(0, maxTitleLength);
+  }
+
+  // Build filename: [title]_[timestamp].[extension]
+  // If no title, use nodeType as fallback
+  const namePrefix = sanitizedTitle || nodeType;
+  return `${namePrefix}_${timestamp}.${extension}`;
 };
 
 // Check if node has downloadable data

@@ -134,7 +134,7 @@ export const CreateWorkflowAppModal = ({
       (node) =>
         ['document', 'codeArtifact', 'website', 'video', 'audio'].includes(node.type) ||
         (node.type === 'image' && !!node.data?.metadata?.resultId),
-    );
+    ) as unknown as CanvasNode[];
   }, [nodes]);
 
   // Load existing app data
