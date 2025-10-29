@@ -353,9 +353,9 @@ const DocumentEditorHeader = memo(({ docId, nodeId, readonly }: DocumentEditorHe
   useEffect(() => {
     const timer = setTimeout(() => {
       syncTitleToYDoc((node?.data?.title as string) ?? '');
-    }, 200);
+    }, 100);
     return () => clearTimeout(timer);
-  }, []);
+  }, [node?.data?.title]);
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
     // Skip custom handling when IME composition is in progress
