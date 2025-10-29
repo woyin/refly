@@ -26,6 +26,8 @@ import {
 } from '@refly-packages/ai-workspace-common/utils/download-node-data';
 import { Share } from 'refly-icons';
 import { logEvent } from '@refly/telemetry-web';
+import { CanvasNode } from '@refly/openapi-schema';
+import { ResultItemPreview } from '@refly-packages/ai-workspace-common/components/workflow-app/ResultItemPreview';
 
 // Create a generic content container component to reduce code duplication
 const ContentContainer = ({
@@ -156,8 +158,6 @@ const NodeRenderer = memo(
           isModal={isModal}
           node={node}
           isMinimap={isMinimap}
-          onMaximize={onStartSlideshow && (() => onStartSlideshow?.(node.nodeId))}
-          onWideMode={onWideMode && (() => onWideMode?.(node.nodeId))}
           onDelete={onDelete}
           rightActions={
             <div className="flex items-center gap-1">
@@ -191,7 +191,7 @@ const NodeRenderer = memo(
       ) : null;
 
     // Use useMemo to cache rendered content, avoiding unnecessary recalculations
-    const renderContent = useMemo(() => {
+    const _renderContent = useMemo(() => {
       // Return appropriate renderer based on node type
       switch (node.nodeType) {
         case 'codeArtifact':
@@ -386,7 +386,17 @@ const NodeRenderer = memo(
       handleShare,
     ]);
 
-    return renderContent;
+    return (
+      <div className="flex flex-col h-full">
+        {renderNodeHeader}
+        <div className="m-3 h-full overflow-hidden rounded-lg cursor-pointer">
+          <ResultItemPreview
+            onViewClick={onWideMode && (() => onWideMode?.(node.nodeId))}
+            node={{ ...node, data: node.nodeData, type: node.nodeType } as unknown as CanvasNode}
+          />
+        </div>
+      </div>
+    );
   },
   // Custom comparison function, only re-render when key properties change
   (prevProps, nextProps) => {

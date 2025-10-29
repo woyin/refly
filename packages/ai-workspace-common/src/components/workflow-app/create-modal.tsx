@@ -12,6 +12,7 @@ import { logEvent } from '@refly/telemetry-web';
 import { MultiSelectResult } from './multi-select-result';
 import { SelectedResultsGrid } from './selected-results-grid';
 import { useRealtimeCanvasData } from '@refly-packages/ai-workspace-common/hooks/canvas/use-realtime-canvas-data';
+import { CanvasNode } from '@refly/openapi-schema';
 
 interface CreateWorkflowAppModalProps {
   title: string;
@@ -124,9 +125,9 @@ export const CreateWorkflowAppModal = ({
   const { nodes } = useRealtimeCanvasData();
 
   // Filter nodes by the specified types (similar to result-list logic)
-  const resultNodes = useMemo(() => {
+  const resultNodes: CanvasNode[] = useMemo(() => {
     if (!nodes?.length) {
-      return [];
+      return [] as unknown as CanvasNode[];
     }
 
     return nodes.filter(
@@ -489,7 +490,10 @@ export const CreateWorkflowAppModal = ({
                     backgroundColor: 'var(--refly-bg-content-z2)',
                   }}
                 >
-                  <SelectedResultsGrid selectedResults={selectedResults} options={resultNodes} />
+                  <SelectedResultsGrid
+                    selectedResults={selectedResults}
+                    options={resultNodes as unknown as CanvasNode[]}
+                  />
                 </div>
               </div>
 

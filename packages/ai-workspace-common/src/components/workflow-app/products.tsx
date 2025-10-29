@@ -93,18 +93,26 @@ export const WorkflowAppProducts = ({ products }: { products: WorkflowNodeExecut
   }, [wideMode.isActive, handleCloseWideMode]);
 
   return (
-    <div className="w-full h-full flex flex-col gap-2">
+    <div className="w-full h-full">
       {products?.length === 0 ? (
         <div className="w-full h-full flex items-center justify-center">
           <Empty description={t('workflowApp.emptyLogs')} image={Empty.PRESENTED_IMAGE_SIMPLE} />
         </div>
       ) : (
-        <>
+        <div
+          className={`grid gap-4 ${transformedNodes?.length === 1 ? 'grid-cols-1' : 'grid-cols-2'}`}
+        >
           {transformedNodes?.map((node, index) => (
             <div
               key={node.relationId || `content-${index}`}
               id={`content-block-${index}`}
-              className={`transition-all duration-300 h-[400px] rounded-lg bg-white dark:bg-gray-900 ${'shadow-refly-m hover:shadow-lg dark:hover:shadow-gray-600'}`}
+              className="transition-all duration-300 h-[248px] overflow-hidden dark:bg-gray-900"
+              style={{
+                borderRadius: '12px',
+                border: '1px solid #0E9F77',
+                background: 'var(--fill---refly-fill-StaticWhite, #FFF)',
+                boxShadow: '0 2px 20px 4px rgba(0, 0, 0, 0.04)',
+              }}
             >
               <NodeRenderer
                 node={node}
@@ -115,9 +123,7 @@ export const WorkflowAppProducts = ({ products }: { products: WorkflowNodeExecut
               />
             </div>
           ))}
-
-          {/* <EndMessage /> */}
-        </>
+        </div>
       )}
 
       {/* Fullscreen Modal */}
