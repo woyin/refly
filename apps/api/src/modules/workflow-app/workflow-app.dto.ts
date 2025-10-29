@@ -32,7 +32,6 @@ export function workflowAppPO2DTO(
       : undefined,
     remixEnabled: app.remixEnabled ?? false,
     templateContent: app.templateContent ?? undefined,
-    creditUsage: app.creditUsage ?? undefined,
     createdAt: app.createdAt?.toISOString(),
     updatedAt: app.updatedAt?.toISOString(),
   } as any;

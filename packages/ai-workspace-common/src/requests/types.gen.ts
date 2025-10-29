@@ -6088,10 +6088,6 @@ export type WorkflowApp = {
    */
   coverUrl?: string;
   /**
-   * Credit usage
-   */
-  creditUsage?: number;
-  /**
    * Workflow app creation timestamp
    */
   createdAt?: string;

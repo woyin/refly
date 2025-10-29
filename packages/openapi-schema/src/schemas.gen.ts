@@ -8611,10 +8611,6 @@ export const WorkflowAppSchema = {
       type: 'string',
       description: 'Cover image URL',
     },
-    creditUsage: {
-      type: 'number',
-      description: 'Credit usage',
-    },
     createdAt: {
       type: 'string',
       format: 'date-time',
