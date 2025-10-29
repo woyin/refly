@@ -14,7 +14,7 @@ import { useCreateDocument } from '@refly-packages/ai-workspace-common/hooks/can
 import { parseMarkdownCitationsAndCanvasTags } from '@refly/utils/parse';
 import { getShareLink } from '@refly-packages/ai-workspace-common/utils/share';
 import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
-import { copyToClipboard } from '@refly-packages/ai-workspace-common/utils';
+import { copyToClipboard, removeToolUseTags } from '@refly-packages/ai-workspace-common/utils';
 import { message } from 'antd';
 import { useNodePosition } from '@refly-packages/ai-workspace-common/hooks/canvas/use-node-position';
 import { useDeleteNode } from '@refly-packages/ai-workspace-common/hooks/canvas/use-delete-node';
@@ -65,7 +65,8 @@ export const SkillResponseTopButtons = ({ node }: SkillResponseTopButtonsProps) 
     if (!resultId || !result) return;
     const title = result?.title ?? node?.data?.title ?? t('common.untitled');
     const content = parseMarkdownCitationsAndCanvasTags(latestStepContent, []);
-    await debouncedCreateDocument(title ?? '', content ?? '', {
+    const fullContent = removeToolUseTags(content ?? '')?.trim();
+    await debouncedCreateDocument(title ?? '', fullContent ?? '', {
       sourceNodeId: resultId,
       addToCanvas: true,
     });
