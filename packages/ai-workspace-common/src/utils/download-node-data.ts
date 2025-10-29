@@ -108,7 +108,7 @@ const getSanitizedFileName = (
   title: string,
   nodeType: string,
   metadata?: any,
-  maxTitleLength = 20,
+  maxTitleLength = 10,
 ): string => {
   const extension = getFileExtension(nodeType, metadata);
   const timestamp = Date.now();

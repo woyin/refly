@@ -14,10 +14,49 @@ export const SelectedResultsGrid = memo(
   ({ selectedResults, options, bordered = false }: SelectedResultsGridProps) => {
     const { t } = useTranslation();
     const firstItemRef = useRef<HTMLDivElement>(null);
+    const containerRef = useRef<HTMLDivElement>(null);
     const [itemHeight, setItemHeight] = useState<number | null>(null);
+    const [itemsPerRow, setItemsPerRow] = useState<number>(3);
 
     // Filter options to only show selected ones
     const selectedNodes = options.filter((node) => selectedResults.includes(node.id));
+
+    // Calculate items per row based on container width
+    useEffect(() => {
+      if (containerRef.current) {
+        const calculateItemsPerRow = () => {
+          const containerWidth = containerRef.current?.offsetWidth ?? 0;
+          const gap = bordered ? 10 : 12;
+          const minItemWidth = 128;
+
+          // Calculate how many items can fit
+          // 3 items: 3 * minItemWidth + 2 * gap
+          // 2 items: 2 * minItemWidth + 1 * gap
+          if (containerWidth >= 3 * minItemWidth + 2 * gap) {
+            setItemsPerRow(3);
+          } else if (containerWidth >= 2 * minItemWidth + 1 * gap) {
+            setItemsPerRow(2);
+          } else {
+            // Fallback to 2 if container is very narrow
+            setItemsPerRow(2);
+          }
+        };
+
+        // Initial calculation
+        calculateItemsPerRow();
+
+        // Use ResizeObserver to watch for container size changes
+        const resizeObserver = new ResizeObserver(() => {
+          calculateItemsPerRow();
+        });
+
+        resizeObserver.observe(containerRef.current);
+
+        return () => {
+          resizeObserver.disconnect();
+        };
+      }
+    }, [bordered]);
 
     // Measure the actual height of the first item from full rows
     useEffect(() => {
@@ -43,7 +82,7 @@ export const SelectedResultsGrid = memo(
           resizeObserver.disconnect();
         };
       }
-    }, [selectedNodes.length]);
+    }, [selectedNodes.length, itemsPerRow]);
 
     if (selectedNodes.length === 0) {
       return (
@@ -55,7 +94,6 @@ export const SelectedResultsGrid = memo(
 
     // Calculate if item is in last row and how many items in last row
     const totalItems = selectedNodes.length;
-    const itemsPerRow = 3;
     const fullRows = Math.floor(totalItems / itemsPerRow);
     const itemsInLastRow = totalItems % itemsPerRow;
     const isLastRowIncomplete = itemsInLastRow > 0 && itemsInLastRow < itemsPerRow;
@@ -65,12 +103,12 @@ export const SelectedResultsGrid = memo(
     const lastRowItems = isLastRowIncomplete ? selectedNodes.slice(fullRows * itemsPerRow) : [];
 
     return (
-      <div className="w-full h-full overflow-y-auto">
+      <div ref={containerRef} className="w-full h-full overflow-y-auto">
         <div className="space-y-3">
           {/* Full rows */}
           {fullRowItems.length > 0 && (
             <div
-              className="grid grid-cols-3 cursor-pointer"
+              className={`grid cursor-pointer ${itemsPerRow === 3 ? 'grid-cols-3' : 'grid-cols-2'}`}
               style={{
                 gap: bordered ? '10px' : '12px',
               }}
