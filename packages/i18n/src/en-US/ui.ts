@@ -3661,6 +3661,7 @@ const translations = {
     viewPublished: 'View Published',
     runLogs: 'Run Logs',
     products: 'Products',
+    productsGenerated: 'Generated {{count}} results for you',
     emptyLogs: 'No run logs, click to create app, start running',
     coverImage: 'Cover Image',
     coverImageHint: 'Support JPG, PNG, WebP formats, file size within 5MB',

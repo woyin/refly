@@ -3403,6 +3403,7 @@ const translations = {
     viewPublished: '查看已发布',
     runLogs: '运行日志',
     products: '结果产物',
+    productsGenerated: '已为你生成 {{count}} 个结果',
     emptyLogs: '暂无运行日志，点击创建应用，开始运行',
     coverImage: '封面图片',
     coverImageHint: '支持 JPG、PNG、WebP 格式，文件大小 5MB 以内',

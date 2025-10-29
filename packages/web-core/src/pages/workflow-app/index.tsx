@@ -1,6 +1,6 @@
 import React, { memo, useCallback, useMemo, useState, useEffect } from 'react';
 import { useFetchShareData } from '@refly-packages/ai-workspace-common/hooks/use-fetch-share-data';
-import { message, Segmented, notification, Skeleton } from 'antd';
+import { message, notification, Skeleton } from 'antd';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { CanvasNodeType, WorkflowNodeExecution, WorkflowVariable } from '@refly/openapi-schema';
@@ -279,19 +279,6 @@ const WorkflowAppPage: React.FC = () => {
     }
   }, [t, shareId]);
 
-  const segmentedOptions = useMemo(() => {
-    return [
-      // {
-      //   label: t('workflowApp.runLogs'),
-      //   value: 'runLogs',
-      // },
-      {
-        label: t('workflowApp.products'),
-        value: 'products',
-      },
-    ];
-  }, [t]);
-
   return (
     <ReactFlowProvider>
       <CanvasProvider readonly={true} canvasId={workflowApp?.canvasData?.canvasId ?? ''}>
@@ -378,14 +365,16 @@ const WorkflowAppPage: React.FC = () => {
                       <>
                         {/* Tabs */}
                         {products.length > 0 && (
-                          <div className="mb-4 sm:mb-6 flex justify-center relative z-20">
-                            <Segmented
-                              className="max-w-sm sm:max-w-md mx-auto"
-                              shape="round"
-                              options={segmentedOptions}
-                              value={activeTab}
-                              onChange={(value) => setActiveTab(value)}
-                            />
+                          <div
+                            className="text-center text-[var(--refly-text-0)] dark:text-[var(--refly-text-StaticWhite)] mb-[15px] mt-[40px]"
+                            style={{
+                              fontFamily: 'PingFang SC',
+                              fontWeight: 600,
+                              fontSize: '14px',
+                              lineHeight: '1.4285714285714286em',
+                            }}
+                          >
+                            {t('workflowApp.productsGenerated', { count: products.length })}
                           </div>
                         )}
 
@@ -406,7 +395,7 @@ const WorkflowAppPage: React.FC = () => {
             </div>
 
             <div
-              className="w-full max-w-[800px] mx-auto rounded-lg py-3 px-4"
+              className="w-full max-w-[860px] mx-auto rounded-lg py-3 px-4"
               style={{
                 borderColor: 'var(--refly-Card-Border)',
                 backgroundColor: 'var(--refly-bg-content-z2)',
