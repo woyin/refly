@@ -24,7 +24,6 @@ import {
   SkillRunnableMeta,
   createSkillInventory,
 } from '@refly/skill-template';
-import { GenerateWorkflow } from '@refly/agent-tools';
 import { getWholeParsedContent, safeParseJSON } from '@refly/utils';
 import { Queue } from 'bullmq';
 import { Response } from 'express';
@@ -139,7 +138,7 @@ export class SkillInvokerService {
             });
           })
         : [];
-    console.log('aiMessages', aiMessages);
+
     return [new HumanMessage({ content: messageContent }), ...aiMessages];
   }
 
@@ -202,9 +201,7 @@ export class SkillInvokerService {
       ).then((messages) => messages.flat());
     }
 
-    if (data.mode === 'copilot_agent') {
-      config.configurable.selectedTools = [new GenerateWorkflow()];
-    } else if (toolsets?.length > 0) {
+    if (toolsets?.length > 0) {
       const tools = await this.toolService.instantiateToolsets(user, toolsets, this.skillEngine);
       config.configurable.selectedTools = tools;
     }

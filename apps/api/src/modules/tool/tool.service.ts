@@ -23,6 +23,7 @@ import {
   BuiltinToolsetDefinition,
   toolsetInventory,
   AnyToolsetClass,
+  GenerateWorkflow,
 } from '@refly/agent-tools';
 import { ParamsError, ToolsetNotFoundError } from '@refly/errors';
 import { mcpServerPo2GenericToolset, toolsetPo2GenericToolset } from './tool.dto';
@@ -744,6 +745,11 @@ export class ToolService {
       builtinTools = this.instantiateBuiltinToolsets(user, engine);
     }
 
+    let copilotTools: DynamicStructuredTool[] = [];
+    if (toolsets.find((t) => t.type === 'regular' && t.id === 'copilot')) {
+      copilotTools = this.instantiateCopilotToolsets();
+    }
+
     const regularToolsets = toolsets.filter((t) => t.type === 'regular' && t.id !== 'builtin');
     const mcpServers = toolsets.filter((t) => t.type === 'mcp');
 
@@ -754,6 +760,7 @@ export class ToolService {
 
     return [
       ...builtinTools,
+      ...copilotTools,
       ...(Array.isArray(regularTools) ? regularTools : []),
       ...(Array.isArray(mcpTools) ? mcpTools : []),
     ];
@@ -785,6 +792,25 @@ export class ToolService {
             },
           }),
       );
+  }
+
+  private instantiateCopilotToolsets(): DynamicStructuredTool[] {
+    const toolsetInstance = new GenerateWorkflow();
+
+    return [
+      new DynamicStructuredTool({
+        name: 'copilot_generate_workflow',
+        description: toolsetInstance.description,
+        schema: toolsetInstance.schema,
+        func: toolsetInstance.invoke.bind(toolsetInstance),
+        metadata: {
+          name: toolsetInstance.name,
+          type: 'copilot',
+          toolsetKey: 'copilot',
+          toolsetName: 'Copilot',
+        },
+      }),
+    ];
   }
 
   /**

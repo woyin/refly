@@ -27,5 +27,5 @@
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "dist"],
-  "references": [{ "path": "../openapi-schema" }]
+  "references": [{ "path": "../openapi-schema" }, { "path": "../canvas-common" }]
 }

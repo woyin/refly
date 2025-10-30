@@ -9,5 +9,6 @@ export * from './diff';
 export * from './sync';
 export * from './history';
 export * from './workflow';
+export * from './workflow-plan';
 export * from './tools';
 export * from './data';

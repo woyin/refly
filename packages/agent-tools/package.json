@@ -6,7 +6,7 @@
   "types": "src/index.ts",
   "scripts": {
     "clean": "rimraf dist",
-    "test": "vitest"
+    "test": "vitest run"
   },
   "keywords": [],
   "author": "",
@@ -17,6 +17,7 @@
     "@langchain/core": "0.3.68",
     "@notionhq/client": "^5.1.0",
     "@refly/openapi-schema": "workspace:*",
+    "@refly/canvas-common": "workspace:*",
     "@scalebox/sdk": "^3.0.0",
     "apify-client": "^2.19.0",
     "googleapis": "^159.0.0",

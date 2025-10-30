@@ -11,7 +11,8 @@ import { buildFinalRequestMessages, SkillPromptModule } from '../scheduler/utils
 
 // prompts
 import * as commonQnA from '../scheduler/module/commonQnA';
-import { ITool, ToolInputSchema, buildSystemPrompt } from '../prompts/node-agent';
+import { ITool, ToolInputSchema } from '../tool';
+import { buildSystemPrompt } from '../prompts/node-agent';
 import { buildWorkflowCopilotPrompt } from '../prompts/copilot-agent';
 import { zodToJsonSchema } from 'zod-to-json-schema';
 
@@ -374,13 +375,15 @@ export class Agent extends BaseSkill {
         },
       );
 
-      this.engine.logger.log('Agent execution completed:', {
-        messagesCount: result.messages?.length || 0,
-        toolCallCount:
-          result.messages?.filter((msg) => (msg as AIMessage).tool_calls?.length > 0).length || 0,
-        toolsAvailable,
-        toolCount: tools?.length || 0,
-      });
+      this.engine.logger.log(
+        `Agent execution completed: ${JSON.stringify({
+          messagesCount: result.messages?.length || 0,
+          toolCallCount:
+            result.messages?.filter((msg) => (msg as AIMessage).tool_calls?.length > 0).length || 0,
+          toolsAvailable,
+          toolCount: tools?.length || 0,
+        })}`,
+      );
 
       return { messages: result.messages };
     } catch (error) {

@@ -552,6 +552,34 @@ export class SkillService implements OnModuleInit {
       await this.toolService.validateSelectedToolsets(user, param.toolsets);
     }
 
+    // Handle copilot session logic
+    if (param.mode === 'copilot_agent') {
+      param.toolsets = [
+        {
+          type: 'regular',
+          id: 'copilot',
+          name: 'Copilot',
+        },
+      ];
+      param.copilotSessionId = await this.prepareCopilotSession(user, param);
+
+      // Get history messages for the copilot session
+      const historyResults = await this.prisma.actionResult.findMany({
+        where: {
+          copilotSessionId: param.copilotSessionId,
+          resultId: {
+            not: resultId,
+          },
+        },
+        orderBy: {
+          createdAt: 'asc',
+        },
+      });
+      param.resultHistory = (
+        await this.actionService.batchProcessActionResults(user, historyResults)
+      ).map((r) => actionResultPO2DTO(r));
+    }
+
     // Validate workflowExecutionId and workflowNodeExecutionId if provided
     const workflowExecutionId = param.workflowExecutionId;
     const workflowNodeExecutionId = param.workflowNodeExecutionId;
@@ -704,14 +732,8 @@ export class SkillService implements OnModuleInit {
       user,
       param,
     );
-    const resultId = param.resultId;
+    const resultId = data.resultId;
     const modelConfigMap = data.modelConfigMap ?? {};
-
-    // Handle copilot session logic
-    let copilotSessionId: string | undefined;
-    if (param.mode === 'copilot_agent') {
-      copilotSessionId = await this.prepareCopilotSession(user, param);
-    }
 
     const purgeResultHistory = (resultHistory: ActionResult[] = []) => {
       // remove extra unnecessary fields from result history to save storage
@@ -724,13 +746,12 @@ export class SkillService implements OnModuleInit {
           where: { pk: existingResult.pk },
           data: {
             status: 'executing',
-            copilotSessionId,
           },
         });
         data.result = actionResultPO2DTO(result);
-        if (param.workflowExecutionId && param.workflowNodeExecutionId) {
-          data.result.workflowExecutionId = param.workflowExecutionId;
-          data.result.workflowNodeExecutionId = param.workflowNodeExecutionId;
+        if (data.workflowExecutionId && data.workflowNodeExecutionId) {
+          data.result.workflowExecutionId = data.workflowExecutionId;
+          data.result.workflowNodeExecutionId = data.workflowNodeExecutionId;
         }
       } else {
         const [result] = await this.prisma.$transaction([
@@ -742,22 +763,22 @@ export class SkillService implements OnModuleInit {
               type: 'skill',
               tier: providerItem?.tier ?? '',
               status: 'executing',
-              title: param.input.query || param.input.originalQuery,
-              targetId: param.target?.entityId,
-              targetType: param.target?.entityType,
+              title: data.input.query || data.input.originalQuery,
+              targetId: data.target?.entityId,
+              targetType: data.target?.entityType,
               modelName: modelConfigMap.chat.modelId,
-              projectId: param.projectId ?? null,
+              projectId: data.projectId ?? null,
               errors: JSON.stringify([]),
-              input: JSON.stringify(param.input),
-              context: JSON.stringify(purgeContextForActionResult(param.context)),
-              tplConfig: JSON.stringify(param.tplConfig),
-              runtimeConfig: JSON.stringify(param.runtimeConfig),
-              history: JSON.stringify(purgeResultHistory(param.resultHistory)),
-              toolsets: JSON.stringify(purgeToolsets(param.toolsets)),
+              input: JSON.stringify(data.input),
+              context: JSON.stringify(purgeContextForActionResult(data.context)),
+              tplConfig: JSON.stringify(data.tplConfig),
+              runtimeConfig: JSON.stringify(data.runtimeConfig),
+              history: JSON.stringify(purgeResultHistory(data.resultHistory)),
+              toolsets: JSON.stringify(purgeToolsets(data.toolsets)),
               providerItemId: providerItem.itemId,
-              copilotSessionId,
-              workflowExecutionId: param.workflowExecutionId,
-              workflowNodeExecutionId: param.workflowNodeExecutionId,
+              copilotSessionId: data.copilotSessionId,
+              workflowExecutionId: data.workflowExecutionId,
+              workflowNodeExecutionId: data.workflowNodeExecutionId,
             },
           }),
           // Delete existing step data
@@ -775,23 +796,23 @@ export class SkillService implements OnModuleInit {
           uid,
           version: 0,
           tier: providerItem?.tier ?? '',
-          targetId: param.target?.entityId,
-          targetType: param.target?.entityType,
-          title: param.input?.query || param.input?.originalQuery,
+          targetId: data.target?.entityId,
+          targetType: data.target?.entityType,
+          title: data.input?.query || data.input?.originalQuery,
           modelName: modelConfigMap.chat.modelId,
           type: 'skill',
           status: 'executing',
-          projectId: param.projectId,
-          input: JSON.stringify(param.input),
-          context: JSON.stringify(purgeContextForActionResult(param.context)),
-          tplConfig: JSON.stringify(param.tplConfig),
-          runtimeConfig: JSON.stringify(param.runtimeConfig),
-          history: JSON.stringify(purgeResultHistory(param.resultHistory)),
-          toolsets: JSON.stringify(purgeToolsets(param.toolsets)),
+          projectId: data.projectId,
+          input: JSON.stringify(data.input),
+          context: JSON.stringify(purgeContextForActionResult(data.context)),
+          tplConfig: JSON.stringify(data.tplConfig),
+          runtimeConfig: JSON.stringify(data.runtimeConfig),
+          history: JSON.stringify(purgeResultHistory(data.resultHistory)),
+          toolsets: JSON.stringify(purgeToolsets(data.toolsets)),
           providerItemId: providerItem.itemId,
-          copilotSessionId,
-          workflowExecutionId: param.workflowExecutionId,
-          workflowNodeExecutionId: param.workflowNodeExecutionId,
+          copilotSessionId: data.copilotSessionId,
+          workflowExecutionId: data.workflowExecutionId,
+          workflowNodeExecutionId: data.workflowNodeExecutionId,
         },
       });
       data.result = actionResultPO2DTO(result);
