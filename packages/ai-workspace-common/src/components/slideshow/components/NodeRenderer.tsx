@@ -94,7 +94,7 @@ const NodeRenderer = memo(
                 <Tooltip title={t('canvas.nodeActions.download', 'Download')}>
                   <Button
                     type="text"
-                    className="flex items-center justify-center border-none bg-white/70 dark:bg-gray-800/70 hover:bg-gray-100 dark:hover:bg-gray-700/80 hover:text-blue-600 dark:hover:text-blue-400 text-gray-700 dark:text-gray-300"
+                    className="flex items-center justify-center border-none bg-[var(--refly-bg-float-z3)] hover:bg-[var(--refly-fill-hover)] text-[var(--refly-text-1)] hover:text-[var(--refly-primary-default)] transition"
                     icon={<DownloadIcon size={16} />}
                     onClick={handleDownload}
                   >
@@ -106,7 +106,7 @@ const NodeRenderer = memo(
                 <Tooltip title={t('canvas.nodeActions.share', 'Share')}>
                   <Button
                     type="text"
-                    className="flex items-center justify-center border-none bg-white/70 dark:bg-gray-800/70 hover:bg-gray-100 dark:hover:bg-gray-700/80 hover:text-blue-600 dark:hover:text-blue-400 text-gray-700 dark:text-gray-300"
+                    className="flex items-center justify-center border-none bg-[var(--refly-bg-float-z3)] hover:bg-[var(--refly-fill-hover)] text-[var(--refly-text-1)] hover:text-[var(--refly-primary-default)] transition"
                     icon={<Share size={16} />}
                     onClick={handleShare}
                   >
@@ -120,9 +120,9 @@ const NodeRenderer = memo(
       ) : null;
 
     return (
-      <div className="flex flex-col h-full">
+      <div className="flex flex-col h-full bg-[var(--refly-bg-content-z2)] text-[var(--refly-text-1)]">
         {renderNodeHeader}
-        <div className="m-3 mt-0 h-full overflow-hidden rounded-lg cursor-pointer">
+        <div className="m-3 mt-0 h-full overflow-hidden rounded-lg cursor-pointer border border-[var(--refly-Card-Border)] bg-[var(--refly-bg-main-z1)] hover:bg-[var(--refly-bg-control-z0)]">
           <ResultItemPreview
             inModal={inModal}
             node={{ ...node, data: node.nodeData, type: node.nodeType } as unknown as CanvasNode}

@@ -116,7 +116,7 @@ export const MultiSelectResult = memo(
                             }}
                           >
                             {selectedResults.includes(option.id) && (
-                              <Checked size={10} color="var(--refly-text-StaticWhite)" />
+                              <Checked size={10} color="white" />
                             )}
                           </div>
                         </div>
