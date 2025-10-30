@@ -3053,7 +3053,8 @@ const translations = {
     greeting: {
       title: 'Workflow Copilot is here to help you',
       youCanTry: 'You can try asking the following questions',
-      query1: 'Help me track and analyze the changes in巴菲特本季度的美股持仓。',
+      query1:
+        "Help me track and analyze Warren Buffett's U.S. stock portfolio changes this quarter.",
       query2:
         '‍Help me fetch the Product Hunt Top 10 today, generate a summary document and product podcast, and send the links to my email.',
       query3:
