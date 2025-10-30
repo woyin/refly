@@ -149,7 +149,10 @@ export class ScaleboxCreate extends AgentBaseTool<ScaleboxToolParams> {
 
   schema = z.object({
     type: z.string().describe('Sandbox type, e.g. code-interpreter').default('code-interpreter'),
-    timeoutMs: z.number().describe('Timeout in milliseconds').default(300000),
+    timeoutMs: z
+      .number()
+      .describe('Timeout in milliseconds default is 30 minutes')
+      .default(1800000),
     metadata: z.record(z.any()).describe('Metadata to associate with sandbox').optional(),
     envs: z.record(z.string()).describe('Environment variables').optional(),
   });
@@ -389,9 +392,30 @@ export class ScaleboxFilesRead extends AgentBaseTool<ScaleboxToolParams> {
   name = 'filesRead';
   toolsetKey = ScaleboxToolsetDefinition.key;
 
-  schema = z.object({ sandboxId: z.string(), path: z.string() });
+  schema = z.object({
+    sandboxId: z.string().describe('Sandbox ID'),
+    path: z.string().describe('Path to the file to read'),
+    format: z
+      .enum(['text', 'base64'])
+      .describe('File content format: text (plain text) or base64 (binary files auto-upload)')
+      .default('text')
+      .optional(),
+    user: z.string().describe('Execute as specified user').default('root').optional(),
+    requestTimeoutMs: z.number().describe('Request timeout (milliseconds)').optional(),
+  });
 
-  description = 'Read a file from sandbox';
+  description = `Read file content from sandbox:
+
+- text: Return pure text string content (default)
+- base64: Return base64 encoded data and auto-upload binary files
+
+Support options:
+- user: Specify execution user identity (default is 'root')
+- requestTimeoutMs: Set request timeout (milliseconds)
+
+Usage examples:
+- Read text file: {sandboxId: "xxx", path: "/etc/hostname"}
+- Read binary file: {sandboxId: "xxx", path: "/image.png", format: "base64"}`;
   protected params: ScaleboxToolParams;
 
   constructor(params: ScaleboxToolParams) {
@@ -405,11 +429,75 @@ export class ScaleboxFilesRead extends AgentBaseTool<ScaleboxToolParams> {
       const sbx = await Sandbox.connect(input?.sandboxId ?? '', {
         apiKey: this.params?.apiKey ?? '',
       });
-      const content = await sbx?.files?.read?.(input?.path ?? '');
+
+      const readOpts: any = {};
+
+      // Set user identity
+      if (input?.user && input.user !== 'root') {
+        readOpts.user = input.user;
+      }
+
+      // Set request timeout
+      if (input?.requestTimeoutMs) {
+        readOpts.requestTimeoutMs = input.requestTimeoutMs;
+      }
+
+      // Set format (default is text)
+      if (input?.format === 'base64') {
+        readOpts.format = 'bytes';
+      }
+
+      const content = await sbx?.files?.read?.(input?.path ?? '', readOpts);
+
+      let resultData: any;
+
+      // Handle base64 format with auto-upload
+      if (input?.format === 'base64') {
+        // Auto-upload binary files
+        const entityId = await this.params?.reflyService?.genImageID?.();
+        const filename = `${input.path.split('/').pop() ?? 'file'}`;
+        const hasDataUrlPrefix = typeof content === 'string' && content.startsWith('data:');
+        const base64 = hasDataUrlPrefix
+          ? content
+          : `data:application/octet-stream;base64,${content}`;
+
+        try {
+          const uploaded = await this.params?.reflyService?.uploadBase64?.(this.params?.user, {
+            base64,
+            filename,
+            entityId,
+          });
+
+          if (uploaded) {
+            resultData = {
+              format: 'base64',
+              upload: {
+                storageKey: uploaded.storageKey,
+                url: uploaded.url,
+              },
+              filename,
+            };
+          } else {
+            resultData = {
+              format: 'base64',
+              error: 'Upload failed - no upload result returned',
+            };
+          }
+        } catch (uploadError) {
+          resultData = {
+            format: 'base64',
+            error: uploadError instanceof Error ? uploadError.message : 'Upload failed',
+          };
+        }
+      } else {
+        // Text format - return content directly
+        resultData = { content };
+      }
+
       return {
         status: 'success',
-        data: { content: content ?? '' },
-        summary: 'File read successfully',
+        data: resultData,
+        summary: `File read successfully (format: ${input?.format ?? 'text'})`,
       };
     } catch (error) {
       return {
