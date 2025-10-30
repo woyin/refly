@@ -46,14 +46,15 @@ const CopilotMessage = memo(({ result, isFinal }: CopilotMessageProps) => {
 CopilotMessage.displayName = 'CopilotMessage';
 
 export const SessionDetail = memo(({ sessionId }: SessionDetailProps) => {
-  const { sessionResultIds, setSessionResultIds } = useCopilotStoreShallow((state) => ({
-    sessionResultIds: state.sessionResultIds[sessionId],
-    setSessionResultIds: state.setSessionResultIds,
-  }));
+  const { sessionResultIds, setSessionResultIds, createdCopilotSessionIds } =
+    useCopilotStoreShallow((state) => ({
+      sessionResultIds: state.sessionResultIds[sessionId],
+      setSessionResultIds: state.setSessionResultIds,
+      createdCopilotSessionIds: state.createdCopilotSessionIds,
+    }));
   const { updateActionResult } = useActionResultStoreShallow((state) => ({
     updateActionResult: state.updateActionResult,
   }));
-  console.log('SessionDetail sessionResultIds', sessionResultIds);
 
   const { resultMap } = useActionResultStoreShallow((state) => ({
     resultMap: state.resultMap,
@@ -62,24 +63,17 @@ export const SessionDetail = memo(({ sessionId }: SessionDetailProps) => {
     return sessionResultIds?.map((resultId) => resultMap[resultId]) ?? [];
   }, [sessionResultIds, resultMap]);
 
-  const { data, refetch, isLoading } = useGetCopilotSessionDetail(
+  const { data, isLoading } = useGetCopilotSessionDetail(
     {
       query: {
         sessionId,
       },
     },
-    [],
+    [sessionId],
     {
-      enabled: false,
+      enabled: sessionId && !createdCopilotSessionIds[sessionId],
     },
   );
-
-  useEffect(() => {
-    console.log('SessionDetail sessionId', sessionId);
-    if (sessionId) {
-      refetch();
-    }
-  }, [sessionId]);
 
   useEffect(() => {
     if (data) {

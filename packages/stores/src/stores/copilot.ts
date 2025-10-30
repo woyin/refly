@@ -7,12 +7,14 @@ interface CopilotState {
   isCopilotOpen: boolean;
   currentSessionId: Record<string, string | null>;
   sessionResultIds: Record<string, string[]>;
+  createdCopilotSessionIds: Record<string, boolean>;
 
   // method
   setIsCopilotOpen: (val: boolean) => void;
   setCurrentSessionId: (canvasId: string, sessionId: string | null) => void;
   setSessionResultIds: (sessionId: string, resultIds: string[]) => void;
   appendSessionResultId: (sessionId: string, resultId: string) => void;
+  setCreatedCopilotSessionId: (sessionId: string) => void;
 }
 
 export const useCopilotStore = create<CopilotState>()(
@@ -22,6 +24,7 @@ export const useCopilotStore = create<CopilotState>()(
         isCopilotOpen: false,
         currentSessionId: {},
         sessionResultIds: {},
+        createdCopilotSessionIds: {},
 
         setIsCopilotOpen: (val: boolean) => set({ isCopilotOpen: val }),
         setCurrentSessionId: (canvasId: string, sessionId: string | null) =>
@@ -43,6 +46,13 @@ export const useCopilotStore = create<CopilotState>()(
             sessionResultIds: {
               ...state.sessionResultIds,
               [sessionId]: [...(state.sessionResultIds[sessionId] || []), resultId],
+            },
+          })),
+        setCreatedCopilotSessionId: (sessionId: string) =>
+          set((state) => ({
+            createdCopilotSessionIds: {
+              ...state.createdCopilotSessionIds,
+              [sessionId]: true,
             },
           })),
       }),

@@ -18,13 +18,17 @@ export const ChatBox = memo(({ canvasId, query, setQuery }: ChatBoxProps) => {
   const [isExecuting, setIsExecuting] = useState(false);
   const [selectedToolsets, setSelectedToolsets] = useState<GenericToolset[]>([]);
 
-  const { currentSessionId, setCurrentSessionId, appendSessionResultId } = useCopilotStoreShallow(
-    (state) => ({
-      currentSessionId: state.currentSessionId[canvasId],
-      setCurrentSessionId: state.setCurrentSessionId,
-      appendSessionResultId: state.appendSessionResultId,
-    }),
-  );
+  const {
+    currentSessionId,
+    setCurrentSessionId,
+    appendSessionResultId,
+    setCreatedCopilotSessionId,
+  } = useCopilotStoreShallow((state) => ({
+    currentSessionId: state.currentSessionId[canvasId],
+    setCurrentSessionId: state.setCurrentSessionId,
+    appendSessionResultId: state.appendSessionResultId,
+    setCreatedCopilotSessionId: state.setCreatedCopilotSessionId,
+  }));
 
   const { invokeAction } = useInvokeAction();
 
@@ -60,6 +64,7 @@ export const ChatBox = memo(({ canvasId, query, setQuery }: ChatBoxProps) => {
 
     setCurrentSessionId(canvasId, sessionId);
     appendSessionResultId(sessionId, resultId);
+    setCreatedCopilotSessionId(sessionId);
 
     setIsExecuting(false);
   };
