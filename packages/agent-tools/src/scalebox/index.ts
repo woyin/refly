@@ -791,8 +791,6 @@ export class ScaleboxRunCode extends AgentBaseTool<ScaleboxToolParams> {
         }),
       );
 
-      const storageKeys = (uploads ?? []).map((u) => u?.storageKey ?? '').filter((k) => !!k);
-
       // Add uploaded images to canvas as image nodes when canvasId is available
       const parentResultId = config?.configurable?.resultId ?? '';
       if ((uploads?.length ?? 0) > 0) {
@@ -814,6 +812,7 @@ export class ScaleboxRunCode extends AgentBaseTool<ScaleboxToolParams> {
                     title,
                     entityId,
                     metadata: {
+                      resultId: entityId,
                       storageKey,
                       imageUrl: url,
                       parentResultId,
@@ -832,7 +831,7 @@ export class ScaleboxRunCode extends AgentBaseTool<ScaleboxToolParams> {
 
       return {
         status: 'success',
-        data: { logs: { stdout, stderr }, storageKeys },
+        data: { logs: { stdout, stderr }, uploads },
         summary: 'Code executed',
       };
     } catch (error) {
