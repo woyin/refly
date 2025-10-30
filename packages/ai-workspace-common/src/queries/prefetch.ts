@@ -18,6 +18,7 @@ import {
   getCreditBalance,
   getCreditRecharge,
   getCreditUsage,
+  getCreditUsageByCanvasId,
   getCreditUsageByExecutionId,
   getCreditUsageByResultId,
   getDocumentDetail,
@@ -72,6 +73,7 @@ import {
   GetCanvasTransactionsData,
   GetCodeArtifactDetailData,
   GetCreditRechargeData,
+  GetCreditUsageByCanvasIdData,
   GetCreditUsageByExecutionIdData,
   GetCreditUsageByResultIdData,
   GetCreditUsageData,
@@ -476,6 +478,14 @@ export const prefetchUseGetCreditUsageByExecutionId = (
     queryKey: Common.UseGetCreditUsageByExecutionIdKeyFn(clientOptions),
     queryFn: () =>
       getCreditUsageByExecutionId({ ...clientOptions }).then((response) => response.data),
+  });
+export const prefetchUseGetCreditUsageByCanvasId = (
+  queryClient: QueryClient,
+  clientOptions: Options<GetCreditUsageByCanvasIdData, true>,
+) =>
+  queryClient.prefetchQuery({
+    queryKey: Common.UseGetCreditUsageByCanvasIdKeyFn(clientOptions),
+    queryFn: () => getCreditUsageByCanvasId({ ...clientOptions }).then((response) => response.data),
   });
 export const prefetchUseGetSubscriptionPlans = (
   queryClient: QueryClient,

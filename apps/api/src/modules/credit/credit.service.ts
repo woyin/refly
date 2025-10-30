@@ -404,6 +404,7 @@ export class CreditService {
       usageType?: string;
       modelUsageDetails?: string;
       createdAt: Date;
+      description?: string;
     },
   ): Promise<void> {
     // Lazy load daily gift recharge
@@ -461,6 +462,7 @@ export class CreditService {
           modelUsageDetails: usageData.modelUsageDetails,
           amount: creditCost,
           createdAt: usageData.createdAt,
+          description: usageData.description,
         },
       }),
       // Execute all deduction operations
@@ -478,7 +480,7 @@ export class CreditService {
             balance: remainingCost,
             enabled: true,
             source: 'usage_overdraft',
-            description: `Overdraft from usage: ${usageData.actionResultId}`,
+            description: `${usageData.description ?? ''} overdraft from usage: ${usageData.actionResultId}`,
             createdAt: usageData.createdAt,
             updatedAt: usageData.createdAt,
           },
@@ -529,12 +531,7 @@ export class CreditService {
           usageType: 'tool_call',
           amount: 0,
           createdAt: timestamp,
-          modelUsageDetails: JSON.stringify([
-            {
-              toolsetName,
-              toolName,
-            },
-          ]),
+          description: `Tool call: ${toolsetName} ${toolName}`,
         },
       });
       return;
@@ -546,6 +543,7 @@ export class CreditService {
       actionResultId: resultId,
       usageType: 'tool_call',
       createdAt: timestamp,
+      description: `Tool call: ${toolsetName} ${toolName}`,
     });
   }
 
@@ -870,6 +868,19 @@ export class CreditService {
     });
     const total = await Promise.all(
       results.map((result) => this.countResultCreditUsage(result.resultId)),
+    );
+    return total.reduce((sum, total) => {
+      return sum + total;
+    }, 0);
+  }
+
+  async countCanvasCreditUsageByCanvasId(user: User, canvasId: string): Promise<number> {
+    const canvasData = await this.canvasSyncService.getCanvasData(user, { canvasId });
+    const canvasResultIds = canvasData.nodes
+      .filter((node) => node.type === 'skillResponse')
+      .map((node) => node.data.entityId);
+    const total = await Promise.all(
+      canvasResultIds.map((canvasResultId) => this.countResultCreditUsage(canvasResultId)),
     );
     return total.reduce((sum, total) => {
       return sum + total;

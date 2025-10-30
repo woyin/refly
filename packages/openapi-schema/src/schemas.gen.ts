@@ -6357,6 +6357,36 @@ export const GetCreditUsageByExecutionIdResponseSchema = {
   ],
 } as const;
 
+export const GetCreditUsageByCanvasIdResponseSchema = {
+  allOf: [
+    {
+      $ref: '#/components/schemas/BaseResponse',
+    },
+    {
+      type: 'object',
+      properties: {
+        data: {
+          type: 'object',
+          description: 'Credit usage by canvas ID',
+          properties: {
+            total: {
+              type: 'number',
+              description: 'Total credit usage by canvas ID',
+            },
+            usages: {
+              type: 'array',
+              description: 'Credit usage list by canvas ID',
+              items: {
+                $ref: '#/components/schemas/CreditUsage',
+              },
+            },
+          },
+        },
+      },
+    },
+  ],
+} as const;
+
 export const SubscriptionPlanSchema = {
   type: 'object',
   properties: {

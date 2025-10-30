@@ -9,6 +9,7 @@ import {
   GetCreditBalanceResponse,
   GetCreditUsageByResultIdResponse,
   GetCreditUsageByExecutionIdResponse,
+  GetCreditUsageByCanvasIdResponse,
 } from '@refly/openapi-schema';
 import { buildSuccessResponse } from '../../utils';
 
@@ -70,6 +71,17 @@ export class CreditController {
   ): Promise<GetCreditUsageByExecutionIdResponse> {
     const { executionId } = query;
     const total = await this.creditService.countExecutionCreditUsageByExecutionId(executionId);
+    return buildSuccessResponse({ total });
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('/canvas')
+  async getCreditUsageByCanvasId(
+    @LoginedUser() user: User,
+    @Query() query: { canvasId: string },
+  ): Promise<GetCreditUsageByCanvasIdResponse> {
+    const { canvasId } = query;
+    const total = await this.creditService.countCanvasCreditUsageByCanvasId(user, canvasId);
     return buildSuccessResponse({ total });
   }
 }
