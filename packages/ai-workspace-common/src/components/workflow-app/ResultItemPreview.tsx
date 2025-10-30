@@ -6,45 +6,21 @@ import { Markdown } from '@refly-packages/ai-workspace-common/components/markdow
 import { Play } from 'refly-icons';
 import AudioBgSvg from './audioBg.svg';
 import ViewSvg from './view.svg';
+import {
+  LazyCodeArtifactRenderer,
+  LazyDocumentRenderer,
+} from '@refly-packages/ai-workspace-common/components/slideshow/components/LazyComponents';
+import { NodeRelation } from '@refly-packages/ai-workspace-common/components/slideshow/components/ArtifactRenderer';
 
 // Document preview component
 const DocumentPreview = memo(
-  ({ node, onViewClick }: { node: CanvasNode; onViewClick?: (nodeId: string) => void }) => {
-    const [isHovered, setIsHovered] = useState(false);
-
+  ({ node }: { node: CanvasNode; onViewClick?: (nodeId: string) => void }) => {
     return (
-      <div
-        className="w-full h-full relative overflow-hidden"
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
-      >
+      <div className="w-full h-full relative overflow-hidden">
         <Markdown
           content={node.data?.contentPreview || ''}
           className="text-xs p-2 h-full overflow-hidden text-refly-text-0"
         />
-        {/* Hover overlay - show in bottom right corner */}
-        {isHovered && (
-          <div
-            onClick={(e) => {
-              e.stopPropagation();
-              onViewClick?.(node.id);
-            }}
-            className="absolute z-10 flex items-center justify-center transition-opacity duration-200 cursor-pointer"
-            style={{
-              right: '14px',
-              bottom: '14px',
-              width: 'min(56px, 20%)',
-              height: 'min(44px, 20%)',
-            }}
-          >
-            <img
-              src={ViewSvg}
-              alt="View"
-              className="w-full h-full object-contain"
-              style={{ maxWidth: '100%', maxHeight: '100%' }}
-            />
-          </div>
-        )}
       </div>
     );
   },
@@ -54,44 +30,16 @@ DocumentPreview.displayName = 'DocumentPreview';
 
 // Image preview component
 const ImagePreview = memo(
-  ({ node, onViewClick }: { node: CanvasNode; onViewClick?: (nodeId: string) => void }) => {
+  ({ node }: { node: CanvasNode; onViewClick?: (nodeId: string) => void }) => {
     const { t } = useTranslation();
-    const [isHovered, setIsHovered] = useState(false);
 
     return (
-      <div
-        className="w-full h-full relative overflow-hidden"
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
-      >
+      <div className="w-full h-full relative overflow-hidden">
         <img
           src={node.data?.metadata?.imageUrl as string}
           alt={node.data?.title || t('common.untitled')}
           className="w-full h-full object-cover"
         />
-        {/* Hover overlay - show in bottom right corner */}
-        {isHovered && (
-          <div
-            onClick={(e) => {
-              e.stopPropagation();
-              onViewClick?.(node.id);
-            }}
-            className="absolute z-10 flex items-center justify-center transition-opacity duration-200 cursor-pointer"
-            style={{
-              right: '14px',
-              bottom: '14px',
-              width: 'min(56px, 20%)',
-              height: 'min(44px, 20%)',
-            }}
-          >
-            <img
-              src={ViewSvg}
-              alt="View"
-              className="w-full h-full object-contain"
-              style={{ maxWidth: '100%', maxHeight: '100%' }}
-            />
-          </div>
-        )}
       </div>
     );
   },
@@ -101,7 +49,7 @@ ImagePreview.displayName = 'ImagePreview';
 
 // Video preview component with independent state
 const VideoPreview = memo(
-  ({ node, onViewClick }: { node: CanvasNode; onViewClick?: (nodeId: string) => void }) => {
+  ({ node }: { node: CanvasNode; onViewClick?: (nodeId: string) => void }) => {
     const [isPlaying, setIsPlaying] = useState(false);
     const [isHovered, setIsHovered] = useState(false);
     const [progress, setProgress] = useState(0);
@@ -182,29 +130,7 @@ const VideoPreview = memo(
             />
           </div>
         )}
-        {/* Hover overlay - show in bottom right corner */}
-        {isHovered && !isPlaying && (
-          <div
-            onClick={(e) => {
-              e.stopPropagation();
-              onViewClick?.(node.id);
-            }}
-            className="absolute z-10 flex items-center justify-center transition-opacity duration-200 cursor-pointer"
-            style={{
-              right: '14px',
-              bottom: '14px',
-              width: 'min(56px, 20%)',
-              height: 'min(44px, 20%)',
-            }}
-          >
-            <img
-              src={ViewSvg}
-              alt="View"
-              className="w-full h-full object-contain"
-              style={{ maxWidth: '100%', maxHeight: '100%' }}
-            />
-          </div>
-        )}
+        {/* View overlay moved to parent */}
       </div>
     );
   },
@@ -214,7 +140,7 @@ VideoPreview.displayName = 'VideoPreview';
 
 // Audio preview component with independent state
 const AudioPreview = memo(
-  ({ node, onViewClick }: { node: CanvasNode; onViewClick?: (nodeId: string) => void }) => {
+  ({ node }: { node: CanvasNode; onViewClick?: (nodeId: string) => void }) => {
     const [isPlaying, setIsPlaying] = useState(false);
     const [isHovered, setIsHovered] = useState(false);
     const [progress, setProgress] = useState(0);
@@ -303,29 +229,7 @@ const AudioPreview = memo(
             />
           </div>
         )}
-        {/* Hover overlay - show in bottom right corner */}
-        {isHovered && !isPlaying && (
-          <div
-            onClick={(e) => {
-              e.stopPropagation();
-              onViewClick?.(node.id);
-            }}
-            className="absolute z-10 flex items-center justify-center transition-opacity duration-200 cursor-pointer"
-            style={{
-              right: '14px',
-              bottom: '14px',
-              width: 'min(56px, 20%)',
-              height: 'min(44px, 20%)',
-            }}
-          >
-            <img
-              src={ViewSvg}
-              alt="View"
-              className="w-full h-full object-contain"
-              style={{ maxWidth: '100%', maxHeight: '100%' }}
-            />
-          </div>
-        )}
+        {/* View overlay moved to parent */}
       </div>
     );
   },
@@ -333,43 +237,14 @@ const AudioPreview = memo(
 
 AudioPreview.displayName = 'AudioPreview';
 
-// Default preview component with hover overlay
+// Default preview component without view overlay (handled by parent)
 const DefaultPreview = memo(
-  ({ node, onViewClick }: { node: CanvasNode; onViewClick?: (nodeId: string) => void }) => {
-    const [isHovered, setIsHovered] = useState(false);
-
+  ({ node }: { node: CanvasNode; onViewClick?: (nodeId: string) => void }) => {
     return (
-      <div
-        className="w-full h-full relative"
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
-      >
+      <div className="w-full h-full relative">
         <PreviewComponent node={node} purePreview={true} />
         {/* Transparent overlay to prevent direct interaction */}
         <div className="absolute inset-0 bg-transparent cursor-pointer" />
-        {/* Hover overlay - show in bottom right corner */}
-        {isHovered && (
-          <div
-            onClick={(e) => {
-              e.stopPropagation();
-              onViewClick?.(node.id);
-            }}
-            className="absolute z-10 flex items-center justify-center transition-opacity duration-200 cursor-pointer"
-            style={{
-              right: '14px',
-              bottom: '14px',
-              width: 'min(56px, 20%)',
-              height: 'min(44px, 20%)',
-            }}
-          >
-            <img
-              src={ViewSvg}
-              alt="View"
-              className="w-full h-full object-contain"
-              style={{ maxWidth: '100%', maxHeight: '100%' }}
-            />
-          </div>
-        )}
       </div>
     );
   },
@@ -380,29 +255,69 @@ DefaultPreview.displayName = 'DefaultPreview';
 // Individual result item preview component
 export const ResultItemPreview = memo(
   ({ node, onViewClick }: { node: CanvasNode; onViewClick?: (nodeId: string) => void }) => {
-    // For document nodes, show the contentPreview as markdown
-    if (node.type === 'document' && node.data?.contentPreview) {
-      return <DocumentPreview node={node} onViewClick={onViewClick} />;
-    }
+    const [isHovered, setIsHovered] = useState(false);
 
-    // For image nodes, show the image directly with cover crop
+    let content: JSX.Element;
+    let needsTransparentOverlay = false;
     if (node.type === 'image' && node.data?.metadata?.imageUrl) {
-      return <ImagePreview node={node} onViewClick={onViewClick} />;
+      content = <ImagePreview node={node} />;
+    } else if (node.type === 'video' && node.data?.metadata?.videoUrl) {
+      content = <VideoPreview node={node} />;
+    } else if (node.type === 'audio' && node.data?.metadata?.audioUrl) {
+      content = <AudioPreview node={node} />;
+    } else if (node.type === 'codeArtifact') {
+      needsTransparentOverlay = true;
+      content = (
+        <LazyCodeArtifactRenderer
+          isFullscreen
+          node={{ ...node, nodeData: node.data, nodeType: node.type } as unknown as NodeRelation}
+        />
+      );
+    } else if (node.type === 'document') {
+      needsTransparentOverlay = true;
+
+      content = (
+        <LazyDocumentRenderer
+          isFullscreen
+          node={{ ...node, nodeData: node.data, nodeType: node.type } as unknown as NodeRelation}
+        />
+      );
+    } else {
+      needsTransparentOverlay = true;
+      content = <DefaultPreview node={node} />;
     }
 
-    // For video nodes, show the video with cover crop and play button overlay
-    if (node.type === 'video' && node.data?.metadata?.videoUrl) {
-      return <VideoPreview node={node} onViewClick={onViewClick} />;
-    }
-
-    // For audio nodes, show the audio with fixed background and play button overlay
-    if (node.type === 'audio' && node.data?.metadata?.audioUrl) {
-      return <AudioPreview node={node} onViewClick={onViewClick} />;
-    }
-
-    // For other types, use the PreviewComponent
-    return <DefaultPreview node={node} onViewClick={onViewClick} />;
+    return (
+      <div
+        className="w-full h-full relative cursor-pointer"
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+      >
+        {content}
+        {needsTransparentOverlay ? <div className="absolute inset-0 bg-transparent" /> : null}
+        {onViewClick && isHovered ? (
+          <div
+            onClick={(e) => {
+              e.stopPropagation();
+              onViewClick?.(node.id);
+            }}
+            className="absolute z-10 flex items-center justify-center transition-opacity duration-200 cursor-pointer"
+            style={{
+              right: '14px',
+              bottom: '14px',
+              width: 'min(56px, 20%)',
+              height: 'min(44px, 20%)',
+            }}
+          >
+            <img
+              src={ViewSvg}
+              alt="View"
+              className="w-full h-full object-contain"
+              style={{ maxWidth: '100%', maxHeight: '100%' }}
+            />
+          </div>
+        ) : null}
+      </div>
+    );
   },
 );
-
-ResultItemPreview.displayName = 'ResultItemPreview';

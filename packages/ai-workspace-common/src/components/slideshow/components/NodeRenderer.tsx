@@ -389,7 +389,7 @@ const NodeRenderer = memo(
     return (
       <div className="flex flex-col h-full">
         {renderNodeHeader}
-        <div className="m-3 h-full overflow-hidden rounded-lg cursor-pointer">
+        <div className="m-3 mt-0 h-full overflow-hidden rounded-lg cursor-pointer">
           <ResultItemPreview
             onViewClick={onWideMode && (() => onWideMode?.(node.nodeId))}
             node={{ ...node, data: node.nodeData, type: node.nodeType } as unknown as CanvasNode}
