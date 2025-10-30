@@ -3433,6 +3433,11 @@ const translations = {
       executeFailed: '执行工作流失败',
       executeError: '执行工作流失败',
     },
+    revenueSharing: {
+      title: '模板被运行可享受积分收益分成',
+      earningsHint: '预计每次运行可获得 {{creditEarningsPerRun}} 积分',
+      howToEarn: '如何获得收益',
+    },
   },
   project: {
     create: '创建知识库',

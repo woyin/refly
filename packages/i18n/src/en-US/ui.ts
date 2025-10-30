@@ -3691,6 +3691,11 @@ const translations = {
       executeFailed: 'Failed to execute workflow',
       executeError: 'Failed to execute workflow',
     },
+    revenueSharing: {
+      title: 'Earn credits by running templates',
+      earningsHint: 'Expected to earn {{creditEarningsPerRun}} credits per run',
+      howToEarn: 'How to earn',
+    },
   },
   project: {
     create: 'Create Project',

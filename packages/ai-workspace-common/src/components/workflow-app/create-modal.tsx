@@ -6,13 +6,15 @@ import getClient from '@refly-packages/ai-workspace-common/requests/proxiedReque
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
 import { copyToClipboard } from '@refly-packages/ai-workspace-common/utils';
 import { getShareLink } from '@refly-packages/ai-workspace-common/utils/share';
-import { Checked } from 'refly-icons';
+import { ArrowRight, Checked } from 'refly-icons';
 import type { UploadFile, UploadProps } from 'antd/es/upload/interface';
 import { logEvent } from '@refly/telemetry-web';
 import { MultiSelectResult } from './multi-select-result';
 import { SelectedResultsGrid } from './selected-results-grid';
+import BannerSvg from './banner.svg';
 import { useRealtimeCanvasData } from '@refly-packages/ai-workspace-common/hooks/canvas/use-realtime-canvas-data';
 import { CanvasNode } from '@refly/openapi-schema';
+import { useGetCreditUsageByCanvasId } from '../../queries/queries';
 
 interface CreateWorkflowAppModalProps {
   title: string;
@@ -123,6 +125,17 @@ export const CreateWorkflowAppModal = ({
   const { workflow } = useCanvasContext();
   const { workflowVariables } = workflow ?? {};
   const { nodes } = useRealtimeCanvasData();
+
+  // Fetch credit usage data
+  const { data: creditUsageData } = useGetCreditUsageByCanvasId({
+    query: { canvasId },
+  });
+
+  // Calculate credit earnings per run, default to 0
+  const creditEarningsPerRun = useMemo(() => {
+    const total = creditUsageData?.data?.total ?? 0;
+    return total > 0 ? Math.ceil(total * 0.2) : 0;
+  }, [creditUsageData]);
 
   // Filter nodes by the specified types (similar to result-list logic)
   const resultNodes: CanvasNode[] = useMemo(() => {
@@ -428,7 +441,46 @@ export const CreateWorkflowAppModal = ({
           </div>
         ) : (
           <Form form={form}>
+            {/* Revenue Sharing Info Card */}
+            <div className="w-full mb-4">
+              <div
+                className="rounded-lg p-3.5 border border-orange-200/30 bg-cover bg-center bg-no-repeat"
+                style={{
+                  backgroundImage: `url(${BannerSvg})`,
+                }}
+              >
+                <div className="flex flex-col gap-2.5">
+                  {/* Main Title */}
+                  <div className="text-sm font-semibold text-black leading-[1.43]">
+                    {t('workflowApp.revenueSharing.title')}
+                  </div>
+
+                  {/* Bottom Row */}
+                  <div className="flex items-center justify-between">
+                    <div className="text-xs font-semibold text-black/50 leading-[1.67]">
+                      {t('workflowApp.revenueSharing.earningsHint', { creditEarningsPerRun })}
+                    </div>
+                    <div
+                      className="flex items-center gap-1 cursor-pointer hover:opacity-80 transition-opacity"
+                      onClick={() =>
+                        window.open(
+                          'https://www.notion.so/reflydoc/Welcome-to-Refly-28cd62ce60718093b830c4b9fc8b22a3',
+                          '_blank',
+                        )
+                      }
+                    >
+                      <span className="text-xs text-black/30 leading-[1.82]">
+                        {t('workflowApp.revenueSharing.howToEarn')}
+                      </span>
+                      <ArrowRight size={12} color="rgba(0, 0, 0, 0.3)" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
             <div className="flex flex-col gap-2">
+              {/* Template Content */}
               {/* Title Field */}
               <div className="flex flex-col gap-2">
                 <label
@@ -450,7 +502,6 @@ export const CreateWorkflowAppModal = ({
                   />
                 </Form.Item>
               </div>
-
               {/* Description Field */}
               <div className="flex flex-col gap-2 mt-5">
                 <div className="flex items-center justify-between">
@@ -470,7 +521,6 @@ export const CreateWorkflowAppModal = ({
                   />
                 </Form.Item>
               </div>
-
               {/* Run Result */}
               <div className="flex flex-col gap-2 mt-5">
                 <div className="flex items-center justify-between h-4">
@@ -496,7 +546,6 @@ export const CreateWorkflowAppModal = ({
                   />
                 </div>
               </div>
-
               {/* Remix Settings */}
               <div className="flex flex-col gap-2 mt-5">
                 <div className="flex items-center justify-between">
@@ -512,7 +561,6 @@ export const CreateWorkflowAppModal = ({
                 </div>
                 <div className="text-xs text-refly-text-2">{t('workflowApp.remixHint')}</div>
               </div>
-
               {/* Cover Image Upload */}
               <div className="flex flex-col gap-2 mt-5">
                 <div className="text-xs font-semibold text-refly-text-0 leading-[1.33]">
