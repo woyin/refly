@@ -107,6 +107,7 @@ const WorkflowAppPage: React.FC = () => {
 
       // Clear executionId when workflow completes or fails
       setExecutionId(null);
+
       // Reset running state when workflow completes
       setIsRunning(false);
       // Clear executionId from URL
@@ -127,14 +128,16 @@ const WorkflowAppPage: React.FC = () => {
       }
     },
     onError: (_error) => {
+      !urlExecutionId &&
+        notification.error({
+          message: t('workflowApp.run.error'),
+        });
+
       // Clear executionId on error
       setExecutionId(null);
+      setSearchParams({ executionId: '' });
       // Reset running state on error
       setIsRunning(false);
-      // Clear executionId from URL
-      notification.error({
-        message: t('workflowApp.run.error'),
-      });
     },
   });
 
