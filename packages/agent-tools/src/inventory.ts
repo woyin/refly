@@ -20,6 +20,7 @@ import { BrowserUseToolset, BrowserUseToolsetDefinition } from './browser-use';
 import { ScaleboxToolset, ScaleboxToolsetDefinition } from './scalebox';
 import { ApifyToolset, ApifyToolsetDefinition } from './apify';
 import { NovitaSandboxToolset, NovitaSandboxToolsetDefinition } from './novita-sandbox';
+import { Apify13FToolset, Apify13FToolsetDefinition } from './apify-13f';
 
 export type AnyToolsetClass = new (...args: any[]) => AgentBaseToolset<any>;
 
@@ -109,5 +110,9 @@ export const toolsetInventory: Record<
   [NovitaSandboxToolsetDefinition.key]: {
     class: NovitaSandboxToolset,
     definition: NovitaSandboxToolsetDefinition,
+  },
+  [Apify13FToolsetDefinition.key]: {
+    class: Apify13FToolset,
+    definition: Apify13FToolsetDefinition,
   },
 };
