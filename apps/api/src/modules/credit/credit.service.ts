@@ -875,4 +875,17 @@ export class CreditService {
       return sum + total;
     }, 0);
   }
+
+  async countCanvasCreditUsageByCanvasId(user: User, canvasId: string): Promise<number> {
+    const canvasData = await this.canvasSyncService.getCanvasData(user, { canvasId });
+    const canvasResultIds = canvasData.nodes
+      .filter((node) => node.type === 'skillResponse')
+      .map((node) => node.data.entityId);
+    const total = await Promise.all(
+      canvasResultIds.map((canvasResultId) => this.countResultCreditUsage(canvasResultId)),
+    );
+    return total.reduce((sum, total) => {
+      return sum + total;
+    }, 0);
+  }
 }

@@ -364,6 +364,9 @@ import type {
   GetCreditUsageByExecutionIdData,
   GetCreditUsageByExecutionIdError,
   GetCreditUsageByExecutionIdResponse2,
+  GetCreditUsageByCanvasIdData,
+  GetCreditUsageByCanvasIdError,
+  GetCreditUsageByCanvasIdResponse2,
   GetSubscriptionPlansError,
   GetSubscriptionPlansResponse2,
   GetSubscriptionUsageError,
@@ -2403,6 +2406,23 @@ export const getCreditUsageByExecutionId = <ThrowOnError extends boolean = false
   >({
     ...options,
     url: '/credit/execution',
+  });
+};
+
+/**
+ * Get credit usage by canvas ID
+ * Get credit usage by canvas ID
+ */
+export const getCreditUsageByCanvasId = <ThrowOnError extends boolean = false>(
+  options: Options<GetCreditUsageByCanvasIdData, ThrowOnError>,
+) => {
+  return (options?.client ?? client).get<
+    GetCreditUsageByCanvasIdResponse2,
+    GetCreditUsageByCanvasIdError,
+    ThrowOnError
+  >({
+    ...options,
+    url: '/credit/canvas',
   });
 };
 

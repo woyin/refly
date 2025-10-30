@@ -4498,6 +4498,22 @@ export type GetCreditUsageByExecutionIdResponse = BaseResponse & {
   };
 };
 
+export type GetCreditUsageByCanvasIdResponse = BaseResponse & {
+  /**
+   * Credit usage by canvas ID
+   */
+  data?: {
+    /**
+     * Total credit usage by canvas ID
+     */
+    total?: number;
+    /**
+     * Credit usage list by canvas ID
+     */
+    usages?: Array<CreditUsage>;
+  };
+};
+
 export type SubscriptionPlan = {
   /**
    * Subscription plan type
@@ -7828,6 +7844,19 @@ export type GetCreditUsageByExecutionIdData = {
 export type GetCreditUsageByExecutionIdResponse2 = GetCreditUsageByExecutionIdResponse;
 
 export type GetCreditUsageByExecutionIdError = unknown;
+
+export type GetCreditUsageByCanvasIdData = {
+  query: {
+    /**
+     * Canvas ID
+     */
+    canvasId: string;
+  };
+};
+
+export type GetCreditUsageByCanvasIdResponse2 = GetCreditUsageByCanvasIdResponse;
+
+export type GetCreditUsageByCanvasIdError = unknown;
 
 export type GetSubscriptionPlansResponse2 = GetSubscriptionPlansResponse;
 

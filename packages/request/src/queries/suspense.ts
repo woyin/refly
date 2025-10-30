@@ -18,6 +18,7 @@ import {
   getCreditBalance,
   getCreditRecharge,
   getCreditUsage,
+  getCreditUsageByCanvasId,
   getCreditUsageByExecutionId,
   getCreditUsageByResultId,
   getDocumentDetail,
@@ -86,6 +87,8 @@ import {
   GetCreditBalanceError,
   GetCreditRechargeData,
   GetCreditRechargeError,
+  GetCreditUsageByCanvasIdData,
+  GetCreditUsageByCanvasIdError,
   GetCreditUsageByExecutionIdData,
   GetCreditUsageByExecutionIdError,
   GetCreditUsageByResultIdData,
@@ -867,6 +870,23 @@ export const useGetCreditUsageByExecutionIdSuspense = <
     queryKey: Common.UseGetCreditUsageByExecutionIdKeyFn(clientOptions, queryKey),
     queryFn: () =>
       getCreditUsageByExecutionId({ ...clientOptions }).then(
+        (response) => response.data as TData,
+      ) as TData,
+    ...options,
+  });
+export const useGetCreditUsageByCanvasIdSuspense = <
+  TData = Common.GetCreditUsageByCanvasIdDefaultResponse,
+  TError = GetCreditUsageByCanvasIdError,
+  TQueryKey extends Array<unknown> = unknown[],
+>(
+  clientOptions: Options<GetCreditUsageByCanvasIdData, true>,
+  queryKey?: TQueryKey,
+  options?: Omit<UseQueryOptions<TData, TError>, 'queryKey' | 'queryFn'>,
+) =>
+  useSuspenseQuery<TData, TError>({
+    queryKey: Common.UseGetCreditUsageByCanvasIdKeyFn(clientOptions, queryKey),
+    queryFn: () =>
+      getCreditUsageByCanvasId({ ...clientOptions }).then(
         (response) => response.data as TData,
       ) as TData,
     ...options,

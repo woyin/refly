@@ -3005,6 +3005,27 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/GetCreditUsageByExecutionIdResponse'
+  /credit/canvas:
+    get:
+      tags:
+        - credit
+      summary: Get credit usage by canvas ID
+      description: Get credit usage by canvas ID
+      operationId: getCreditUsageByCanvasId
+      parameters:
+        - name: canvasId
+          in: query
+          description: Canvas ID
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetCreditUsageByCanvasIdResponse'
   /subscription/plans:
     get:
       tags:
@@ -8149,6 +8170,23 @@ components:
                 usages:
                   type: array
                   description: Credit usage list by execution ID
+                  items:
+                    $ref: '#/components/schemas/CreditUsage'
+    GetCreditUsageByCanvasIdResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            data:
+              type: object
+              description: Credit usage by canvas ID
+              properties:
+                total:
+                  type: number
+                  description: Total credit usage by canvas ID
+                usages:
+                  type: array
+                  description: Credit usage list by canvas ID
                   items:
                     $ref: '#/components/schemas/CreditUsage'
     SubscriptionPlan:
