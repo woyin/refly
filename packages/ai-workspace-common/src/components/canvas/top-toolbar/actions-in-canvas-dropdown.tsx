@@ -11,7 +11,7 @@ import { Spin } from '@refly-packages/ai-workspace-common/components/common/spin
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
 import { useCanvasLayout } from '@refly-packages/ai-workspace-common/hooks/canvas/use-canvas-layout';
 import { useOnViewportChange, useReactFlow } from '@xyflow/react';
-import { useCanvasOperationStoreShallow } from '@refly/stores';
+import { reflyEnv } from '@refly/utils/env';
 
 interface MenuItemLabelProps {
   icon?: React.ReactNode;
@@ -64,9 +64,7 @@ export const ActionsInCanvasDropdown = memo((props: ActionsInCanvasDropdownProps
   const [popupVisible, setPopupVisible] = useState(false);
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { openDeleteModal } = useCanvasOperationStoreShallow((state) => ({
-    openDeleteModal: state.openDeleteModal,
-  }));
+
   const { duplicateCanvas, loading: duplicateLoading } = useDuplicateCanvas();
 
   const { undo, redo } = useCanvasContext();
@@ -78,6 +76,14 @@ export const ActionsInCanvasDropdown = memo((props: ActionsInCanvasDropdownProps
 
   const minZoom = 0.25;
   const maxZoom = 2;
+
+  const isMac = useMemo(() => {
+    try {
+      return reflyEnv?.getOsType?.() === 'OSX';
+    } catch {
+      return false;
+    }
+  }, []);
 
   const handleBackDashboard = useCallback(() => {
     navigate('/');
@@ -95,11 +101,6 @@ export const ActionsInCanvasDropdown = memo((props: ActionsInCanvasDropdownProps
   const handleDuplicate = useCallback(() => {
     duplicateCanvas({ canvasId, title: canvasName, isCopy: true, onSuccess: hideDropdown });
   }, [canvasId, canvasName, hideDropdown]);
-
-  const handleDelete = useCallback(() => {
-    openDeleteModal(canvasId, canvasName);
-    hideDropdown();
-  }, [canvasId, canvasName, openDeleteModal, hideDropdown]);
 
   // Update CSS custom property for resize control scaling
   useEffect(() => {
@@ -160,10 +161,6 @@ export const ActionsInCanvasDropdown = memo((props: ActionsInCanvasDropdownProps
     }
   }, [currentZoom, reactFlowInstance, minZoom]);
 
-  const handleZoomReset = useCallback(() => {
-    reactFlowInstance?.zoomTo(1);
-  }, [reactFlowInstance]);
-
   const handleFitView = useCallback(() => {
     reactFlowInstance?.fitView();
   }, [reactFlowInstance]);
@@ -194,7 +191,7 @@ export const ActionsInCanvasDropdown = memo((props: ActionsInCanvasDropdownProps
       {
         label: (
           <MenuItemLabel
-            text={t('canvas.toolbar.duplicate')}
+            text={t('canvas.toolbar.tooltip.duplicateWorkflow')}
             handleClick={handleDuplicate}
             loading={duplicateLoading}
           />
@@ -203,22 +200,35 @@ export const ActionsInCanvasDropdown = memo((props: ActionsInCanvasDropdownProps
         disabled: duplicateLoading,
       },
       {
-        label: <MenuItemLabel text={t('canvas.toolbar.tooltip.undo')} handleClick={undo} />,
+        type: 'divider' as const,
+      },
+      {
+        label: (
+          <MenuItemLabel
+            text={t('canvas.toolbar.tooltip.undo')}
+            handleClick={undo}
+            shortcut={isMac ? '⌘Z' : 'CtrlZ'}
+          />
+        ),
         key: 'undo',
       },
       {
-        label: <MenuItemLabel text={t('canvas.toolbar.tooltip.redo')} handleClick={redo} />,
+        label: (
+          <MenuItemLabel
+            text={t('canvas.toolbar.tooltip.redo')}
+            handleClick={redo}
+            shortcut={isMac ? '⌘⇧Z' : 'Ctrl⇧Z'}
+          />
+        ),
         key: 'redo',
       },
-      {
-        type: 'divider' as const,
-      },
+
       {
         key: 'zoomIn',
         label: (
           <MenuItemLabel
             text={t('canvas.toolbar.tooltip.zoomIn')}
-            // shortcut="⌘+"
+            shortcut={isMac ? '⌘+' : 'Ctrl+'}
             handleClick={handleZoomIn}
           />
         ),
@@ -229,46 +239,32 @@ export const ActionsInCanvasDropdown = memo((props: ActionsInCanvasDropdownProps
         label: (
           <MenuItemLabel
             text={t('canvas.toolbar.tooltip.zoomOut')}
-            // shortcut="⌘-"
+            shortcut={isMac ? '⌘-' : 'Ctrl-'}
             handleClick={handleZoomOut}
           />
         ),
         disabled: !canZoomOut,
       },
-      {
-        key: 'zoomReset',
-        label: (
-          <MenuItemLabel
-            text={t('canvas.toolbar.tooltip.zoomReset')}
-            // shortcut="⌘1"
-            handleClick={handleZoomReset}
-          />
-        ),
-      },
+
       {
         key: 'fullscreen',
         label: (
-          <MenuItemLabel text={t('canvas.toolbar.tooltip.fitView')} handleClick={handleFitView} />
+          <MenuItemLabel
+            text={t('canvas.toolbar.tooltip.fitView')}
+            handleClick={handleFitView}
+            shortcut={isMac ? '⌘0' : 'Ctrl0'}
+          />
         ),
       },
       {
         key: 'autoLayout',
         label: (
-          <MenuItemLabel text={t('canvas.toolbar.tooltip.layout')} handleClick={handleAutoLayout} />
-        ),
-      },
-      {
-        type: 'divider' as const,
-      },
-      {
-        label: (
           <MenuItemLabel
-            text={t('canvas.toolbar.deleteCanvas')}
-            className="text-refly-func-danger-default"
-            handleClick={handleDelete}
+            text={t('canvas.toolbar.tooltip.layout')}
+            handleClick={handleAutoLayout}
+            shortcut={isMac ? '⌘⇧L' : 'Ctrl⇧L'}
           />
         ),
-        key: 'delete',
       },
     ],
     [
@@ -280,12 +276,10 @@ export const ActionsInCanvasDropdown = memo((props: ActionsInCanvasDropdownProps
       redo,
       handleZoomIn,
       handleZoomOut,
-      handleZoomReset,
       handleFitView,
       handleAutoLayout,
       canZoomIn,
       canZoomOut,
-      handleDelete,
     ],
   );
 

@@ -62,6 +62,10 @@ export const CopilotHeader = memo(
       }
     }, [isHistoryOpen]);
 
+    useEffect(() => {
+      refetch();
+    }, [canvasId]);
+
     const content = useMemo(() => {
       return (
         <div className="max-h-[400px] overflow-y-auto">

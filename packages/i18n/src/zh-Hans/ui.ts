@@ -1276,6 +1276,7 @@ const translations = {
         help: '帮助与文档',
         resourceLibrary: '资源库',
         toolDependencies: '依赖',
+        duplicateWorkflow: '复制工作流',
       },
       openDocs: '帮助文档',
       openTour: '功能亮点',

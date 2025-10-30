@@ -1288,6 +1288,7 @@ const translations = {
         help: 'Help & Documentation',
         resourceLibrary: 'Resource Library',
         toolDependencies: 'Tool Dependencies',
+        duplicateWorkflow: 'Duplicate Workflow',
       },
       openDocs: 'Documentation',
       openTour: 'Feature Highlights',

@@ -67,6 +67,7 @@ import { WorkflowRun } from './workflow-run';
 import { useMatch } from '@refly-packages/ai-workspace-common/utils/router';
 import { UploadNotification } from '@refly-packages/ai-workspace-common/components/common/upload-notification';
 import { Copilot } from './copilot';
+import { useCanvasLayout } from '@refly-packages/ai-workspace-common/hooks/canvas/use-canvas-layout';
 
 const GRID_SIZE = 10;
 
@@ -169,6 +170,7 @@ const Flow = memo(({ canvasId, copilotWidth, setCopilotWidth }: FlowProps) => {
 
   const { pendingNode, clearPendingNode } = useCanvasNodesStore();
   const { loading, readonly, shareNotFound, shareLoading, undo, redo } = useCanvasContext();
+  const { onLayout } = useCanvasLayout();
 
   const {
     canvasInitialized,
@@ -890,6 +892,18 @@ const Flow = memo(({ canvasId, copilotWidth, setCopilotWidth }: FlowProps) => {
         reactFlowInstance.zoomOut();
       }
 
+      // Fit view (Cmd/Ctrl + 0)
+      if (isModKey && e.key === '0') {
+        e.preventDefault();
+        reactFlowInstance?.fitView?.();
+      }
+
+      // Auto layout (Cmd/Ctrl + Shift + L)
+      if (isModKey && e.shiftKey && e.key.toLowerCase() === 'l') {
+        e.preventDefault();
+        onLayout?.('LR');
+      }
+
       // Handle edge deletion
       if ((e.key === 'Delete' || e.key === 'Backspace') && selectedEdgeId) {
         e.preventDefault();
@@ -898,7 +912,7 @@ const Flow = memo(({ canvasId, copilotWidth, setCopilotWidth }: FlowProps) => {
         setSelectedEdgeId(null);
       }
     },
-    [selectedEdgeId, reactFlowInstance, undo, redo, readonly],
+    [selectedEdgeId, reactFlowInstance, undo, redo, readonly, onLayout],
   );
 
   // Handle edge click for delete button
