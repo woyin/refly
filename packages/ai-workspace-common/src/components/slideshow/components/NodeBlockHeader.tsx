@@ -79,10 +79,7 @@ export const NodeBlockHeader: React.FC<NodeBlockHeaderProps> = memo(
     }
 
     return (
-      <div
-        className="flex justify-between items-center py-4 px-3 rounded-lg relative"
-        style={{ height: '20px' }}
-      >
+      <div className="flex justify-between items-center py-4 px-3 rounded-lg relative">
         {/* Left: Icon and Title */}
         <div className="flex items-center gap-2 flex-grow overflow-hidden h-5">
           <div className="flex-grow overflow-hidden">
