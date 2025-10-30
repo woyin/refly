@@ -1,7 +1,7 @@
 import React, { memo, useCallback, useMemo, useState, useEffect } from 'react';
 import { useFetchShareData } from '@refly-packages/ai-workspace-common/hooks/use-fetch-share-data';
 import { message, Segmented, notification, Skeleton } from 'antd';
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { CanvasNodeType, WorkflowNodeExecution, WorkflowVariable } from '@refly/openapi-schema';
 import { GithubStar } from '@refly-packages/ai-workspace-common/components/common/github-star';
@@ -47,7 +47,6 @@ const WorkflowAppPage: React.FC = () => {
   const { t } = useTranslation();
   const { shareId: routeShareId } = useParams();
   const navigate = useNavigate();
-  const [searchParams, setSearchParams] = useSearchParams();
   const shareId = routeShareId ?? '';
   const [executionId, setExecutionId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<string>('runLogs');
@@ -81,15 +80,6 @@ const WorkflowAppPage: React.FC = () => {
     }
   }, [shareId]);
 
-  const urlExecutionId = searchParams.get('executionId');
-  // Restore executionId from URL on page load
-  useEffect(() => {
-    if (urlExecutionId) {
-      setExecutionId(urlExecutionId);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [urlExecutionId]);
-
   const workflowVariables = useMemo(() => {
     return workflowApp?.variables ?? [];
   }, [workflowApp]);
@@ -107,6 +97,7 @@ const WorkflowAppPage: React.FC = () => {
 
       // Clear executionId when workflow completes or fails
       setExecutionId(null);
+
       // Reset running state when workflow completes
       setIsRunning(false);
       // Clear executionId from URL
@@ -127,14 +118,14 @@ const WorkflowAppPage: React.FC = () => {
       }
     },
     onError: (_error) => {
+      notification.error({
+        message: t('workflowApp.run.error'),
+      });
+
       // Clear executionId on error
       setExecutionId(null);
       // Reset running state on error
       setIsRunning(false);
-      // Clear executionId from URL
-      notification.error({
-        message: t('workflowApp.run.error'),
-      });
     },
   });
 
@@ -216,7 +207,6 @@ const WorkflowAppPage: React.FC = () => {
           setExecutionId(newExecutionId);
           message.success(t('workflowApp.run.workflowStarted'));
           // Update URL with executionId to enable page refresh recovery
-          setSearchParams({ executionId: newExecutionId });
 
           // Auto switch to runLogs tab when workflow starts
           setActiveTab('runLogs');
@@ -232,7 +222,7 @@ const WorkflowAppPage: React.FC = () => {
         setIsRunning(false);
       }
     },
-    [shareId, isLoggedRef, navigate, setSearchParams],
+    [shareId, isLoggedRef, navigate],
   );
 
   const handleCopyWorkflow = useCallback(() => {
