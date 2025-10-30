@@ -104,10 +104,6 @@ export const ScaleboxToolsetDefinition: ToolsetDefinition = {
         'zh-CN': '通过 CodeInterpreter 运行代码（单次）',
       },
     },
-    {
-      name: 'list',
-      descriptionDict: { en: 'List sandboxes with pagination', 'zh-CN': '分页列出沙箱' },
-    },
   ],
   requiresAuth: true,
   authPatterns: [
@@ -158,7 +154,8 @@ export class ScaleboxCreate extends AgentBaseTool<ScaleboxToolParams> {
     envs: z.record(z.string()).describe('Environment variables').optional(),
   });
 
-  description = 'Create a sandbox using Scalebox SDK';
+  description =
+    'Create a new sandbox environment. This should be your FIRST step when starting any code execution task. Choose appropriate sandbox type (e.g., code-interpreter) and timeout settings.';
   protected params: ScaleboxToolParams;
 
   constructor(params: ScaleboxToolParams) {
@@ -444,7 +441,7 @@ export class ScaleboxFilesWrite extends AgentBaseTool<ScaleboxToolParams> {
   });
 
   description =
-    'Write a file to sandbox. Provide content directly, fetch from external URL, or use internal storage key. Path should be an absolute path starting from root (/).';
+    'Write files to the sandbox environment. Use this SECOND in your workflow after creating a sandbox. You can provide content directly, fetch from external URLs, or use internal storage keys. Always use absolute paths starting from root (/). Essential for uploading data files, code files, or any resources needed for code execution.';
   protected params: ScaleboxToolParams;
 
   constructor(params: ScaleboxToolParams) {
@@ -749,7 +746,7 @@ export class ScaleboxRunCode extends AgentBaseTool<ScaleboxToolParams> {
   });
 
   description =
-    'Run code in a specified language using sandbox.runCode. Code execution happens in /workspace directory by default, so use absolute paths for file operations.';
+    'Execute code in the sandbox environment - THIS SHOULD BE YOUR PRIMARY CODE EXECUTION METHOD due to its superior image generation capabilities. Use this THIRD and FINAL step in your workflow after creating sandbox and uploading files. Supports Python, JavaScript, TypeScript, R, Java, Bash, Node.js, and Deno. Automatically handles image outputs (PNG charts, plots, visualizations) and uploads them to canvas. Code executes in /workspace directory by default - use absolute paths for file operations.';
   protected params: ScaleboxToolParams;
 
   constructor(params: ScaleboxToolParams) {
@@ -863,7 +860,8 @@ export class ScaleboxInterpreterRunCode extends AgentBaseTool<ScaleboxToolParams
     cwd: z.string().optional(),
   });
 
-  description = 'Run code using CodeInterpreter (single-shot; no persistent contexts)';
+  description =
+    'Execute code using CodeInterpreter. Use this as ALTERNATIVE to runCode when you need simpler execution without sandbox management. Single-shot execution with no persistent contexts. Good for quick code testing but lacks the image generation capabilities of runCode.';
   protected params: ScaleboxToolParams;
 
   constructor(params: ScaleboxToolParams) {
@@ -902,53 +900,6 @@ export class ScaleboxInterpreterRunCode extends AgentBaseTool<ScaleboxToolParams
   }
 }
 
-/**
- * list sandboxes (paginated)
- */
-export class ScaleboxList extends AgentBaseTool<ScaleboxToolParams> {
-  name = 'list';
-  toolsetKey = ScaleboxToolsetDefinition.key;
-
-  schema = z.object({
-    pageLimit: z.number().describe('Max number of pages to fetch').default(1),
-    itemLimit: z.number().describe('Max number of items to fetch').optional(),
-  });
-
-  description = 'List sandboxes with pagination';
-  protected params: ScaleboxToolParams;
-
-  constructor(params: ScaleboxToolParams) {
-    super(params);
-    this.params = params;
-  }
-
-  async _call(input: z.infer<typeof this.schema>): Promise<ToolCallResult> {
-    ensureApiKey(this.params?.apiKey ?? '');
-    try {
-      const paginator = Sandbox.list({ apiKey: this.params.apiKey });
-      const items: any[] = [];
-      let pages = 0;
-      // Iterate with safeguards
-      while ((paginator?.hasNext ?? false) && pages < (input?.pageLimit ?? 1)) {
-        const chunk = (await paginator?.nextItems?.()) ?? [];
-        if (Array.isArray(chunk) && chunk?.length > 0) {
-          const remaining = (input?.itemLimit ?? Number.MAX_SAFE_INTEGER) - items.length;
-          if (remaining <= 0) break;
-          items.push(...chunk.slice(0, remaining));
-        }
-        pages += 1;
-      }
-      return { status: 'success', data: { items }, summary: 'Sandboxes listed' };
-    } catch (error) {
-      return {
-        status: 'error',
-        error: 'Failed to list sandboxes',
-        summary: error instanceof Error ? error.message : 'Unknown error during list',
-      };
-    }
-  }
-}
-
 export class ScaleboxToolset extends AgentBaseToolset<ScaleboxToolParams> {
   toolsetKey = ScaleboxToolsetDefinition.key;
   tools = [
@@ -968,6 +919,5 @@ export class ScaleboxToolset extends AgentBaseToolset<ScaleboxToolParams> {
     ScaleboxPtyExec,
     ScaleboxRunCode,
     ScaleboxInterpreterRunCode,
-    ScaleboxList,
   ] satisfies readonly AgentToolConstructor<ScaleboxToolParams>[];
 }
