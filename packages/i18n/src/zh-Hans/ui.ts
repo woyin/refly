@@ -3550,6 +3550,13 @@ const translations = {
       swipeHint: '左右滑动切换幻灯片 ({current}/{total})',
       codeComponent: '代码组件',
       documentComponent: '文档组件',
+      artifact: {
+        notSelected: '未选择组件',
+        loading: '加载中...',
+        generating: '生成中...',
+        code: '代码',
+        fixCodeNeeded: '需要修复代码',
+      },
       skillResponse: {
         notSelected: '未选择技能响应组件',
       },

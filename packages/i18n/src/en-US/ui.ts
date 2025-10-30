@@ -236,9 +236,9 @@ const translations = {
         markdown: 'Markdown',
         code: 'Code',
         svgImage: 'SVG Image',
-        notSelected: 'No {type} component selected',
-        loading: '{type} loading...',
-        generating: '{type} generating...',
+        notSelected: 'No component selected',
+        loading: 'Loading...',
+        generating: 'Generating...',
         fixCodeNeeded: 'Code fix needed',
       },
       image: {
