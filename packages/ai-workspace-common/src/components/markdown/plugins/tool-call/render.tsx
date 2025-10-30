@@ -3,6 +3,7 @@ import React, { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { MarkdownMode } from '../../types';
 import { ToolCallStatus, parseToolCallStatus } from './types';
+import { CopilotWorkflowPlan } from '@refly-packages/ai-workspace-common/components/markdown/plugins/tool-call/copilot-workflow-plan';
 
 // SVG icons for the component
 const ExecutingIcon = () => (
@@ -93,6 +94,13 @@ const ToolCall: React.FC<ToolCallProps> = (props) => {
   // Extract tool name from props
   const toolName = props['data-tool-name'] || 'unknown';
   const toolsetKey = props['data-tool-toolset-key'] || 'unknown';
+
+  const isCopilotGenerateWorkflow = toolsetKey === 'copilot' && toolName === 'generate_workflow';
+  if (isCopilotGenerateWorkflow) {
+    const argsStr = props['data-tool-arguments'] || '{}';
+    const structuredArgs = JSON.parse(JSON.parse(argsStr).input);
+    return <CopilotWorkflowPlan data={structuredArgs} />;
+  }
 
   // Format the content for parameters
   const parametersContent = () => {

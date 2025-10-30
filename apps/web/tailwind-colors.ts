@@ -48,6 +48,7 @@ export const reflyColors = {
   'refly-text-2': 'var(--refly-text-2)',
   'refly-text-3': 'var(--refly-text-3)',
   'refly-text-4': 'var(--refly-text-4)',
+  'refly-text-caption': 'var(--refly-text-caption)',
   'refly-text-StaticWhite': 'var(--refly-text-StaticWhite)',
   'refly-text-placeholder': 'var(--refly-text-placeholder)',
 } as const;
