@@ -565,6 +565,7 @@ export const CreateVariablesModal: React.FC<CreateVariablesModalProps> = React.m
       handleEditSave,
       handleDragEnd,
       handleDragStart,
+      form,
     ]);
 
     return (

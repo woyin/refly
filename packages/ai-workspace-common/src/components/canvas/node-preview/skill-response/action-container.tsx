@@ -2,7 +2,7 @@ import { useMemo, useCallback, memo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button, message, Tooltip } from 'antd';
 import { ModelIcon } from '@lobehub/icons';
-import { ActionResult, ActionStep, ModelInfo, Source } from '@refly/openapi-schema';
+import { ActionResult, ActionStep, GenericToolset, ModelInfo, Source } from '@refly/openapi-schema';
 import { CheckCircleOutlined, CopyOutlined, ImportOutlined } from '@ant-design/icons';
 import { copyToClipboard } from '@refly-packages/ai-workspace-common/utils';
 import { parseMarkdownCitationsAndCanvasTags, safeParseJSON } from '@refly/utils/parse';
@@ -12,18 +12,23 @@ import { editorEmitter, EditorOperation } from '@refly/utils/event-emitter/edito
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
 import { FollowingActions } from '../sharedComponents/following-actions';
 import { IContextItem } from '@refly/common-types';
-import { convertResultContextToItems } from '@refly/canvas-common';
 import { useFetchProviderItems } from '@refly-packages/ai-workspace-common/hooks/use-fetch-provider-items';
 
 interface ActionContainerProps {
   step: ActionStep;
   result: ActionResult;
   nodeId?: string;
+  initSelectedToolsets?: GenericToolset[];
 }
 
 const buttonClassName = 'text-xs flex justify-center items-center h-6 px-1 rounded-lg';
 
-const ActionContainerComponent = ({ result, step, nodeId }: ActionContainerProps) => {
+const ActionContainerComponent = ({
+  result,
+  step,
+  nodeId,
+  initSelectedToolsets,
+}: ActionContainerProps) => {
   const { t } = useTranslation();
   const { debouncedCreateDocument, isCreating } = useCreateDocument();
   const { readonly } = useCanvasContext();
@@ -108,39 +113,21 @@ const ActionContainerComponent = ({ result, step, nodeId }: ActionContainerProps
   }, [providerItemList, tokenUsage]);
 
   const initContextItems = useMemo(() => {
-    if (result?.resultId) {
-      // Get the original context items from the result's context and history
-      const originalContextItems = convertResultContextToItems(
-        result.context || {},
-        result.history || [],
-      );
-
-      // Create merged context items similar to skill-response.tsx handleAskAI
-      const currentNodeContext: IContextItem = {
-        type: 'skillResponse',
-        entityId: result.resultId,
-        title: result.title || '',
-        metadata: {
-          withHistory: true,
-        },
-      };
-
-      // Include the original context items from the response
-      const mergedContextItems = [
-        currentNodeContext,
-        // Include the original context items from the response
-        ...originalContextItems.map((item: IContextItem) => ({
-          ...item,
-          metadata: {
-            ...item.metadata,
-            withHistory: undefined,
-          },
-        })),
-      ];
-
-      return mergedContextItems;
+    if (!result.resultId) {
+      return [];
     }
-  }, [result.context, result.history]);
+
+    const currentNodeContext: IContextItem = {
+      type: 'skillResponse',
+      entityId: result.resultId,
+      title: result.title ?? '',
+      metadata: {
+        withHistory: true,
+      },
+    };
+
+    return [currentNodeContext];
+  }, [result.resultId, result.title]);
 
   const initModelInfo = useMemo(() => {
     if (providerItem && providerItem.category === 'llm') {
@@ -174,6 +161,7 @@ const ActionContainerComponent = ({ result, step, nodeId }: ActionContainerProps
           initContextItems={initContextItems}
           initModelInfo={initModelInfo}
           nodeId={nodeId}
+          initSelectedToolsets={initSelectedToolsets}
         />
       )}
 
@@ -228,10 +216,4 @@ const ActionContainerComponent = ({ result, step, nodeId }: ActionContainerProps
   );
 };
 
-export const ActionContainer = memo(ActionContainerComponent, (prevProps, nextProps) => {
-  return (
-    prevProps.step === nextProps.step &&
-    prevProps.result === nextProps.result &&
-    prevProps.nodeId === nextProps.nodeId
-  );
-});
+export const ActionContainer = memo(ActionContainerComponent);
