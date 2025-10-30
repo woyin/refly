@@ -184,6 +184,7 @@ export class CreditService {
     shareUserId: string,
     executionId: string,
     creditUsage: number,
+    appId?: string,
   ): Promise<void> {
     const creditUsageId = genCommissionCreditUsageId(executionId);
     const creditRechargeId = genCommissionCreditRechargeId(executionId);
@@ -196,7 +197,7 @@ export class CreditService {
     await this.processCreditRecharge(shareUserId, creditUsage, {
       rechargeId: creditRechargeId,
       source: 'commission',
-      description: `Commission credit for sharing execution ${executionId}`,
+      description: `Commission credit for sharing execution ${executionId} from app ${appId}`,
       createdAt: now,
       expiresAt,
     });
@@ -204,6 +205,7 @@ export class CreditService {
       usageId: creditUsageId,
       usageType: 'commission',
       createdAt: now,
+      description: `Commission credit for sharing execution ${executionId} from app ${appId}`,
     });
   }
 
