@@ -1401,6 +1401,7 @@ const translations = {
         title: 'Run Workflow',
         run: 'Run',
         executing: 'Running...',
+        remix: 'Remix',
         copyWorkflow: 'Remix Workflow',
         copyShareLink: 'Copy Share Link',
         shareLinkCopied: 'Share link copied to clipboard',
