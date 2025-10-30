@@ -3693,7 +3693,7 @@ const translations = {
     },
     revenueSharing: {
       title: 'Earn credits by running templates',
-      earningsHint: 'Expected to earn {{creditEarningsPerRun}} credits per run',
+      earningsHint: 'Each run can earn <num>{{creditEarningsPerRun}}</num> credits',
       howToEarn: 'How to earn',
     },
   },

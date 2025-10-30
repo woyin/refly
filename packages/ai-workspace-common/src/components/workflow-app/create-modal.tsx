@@ -1,7 +1,7 @@
 import { memo, useCallback, useEffect, useMemo, useState } from 'react';
 import { Button, Form, Input, message, Modal, Upload, Image, Switch, Spin } from 'antd';
 import { PlusOutlined, LoadingOutlined } from '@ant-design/icons';
-import { useTranslation } from 'react-i18next';
+import { Trans, useTranslation } from 'react-i18next';
 import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
 import { copyToClipboard } from '@refly-packages/ai-workspace-common/utils';
@@ -458,7 +458,15 @@ export const CreateWorkflowAppModal = ({
                   {/* Bottom Row */}
                   <div className="flex items-center justify-between">
                     <div className="text-xs font-semibold text-black/50 leading-[1.67]">
-                      {t('workflowApp.revenueSharing.earningsHint', { creditEarningsPerRun })}
+                      <Trans
+                        i18nKey="workflowApp.revenueSharing.earningsHint"
+                        values={{ creditEarningsPerRun }}
+                        components={{
+                          num: (
+                            <span className="mx-1 text-base font-extrabold text-black leading-none" />
+                          ),
+                        }}
+                      />
                     </div>
                     <div
                       className="flex items-center gap-1 cursor-pointer hover:opacity-80 transition-opacity"
