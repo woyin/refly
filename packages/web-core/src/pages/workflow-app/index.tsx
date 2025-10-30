@@ -53,6 +53,7 @@ const WorkflowAppPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<string>('runLogs');
   const [finalNodeExecutions, setFinalNodeExecutions] = useState<any[]>([]);
   const [isRunning, setIsRunning] = useState(false);
+  const [executionCreditUsage, setExecutionCreditUsage] = useState<number | null>(null);
 
   // Settings modal state
   const { showSettingModal, setShowSettingModal } = useSiderStoreShallow((state) => ({
@@ -99,13 +100,14 @@ const WorkflowAppPage: React.FC = () => {
     enabled: true,
     interval: 1000,
 
-    onComplete: (status, data) => {
+    onComplete: async (status, data) => {
       // Save final nodeExecutions before clearing executionId
       if (data?.data?.nodeExecutions) {
         setFinalNodeExecutions(data.data.nodeExecutions);
       }
 
       // Clear executionId when workflow completes or fails
+      const currentExecutionId = executionId;
       setExecutionId(null);
       // Reset running state when workflow completes
       setIsRunning(false);
@@ -113,6 +115,22 @@ const WorkflowAppPage: React.FC = () => {
 
       // Refresh credit balance after workflow completion
       refetchUsage();
+
+      // Fetch execution credit usage if workflow completed successfully
+      if (status === 'finish' && currentExecutionId) {
+        try {
+          const response = await getClient().getCreditUsageByExecutionId({
+            query: {
+              executionId: currentExecutionId,
+            },
+          });
+          if (response?.data?.data?.total) {
+            setExecutionCreditUsage(response.data.data.total);
+          }
+        } catch (error) {
+          console.error('Failed to fetch execution credit usage:', error);
+        }
+      }
 
       if (status === 'finish') {
         notification.success({
@@ -375,6 +393,7 @@ const WorkflowAppPage: React.FC = () => {
                         onCopyShareLink={handleCopyShareLink}
                         isRunning={isRunning}
                         templateContent={workflowApp?.templateContent}
+                        executionCreditUsage={executionCreditUsage}
                         className="max-h-[500px] sm:max-h-[600px] bg-[var(--refly-bg-float-z3)] dark:bg-[var(--refly-bg-content-z2)] border border-[var(--refly-Card-Border)] dark:border-[var(--refly-semi-color-border)] shadow-[0_2px_20px_4px_rgba(0,0,0,0.04)] dark:shadow-[0_2px_20px_4px_rgba(0,0,0,0.2)] px-4 py-3 rounded-2xl"
                       />
                     </div>

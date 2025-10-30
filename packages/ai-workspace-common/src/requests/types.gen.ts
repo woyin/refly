@@ -4482,6 +4482,22 @@ export type GetCreditUsageByResultIdResponse = BaseResponse & {
   };
 };
 
+export type GetCreditUsageByExecutionIdResponse = BaseResponse & {
+  /**
+   * Credit usage by execution ID
+   */
+  data?: {
+    /**
+     * Total credit usage by execution ID
+     */
+    total?: number;
+    /**
+     * Credit usage list by execution ID
+     */
+    usages?: Array<CreditUsage>;
+  };
+};
+
 export type SubscriptionPlan = {
   /**
    * Subscription plan type
@@ -7799,6 +7815,19 @@ export type GetCreditUsageByResultIdData = {
 export type GetCreditUsageByResultIdResponse2 = GetCreditUsageByResultIdResponse;
 
 export type GetCreditUsageByResultIdError = unknown;
+
+export type GetCreditUsageByExecutionIdData = {
+  query: {
+    /**
+     * Execution ID
+     */
+    executionId: string;
+  };
+};
+
+export type GetCreditUsageByExecutionIdResponse2 = GetCreditUsageByExecutionIdResponse;
+
+export type GetCreditUsageByExecutionIdError = unknown;
 
 export type GetSubscriptionPlansResponse2 = GetSubscriptionPlansResponse;
 

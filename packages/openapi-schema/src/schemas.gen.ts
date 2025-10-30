@@ -6327,6 +6327,36 @@ export const GetCreditUsageByResultIdResponseSchema = {
   ],
 } as const;
 
+export const GetCreditUsageByExecutionIdResponseSchema = {
+  allOf: [
+    {
+      $ref: '#/components/schemas/BaseResponse',
+    },
+    {
+      type: 'object',
+      properties: {
+        data: {
+          type: 'object',
+          description: 'Credit usage by execution ID',
+          properties: {
+            total: {
+              type: 'number',
+              description: 'Total credit usage by execution ID',
+            },
+            usages: {
+              type: 'array',
+              description: 'Credit usage list by execution ID',
+              items: {
+                $ref: '#/components/schemas/CreditUsage',
+              },
+            },
+          },
+        },
+      },
+    },
+  ],
+} as const;
+
 export const SubscriptionPlanSchema = {
   type: 'object',
   properties: {

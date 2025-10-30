@@ -2984,6 +2984,27 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/GetCreditUsageByResultIdResponse'
+  /credit/execution:
+    get:
+      tags:
+        - credit
+      summary: Get credit usage by execution ID
+      description: Get credit usage by execution ID
+      operationId: getCreditUsageByExecutionId
+      parameters:
+        - name: executionId
+          in: query
+          description: Execution ID
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetCreditUsageByExecutionIdResponse'
   /subscription/plans:
     get:
       tags:
@@ -8111,6 +8132,23 @@ components:
                 usages:
                   type: array
                   description: Credit usage list by result ID
+                  items:
+                    $ref: '#/components/schemas/CreditUsage'
+    GetCreditUsageByExecutionIdResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            data:
+              type: object
+              description: Credit usage by execution ID
+              properties:
+                total:
+                  type: number
+                  description: Total credit usage by execution ID
+                usages:
+                  type: array
+                  description: Credit usage list by execution ID
                   items:
                     $ref: '#/components/schemas/CreditUsage'
     SubscriptionPlan:

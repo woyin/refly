@@ -58,6 +58,7 @@ interface WorkflowRunFormProps {
   className?: string;
   templateContent?: string;
   workflowApp?: any;
+  executionCreditUsage?: number | null;
 }
 
 export const WorkflowRunForm = ({
@@ -72,6 +73,7 @@ export const WorkflowRunForm = ({
   className,
   templateContent,
   workflowApp,
+  executionCreditUsage,
 }: WorkflowRunFormProps) => {
   const { t } = useTranslation();
   const { isLoggedRef, getLoginStatus } = useIsLogin();
@@ -574,15 +576,15 @@ export const WorkflowRunForm = ({
 
           <div className="p-3 sm:p-4 border-t border-refly-Card-Border bg-refly-bg-control-z0 rounded-b-lg">
             <div className="flex flex-wrap gap-2">
-              {workflowApp?.creditUsage && (
+              {(executionCreditUsage ?? workflowApp?.creditUsage) && (
                 <Tooltip
                   title={t('subscription.creditBilling.description.canvasTotal', {
-                    total: workflowApp.creditUsage,
+                    total: executionCreditUsage ?? workflowApp?.creditUsage,
                   })}
                 >
                   <div className="flex items-center gap-0.5 text-xs text-refly-text-2">
                     <Subscription size={12} className="text-[#1C1F23] dark:text-white" />
-                    {workflowApp.creditUsage}
+                    {executionCreditUsage ?? workflowApp?.creditUsage}
                   </div>
                 </Tooltip>
               )}

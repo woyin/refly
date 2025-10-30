@@ -56,6 +56,7 @@ const translations = {
         embedding: '向量嵌入',
         reranking: '重排序',
         other: '其他',
+        commission: '模板使用',
       },
       depleted: '已用尽',
       expired: '已失效',
@@ -3687,6 +3688,7 @@ const translations = {
         promotion: '促销',
         refund: '退款',
         subscription: '订阅',
+        commission: '模板收益',
       },
       status: {
         unused: '未使用',

@@ -202,6 +202,7 @@ export class CreditService {
     });
     await this.deductCreditsAndCreateUsage(uid, creditUsage, {
       usageId: creditUsageId,
+      usageType: 'commission',
       createdAt: now,
     });
   }
@@ -853,10 +854,18 @@ export class CreditService {
     }, 0);
   }
 
-  async countCanvasCreditUsageByCanvasId(canvasId: string): Promise<number> {
+  async countExecutionCreditUsageByExecutionId(executionId: string): Promise<number> {
+    const execution = await this.prisma.workflowExecution.findUnique({
+      where: {
+        executionId,
+      },
+    });
+    if (!execution) {
+      return 0;
+    }
     const results = await this.prisma.actionResult.findMany({
       where: {
-        targetId: canvasId,
+        targetId: execution.canvasId,
       },
     });
     const total = await Promise.all(
