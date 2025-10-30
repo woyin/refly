@@ -612,7 +612,7 @@ export const WorkflowRunForm = ({
                     </svg>
 
                     <span className="font-semibold text-[20px] leading-[1.25em] font-roboto text-[#1C1F23] dark:text-white inline-flex items-center gap-[3px]">
-                      {executionCreditUsage ?? workflowApp?.creditUsage}
+                      {Math.ceil((workflowApp?.creditUsage ?? 0) * 1.2) ?? 0}
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
                         width="15"
