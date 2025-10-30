@@ -1387,7 +1387,7 @@ const translations = {
       run: {
         title: '运行调试',
         run: '运行',
-        executing: '运行中...',
+        executing: '运行中',
         remix: '再创作',
         copyWorkflow: 'Remix 工作流',
         copyShareLink: '复制分享链接',
