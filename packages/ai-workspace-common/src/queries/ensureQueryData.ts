@@ -18,6 +18,8 @@ import {
   getCreditBalance,
   getCreditRecharge,
   getCreditUsage,
+  getCreditUsageByExecutionId,
+  getCreditUsageByResultId,
   getDocumentDetail,
   getPageByCanvasId,
   getPageDetail,
@@ -70,6 +72,8 @@ import {
   GetCanvasTransactionsData,
   GetCodeArtifactDetailData,
   GetCreditRechargeData,
+  GetCreditUsageByExecutionIdData,
+  GetCreditUsageByResultIdData,
   GetCreditUsageData,
   GetDocumentDetailData,
   GetPageByCanvasIdData,
@@ -455,6 +459,23 @@ export const ensureUseGetCreditBalanceData = (
   queryClient.ensureQueryData({
     queryKey: Common.UseGetCreditBalanceKeyFn(clientOptions),
     queryFn: () => getCreditBalance({ ...clientOptions }).then((response) => response.data),
+  });
+export const ensureUseGetCreditUsageByResultIdData = (
+  queryClient: QueryClient,
+  clientOptions: Options<GetCreditUsageByResultIdData, true>,
+) =>
+  queryClient.ensureQueryData({
+    queryKey: Common.UseGetCreditUsageByResultIdKeyFn(clientOptions),
+    queryFn: () => getCreditUsageByResultId({ ...clientOptions }).then((response) => response.data),
+  });
+export const ensureUseGetCreditUsageByExecutionIdData = (
+  queryClient: QueryClient,
+  clientOptions: Options<GetCreditUsageByExecutionIdData, true>,
+) =>
+  queryClient.ensureQueryData({
+    queryKey: Common.UseGetCreditUsageByExecutionIdKeyFn(clientOptions),
+    queryFn: () =>
+      getCreditUsageByExecutionId({ ...clientOptions }).then((response) => response.data),
   });
 export const ensureUseGetSubscriptionPlansData = (
   queryClient: QueryClient,

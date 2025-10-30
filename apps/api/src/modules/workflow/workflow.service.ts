@@ -30,6 +30,8 @@ import { WorkflowNodeExecution as WorkflowNodeExecutionPO } from '../../generate
 import { QUEUE_POLL_WORKFLOW, QUEUE_RUN_WORKFLOW } from '../../utils/const';
 import { CanvasNotFoundError, WorkflowExecutionNotFoundError } from '@refly/errors';
 import { RedisService } from '../common/redis.service';
+import { CreditService } from '../credit/credit.service';
+import { ceil } from 'lodash';
 
 const WORKFLOW_POLL_INTERVAL = 1500;
 
@@ -43,6 +45,7 @@ export class WorkflowService {
     private readonly skillService: SkillService,
     private readonly canvasService: CanvasService,
     private readonly canvasSyncService: CanvasSyncService,
+    private readonly creditService: CreditService,
     @InjectQueue(QUEUE_RUN_WORKFLOW) private readonly runWorkflowQueue?: Queue,
     @InjectQueue(QUEUE_POLL_WORKFLOW) private readonly pollWorkflowQueue?: Queue,
   ) {}
@@ -459,6 +462,7 @@ export class WorkflowService {
         nodeType: true,
         status: true,
         parentNodeIds: true,
+        childNodeIds: true,
       },
       where: { executionId },
     });
@@ -509,6 +513,42 @@ export class WorkflowService {
       }
     }
 
+    // For finished skillResponse nodes, mark their non-skillResponse children as finish if not already finished
+    const finishedSkillResponseNodes = allNodes.filter(
+      (n) => n.status === 'finish' && n.nodeType === 'skillResponse',
+    );
+
+    const nodesToUpdate: string[] = [];
+    for (const finishedNode of finishedSkillResponseNodes) {
+      const childNodeIds = (safeParseJSON(finishedNode.childNodeIds) ?? []) as string[];
+      for (const childId of childNodeIds) {
+        const childNode = allNodes.find((n) => n.nodeId === childId);
+        if (childNode && childNode.nodeType !== 'skillResponse' && childNode.status !== 'finish') {
+          nodesToUpdate.push(childId);
+        }
+      }
+    }
+
+    // Update the status of child nodes to finish
+    if (nodesToUpdate.length > 0) {
+      await this.prisma.workflowNodeExecution.updateMany({
+        where: {
+          executionId,
+          nodeId: { in: nodesToUpdate },
+          status: { not: 'finish' },
+          nodeType: { not: 'skillResponse' },
+        },
+        data: {
+          status: 'finish',
+          progress: 100,
+          endTime: new Date(),
+        },
+      });
+      this.logger.log(
+        `[pollWorkflow] Marked ${nodesToUpdate.length} child nodes as finished for execution ${executionId}`,
+      );
+    }
+
     // Determine if we should continue polling for this execution
     const hasPendingOrExecuting = allNodes.some(
       (n) => n.status === 'waiting' || n.status === 'executing',
@@ -526,6 +566,38 @@ export class WorkflowService {
         status = 'failed';
       } else if (waitingNodes === 0 && executingNodes === 0) {
         status = 'finish';
+
+        // Check workflow execution for appId and validate uid consistency
+        const workflowExecution = await this.prisma.workflowExecution.findUnique({
+          select: {
+            executionId: true,
+            appId: true,
+            canvasId: true,
+          },
+          where: { executionId },
+        });
+
+        if (workflowExecution?.appId) {
+          const workflowApp = await this.prisma.workflowApp.findUnique({
+            select: {
+              appId: true,
+              uid: true,
+            },
+            where: { appId: workflowExecution.appId },
+          });
+
+          if (workflowApp && workflowApp.uid !== user.uid) {
+            const creditUsage =
+              await this.creditService.countExecutionCreditUsageByExecutionId(executionId);
+            const commissionCredit = ceil(creditUsage * 0.2);
+            await this.creditService.createCommissionCreditUsageAndRecharge(
+              user.uid,
+              workflowApp.uid,
+              executionId,
+              commissionCredit,
+            );
+          }
+        }
       }
 
       await this.prisma.workflowExecution.update({

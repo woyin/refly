@@ -54,6 +54,7 @@ const WorkflowAppPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<string>('runLogs');
   const [finalNodeExecutions, setFinalNodeExecutions] = useState<any[]>([]);
   const [isRunning, setIsRunning] = useState(false);
+  const [executionCreditUsage, setExecutionCreditUsage] = useState<number | null>(null);
 
   // Settings modal state
   const { showSettingModal, setShowSettingModal } = useSiderStoreShallow((state) => ({
@@ -100,13 +101,14 @@ const WorkflowAppPage: React.FC = () => {
     enabled: true,
     interval: 1000,
 
-    onComplete: (status, data) => {
+    onComplete: async (status, data) => {
       // Save final nodeExecutions before clearing executionId
       if (data?.data?.nodeExecutions) {
         setFinalNodeExecutions(data.data.nodeExecutions);
       }
 
       // Clear executionId when workflow completes or fails
+      const currentExecutionId = executionId;
       setExecutionId(null);
       // Reset running state when workflow completes
       setIsRunning(false);
@@ -115,12 +117,31 @@ const WorkflowAppPage: React.FC = () => {
       // Refresh credit balance after workflow completion
       refetchUsage();
 
+      // Fetch execution credit usage if workflow completed successfully
+      if (status === 'finish' && currentExecutionId) {
+        try {
+          const response = await getClient().getCreditUsageByExecutionId({
+            query: {
+              executionId: currentExecutionId,
+            },
+          });
+          if (response?.data?.data?.total) {
+            setExecutionCreditUsage(response.data.data.total);
+          }
+        } catch (error) {
+          console.error('Failed to fetch execution credit usage:', error);
+        }
+      }
+
       if (status === 'finish') {
+        notification.success({
+          message: t('workflowApp.run.completed'),
+        });
         // Auto switch to products tab when workflow completes successfully
         products.length > 0 && setActiveTab('products');
       } else if (status === 'failed') {
         notification.error({
-          message: t('workflowApp.run.failed') || 'App run failed',
+          message: t('workflowApp.run.failed'),
         });
       }
     },
@@ -131,7 +152,7 @@ const WorkflowAppPage: React.FC = () => {
       setIsRunning(false);
       // Clear executionId from URL
       notification.error({
-        message: t('workflowApp.run.error') || 'Run error',
+        message: t('workflowApp.run.error'),
       });
     },
   });
@@ -185,7 +206,7 @@ const WorkflowAppPage: React.FC = () => {
       });
       // Check if user is logged in before executing workflow
       if (!isLoggedRef.current) {
-        message.warning('Please login to run this workflow');
+        message.warning(t('workflowApp.run.loginRequired'));
         // Redirect to login with return URL
         const returnUrl = encodeURIComponent(window.location.pathname + window.location.search);
         navigate(`/?autoLogin=true&returnUrl=${returnUrl}`);
@@ -203,7 +224,7 @@ const WorkflowAppPage: React.FC = () => {
         });
 
         if (error) {
-          message.error(`executeWorkflowApp error: ${error}`);
+          message.error(t('workflowApp.run.executeError'));
           // Reset running state on error
           setIsRunning(false);
           return;
@@ -212,20 +233,20 @@ const WorkflowAppPage: React.FC = () => {
         const newExecutionId = data?.data?.executionId ?? null;
         if (newExecutionId) {
           setExecutionId(newExecutionId);
+          message.success(t('workflowApp.run.workflowStarted'));
           // Update URL with executionId to enable page refresh recovery
           setSearchParams({ executionId: newExecutionId });
 
-          message.success('Workflow started');
           // Auto switch to runLogs tab when workflow starts
           setActiveTab('runLogs');
         } else {
-          message.error('Failed to get execution ID');
+          message.error(t('workflowApp.run.executionIdFailed'));
           // Reset running state on failure
           setIsRunning(false);
         }
       } catch (error) {
         console.error('Error executing workflow app:', error);
-        message.error('Failed to execute workflow');
+        message.error(t('workflowApp.run.executeFailed'));
         // Reset running state on error
         setIsRunning(false);
       }
@@ -240,7 +261,7 @@ const WorkflowAppPage: React.FC = () => {
 
     // Check if user is logged in before copying workflow
     if (!isLoggedRef.current) {
-      message.warning('Please login to copy this workflow');
+      message.warning(t('workflowApp.run.loginRequiredCopy'));
       // Redirect to login with return URL
       const returnUrl = encodeURIComponent(window.location.pathname + window.location.search);
       navigate(`/?autoLogin=true&returnUrl=${returnUrl}`);
@@ -275,7 +296,7 @@ const WorkflowAppPage: React.FC = () => {
       message.success(t('canvas.workflow.run.shareLinkCopied') || 'Share link copied to clipboard');
     } catch (error) {
       console.error('Failed to copy share link:', error);
-      message.error(t('canvas.workflow.run.shareLinkCopyFailed') || 'Failed to copy share link');
+      message.error(t('canvas.workflow.run.shareLinkCopyFailed'));
     }
   }, [t, shareId]);
 
@@ -357,6 +378,7 @@ const WorkflowAppPage: React.FC = () => {
                         onCopyShareLink={handleCopyShareLink}
                         isRunning={isRunning}
                         templateContent={workflowApp?.templateContent}
+                        executionCreditUsage={executionCreditUsage}
                         className="max-h-[500px] sm:max-h-[600px] bg-[var(--refly-bg-float-z3)] dark:bg-[var(--refly-bg-content-z2)] border border-[var(--refly-Card-Border)] dark:border-[var(--refly-semi-color-border)] shadow-[0_2px_20px_4px_rgba(0,0,0,0.04)] dark:shadow-[0_2px_20px_4px_rgba(0,0,0,0.2)] px-4 py-3 rounded-2xl"
                       />
                     </div>

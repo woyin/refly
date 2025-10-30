@@ -9,7 +9,7 @@ import { ShareModule } from '../share/share.module';
 import { ToolModule } from '../tool/tool.module';
 import { CanvasSyncModule } from '../canvas-sync/canvas-sync.module';
 import { VariableExtractionModule } from '../variable-extraction/variable-extraction.module';
-
+import { CreditModule } from '../credit/credit.module';
 @Module({
   imports: [
     CommonModule,
@@ -20,6 +20,7 @@ import { VariableExtractionModule } from '../variable-extraction/variable-extrac
     ToolModule,
     CanvasSyncModule,
     VariableExtractionModule,
+    CreditModule,
   ],
   controllers: [WorkflowAppController],
   providers: [WorkflowAppService],

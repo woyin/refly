@@ -3402,6 +3402,10 @@ export type CreateShareRequest = {
    * Cover storage key
    */
   coverStorageKey?: string;
+  /**
+   * Credit usage
+   */
+  creditUsage?: number;
 };
 
 export type CreateShareResponse = BaseResponse & {
@@ -4459,6 +4463,38 @@ export type getCreditBalanceResponse = BaseResponse & {
      * Credit amount
      */
     creditAmount?: number;
+  };
+};
+
+export type GetCreditUsageByResultIdResponse = BaseResponse & {
+  /**
+   * Credit usage by result ID
+   */
+  data?: {
+    /**
+     * Total credit usage by result ID
+     */
+    total?: number;
+    /**
+     * Credit usage list by result ID
+     */
+    usages?: Array<CreditUsage>;
+  };
+};
+
+export type GetCreditUsageByExecutionIdResponse = BaseResponse & {
+  /**
+   * Credit usage by execution ID
+   */
+  data?: {
+    /**
+     * Total credit usage by execution ID
+     */
+    total?: number;
+    /**
+     * Credit usage list by execution ID
+     */
+    usages?: Array<CreditUsage>;
   };
 };
 
@@ -7782,6 +7818,32 @@ export type GetCreditUsageError = unknown;
 export type GetCreditBalanceResponse = getCreditBalanceResponse;
 
 export type GetCreditBalanceError = unknown;
+
+export type GetCreditUsageByResultIdData = {
+  query: {
+    /**
+     * Result ID
+     */
+    resultId: string;
+  };
+};
+
+export type GetCreditUsageByResultIdResponse2 = GetCreditUsageByResultIdResponse;
+
+export type GetCreditUsageByResultIdError = unknown;
+
+export type GetCreditUsageByExecutionIdData = {
+  query: {
+    /**
+     * Execution ID
+     */
+    executionId: string;
+  };
+};
+
+export type GetCreditUsageByExecutionIdResponse2 = GetCreditUsageByExecutionIdResponse;
+
+export type GetCreditUsageByExecutionIdError = unknown;
 
 export type GetSubscriptionPlansResponse2 = GetSubscriptionPlansResponse;
 
