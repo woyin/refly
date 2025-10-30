@@ -586,7 +586,7 @@ export class WorkflowService {
             where: { appId: workflowExecution.appId },
           });
 
-          if (workflowApp /* && workflowApp.uid !== user.uid */) {
+          if (workflowApp && workflowApp.uid !== user.uid) {
             const creditUsage =
               await this.creditService.countExecutionCreditUsageByExecutionId(executionId);
             const commissionCredit = ceil(creditUsage * 0.2);
