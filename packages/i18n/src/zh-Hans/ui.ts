@@ -3028,6 +3028,7 @@ const translations = {
   },
   copilot: {
     title: '工作流助手',
+    placeholder: '描述你想生成的工作流...',
     header: {
       history: '历史会话',
       newConversation: '新建会话',
@@ -3041,7 +3042,7 @@ const translations = {
       query3: '帮我生成一组新海诚风格、讲述“从小到大”成长故事的序列动画场景。',
     },
     sessionDetail: {
-      thinking: '思考中...',
+      thinking: '思考中',
     },
     addContext: '添加上下文',
     moreSettings: '更多设置',

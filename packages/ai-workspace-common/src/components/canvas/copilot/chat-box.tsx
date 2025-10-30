@@ -1,10 +1,12 @@
-import { memo, useState } from 'react';
-import { ChatComposer } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/chat-composer';
-import { GenericToolset } from '@refly-packages/ai-workspace-common/requests/types.gen';
-import { IContextItem } from '@refly/common-types/src/context';
+import { memo, useMemo, useEffect } from 'react';
+
 import { useInvokeAction } from '@refly-packages/ai-workspace-common/hooks/canvas/use-invoke-action';
 import { genActionResultID, genCopilotSessionID } from '@refly/utils/id';
-import { useCopilotStoreShallow } from '@refly/stores';
+import { useActionResultStoreShallow, useCopilotStoreShallow } from '@refly/stores';
+import { ChatInput } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/chat-input';
+import { ChatActions } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/chat-actions';
+import { useTranslation } from 'react-i18next';
+import { useListCopilotSessions } from '@refly-packages/ai-workspace-common/queries';
 
 interface ChatBoxProps {
   canvasId: string;
@@ -13,29 +15,61 @@ interface ChatBoxProps {
 }
 
 export const ChatBox = memo(({ canvasId, query, setQuery }: ChatBoxProps) => {
-  const [contextItems, setContextItems] = useState<IContextItem[]>([]);
-
-  const [isExecuting, setIsExecuting] = useState(false);
-  const [selectedToolsets, setSelectedToolsets] = useState<GenericToolset[]>([]);
+  const { t } = useTranslation();
+  const { refetch: refetchHistorySessions } = useListCopilotSessions(
+    {
+      query: {
+        canvasId,
+      },
+    },
+    [],
+    { enabled: false },
+  );
 
   const {
     currentSessionId,
     setCurrentSessionId,
     appendSessionResultId,
     setCreatedCopilotSessionId,
+    sessionResultIds,
   } = useCopilotStoreShallow((state) => ({
     currentSessionId: state.currentSessionId[canvasId],
     setCurrentSessionId: state.setCurrentSessionId,
     appendSessionResultId: state.appendSessionResultId,
     setCreatedCopilotSessionId: state.setCreatedCopilotSessionId,
+    sessionResultIds: state.sessionResultIds[state.currentSessionId[canvasId]],
   }));
+
+  const { resultMap } = useActionResultStoreShallow((state) => ({
+    resultMap: state.resultMap,
+  }));
+
+  const results = useMemo(() => {
+    return sessionResultIds?.map((resultId) => resultMap[resultId]) ?? [];
+  }, [sessionResultIds, resultMap]);
+
+  const isExecuting = useMemo(() => {
+    return results.some((result) => ['executing', 'waiting'].includes(result?.status ?? ''));
+  }, [results]);
+
+  const firstResult = useMemo(() => {
+    return results?.[0] ?? null;
+  }, [results]);
+
+  useEffect(() => {
+    if (['finish', 'failed'].includes(firstResult?.status ?? '')) {
+      refetchHistorySessions();
+    }
+  }, [firstResult?.status]);
 
   const { invokeAction } = useInvokeAction();
 
   const handleSendMessage = async () => {
-    console.log('handleSendMessage currentSessionId', currentSessionId);
+    if (isExecuting) {
+      return;
+    }
 
-    setIsExecuting(true);
+    console.log('handleSendMessage currentSessionId', currentSessionId);
 
     const resultId = genActionResultID();
     let sessionId = currentSessionId;
@@ -52,7 +86,6 @@ export const ChatBox = memo(({ canvasId, query, setQuery }: ChatBoxProps) => {
         modelInfo: null,
         tplConfig: {},
         runtimeConfig: {},
-        contextItems,
         agentMode: 'copilot_agent',
         copilotSessionId: sessionId,
       },
@@ -61,29 +94,40 @@ export const ChatBox = memo(({ canvasId, query, setQuery }: ChatBoxProps) => {
         entityType: 'canvas',
       },
     );
+    setQuery('');
 
     setCurrentSessionId(canvasId, sessionId);
     appendSessionResultId(sessionId, resultId);
     setCreatedCopilotSessionId(sessionId);
-
-    setIsExecuting(false);
   };
 
   return (
     <div className="w-full px-4 py-3 rounded-xl overflow-hidden border-[1px] border-solid border-refly-primary-default ">
-      <ChatComposer
+      <ChatInput
+        readonly={false}
         query={query}
-        setQuery={setQuery}
+        setQuery={(value) => {
+          setQuery(value);
+        }}
+        maxRows={6}
         handleSendMessage={handleSendMessage}
-        handleAbort={() => {}}
-        contextItems={contextItems}
-        setContextItems={setContextItems}
-        modelInfo={null}
-        setModelInfo={() => {}}
-        enableRichInput={false}
-        selectedToolsets={selectedToolsets}
-        onSelectedToolsetsChange={setSelectedToolsets}
+        placeholder={t('copilot.placeholder')}
+      />
+
+      <ChatActions
+        query={query}
+        model={null}
+        setModel={() => {}}
+        handleSendMessage={handleSendMessage}
+        onUploadImage={() => Promise.resolve()}
+        contextItems={[]}
+        runtimeConfig={undefined}
+        setRuntimeConfig={() => {}}
+        selectedToolsets={[]}
+        setSelectedToolsets={() => {}}
+        customActions={[]}
         isExecuting={isExecuting}
+        showLeftActions={false}
       />
     </div>
   );

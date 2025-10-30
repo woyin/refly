@@ -3044,6 +3044,7 @@ const translations = {
   },
   copilot: {
     title: 'Workflow Assistant',
+    placeholder: 'Describe the workflow you want to generate...',
     header: {
       history: 'Chat History',
       newConversation: 'New Chat',
@@ -3059,7 +3060,7 @@ const translations = {
         'Help me generate a sequence of animation scenes in the style of Makoto Shinkai, telling the story of "growing up" from childhood to adulthood.',
     },
     sessionDetail: {
-      thinking: 'Thinking...',
+      thinking: 'Thinking',
     },
     addContext: 'Add Context',
     moreSettings: 'More Settings',

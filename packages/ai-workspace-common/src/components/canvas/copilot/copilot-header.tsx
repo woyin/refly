@@ -1,4 +1,4 @@
-import { memo, useCallback, useMemo, useState } from 'react';
+import { memo, useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Tooltip, Button, Divider, Popover } from 'antd';
 import { History, SideLeft, NewConversation } from 'refly-icons';
@@ -22,7 +22,7 @@ export const CopilotHeader = memo(
       setCurrentSessionId: state.setCurrentSessionId,
     }));
 
-    const { data } = useListCopilotSessions(
+    const { data, refetch } = useListCopilotSessions(
       {
         query: {
           canvasId,
@@ -56,6 +56,12 @@ export const CopilotHeader = memo(
       [canvasId, setCurrentSessionId],
     );
 
+    useEffect(() => {
+      if (isHistoryOpen) {
+        refetch();
+      }
+    }, [isHistoryOpen]);
+
     const content = useMemo(() => {
       return (
         <div className="max-h-[400px] overflow-y-auto">
@@ -68,7 +74,7 @@ export const CopilotHeader = memo(
               <div className="w-7 h-7 flex items-center justify-center">
                 <History size={20} />
               </div>
-              <div className="min-w-[200px] max-w-[400px] truncate text-refly-text-0 text-sm leading-5">
+              <div className="min-w-[100px] max-w-[400px] truncate text-refly-text-0 text-sm leading-5">
                 {session.title}
               </div>
             </div>
