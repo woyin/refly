@@ -9,6 +9,7 @@ import ViewSvg from './view.svg';
 import {
   LazyCodeArtifactRenderer,
   LazyDocumentRenderer,
+  WithSuspense,
 } from '@refly-packages/ai-workspace-common/components/slideshow/components/LazyComponents';
 import { NodeRelation } from '@refly-packages/ai-workspace-common/components/slideshow/components/ArtifactRenderer';
 import { Modal } from 'antd';
@@ -272,17 +273,21 @@ export const ResultItemPreview = memo(
       content = <AudioPreview node={node} />;
     } else if (node.type === 'codeArtifact') {
       content = (
-        <LazyCodeArtifactRenderer
-          isFullscreen
-          node={{ ...node, nodeData: node.data, nodeType: node.type } as unknown as NodeRelation}
-        />
+        <WithSuspense>
+          <LazyCodeArtifactRenderer
+            isFullscreen
+            node={{ ...node, nodeData: node.data, nodeType: node.type } as unknown as NodeRelation}
+          />
+        </WithSuspense>
       );
     } else if (node.type === 'document') {
       content = (
-        <LazyDocumentRenderer
-          isFullscreen
-          node={{ ...node, nodeData: node.data, nodeType: node.type } as unknown as NodeRelation}
-        />
+        <WithSuspense>
+          <LazyDocumentRenderer
+            isFullscreen
+            node={{ ...node, nodeData: node.data, nodeType: node.type } as unknown as NodeRelation}
+          />
+        </WithSuspense>
       );
     } else {
       content = <DefaultPreview node={node} />;
