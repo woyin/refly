@@ -74,7 +74,7 @@ export const WorkflowRunForm = ({
   workflowApp,
 }: WorkflowRunFormProps) => {
   const { t } = useTranslation();
-  const { isLoggedRef, getLoginStatus } = useIsLogin();
+  const { getLoginStatus } = useIsLogin();
   const navigate = useNavigate();
 
   const [internalIsRunning, setInternalIsRunning] = useState(false);
@@ -291,12 +291,6 @@ export const WorkflowRunForm = ({
     setVariableValues(newValues);
     form.setFieldsValue(newValues);
   }, [workflowVariables, form]);
-
-  useEffect(() => {
-    if (!isLoggedRef.current) {
-      navigate(`/?autoLogin=true&returnUrl=${window.location.pathname + window.location.search}`);
-    }
-  }, [isLoggedRef.current, navigate]);
 
   const handleRun = async () => {
     if (loading || isRunning) {
