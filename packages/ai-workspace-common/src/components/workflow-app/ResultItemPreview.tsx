@@ -11,6 +11,9 @@ import {
   LazyDocumentRenderer,
 } from '@refly-packages/ai-workspace-common/components/slideshow/components/LazyComponents';
 import { NodeRelation } from '@refly-packages/ai-workspace-common/components/slideshow/components/ArtifactRenderer';
+import { Modal } from 'antd';
+import { CloseCircleOutlined } from '@ant-design/icons';
+import { NodeRenderer } from '@refly-packages/ai-workspace-common/components/slideshow/components/NodeRenderer';
 
 // Document preview component
 const DocumentPreview = memo(
@@ -30,7 +33,10 @@ DocumentPreview.displayName = 'DocumentPreview';
 
 // Image preview component
 const ImagePreview = memo(
-  ({ node }: { node: CanvasNode; onViewClick?: (nodeId: string) => void }) => {
+  ({
+    node,
+    inModal = false,
+  }: { node: CanvasNode; onViewClick?: (nodeId: string) => void; inModal?: boolean }) => {
     const { t } = useTranslation();
 
     return (
@@ -38,7 +44,7 @@ const ImagePreview = memo(
         <img
           src={node.data?.metadata?.imageUrl as string}
           alt={node.data?.title || t('common.untitled')}
-          className="w-full h-full object-cover"
+          className={`w-full h-full ${inModal ? 'object-contain' : 'object-cover'}`}
         />
       </div>
     );
@@ -49,7 +55,10 @@ ImagePreview.displayName = 'ImagePreview';
 
 // Video preview component with independent state
 const VideoPreview = memo(
-  ({ node }: { node: CanvasNode; onViewClick?: (nodeId: string) => void }) => {
+  ({
+    node,
+    inModal = false,
+  }: { node: CanvasNode; onViewClick?: (nodeId: string) => void; inModal?: boolean }) => {
     const [isPlaying, setIsPlaying] = useState(false);
     const [isHovered, setIsHovered] = useState(false);
     const [progress, setProgress] = useState(0);
@@ -72,32 +81,28 @@ const VideoPreview = memo(
       setProgress(0);
     };
 
-    const handleVideoTimeUpdate = () => {
+    const handleTimeUpdate = () => {
       if (videoRef.current) {
-        const progressValue = (videoRef.current.currentTime / videoRef.current.duration) * 100;
-        setProgress(progressValue);
+        setProgress((videoRef.current.currentTime / (videoRef.current.duration || 1)) * 100);
       }
     };
 
     return (
       <div
-        className="w-full h-full relative overflow-hidden cursor-pointer"
-        style={{ backgroundColor: 'var(--refly-bg-canvas)' }}
-        onClick={handleVideoClick}
+        className="w-full h-full relative overflow-hidden group flex items-center justify-center"
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
       >
         <video
           ref={videoRef}
           src={node.data?.metadata?.videoUrl as string}
-          className="w-full h-full object-cover"
+          className={`w-full h-full ${inModal ? 'object-contain' : 'object-cover'}`}
           muted
           preload="metadata"
+          onClick={handleVideoClick}
           onEnded={handleVideoEnd}
-          onTimeUpdate={handleVideoTimeUpdate}
-        >
-          <track kind="captions" />
-        </video>
+          onTimeUpdate={handleTimeUpdate}
+        />
         {/* Play button overlay - only show when not playing */}
         {!isPlaying && (
           <div className="absolute inset-0 flex items-center justify-center">
@@ -254,19 +259,18 @@ DefaultPreview.displayName = 'DefaultPreview';
 
 // Individual result item preview component
 export const ResultItemPreview = memo(
-  ({ node, onViewClick }: { node: CanvasNode; onViewClick?: (nodeId: string) => void }) => {
+  ({ node, inModal = false }: { node: CanvasNode; inModal?: boolean }) => {
+    const [wideModeOpen, setWideModeOpen] = useState(false);
     const [isHovered, setIsHovered] = useState(false);
 
     let content: JSX.Element;
-    let needsTransparentOverlay = false;
     if (node.type === 'image' && node.data?.metadata?.imageUrl) {
-      content = <ImagePreview node={node} />;
+      content = <ImagePreview node={node} inModal={inModal} />;
     } else if (node.type === 'video' && node.data?.metadata?.videoUrl) {
-      content = <VideoPreview node={node} />;
+      content = <VideoPreview node={node} inModal={inModal} />;
     } else if (node.type === 'audio' && node.data?.metadata?.audioUrl) {
       content = <AudioPreview node={node} />;
     } else if (node.type === 'codeArtifact') {
-      needsTransparentOverlay = true;
       content = (
         <LazyCodeArtifactRenderer
           isFullscreen
@@ -274,8 +278,6 @@ export const ResultItemPreview = memo(
         />
       );
     } else if (node.type === 'document') {
-      needsTransparentOverlay = true;
-
       content = (
         <LazyDocumentRenderer
           isFullscreen
@@ -283,41 +285,88 @@ export const ResultItemPreview = memo(
         />
       );
     } else {
-      needsTransparentOverlay = true;
       content = <DefaultPreview node={node} />;
     }
 
+    // 宽屏弹窗开关
+    const handleWideModeOpen = (e: React.MouseEvent) => {
+      e.stopPropagation();
+      setWideModeOpen(true);
+    };
+    const handleWideModeClose = () => setWideModeOpen(false);
+
     return (
-      <div
-        className="w-full h-full relative cursor-pointer"
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
-      >
-        {content}
-        {needsTransparentOverlay ? <div className="absolute inset-0 bg-transparent" /> : null}
-        {onViewClick && isHovered ? (
-          <div
-            onClick={(e) => {
-              e.stopPropagation();
-              onViewClick?.(node.id);
-            }}
-            className="absolute z-10 flex items-center justify-center transition-opacity duration-200 cursor-pointer"
-            style={{
-              right: '14px',
-              bottom: '14px',
-              width: 'min(56px, 20%)',
-              height: 'min(44px, 20%)',
-            }}
-          >
-            <img
-              src={ViewSvg}
-              alt="View"
-              className="w-full h-full object-contain"
-              style={{ maxWidth: '100%', maxHeight: '100%' }}
-            />
+      <>
+        <Modal
+          open={wideModeOpen}
+          footer={null}
+          onCancel={handleWideModeClose}
+          width="85%"
+          style={{ top: 20 }}
+          styles={{
+            body: {
+              maxHeight: 'calc(100vh - 100px)',
+              padding: 0,
+              overflow: 'hidden',
+            },
+            mask: {
+              background: 'rgba(0, 0, 0, 0.65)',
+            },
+          }}
+          className="wide-mode-modal"
+          closeIcon={<CloseCircleOutlined className="text-gray-500 hover:text-red-500" />}
+        >
+          <div className="bg-white h-full w-full flex flex-col rounded-lg overflow-hidden dark:bg-gray-900">
+            <div className="flex-1 overflow-auto">
+              {/* 只使用主 node 的结构，避免 CanvasNodeData 非法属性 */}
+              <div className="h-[calc(100vh-160px)]">
+                <NodeRenderer
+                  node={{
+                    relationId: node.id || 'unknown',
+                    nodeId: node.id || 'unknown',
+                    nodeType: node.type || 'unknown',
+                    entityId: node.data?.entityId ?? '',
+                    orderIndex: 0,
+                    nodeData: node.data ?? {},
+                  }}
+                  isFullscreen={false}
+                  isModal={true}
+                  isMinimap={false}
+                  isFocused={true}
+                  inModal
+                />
+              </div>
+            </div>
           </div>
-        ) : null}
-      </div>
+        </Modal>
+        <div
+          className="w-full h-full relative cursor-pointer position-relative"
+          onMouseEnter={() => setIsHovered(true)}
+          onMouseLeave={() => setIsHovered(false)}
+        >
+          {content}
+          {/* {needsTransparentOverlay ? <div className="absolute inset-0 bg-transparent" /> : null} */}
+          {isHovered && !inModal && (
+            <div
+              onClick={handleWideModeOpen}
+              className="absolute z-10 flex items-center justify-center transition-opacity duration-200 cursor-pointer"
+              style={{
+                right: '14px',
+                bottom: '14px',
+                width: 'min(56px, 20%)',
+                height: 'min(44px, 20%)',
+              }}
+            >
+              <img
+                src={ViewSvg}
+                alt="View"
+                className="w-full h-full object-contain"
+                style={{ maxWidth: '100%', maxHeight: '100%' }}
+              />
+            </div>
+          )}
+        </div>
+      </>
     );
   },
 );

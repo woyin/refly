@@ -1,25 +1,12 @@
-import { memo, useMemo, CSSProperties, useCallback } from 'react';
+import { memo, useMemo, useCallback } from 'react';
 import { type NodeRelation } from './ArtifactRenderer';
 import { NodeBlockHeader } from './NodeBlockHeader';
-import {
-  LazyCodeArtifactRenderer,
-  LazyDocumentRenderer,
-  LazySkillResponseRenderer,
-  LazyImageRenderer,
-  WithSuspense,
-  LazyMemoRenderer,
-  LazyResourceRenderer,
-  LazyWebsiteRenderer,
-  LazyVideoRenderer,
-} from './LazyComponents';
 import { useTranslation } from 'react-i18next';
 import { Tooltip, Button } from 'antd';
 import { DownloadIcon } from 'lucide-react';
 import {
   downloadNodeData,
   hasDownloadableData,
-  copyNodeData,
-  hasCopyableData,
   shareNodeData,
   hasShareableData,
   type NodeData,
@@ -29,50 +16,6 @@ import { logEvent } from '@refly/telemetry-web';
 import { CanvasNode } from '@refly/openapi-schema';
 import { ResultItemPreview } from '@refly-packages/ai-workspace-common/components/workflow-app/ResultItemPreview';
 
-// Create a generic content container component to reduce code duplication
-const ContentContainer = ({
-  children,
-  isFullscreen = false,
-  isFocused = false,
-  isMinimap = false,
-  isModal = false,
-}: {
-  children: React.ReactNode;
-  isFullscreen?: boolean;
-  isFocused?: boolean;
-  isMinimap?: boolean;
-  isModal?: boolean;
-}) => {
-  // Content container style
-  const contentStyle: CSSProperties = {
-    overflow: 'auto',
-    flex: 1,
-    height: isFullscreen ? '100%' : undefined,
-    position: 'relative',
-  };
-
-  // Overlay style
-  const overlayStyle: CSSProperties = {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    zIndex: 10,
-    background: 'transparent',
-    cursor: 'pointer',
-  };
-
-  return (
-    <div style={contentStyle}>
-      {children}
-
-      {/* Transparent overlay to prevent scrolling when not focused */}
-      {!isFocused && !isFullscreen && !isMinimap && !isModal && <div style={overlayStyle} />}
-    </div>
-  );
-};
-
 // Content renderer component
 const NodeRenderer = memo(
   ({
@@ -80,11 +23,9 @@ const NodeRenderer = memo(
     isFullscreen = false,
     isModal = false,
     isMinimap = false,
-    isFocused = false,
     fromProducts = false,
     onDelete,
-    onStartSlideshow,
-    onWideMode,
+    inModal = false,
   }: {
     node: NodeRelation;
     isFullscreen?: boolean;
@@ -95,6 +36,7 @@ const NodeRenderer = memo(
     onDelete?: (nodeId: string) => void;
     onStartSlideshow?: (nodeId: string) => void;
     onWideMode?: (nodeId: string) => void;
+    inModal?: boolean;
   }) => {
     const { t } = useTranslation();
 
@@ -111,7 +53,6 @@ const NodeRenderer = memo(
     );
 
     const canDownload = useMemo(() => hasDownloadableData(nodeData), [nodeData]);
-    const canCopy = useMemo(() => hasCopyableData(nodeData), [nodeData]);
     const canShare = useMemo(() => hasShareableData(nodeData), [nodeData]);
 
     // Handle download for any node type
@@ -124,18 +65,6 @@ const NodeRenderer = memo(
         });
       }
       await downloadNodeData(nodeData, t);
-    }, [nodeData, t, fromProducts]);
-
-    // Handle copy for any node type
-    const handleCopy = useCallback(async () => {
-      if (fromProducts) {
-        logEvent('copy_template_result', null, {
-          nodeId: nodeData.nodeId,
-          nodeType: nodeData.nodeType,
-          title: nodeData.title,
-        });
-      }
-      await copyNodeData(nodeData, t);
     }, [nodeData, t, fromProducts]);
 
     // Handle share for any node type
@@ -190,208 +119,12 @@ const NodeRenderer = memo(
         />
       ) : null;
 
-    // Use useMemo to cache rendered content, avoiding unnecessary recalculations
-    const _renderContent = useMemo(() => {
-      // Return appropriate renderer based on node type
-      switch (node.nodeType) {
-        case 'codeArtifact':
-          return (
-            <div className="flex flex-col h-full">
-              {renderNodeHeader}
-              <ContentContainer
-                isFullscreen={isFullscreen}
-                isFocused={isFocused}
-                isMinimap={isMinimap}
-                isModal={isModal}
-              >
-                <WithSuspense>
-                  <LazyCodeArtifactRenderer
-                    node={node}
-                    isFullscreen={isFullscreen}
-                    isMinimap={isMinimap}
-                  />
-                </WithSuspense>
-              </ContentContainer>
-            </div>
-          );
-        case 'document':
-          return (
-            <div className="flex flex-col h-full">
-              {renderNodeHeader}
-              <ContentContainer
-                isFullscreen={isFullscreen}
-                isFocused={isFocused}
-                isMinimap={isMinimap}
-                isModal={isModal}
-              >
-                <WithSuspense>
-                  <LazyDocumentRenderer
-                    node={node}
-                    isFullscreen={isFullscreen}
-                    isMinimap={isMinimap}
-                  />
-                </WithSuspense>
-              </ContentContainer>
-            </div>
-          );
-        case 'skillResponse':
-          return (
-            <div className="flex flex-col h-full">
-              {renderNodeHeader}
-              <ContentContainer
-                isFullscreen={isFullscreen}
-                isFocused={isFocused}
-                isMinimap={isMinimap}
-                isModal={isModal}
-              >
-                <WithSuspense>
-                  <LazySkillResponseRenderer
-                    node={node}
-                    isFullscreen={isFullscreen}
-                    isMinimap={isMinimap}
-                  />
-                </WithSuspense>
-              </ContentContainer>
-            </div>
-          );
-        case 'image':
-          return (
-            <div className="flex flex-col h-full">
-              {renderNodeHeader}
-              <ContentContainer
-                isFullscreen={isFullscreen}
-                isFocused={isFocused}
-                isMinimap={isMinimap}
-                isModal={isModal}
-              >
-                <WithSuspense>
-                  <LazyImageRenderer
-                    node={node}
-                    isFullscreen={isFullscreen}
-                    isMinimap={isMinimap}
-                  />
-                </WithSuspense>
-              </ContentContainer>
-            </div>
-          );
-        case 'video':
-          return (
-            <div className="flex flex-col h-full">
-              {renderNodeHeader}
-              <ContentContainer
-                isFullscreen={isFullscreen}
-                isFocused={isFocused}
-                isMinimap={isMinimap}
-                isModal={isModal}
-              >
-                <WithSuspense>
-                  <LazyVideoRenderer
-                    node={node}
-                    isFullscreen={isFullscreen}
-                    isMinimap={isMinimap}
-                  />
-                </WithSuspense>
-              </ContentContainer>
-            </div>
-          );
-        case 'memo':
-          return (
-            <div className="flex flex-col h-full">
-              {renderNodeHeader}
-              <ContentContainer
-                isFullscreen={isFullscreen}
-                isFocused={isFocused}
-                isMinimap={isMinimap}
-                isModal={isModal}
-              >
-                <WithSuspense>
-                  <LazyMemoRenderer node={node} isFullscreen={isFullscreen} isMinimap={isMinimap} />
-                </WithSuspense>
-              </ContentContainer>
-            </div>
-          );
-        case 'resource':
-          return (
-            <div className="flex flex-col h-full">
-              {renderNodeHeader}
-              <ContentContainer
-                isFullscreen={isFullscreen}
-                isFocused={isFocused}
-                isMinimap={isMinimap}
-                isModal={isModal}
-              >
-                <WithSuspense>
-                  <LazyResourceRenderer
-                    node={node}
-                    isFullscreen={isFullscreen}
-                    isMinimap={isMinimap}
-                  />
-                </WithSuspense>
-              </ContentContainer>
-            </div>
-          );
-        case 'website':
-          return (
-            <div className="flex flex-col h-full">
-              {renderNodeHeader}
-              <ContentContainer
-                isFullscreen={isFullscreen}
-                isFocused={isFocused}
-                isMinimap={isMinimap}
-                isModal={isModal}
-              >
-                <WithSuspense>
-                  <LazyWebsiteRenderer
-                    node={node}
-                    isFullscreen={isFullscreen}
-                    isMinimap={isMinimap}
-                  />
-                </WithSuspense>
-              </ContentContainer>
-            </div>
-          );
-        default:
-          // Display message for unsupported types
-          return (
-            <div
-              className={`p-6 bg-white rounded-lg flex flex-col items-center justify-center text-gray-400 ${
-                !isFullscreen ? 'h-[400px]' : 'h-full'
-              } shadow-refly-m ${isMinimap ? 'p-2 h-full' : ''}`}
-            >
-              <div className={`${isMinimap ? 'text-xs' : 'text-lg'}`}>
-                {isMinimap
-                  ? t('pages.components.nodeRenderer.unsupportedComponent')
-                  : t('pages.components.nodeRenderer.onlyCodeComponentSupported')}
-              </div>
-              {!isMinimap && <div className="text-sm text-gray-400 mt-2">{node.nodeType}</div>}
-            </div>
-          );
-      }
-    }, [
-      node,
-      isFullscreen,
-      isModal,
-      isMinimap,
-      isFocused,
-      onDelete,
-      onStartSlideshow,
-      onWideMode,
-      t,
-      renderNodeHeader,
-      canDownload,
-      canCopy,
-      canShare,
-      handleDownload,
-      handleCopy,
-      handleShare,
-    ]);
-
     return (
       <div className="flex flex-col h-full">
         {renderNodeHeader}
         <div className="m-3 mt-0 h-full overflow-hidden rounded-lg cursor-pointer">
           <ResultItemPreview
-            onViewClick={onWideMode && (() => onWideMode?.(node.nodeId))}
+            inModal={inModal}
             node={{ ...node, data: node.nodeData, type: node.nodeType } as unknown as CanvasNode}
           />
         </div>
