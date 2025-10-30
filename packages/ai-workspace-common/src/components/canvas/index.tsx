@@ -1,6 +1,5 @@
 import { useCallback, useMemo, useEffect, useState, useRef, memo } from 'react';
-import { Button, Modal, Result, message, Splitter, Popover } from 'antd';
-import { motion, AnimatePresence } from 'motion/react';
+import { Modal, Result, message, Splitter, Popover } from 'antd';
 import { useTranslation } from 'react-i18next';
 import {
   ReactFlow,
@@ -30,7 +29,6 @@ import {
   useCanvasNodesStore,
   useUserStore,
   useUserStoreShallow,
-  usePilotStoreShallow,
   useCanvasResourcesPanelStoreShallow,
 } from '@refly/stores';
 import { Spin } from '@refly-packages/ai-workspace-common/components/common/spin';
@@ -51,10 +49,7 @@ import { useDragDropPaste } from '@refly-packages/ai-workspace-common/hooks/canv
 
 import '@xyflow/react/dist/style.css';
 import './index.scss';
-import {
-  useGetPilotSessionDetail,
-  useUpdateSettings,
-} from '@refly-packages/ai-workspace-common/queries';
+import { useUpdateSettings } from '@refly-packages/ai-workspace-common/queries';
 import { EmptyGuide } from './empty-guide';
 import { useLinearThreadReset } from '@refly-packages/ai-workspace-common/hooks/canvas/use-linear-thread-reset';
 import HelperLines from './common/helper-line/index';
@@ -67,15 +62,12 @@ import {
   nodeOperationsEmitter,
 } from '@refly-packages/ai-workspace-common/events/nodeOperations';
 import { useCanvasInitialActions } from '@refly-packages/ai-workspace-common/hooks/use-canvas-initial-actions';
-import { Pilot } from '@refly-packages/ai-workspace-common/components/pilot';
-import SessionHeader from '@refly-packages/ai-workspace-common/components/pilot/session-header';
 import { CanvasResources, CanvasResourcesWidescreenModal } from './canvas-resources';
 import { ResourceOverview } from './canvas-resources/share/resource-overview';
 import { NodePreviewContainer } from '@refly-packages/ai-workspace-common/components/canvas/node-preview';
 import { useHandleOrphanNode } from '@refly-packages/ai-workspace-common/hooks/use-handle-orphan-node';
 import { WorkflowRun } from './workflow-run';
 import { useMatch } from '@refly-packages/ai-workspace-common/utils/router';
-import { Logo } from '@refly-packages/ai-workspace-common/components/common/logo';
 import { UploadNotification } from '@refly-packages/ai-workspace-common/components/common/upload-notification';
 
 const GRID_SIZE = 10;
@@ -104,10 +96,6 @@ const selectionStyles = `
   .react-flow__pane {
     user-select: auto;
   }
-`;
-
-const SessionContainerClassName = `
-  absolute bottom-2 left-[calc(50%-284px)] transform -translate-x-1/2 z-20 w-[568px] overflow-hidden rounded-[20px] shadow-refly-xl border-[1px] border-solid border-refly-Card-Border bg-refly-bg-glass-content backdrop-blur-[20px]
 `;
 
 interface ContextMenuState {
@@ -178,15 +166,6 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
 
   const { pendingNode, clearPendingNode } = useCanvasNodesStore();
   const { loading, readonly, shareNotFound, shareLoading, undo, redo } = useCanvasContext();
-
-  const { isPilotOpen, setIsPilotOpen, setActiveSessionId, activeSessionId } = usePilotStoreShallow(
-    (state) => ({
-      isPilotOpen: state.isPilotOpen,
-      setIsPilotOpen: state.setIsPilotOpen,
-      setActiveSessionId: state.setActiveSessionId,
-      activeSessionId: state.activeSessionIdByCanvas?.[canvasId] ?? null,
-    }),
-  );
 
   const {
     canvasInitialized,
@@ -1032,27 +1011,6 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
     };
   }, [onNodeContextMenu]);
 
-  const { data: sessionData } = useGetPilotSessionDetail(
-    {
-      query: { sessionId: activeSessionId },
-    },
-    undefined,
-    {
-      enabled: !!activeSessionId,
-    },
-  );
-  const session = useMemo(() => sessionData?.data, [sessionData]);
-
-  const handleClick = useCallback(() => {
-    setIsPilotOpen(!isPilotOpen);
-  }, [setIsPilotOpen, isPilotOpen]);
-
-  const handleSessionClick = useCallback(
-    (sessionId: string) => {
-      setActiveSessionId(canvasId, sessionId);
-    },
-    [setActiveSessionId, canvasId],
-  );
   return (
     <Spin
       className="w-full h-full"
@@ -1075,84 +1033,6 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
         />
       </Modal>
       <div className="w-full h-[calc(100vh-16px)] relative flex flex-col overflow-hidden border-[1px] border-solid border-refly-Card-Border rounded-xl shadow-sm">
-        {!readonly && (
-          <AnimatePresence mode="wait">
-            {isPilotOpen ? (
-              <motion.div
-                key="pilot-panel"
-                className={SessionContainerClassName}
-                initial={{ opacity: 0, y: 40, scale: 0.95 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: 40, scale: 0.95 }}
-                transition={{ duration: 0.3, ease: 'easeInOut' }}
-              >
-                <Pilot canvasId={canvasId} />
-              </motion.div>
-            ) : nodes?.length > 0 ? (
-              <motion.div
-                key="session-header"
-                className={SessionContainerClassName}
-                initial={{ opacity: 0, y: 20, scale: 0.95 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: 20, scale: 0.95 }}
-                transition={{ duration: 0.25, ease: 'easeInOut' }}
-              >
-                <SessionHeader
-                  canvasId={canvasId}
-                  session={session}
-                  steps={session?.steps ?? []}
-                  onClick={handleClick}
-                  onSessionClick={handleSessionClick}
-                />
-              </motion.div>
-            ) : (
-              <motion.div
-                key="start-button"
-                className="absolute bottom-4 left-[calc(50%-140px)] z-20"
-                initial={{ opacity: 0, y: 20, scale: 0.9 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: 20, scale: 0.9 }}
-                transition={{ duration: 0.25, ease: 'easeInOut' }}
-              >
-                <motion.div
-                  whileHover={{
-                    scale: 1.02,
-                    transition: { duration: 0.2 },
-                  }}
-                  whileTap={{
-                    scale: 0.98,
-                    transition: { duration: 0.1 },
-                  }}
-                >
-                  <Button
-                    type="default"
-                    className="rounded-[20px] h-14 py-3 px-4 shadow-refly-xl hover:shadow transition-colors flex items-center gap-3 w-[280px] max-w-[92vw] border-[1px] border-solid border-refly-Card-Border bg-refly-bg-glass-content backdrop-blur-[20px]"
-                    onClick={() => setIsPilotOpen(true)}
-                  >
-                    <motion.div
-                      className="flex items-center shrink-0"
-                      initial={{ x: -5 }}
-                      animate={{ x: 0 }}
-                      transition={{ duration: 0.2, delay: 0.1 }}
-                    >
-                      <Logo logoProps={{ show: false }} />
-                      <span className="text-refly-text-0 text-[14px] ml-0.5">Agent</span>
-                    </motion.div>
-                    <motion.span
-                      className="text-refly-text-2 text-[16px] font-normal"
-                      initial={{ opacity: 0, x: 5 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ duration: 0.2, delay: 0.2 }}
-                    >
-                      {t('canvas.launchpad.placeholder', 'Describe needs...')}
-                    </motion.span>
-                  </Button>
-                </motion.div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        )}
-
         <TopToolbar canvasId={canvasId} mode={interactionMode} changeMode={toggleInteractionMode} />
         <div className="flex-grow relative">
           <style>{selectionStyles}</style>

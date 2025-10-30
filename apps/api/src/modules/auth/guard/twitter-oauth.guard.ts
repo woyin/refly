@@ -1,4 +1,4 @@
-import { Injectable, ExecutionContext } from '@nestjs/common';
+import { Injectable, ExecutionContext, Logger } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { OAuthError } from '@refly/errors';
 import { Request } from 'express';
@@ -12,6 +12,8 @@ declare module 'express-session' {
 
 @Injectable()
 export class TwitterOauthGuard extends AuthGuard('twitter') {
+  private readonly logger = new Logger(TwitterOauthGuard.name);
+
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest<Request>();
     const uid = request.query?.uid as string;
@@ -27,6 +29,9 @@ export class TwitterOauthGuard extends AuthGuard('twitter') {
 
   handleRequest(err: any, user: any) {
     if (err || !user) {
+      this.logger.error(
+        `Twitter OAuth guard error: ${JSON.stringify(err)}, stack: ${err?.stack ?? 'unknown'}, user: ${JSON.stringify(user)}`,
+      );
       throw new OAuthError(); // This will be properly handled by global exception filter
     }
     return user;

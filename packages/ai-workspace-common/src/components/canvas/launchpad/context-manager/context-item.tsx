@@ -14,9 +14,9 @@ import { NodeIcon } from '@refly-packages/ai-workspace-common/components/canvas/
 import './index.scss';
 import { Close } from 'refly-icons';
 import { NODE_COLORS } from '@refly-packages/ai-workspace-common/components/canvas/nodes/shared/colors';
-import { useListResources } from '@refly-packages/ai-workspace-common/queries/queries';
 import { useGetProjectCanvasId } from '@refly-packages/ai-workspace-common/hooks/use-get-project-canvasId';
 import { useNodePreviewControl } from '@refly-packages/ai-workspace-common/hooks/canvas';
+import { useFetchResources } from '@refly-packages/ai-workspace-common/hooks/use-fetch-resources';
 
 export const ContextItem = ({
   item,
@@ -37,14 +37,9 @@ export const ContextItem = ({
   const { setSelectedNode } = useNodeSelection();
   const { getNodes, getNode } = useReactFlow();
   const { setNodeCenter } = useNodePosition();
-  const { canvasId, projectId } = useGetProjectCanvasId();
+  const { canvasId } = useGetProjectCanvasId();
   const { handleNodePreview } = useNodePreviewControl({ canvasId });
-  const { data: resourcesData } = useListResources({
-    query: {
-      canvasId,
-      projectId,
-    },
-  });
+  const { data: resourcesData } = useFetchResources();
 
   const node = useMemo(() => {
     const nodes = getNodes();
@@ -53,13 +48,13 @@ export const ContextItem = ({
 
   const finalTitle = useMemo(() => {
     if (type === 'resource') {
-      const resource = resourcesData?.data?.find((resource) => resource.resourceId === entityId);
+      const resource = resourcesData?.find((resource) => resource.resourceId === entityId);
       return resource?.title || title || t('common.untitled');
     }
     const nodeTitle = getNode(node?.id)?.data?.title;
     const stringifiedNodeTitle = nodeTitle != null ? String(nodeTitle) : null;
     return stringifiedNodeTitle || title || t(`canvas.nodeTypes.${type}`);
-  }, [node?.id, getNode, title, type, t, resourcesData?.data, entityId]);
+  }, [node?.id, getNode, title, type, t, resourcesData, entityId]);
 
   const handleItemClick = useCallback(() => {
     const nodes = getNodes();

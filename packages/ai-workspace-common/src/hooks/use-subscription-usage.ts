@@ -9,16 +9,14 @@ export const useSubscriptionUsage = () => {
     data: balanceData,
     refetch: refetchBalance,
     isSuccess: isBalanceSuccess,
-  } = useGetCreditBalance({
-    query: {
-      refetchOnWindowFocus: true,
-      refetchOnMount: true,
-      refetchOnReconnect: true,
-      refetchInterval: 15 * 1000, // Refetch every 15 seconds
-      staleTime: 15 * 1000,
-      gcTime: 15 * 1000,
-      enabled: subscriptionEnabled && isLogin,
-    },
+  } = useGetCreditBalance({}, [], {
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
+    refetchOnReconnect: true,
+    refetchInterval: 15 * 1000, // Refetch every 15 seconds
+    staleTime: 15 * 1000,
+    gcTime: 15 * 1000,
+    enabled: subscriptionEnabled && isLogin,
   });
 
   const {

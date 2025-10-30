@@ -3637,7 +3637,7 @@ const translations = {
     templateDescriptionPlaceholder: 'Please enter template description',
     createSuccess: 'Template created successfully, please view in template library',
     preview: 'Try it',
-    use: 'Make the Same',
+    use: 'Remix',
     duplicateCanvas: 'Remix Workflow',
     canvasTitle: 'Workflow Name',
     duplicateCanvasTitlePlaceholder: 'Please enter canvas name',
@@ -3673,7 +3673,13 @@ const translations = {
     run: {
       completed: 'App run successfully',
       failed: 'App run failed',
-      error: 'Run error',
+      error: 'Run failed',
+      loginRequired: 'Please login to run this workflow',
+      loginRequiredCopy: 'Please login to copy this workflow',
+      workflowStarted: 'Workflow started',
+      executionIdFailed: 'Failed to get execution ID',
+      executeFailed: 'Failed to execute workflow',
+      executeError: 'Failed to execute workflow',
     },
   },
   project: {
@@ -3822,6 +3828,38 @@ const translations = {
     unpublishSuccess: '{{title}} unpublish successfully',
     unpublishFailed: '{{title}} unpublish failed',
     deleteConfirm: 'Are you sure you want to revoke the template {{title}}?',
+  },
+  whyChooseRefly: {
+    title: 'Why Choose Refly to Build Workflow?',
+    features: {
+      everyoneCanUse: {
+        title: 'Everyone Can Use',
+        description:
+          'Zero-code setup, non-technical users can\neasily build and run complete workflows.',
+      },
+      configureOnce: {
+        title: 'Configure Once, Use Repeatedly',
+        description: 'One-click template execution, avoid repetitive\nsetup, save time and effort.',
+      },
+      contextPreserved: {
+        title: 'Context Never Lost',
+        description:
+          'Global Memory / Knowledge\nensures stable, controllable, and reproducible outputs.',
+      },
+      directDelivery: {
+        title: 'Direct Delivery',
+        description: 'Generates not intermediate results,\nbut ready-to-use final products.',
+      },
+      distributable: {
+        title: 'Distributable & Monetizable',
+        description:
+          'Package your workflows into products,\nshare, sell, and create sustainable growth flywheels.',
+      },
+      moreFeatures: {
+        title: 'More Amazing Features Await Discovery',
+        description: '',
+      },
+    },
   },
 };
 

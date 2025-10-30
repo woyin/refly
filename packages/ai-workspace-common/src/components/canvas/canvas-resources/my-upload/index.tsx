@@ -60,6 +60,7 @@ export const MyUploadList = memo((props: MyUploadListProps) => {
           entityId: resource.resourceId,
           metadata: {
             ...resource.data,
+            shareId: resource.shareId,
             indexStatus: resource.indexStatus,
             resourceType: resource.resourceType,
           },
