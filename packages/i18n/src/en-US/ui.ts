@@ -3423,6 +3423,7 @@ const translations = {
       description: {
         '5k_tokens': '{{cost}} credit(s) per 5k tokens',
         product: '{{cost}} credit(s) per product',
+        canvasTotal: 'Workflow estimated cost: {{cost}} credit(s)',
       },
     },
     plans: {

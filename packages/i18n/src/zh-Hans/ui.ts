@@ -90,6 +90,7 @@ const translations = {
       description: {
         '5k_tokens': '每 5k token 消耗 {{cost}} 积分',
         product: '每个产物消耗 {{cost}} 积分',
+        canvasTotal: '工作流预计消耗 {{cost}} 积分',
       },
     },
     plans: {

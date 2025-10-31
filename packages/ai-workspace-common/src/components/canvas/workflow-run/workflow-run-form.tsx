@@ -575,7 +575,7 @@ export const WorkflowRunForm = ({
               {(executionCreditUsage ?? workflowApp?.creditUsage) && (
                 <Tooltip
                   title={t('subscription.creditBilling.description.canvasTotal', {
-                    total: executionCreditUsage ?? workflowApp?.creditUsage,
+                    cost: Math.ceil((workflowApp?.creditUsage ?? 0) * 1.2) ?? 0,
                   })}
                 >
                   <div className="flex items-center bg-[#F6F6F6] dark:bg-[#232323] rounded-[12px] px-4 h-10 min-w-[94px] gap-1 border border-transparent select-none font-roboto">
