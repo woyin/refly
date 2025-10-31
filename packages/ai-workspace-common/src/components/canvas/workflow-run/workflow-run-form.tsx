@@ -73,7 +73,6 @@ export const WorkflowRunForm = ({
   className,
   templateContent,
   workflowApp,
-  executionCreditUsage,
 }: WorkflowRunFormProps) => {
   const { t } = useTranslation();
   const { getLoginStatus } = useIsLogin();
@@ -573,7 +572,7 @@ export const WorkflowRunForm = ({
           <div className="p-3 sm:p-4 border-t border-refly-Card-Border bg-refly-bg-control-z0 rounded-b-lg">
             <div className="w-full flex flex-row justify-end items-center gap-3">
               {/* Credit Info Block */}
-              {(executionCreditUsage ?? workflowApp?.creditUsage) && (
+              {
                 <Tooltip
                   title={t('subscription.creditBilling.description.canvasTotal', {
                     cost: calculateCreditCost(workflowApp?.creditUsage) ?? 0,
@@ -624,7 +623,7 @@ export const WorkflowRunForm = ({
                     </span>
                   </div>
                 </Tooltip>
-              )}
+              }
               {/* RUN Button */}
               <Button
                 className={cn(
