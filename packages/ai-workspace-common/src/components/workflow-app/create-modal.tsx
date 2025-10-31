@@ -414,6 +414,16 @@ export const CreateWorkflowAppModal = ({
     }
   }, [appData, visible, title, form]);
 
+  // Auto-select all result nodes when creating a new app
+  useEffect(() => {
+    if (visible && !appId && resultNodes?.length > 0 && selectedResults.length === 0) {
+      const allNodeIds = resultNodes.map((node) => node.id).filter((id): id is string => !!id);
+      if (allNodeIds.length > 0) {
+        setSelectedResults(allNodeIds);
+      }
+    }
+  }, [visible, appId, resultNodes]);
+
   // Upload button component
   const uploadButton = (
     <div>
