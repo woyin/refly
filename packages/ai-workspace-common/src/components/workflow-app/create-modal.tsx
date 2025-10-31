@@ -162,24 +162,37 @@ export const CreateWorkflowAppModal = ({
   }, [resultNodes, skillResponseNodes]);
 
   // Load existing app data
-  const loadAppData = useCallback(async (appId: string) => {
-    if (!appId) return;
+  const loadAppData = useCallback(
+    async (appId: string) => {
+      if (!appId) return;
 
-    setLoadingAppData(true);
-    try {
-      const { data } = await getClient().getWorkflowAppDetail({
-        query: { appId },
-      });
+      setLoadingAppData(true);
+      try {
+        const { data } = await getClient().getWorkflowAppDetail({
+          query: { appId },
+        });
 
-      if (data?.success && data?.data) {
-        setAppData(data.data);
+        if (data?.success && data?.data) {
+          setAppData(data.data);
+
+          // When editing existing app, use saved node IDs
+          const savedNodeIds = data.data?.resultNodeIds ?? [];
+          const validNodeIds =
+            displayNodes?.map((node) => node.id).filter((id): id is string => !!id) ?? [];
+          const intersectedNodeIds = savedNodeIds.filter((id) => validNodeIds.includes(id));
+
+          if (intersectedNodeIds.length > 0) {
+            setSelectedResults(intersectedNodeIds);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to load app data:', error);
+      } finally {
+        setLoadingAppData(false);
       }
-    } catch (error) {
-      console.error('Failed to load app data:', error);
-    } finally {
-      setLoadingAppData(false);
-    }
-  }, []);
+    },
+    [displayNodes?.length],
+  );
 
   // Handle cover image upload
   const uploadCoverImage = async (file: File): Promise<string> => {
@@ -420,7 +433,7 @@ export const CreateWorkflowAppModal = ({
         setCoverStorageKey(undefined);
       }
     }
-  }, [appData, visible, title, form, displayNodes]);
+  }, [appData, visible, title, form]);
 
   // Auto-select all result nodes when creating a new app or loading existing app
   useEffect(() => {
@@ -432,19 +445,9 @@ export const CreateWorkflowAppModal = ({
         if (validNodeIds.length > 0) {
           setSelectedResults(validNodeIds);
         }
-      } else if (appData) {
-        // When editing existing app, use saved node IDs
-        const savedNodeIds = appData.resultNodeIds ?? [];
-        const validNodeIds =
-          displayNodes?.map((node) => node.id).filter((id): id is string => !!id) ?? [];
-        const intersectedNodeIds = savedNodeIds.filter((id) => validNodeIds.includes(id));
-
-        if (intersectedNodeIds.length > 0) {
-          setSelectedResults(intersectedNodeIds);
-        }
       }
     }
-  }, [visible, appId, displayNodes, appData]);
+  }, [visible, appId, displayNodes?.length, appData]);
 
   // Upload button component
   const uploadButton = (
