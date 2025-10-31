@@ -430,7 +430,7 @@ export const CreateWorkflowAppModal = ({
 
   // Auto-select all result nodes when creating a new app
   useEffect(() => {
-    if (visible && !appId && displayNodes?.length > 0 && selectedResults.length === 0) {
+    if (visible && !appId && displayNodes?.length > 0) {
       const allNodeIds = displayNodes.map((node) => node.id).filter((id): id is string => !!id);
       if (allNodeIds.length > 0) {
         setSelectedResults(allNodeIds);
