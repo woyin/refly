@@ -313,6 +313,7 @@ const DocumentEditorHeader = memo(({ docId, nodeId, readonly }: DocumentEditorHe
     setSourceList: state.setSourceList,
   }));
   const { syncTitleToYDoc } = useDocumentSync();
+  const { provider } = useDocumentContext();
 
   const setNodeDataByEntity = useSetNodeDataByEntity();
 
@@ -351,11 +352,10 @@ const DocumentEditorHeader = memo(({ docId, nodeId, readonly }: DocumentEditorHe
   }, [docId, syncTitleToYDoc]);
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      syncTitleToYDoc((node?.data?.title as string) ?? '');
-    }, 100);
-    return () => clearTimeout(timer);
-  }, [node?.data?.title]);
+    if (provider?.status !== 'connected') return;
+
+    syncTitleToYDoc((node?.data?.title as string) ?? '');
+  }, [node?.data?.title, provider?.status]);
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
     // Skip custom handling when IME composition is in progress
