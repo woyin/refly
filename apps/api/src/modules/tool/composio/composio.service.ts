@@ -4,9 +4,8 @@ import { Injectable, Logger, NotFoundException, Optional } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
-import { GenericToolset, User } from '@refly/openapi-schema';
+import { ComposioConnectionStatus, GenericToolset, User } from '@refly/openapi-schema';
 import { PrismaService } from '../../common/prisma.service';
-import { ComposioConnectionStatus } from './composio.dto';
 import { JSONSchemaToZod } from '@dmitryrechkin/json-schema-to-zod';
 import { QUEUE_SYNC_TOOL_CREDIT_USAGE } from '../../../utils/const';
 import { SyncToolCreditUsageJobData } from '../../credit/credit.dto';
@@ -28,7 +27,6 @@ export class ComposioService {
       const message =
         'COMPOSIO_API_KEY is not configured. Set the environment variable to enable Composio integration.';
       this.logger.error(message);
-      throw new Error(message);
     }
     this.composio = new Composio({ apiKey });
   }
@@ -58,7 +56,14 @@ export class ComposioService {
    * check connection status
    * If not found in DB, query Composio API directly to handle Webhook delays
    */
-  async checkAppStatus(user: User, appSlug: string) {
+  async checkAppStatus(
+    user: User,
+    appSlug: string,
+  ): Promise<{
+    status: ComposioConnectionStatus;
+    connectedAccountId?: string | null;
+    integrationId: string;
+  }> {
     try {
       // First check database
       const connection = await this.prisma.composioConnection.findFirst({
@@ -73,12 +78,10 @@ export class ComposioService {
       });
 
       if (connection) {
-        const status = connection.status;
+        const status: ComposioConnectionStatus =
+          connection.status === 'active' ? 'active' : 'revoked';
         return {
-          status:
-            status === 'active'
-              ? ComposioConnectionStatus.ACTIVE
-              : ComposioConnectionStatus.REVOKED,
+          status,
           connectedAccountId: connection.connectedAccountId ?? undefined,
           integrationId: connection.integrationId,
         };
@@ -92,14 +95,14 @@ export class ComposioService {
 
       // Not found anywhere
       return {
-        status: ComposioConnectionStatus.REVOKED,
+        status: 'revoked' as const,
         connectedAccountId: null,
         integrationId: appSlug,
       };
     } catch (error) {
       this.logger.error(`Connection status check failed: ${error.message}`);
       return {
-        status: ComposioConnectionStatus.REVOKED,
+        status: 'revoked' as const,
         connectedAccountId: null,
         integrationId: appSlug,
       };
@@ -190,7 +193,14 @@ export class ComposioService {
   /**
    * Query Composio API directly to check connection status
    */
-  private async refreshToolStatus(user: User, appSlug: string) {
+  private async refreshToolStatus(
+    user: User,
+    appSlug: string,
+  ): Promise<{
+    status: ComposioConnectionStatus;
+    connectedAccountId: string;
+    integrationId: string;
+  } | null> {
     try {
       const connectedAccounts = await this.composio.connectedAccounts.list({
         userIds: [user.uid],
@@ -204,7 +214,7 @@ export class ComposioService {
         // Save connection and toolset in a single transaction
         await this.saveConnection(user, appSlug, connectedAccount);
         return {
-          status: ComposioConnectionStatus.ACTIVE,
+          status: 'active' as const,
           connectedAccountId: connectedAccount.id,
           integrationId: appSlug,
         };
@@ -223,10 +233,8 @@ export class ComposioService {
    */
   private async saveConnection(user: User, appSlug: string, connectedAccount: any) {
     const connectedAccountId = connectedAccount.id;
-    const status =
-      connectedAccount.status?.toUpperCase() === 'ACTIVE'
-        ? ComposioConnectionStatus.ACTIVE
-        : ComposioConnectionStatus.REVOKED;
+    const status: ComposioConnectionStatus =
+      connectedAccount.status?.toUpperCase() === 'ACTIVE' ? 'active' : 'revoked';
 
     // 1. Save or update composio_connections
     await this.prisma.composioConnection.upsert({
@@ -254,30 +262,6 @@ export class ComposioService {
   }
 
   /**
-   * helper: Get display name for known apps
-   */
-  private getAppDisplayName(appSlug: string): string {
-    const nameMap: Record<string, string> = {
-      gmail: 'Gmail',
-      slack: 'Slack',
-      github: 'GitHub',
-      notion: 'Notion',
-      linear: 'Linear',
-      jira: 'Jira',
-      trello: 'Trello',
-      asana: 'Asana',
-      google_drive: 'Google Drive',
-      dropbox: 'Dropbox',
-      twitter: 'Twitter',
-      linkedin: 'LinkedIn',
-      discord: 'Discord',
-      reddit: 'Reddit',
-      firecrawl: 'Firecrawl',
-    };
-    return nameMap[appSlug] || appSlug.charAt(0).toUpperCase() + appSlug.slice(1);
-  }
-
-  /**
    * Instantiate OAuth toolsets into structured tools
    * Converts Composio OAuth tools into LangChain DynamicStructuredTool instances
    */
@@ -296,7 +280,7 @@ export class ComposioService {
       }
 
       const connectionStatus = await this.checkAppStatus(user, integrationId);
-      if (connectionStatus.status !== ComposioConnectionStatus.ACTIVE) {
+      if (connectionStatus.status !== 'active') {
         continue;
       }
 

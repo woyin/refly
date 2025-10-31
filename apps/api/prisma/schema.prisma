@@ -1551,8 +1551,6 @@ model ComposioConnection {
   deletedAt          DateTime? @map("deleted_at") @db.Timestamptz()
 
   @@unique([uid, integrationId])
-  @@index([uid])
-  @@index([uid, integrationId])
   @@index([status])
   @@map("composio_connections")
 }

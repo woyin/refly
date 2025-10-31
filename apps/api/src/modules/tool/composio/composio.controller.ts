@@ -1,9 +1,12 @@
 import { Controller, Get, HttpCode, HttpStatus, Param, Post, UseGuards } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
-import { User } from '@refly/openapi-schema';
+import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import {
+  ComposioConnectionStatusResponse,
+  InitiateComposioConnectionResponse,
+  User,
+} from '@refly/openapi-schema';
 import { LoginedUser } from '../../../utils/decorators/user.decorator';
 import { JwtAuthGuard } from '../../auth/guard/jwt-auth.guard';
-import { ConnectionStatusResponse, InitiateConnectionResponse } from './composio.dto';
 import { ComposioService } from './composio.service';
 
 @ApiTags('v1/tool/composio')
@@ -18,15 +21,10 @@ export class ComposioController {
    */
   @Post('/:app/authorize')
   @ApiOperation({ summary: 'authorize OAuth connection' })
-  @ApiResponse({
-    status: 200,
-    description: "Generate OAuth authorize URL for user's app",
-    type: InitiateConnectionResponse,
-  })
   async initiateConnection(
     @LoginedUser() user: User,
     @Param('app') app: string,
-  ): Promise<InitiateConnectionResponse> {
+  ): Promise<InitiateComposioConnectionResponse> {
     return this.composioService.authApp(user, app);
   }
 
@@ -37,21 +35,6 @@ export class ComposioController {
   @Post('/:app/revoke')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Revoke user connection and reset OAuth state' })
-  @ApiResponse({
-    status: 200,
-    description: 'Connection revoked successfully',
-    schema: {
-      type: 'object',
-      properties: {
-        success: { type: 'boolean' },
-        message: { type: 'string' },
-      },
-    },
-  })
-  @ApiResponse({
-    status: 404,
-    description: 'Connection not found',
-  })
   async revokeConnection(
     @LoginedUser() user: User,
     @Param('app') app: string,
@@ -64,15 +47,10 @@ export class ComposioController {
    */
   @Get('/:app/status')
   @ApiOperation({ summary: 'query connection status by app slug' })
-  @ApiResponse({
-    status: 200,
-    description: 'connection status query successful',
-    type: ConnectionStatusResponse,
-  })
   async checkConnectionStatus(
     @LoginedUser() user: User,
     @Param('app') app: string,
-  ): Promise<ConnectionStatusResponse> {
+  ): Promise<ComposioConnectionStatusResponse> {
     return this.composioService.checkAppStatus(user, app);
   }
 }
