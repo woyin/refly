@@ -25,6 +25,7 @@ import { WhaleWisdomToolset, WhaleWisdomToolsetDefinition } from './whalewisdom'
 export type AnyToolsetClass = new (...args: any[]) => AgentBaseToolset<any>;
 
 // Oauth tool use external sdk to execute, so the class is undefined
+// Oauth tool use external sdk to execute, so the class is undefined
 export const toolsetInventory: Record<
   string,
   {

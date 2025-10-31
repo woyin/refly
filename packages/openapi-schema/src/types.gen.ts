@@ -805,6 +805,10 @@ export type Resource = {
    */
   contentPreview?: string;
   /**
+   * Share ID
+   */
+  shareId?: string;
+  /**
    * Document content for this resource (only returned in getResourceDetail API)
    */
   content?: string;
@@ -2476,6 +2480,13 @@ export type GetCanvasDataResponse = BaseResponse & {
   data?: RawCanvasData;
 };
 
+export type SharedCanvasData = RawCanvasData & {
+  /**
+   * Resources in the canvas
+   */
+  resources?: Array<Resource>;
+};
+
 export type ExportCanvasResponse = BaseResponse & {
   data?: {
     /**
@@ -3391,6 +3402,10 @@ export type CreateShareRequest = {
    * Cover storage key
    */
   coverStorageKey?: string;
+  /**
+   * Credit usage
+   */
+  creditUsage?: number;
 };
 
 export type CreateShareResponse = BaseResponse & {
@@ -4448,6 +4463,54 @@ export type getCreditBalanceResponse = BaseResponse & {
      * Credit amount
      */
     creditAmount?: number;
+  };
+};
+
+export type GetCreditUsageByResultIdResponse = BaseResponse & {
+  /**
+   * Credit usage by result ID
+   */
+  data?: {
+    /**
+     * Total credit usage by result ID
+     */
+    total?: number;
+    /**
+     * Credit usage list by result ID
+     */
+    usages?: Array<CreditUsage>;
+  };
+};
+
+export type GetCreditUsageByExecutionIdResponse = BaseResponse & {
+  /**
+   * Credit usage by execution ID
+   */
+  data?: {
+    /**
+     * Total credit usage by execution ID
+     */
+    total?: number;
+    /**
+     * Credit usage list by execution ID
+     */
+    usages?: Array<CreditUsage>;
+  };
+};
+
+export type GetCreditUsageByCanvasIdResponse = BaseResponse & {
+  /**
+   * Credit usage by canvas ID
+   */
+  data?: {
+    /**
+     * Total credit usage by canvas ID
+     */
+    total?: number;
+    /**
+     * Credit usage list by canvas ID
+     */
+    usages?: Array<CreditUsage>;
   };
 };
 
@@ -6050,9 +6113,17 @@ export type CreateWorkflowAppRequest = {
    */
   variables: Array<WorkflowVariable>;
   /**
+   * Result node IDs
+   */
+  resultNodeIds?: Array<string>;
+  /**
    * Cover image storage key
    */
   coverStorageKey: string;
+  /**
+   * Whether remix is enabled for this app
+   */
+  remixEnabled?: boolean;
 };
 
 export type DeleteWorkflowAppRequest = {
@@ -6095,6 +6166,14 @@ export type WorkflowApp = {
    * Workflow app variables
    */
   variables: Array<WorkflowVariable>;
+  /**
+   * Result node IDs
+   */
+  resultNodeIds?: Array<string>;
+  /**
+   * Whether remix is enabled for this app
+   */
+  remixEnabled?: boolean;
   /**
    * Cover image URL
    */
@@ -7798,6 +7877,45 @@ export type GetCreditUsageError = unknown;
 export type GetCreditBalanceResponse = getCreditBalanceResponse;
 
 export type GetCreditBalanceError = unknown;
+
+export type GetCreditUsageByResultIdData = {
+  query: {
+    /**
+     * Result ID
+     */
+    resultId: string;
+  };
+};
+
+export type GetCreditUsageByResultIdResponse2 = GetCreditUsageByResultIdResponse;
+
+export type GetCreditUsageByResultIdError = unknown;
+
+export type GetCreditUsageByExecutionIdData = {
+  query: {
+    /**
+     * Execution ID
+     */
+    executionId: string;
+  };
+};
+
+export type GetCreditUsageByExecutionIdResponse2 = GetCreditUsageByExecutionIdResponse;
+
+export type GetCreditUsageByExecutionIdError = unknown;
+
+export type GetCreditUsageByCanvasIdData = {
+  query: {
+    /**
+     * Canvas ID
+     */
+    canvasId: string;
+  };
+};
+
+export type GetCreditUsageByCanvasIdResponse2 = GetCreditUsageByCanvasIdResponse;
+
+export type GetCreditUsageByCanvasIdError = unknown;
 
 export type GetSubscriptionPlansResponse2 = GetSubscriptionPlansResponse;
 

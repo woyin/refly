@@ -9,6 +9,7 @@ import { WorkflowController } from './workflow.controller';
 import { RunWorkflowProcessor, PollWorkflowProcessor } from './workflow.processor';
 import { QUEUE_RUN_WORKFLOW, QUEUE_POLL_WORKFLOW } from '../../utils/const';
 import { isDesktop } from '../../utils/runtime';
+import { CreditModule } from '../credit/credit.module';
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { isDesktop } from '../../utils/runtime';
     CanvasModule,
     CanvasSyncModule,
     SkillModule,
+    CreditModule,
     ...(isDesktop()
       ? []
       : [

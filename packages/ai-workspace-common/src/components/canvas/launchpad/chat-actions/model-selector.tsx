@@ -10,7 +10,7 @@ import {
   TokenUsageMeter,
   ModelCapabilities,
 } from '@refly/openapi-schema';
-import { useListProviderItems } from '@refly-packages/ai-workspace-common/queries';
+import { useFetchProviderItems } from '@refly-packages/ai-workspace-common/hooks/use-fetch-provider-items';
 import { IconError } from '@refly-packages/ai-workspace-common/components/common/icon';
 import { LuInfo } from 'react-icons/lu';
 import { SettingsModalActiveTab, useSiderStoreShallow } from '@refly/stores';
@@ -182,20 +182,9 @@ export const ModelSelector = memo(
       data: providerItemList,
       isLoading: isModelListLoading,
       refetch: refetchModelList,
-    } = useListProviderItems(
-      {
-        query: {
-          enabled: true,
-          isGlobal: userProfile?.preferences?.providerMode === 'global',
-        },
-      },
-      undefined,
-      {
-        refetchOnWindowFocus: true,
-        refetchOnMount: true,
-        refetchOnReconnect: true,
-      },
-    );
+    } = useFetchProviderItems({
+      enabled: true,
+    });
 
     // Listen for model update events
     useEffect(() => {
@@ -217,15 +206,15 @@ export const ModelSelector = memo(
 
     // Auto-select category based on current model
     useEffect(() => {
-      if (model && providerItemList?.data) {
-        const currentModelItem = providerItemList.data.find(
+      if (model && providerItemList) {
+        const currentModelItem = providerItemList.find(
           (item) => item.itemId === model.providerItemId,
         );
         if (currentModelItem?.category && currentModelItem.category === 'llm') {
           setSelectedCategory(currentModelItem.category as 'llm');
         }
       }
-    }, [model, providerItemList?.data]);
+    }, [model, providerItemList]);
 
     const { tokenUsage, isUsageLoading } = useSubscriptionUsage();
 
@@ -245,8 +234,8 @@ export const ModelSelector = memo(
      */
     const modelList: ModelInfo[] = useMemo(() => {
       // Ensure providerItemList?.data exists and is an array before using filter/map
-      if (!Array.isArray(providerItemList?.data)) return [];
-      return providerItemList.data
+      if (!Array.isArray(providerItemList)) return [];
+      return providerItemList
         .filter((item) => {
           // Validate item.category existence before checking value
           const category = item?.category;
@@ -288,7 +277,7 @@ export const ModelSelector = memo(
             };
           }
         });
-    }, [providerItemList?.data, selectedCategory]);
+    }, [providerItemList, selectedCategory]);
 
     const { handleGroupModelList } = useGroupModels();
 

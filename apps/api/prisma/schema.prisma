@@ -803,6 +803,8 @@ model WorkflowApp {
   templateContent String?   @map("template_content")
   /// Whether remix is enabled for this app
   remixEnabled    Boolean   @default(false) @map("remix_enabled")
+  /// Result node IDs
+  resultNodeIds   String[]  @default([]) @map("result_node_ids")
   /// Create timestamp
   createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz()
   /// Update timestamp

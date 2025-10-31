@@ -13,12 +13,20 @@ interface SVGRendererProps {
   width?: string;
   height?: string;
   showActions?: boolean;
+  purePreview?: boolean;
 }
 
 const SVG_ID = 'refly-svg-content';
 
 const SVGRenderer = memo(
-  ({ content, title, width = '100%', height = '100%', showActions = true }: SVGRendererProps) => {
+  ({
+    content,
+    title,
+    width = '100%',
+    height = '100%',
+    showActions = true,
+    purePreview = false,
+  }: SVGRendererProps) => {
     const { t } = useTranslation();
     const iframeRef = useRef<HTMLIFrameElement>(null);
     const [iframeHeight, setIframeHeight] = useState<number | null>(null);
@@ -451,7 +459,7 @@ const SVGRenderer = memo(
         </div>
 
         {/* Action Buttons - conditionally rendered based on showActions prop */}
-        {showActions && (
+        {!purePreview && showActions && (
           <div className="absolute bottom-2 right-2 z-10">
             <Space.Compact className="shadow-sm rounded-md overflow-hidden backdrop-blur-sm">
               <Tooltip title={t('common.preview')}>

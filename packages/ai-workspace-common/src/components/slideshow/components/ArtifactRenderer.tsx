@@ -164,6 +164,7 @@ const ArtifactRenderer = memo(
               ) : (
                 <div className="transform scale-[0.5] origin-top-left w-[200%] h-[200%] overflow-hidden bg-white dark:bg-gray-900 rounded shadow-sm">
                   <Renderer
+                    purePreview
                     content={content}
                     type={currentType}
                     title={title}
@@ -195,6 +196,7 @@ const ArtifactRenderer = memo(
                 <div className="h-full flex flex-col">
                   <div className="flex-grow">
                     <Renderer
+                      purePreview
                       content={content}
                       type={currentType}
                       title={title}

@@ -35,20 +35,12 @@ const WhyChooseRefly: React.FC = memo(() => {
   ];
 
   return (
-    <div
-      className="w-full max-w-[800px] mx-auto mt-[160px] mb-[50px]
-    
-    "
-    >
-      {/* Main container with exact Figma dimensions and styling */}
+    <div className="w-full max-w-[860px] mx-auto mt-[50px] md:mt-[50px] mb-[50px] px-4">
+      {/* Main container with responsive dimensions */}
       <div
-        className="relative rounded-2xl overflow-hidden"
+        className="relative w-full rounded-2xl overflow-hidden flex flex-col items-center"
         style={{
-          width: '800px',
           padding: '40px 0px 20px',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
           gap: '24px',
         }}
       >
@@ -83,9 +75,9 @@ const WhyChooseRefly: React.FC = memo(() => {
           }}
         />
 
-        {/* Background decoration - exact Figma positioning */}
+        {/* Background decoration - responsive positioning */}
         <div
-          className="absolute opacity-60"
+          className="absolute opacity-60 hidden md:block"
           style={{
             left: '-103px',
             top: '0',
@@ -94,18 +86,17 @@ const WhyChooseRefly: React.FC = memo(() => {
           }}
         />
 
-        {/* Content container - exact Figma dimensions */}
+        {/* Content container - responsive dimensions */}
         <div
-          className="relative z-10 flex flex-col items-center"
+          className="relative z-10 flex flex-col items-center w-full"
           style={{
-            width: '800px',
             padding: '0px 20px',
             gap: '12px',
           }}
         >
-          {/* Header section - exact Figma spacing */}
+          {/* Header section */}
           <div
-            className="flex flex-col items-center"
+            className="flex flex-col items-center w-full"
             style={{
               gap: '12px',
               padding: '0px 0px 20px',
@@ -113,13 +104,13 @@ const WhyChooseRefly: React.FC = memo(() => {
           >
             <Logo />
 
-            {/* Title - exact Figma typography */}
+            {/* Title - responsive typography */}
             <h2
               className="text-center text-gray-900 dark:text-gray-100"
               style={{
                 fontFamily: 'PingFang SC',
                 fontWeight: 600,
-                fontSize: '18px',
+                fontSize: '16px',
                 lineHeight: '1.5555555555555556em',
               }}
             >
@@ -127,7 +118,7 @@ const WhyChooseRefly: React.FC = memo(() => {
             </h2>
           </div>
 
-          {/* Features grid - exact Figma layout */}
+          {/* Features grid - responsive layout */}
           <div
             className="flex flex-wrap justify-stretch items-stretch w-full"
             style={{
@@ -137,42 +128,34 @@ const WhyChooseRefly: React.FC = memo(() => {
             {features.map((feature, index) => (
               <div
                 key={index}
-                className={`flex flex-col items-center rounded-xl border shadow-sm ${
+                className={`flex flex-col items-center justify-center rounded-xl border shadow-sm w-full sm:w-[calc(50%-5px)] md:w-[calc(33.333%-7px)] h-[114px] sm:h-auto ${
                   feature.isSpecial
                     ? 'bg-white/75 dark:bg-gray-800/75 border-gray-100 dark:border-gray-700'
                     : 'bg-white dark:bg-gray-800 border-gray-100 dark:border-gray-700'
                 } dark:shadow-gray-900/20`}
                 style={{
-                  flex: '1',
-                  minWidth: 'calc(33.333% - 7px)',
-                  padding: '16px',
-                  gap: '12px',
+                  padding: '12px',
+                  gap: '8px',
                 }}
               >
                 <h3
-                  className="text-center text-green-600 dark:text-green-400"
+                  className="text-center text-green-600 dark:text-green-400 text-sm sm:text-base md:text-base"
                   style={{
                     fontFamily: 'PingFang SC',
                     fontWeight: feature.isSpecial ? 400 : 600,
-                    fontSize: feature.isSpecial ? '14px' : '16px',
-                    lineHeight: feature.isSpecial ? '1.4285714285714286em' : '1.625em',
+                    lineHeight: '1.4',
                     textAlign: 'center',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    height: feature.isSpecial ? '100%' : 'auto',
                   }}
                 >
                   {feature.title}
                 </h3>
                 {feature.description && (
                   <p
-                    className="text-center whitespace-pre-line text-gray-800 dark:text-gray-200"
+                    className="text-center whitespace-pre-line text-gray-800 dark:text-gray-200 text-xs sm:text-xs md:text-xs line-clamp-2"
                     style={{
                       fontFamily: 'PingFang SC',
                       fontWeight: 400,
-                      fontSize: '12px',
-                      lineHeight: '1.8333333333333333em',
+                      lineHeight: '1.5',
                     }}
                   >
                     {feature.description}

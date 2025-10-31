@@ -34,6 +34,7 @@ import {
 } from '@refly-packages/ai-workspace-common/hooks/canvas';
 import { NodeExecutionOverlay } from './shared/node-execution-overlay';
 import { NodeExecutionStatus } from './shared/node-execution-status';
+import { editorEmitter } from '@refly/utils/event-emitter/editor';
 
 const NODE_WIDTH = 320;
 const NODE_SIDE_CONFIG = { width: NODE_WIDTH, height: 'auto', maxHeight: 214 };
@@ -189,6 +190,10 @@ export const DocumentNode = memo(
     useEffect(() => {
       setNodeStyle(id, NODE_SIDE_CONFIG);
     }, [id, setNodeStyle]);
+
+    useEffect(() => {
+      editorEmitter.emit('syncDocumentTitle', { docId: data.entityId, title: data.title });
+    }, [data?.entityId, data?.title]);
 
     // Add event handling
     useEffect(() => {

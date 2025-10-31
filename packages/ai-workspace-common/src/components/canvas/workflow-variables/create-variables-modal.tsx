@@ -19,9 +19,8 @@ import type { WorkflowVariable, VariableValue } from '@refly/openapi-schema';
 import { useVariableView } from '@refly-packages/ai-workspace-common/hooks/canvas';
 import './index.scss';
 import { RESOURCE_TYPE } from './constants';
-import { useGetProjectCanvasId } from '@refly-packages/ai-workspace-common/hooks/use-get-project-canvasId';
-import { useListResources } from '@refly-packages/ai-workspace-common/queries/queries';
 import { logEvent } from '@refly/telemetry-web';
+import { useFetchResources } from '@refly-packages/ai-workspace-common/hooks/use-fetch-resources';
 
 export const CreateVariablesModal: React.FC<CreateVariablesModalProps> = React.memo(
   ({
@@ -54,13 +53,7 @@ export const CreateVariablesModal: React.FC<CreateVariablesModalProps> = React.m
       return t(`canvas.workflow.variables.${mode === 'create' ? 'addTitle' : 'editTitle'}`);
     }, [t, mode, disableChangeVariableType, variableType]);
 
-    const { projectId } = useGetProjectCanvasId();
-    const { refetch: refetchResources } = useListResources({
-      query: {
-        canvasId,
-        projectId,
-      },
-    });
+    const { refetch: refetchResources } = useFetchResources();
 
     const variableTypeOptions = useMemo(() => {
       return [
@@ -412,18 +405,14 @@ export const CreateVariablesModal: React.FC<CreateVariablesModalProps> = React.m
           finalValue = textValue ? [{ type: 'text', text: textValue }] : [];
         } else if (variableType === 'resource') {
           // For resource type, construct value array from fileList
+          const currentEntityId = defaultValue?.value?.[0]?.resource?.entityId;
           finalValue = fileList.map((file) => ({
             type: 'resource',
             resource: {
               name: file.name || '',
               storageKey: file.url || '',
               fileType: getFileType(file.name),
-              ...(defaultValue?.value
-                ? {
-                    entityId: defaultValue.value.find((v) => v.resource?.storageKey === file.url)
-                      ?.resource?.entityId,
-                  }
-                : {}),
+              ...(currentEntityId ? { entityId: currentEntityId } : {}),
             },
           }));
         } else if (variableType === 'option') {
@@ -576,6 +565,7 @@ export const CreateVariablesModal: React.FC<CreateVariablesModalProps> = React.m
       handleEditSave,
       handleDragEnd,
       handleDragStart,
+      form,
     ]);
 
     return (

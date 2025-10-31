@@ -8,20 +8,18 @@ import { useTranslation } from 'react-i18next';
 import { useAddNode } from '@refly-packages/ai-workspace-common/hooks/canvas/use-add-node';
 import { useAskProject } from '@refly-packages/ai-workspace-common/hooks/canvas/use-ask-project';
 import { useInvokeAction } from '@refly-packages/ai-workspace-common/hooks/canvas/use-invoke-action';
-import { useLaunchpadStoreShallow, useUserStoreShallow } from '@refly/stores';
+import { useLaunchpadStoreShallow } from '@refly/stores';
 import { nodeOperationsEmitter } from '@refly-packages/ai-workspace-common/events/nodeOperations';
 import { genActionResultID, processQueryWithMentions } from '@refly/utils';
 import { ChatComposer } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/chat-composer';
 import { AddContext, AiChat } from 'refly-icons';
 import {
-  useGetWorkflowVariables,
-  useListProviderItems,
-} from '@refly-packages/ai-workspace-common/queries';
-import {
   createNodeEventName,
   nodeActionEmitter,
 } from '@refly-packages/ai-workspace-common/events/nodeActions';
 import { convertContextItemsToNodeFilters } from '@refly/canvas-common';
+import { useFetchProviderItems } from '@refly-packages/ai-workspace-common/hooks/use-fetch-provider-items';
+import { useVariablesManagement } from '@refly-packages/ai-workspace-common/hooks/use-variables-management';
 
 interface FollowingActionButtonProps {
   text: string;
@@ -44,10 +42,12 @@ interface FollowingActionsProps {
   initContextItems: IContextItem[];
   initModelInfo: ModelInfo | null;
   nodeId: string;
+  initSelectedToolsets?: GenericToolset[];
 }
 export const FollowingActions = ({
   initContextItems,
   initModelInfo,
+  initSelectedToolsets,
   nodeId,
 }: FollowingActionsProps) => {
   const { canvasId } = useCanvasContext();
@@ -70,26 +70,15 @@ export const FollowingActions = ({
   const { addNode } = useAddNode();
   const { getFinalProjectId } = useAskProject();
 
-  const { userProfile } = useUserStoreShallow((state) => ({
-    userProfile: state.userProfile,
-  }));
-
-  const { data: providerItemList } = useListProviderItems({
-    query: {
-      category: 'llm',
-      enabled: true,
-      isGlobal: userProfile?.preferences?.providerMode === 'global',
-    },
+  const { data: providerItemList } = useFetchProviderItems({
+    category: 'llm',
+    enabled: true,
   });
 
   // Fetch workflow variables for mentions (startNode/resourceLibrary)
-  const { data: workflowVariables } = useGetWorkflowVariables({
-    query: {
-      canvasId,
-    },
-  });
+  const { data: workflowVariables } = useVariablesManagement(canvasId);
 
-  const defaultProviderItem = providerItemList?.data?.find((item) => item.category === 'llm');
+  const defaultProviderItem = providerItemList.find((item) => item.category === 'llm');
   const defaultModelInfo: ModelInfo | null = useMemo(() => {
     if (defaultProviderItem) {
       return {
@@ -148,7 +137,7 @@ export const FollowingActions = ({
     }
 
     // Process query with workflow variables
-    const variables = workflowVariables?.data ?? [];
+    const variables = workflowVariables;
     const { processedQuery } = processQueryWithMentions(followUpQuery, {
       replaceVars: true,
       variables,
@@ -226,6 +215,10 @@ export const FollowingActions = ({
   useEffect(() => {
     setFollowUpModelInfo(initModelInfo || defaultModelInfo);
   }, [initModelInfo]);
+
+  useEffect(() => {
+    setSelectedToolsets(initSelectedToolsets ?? selectedToolsetsFromStore ?? []);
+  }, [initSelectedToolsets]);
 
   const handleAddToContext = useCallback(() => {
     nodeActionEmitter.emit(createNodeEventName(nodeId, 'addToContext'));

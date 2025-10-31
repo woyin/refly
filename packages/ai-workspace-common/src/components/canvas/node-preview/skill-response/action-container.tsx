@@ -1,29 +1,36 @@
-import { useMemo, useCallback, memo } from 'react';
+import { useMemo, useCallback, memo, useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button, message, Tooltip } from 'antd';
 import { ModelIcon } from '@lobehub/icons';
-import { ActionResult, ActionStep, ModelInfo, Source } from '@refly/openapi-schema';
+import { ActionResult, ActionStep, GenericToolset, ModelInfo, Source } from '@refly/openapi-schema';
 import { CheckCircleOutlined, CopyOutlined, ImportOutlined } from '@ant-design/icons';
 import { copyToClipboard } from '@refly-packages/ai-workspace-common/utils';
 import { parseMarkdownCitationsAndCanvasTags, safeParseJSON } from '@refly/utils/parse';
-import { useDocumentStoreShallow, useUserStoreShallow } from '@refly/stores';
+import { useDocumentStoreShallow } from '@refly/stores';
 import { useCreateDocument } from '@refly-packages/ai-workspace-common/hooks/canvas/use-create-document';
 import { editorEmitter, EditorOperation } from '@refly/utils/event-emitter/editor';
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
-import { useListProviderItems } from '@refly-packages/ai-workspace-common/queries';
 import { FollowingActions } from '../sharedComponents/following-actions';
 import { IContextItem } from '@refly/common-types';
-import { convertResultContextToItems } from '@refly/canvas-common';
+import { useFetchProviderItems } from '@refly-packages/ai-workspace-common/hooks/use-fetch-provider-items';
+import { Subscription } from 'refly-icons';
+import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
 
 interface ActionContainerProps {
   step: ActionStep;
   result: ActionResult;
   nodeId?: string;
+  initSelectedToolsets?: GenericToolset[];
 }
 
 const buttonClassName = 'text-xs flex justify-center items-center h-6 px-1 rounded-lg';
 
-const ActionContainerComponent = ({ result, step, nodeId }: ActionContainerProps) => {
+const ActionContainerComponent = ({
+  result,
+  step,
+  nodeId,
+  initSelectedToolsets,
+}: ActionContainerProps) => {
   const { t } = useTranslation();
   const { debouncedCreateDocument, isCreating } = useCreateDocument();
   const { readonly } = useCanvasContext();
@@ -35,9 +42,33 @@ const ActionContainerComponent = ({ result, step, nodeId }: ActionContainerProps
   const { title } = result ?? {};
   const isPending = result?.status === 'executing';
 
+  const [creditUsage, setCreditUsage] = useState<{ total?: number; usages?: any[] } | null>(null);
+
   // Check if we're in share mode by checking if resultId exists
   // This indicates a "proper" result vs a shared result that might be loaded from share data
   const isShareMode = !result.resultId;
+
+  // Fetch credit usage for the result
+  useEffect(() => {
+    const fetchCreditUsage = async () => {
+      if (result.resultId && !isShareMode) {
+        try {
+          const response = await getClient().getCreditUsageByResultId({
+            query: {
+              resultId: result.resultId,
+            },
+          });
+          if (response?.data?.data) {
+            setCreditUsage(response.data.data);
+          }
+        } catch (error) {
+          console.error('Failed to fetch credit usage:', error);
+        }
+      }
+    };
+
+    fetchCreditUsage();
+  }, [result.resultId, isShareMode]);
 
   const sources = useMemo(
     () =>
@@ -88,68 +119,41 @@ const ActionContainerComponent = ({ result, step, nodeId }: ActionContainerProps
     [sources, t],
   );
 
-  const { userProfile } = useUserStoreShallow((state) => ({
-    userProfile: state.userProfile,
-  }));
-
-  const { data: providerItemList } = useListProviderItems({
-    query: {
-      category: 'llm',
-      enabled: true,
-      isGlobal: userProfile?.preferences?.providerMode === 'global',
-    },
+  const { data: providerItemList } = useFetchProviderItems({
+    category: 'llm',
+    enabled: true,
   });
 
   const tokenUsage = step?.tokenUsage?.[0];
 
   const providerItem = useMemo(() => {
-    if (!tokenUsage || !providerItemList?.data) return null;
+    if (!tokenUsage || !providerItemList) return null;
 
     // If providerItemId is provided, use it to find the provider item
     if (tokenUsage?.providerItemId) {
-      return providerItemList?.data?.find((item) => item.itemId === tokenUsage?.providerItemId);
+      return providerItemList?.find((item) => item.itemId === tokenUsage?.providerItemId);
     }
 
     // Fallback to modelName if providerItemId is not provided
-    return (
-      providerItemList?.data?.find((item) => item.config?.modelId === tokenUsage?.modelName) || null
-    );
+    return providerItemList?.find((item) => item.config?.modelId === tokenUsage?.modelName) || null;
   }, [providerItemList, tokenUsage]);
 
   const initContextItems = useMemo(() => {
-    if (result?.resultId) {
-      // Get the original context items from the result's context and history
-      const originalContextItems = convertResultContextToItems(
-        result.context || {},
-        result.history || [],
-      );
-
-      // Create merged context items similar to skill-response.tsx handleAskAI
-      const currentNodeContext: IContextItem = {
-        type: 'skillResponse',
-        entityId: result.resultId,
-        title: result.title || '',
-        metadata: {
-          withHistory: true,
-        },
-      };
-
-      // Include the original context items from the response
-      const mergedContextItems = [
-        currentNodeContext,
-        // Include the original context items from the response
-        ...originalContextItems.map((item: IContextItem) => ({
-          ...item,
-          metadata: {
-            ...item.metadata,
-            withHistory: undefined,
-          },
-        })),
-      ];
-
-      return mergedContextItems;
+    if (!result.resultId) {
+      return [];
     }
-  }, [result.context, result.history]);
+
+    const currentNodeContext: IContextItem = {
+      type: 'skillResponse',
+      entityId: result.resultId,
+      title: result.title ?? '',
+      metadata: {
+        withHistory: true,
+      },
+    };
+
+    return [currentNodeContext];
+  }, [result.resultId, result.title]);
 
   const initModelInfo = useMemo(() => {
     if (providerItem && providerItem.category === 'llm') {
@@ -183,10 +187,21 @@ const ActionContainerComponent = ({ result, step, nodeId }: ActionContainerProps
           initContextItems={initContextItems}
           initModelInfo={initModelInfo}
           nodeId={nodeId}
+          initSelectedToolsets={initSelectedToolsets}
         />
       )}
 
-      <div className="w-full flex gap-2 items-center justify-between p-3 rounded-b-xl">
+      <div className="w-full flex gap-2 items-center p-3 rounded-b-xl">
+        {creditUsage?.total && (
+          <Tooltip
+            title={t('subscription.creditBilling.description.total', { total: creditUsage.total })}
+          >
+            <div className="flex items-center gap-0.5 text-xs text-refly-text-2">
+              <Subscription size={12} className="text-[#1C1F23] dark:text-white" />
+              {creditUsage.total}
+            </div>
+          </Tooltip>
+        )}
         {tokenUsage && (
           <div className="flex flex-1 items-center gap-1 min-w-0">
             <ModelIcon size={16} model={tokenUsage?.modelName} type="color" />
@@ -237,10 +252,4 @@ const ActionContainerComponent = ({ result, step, nodeId }: ActionContainerProps
   );
 };
 
-export const ActionContainer = memo(ActionContainerComponent, (prevProps, nextProps) => {
-  return (
-    prevProps.step === nextProps.step &&
-    prevProps.result === nextProps.result &&
-    prevProps.nodeId === nextProps.nodeId
-  );
-});
+export const ActionContainer = memo(ActionContainerComponent);

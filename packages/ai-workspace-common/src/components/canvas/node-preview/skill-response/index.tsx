@@ -367,7 +367,14 @@ const SkillResponseNodePreviewComponent = ({ node, resultId }: SkillResponseNode
       </div>
 
       {outputStep && result?.status === 'finish' && (
-        <ActionContainer result={result} step={outputStep} nodeId={node.id} />
+        <ActionContainer
+          result={result}
+          step={outputStep}
+          nodeId={node.id}
+          initSelectedToolsets={
+            nodeSelectedToolsets?.length > 0 ? nodeSelectedToolsets : [EMPTY_TOOLSET]
+          }
+        />
       )}
 
       {knowledgeBaseStore?.sourceListDrawerVisible ? (

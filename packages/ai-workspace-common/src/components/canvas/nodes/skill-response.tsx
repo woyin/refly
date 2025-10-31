@@ -24,6 +24,8 @@ import type { InputRef } from 'antd';
 import { Input, message } from 'antd';
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Tooltip } from 'antd';
+import { Subscription } from 'refly-icons';
 import { CustomHandle } from './shared/custom-handle';
 import { getNodeCommonStyles } from './shared/styles';
 import { SkillResponseNodeProps } from './shared/types';
@@ -54,6 +56,7 @@ import { NodeExecutionStatus } from './shared/node-execution-status';
 import { MultimodalContentPreview } from '@refly-packages/ai-workspace-common/components/canvas/nodes/shared/multimodal-content-preview';
 import { NodeIcon } from '@refly-packages/ai-workspace-common/components/canvas/nodes/shared/node-icon';
 import { logEvent } from '@refly/telemetry-web';
+import { removeToolUseTags } from '@refly-packages/ai-workspace-common/utils';
 
 const NODE_WIDTH = 320;
 const NODE_SIDE_CONFIG = { width: NODE_WIDTH, height: 'auto', maxHeight: 214 };
@@ -143,15 +146,54 @@ const NodeFooter = memo(
     modelInfo,
     createdAt,
     language,
+    resultId,
   }: {
     model: string;
     modelInfo: any;
     createdAt: string;
     language: string;
+    resultId?: string;
   }) => {
+    const { t } = useTranslation();
+    const [creditUsage, setCreditUsage] = useState<{ total?: number; usages?: any[] } | null>(null);
+
+    // Fetch credit usage for the result
+    useEffect(() => {
+      const fetchCreditUsage = async () => {
+        if (resultId) {
+          try {
+            const response = await getClient().getCreditUsageByResultId({
+              query: {
+                resultId: resultId,
+              },
+            });
+            if (response?.data?.data) {
+              setCreditUsage(response.data.data);
+            }
+          } catch (error) {
+            console.error('Failed to fetch credit usage:', error);
+          }
+        }
+      };
+
+      fetchCreditUsage();
+    }, [resultId]);
+
     return (
       <div className="flex-shrink-0 mt-2 flex flex-wrap justify-between items-center text-[10px] text-gray-400 relative z-20 gap-1 dark:text-gray-500 w-full">
         <div className="flex flex-wrap items-center gap-1 max-w-[70%]">
+          {creditUsage?.total && (
+            <Tooltip
+              title={t('subscription.creditBilling.description.total', {
+                total: creditUsage.total,
+              })}
+            >
+              <div className="flex items-center gap-0.5 text-xs text-refly-text-2">
+                <Subscription size={12} className="text-[#1C1F23] dark:text-white" />
+                {creditUsage.total}
+              </div>
+            </Tooltip>
+          )}
           {model && (
             <div className="flex items-center gap-1 overflow-hidden">
               <ModelIcon model={modelInfo?.name} size={16} type={'color'} />
@@ -552,12 +594,13 @@ export const SkillResponseNode = memo(
           }
 
           // Extract full content from all steps and remove tool_use tags
-          const fullContent = data.data.steps
-            ?.map((step) => step?.content || '')
-            .filter(Boolean)
-            .join('\n\n')
-            .replace(/<tool_use>[\s\S]*?<\/tool_use>/g, '')
-            .trim();
+          const fullContent = removeToolUseTags(
+            (data.data?.steps || [])
+              ?.map((step) => step?.content || '')
+              .filter(Boolean)
+              .join('\n\n')
+              .trim(),
+          )?.trim();
 
           const { position, connectTo } = getConnectionInfo(
             { entityId, type: 'skillResponse' },
@@ -610,7 +653,7 @@ export const SkillResponseNode = memo(
           selectedSkill,
           actionMeta,
           modelInfo,
-          contextItems: responseContextItems = [],
+          // contextItems: responseContextItems = [],
           tplConfig,
         } = metadata;
 
@@ -626,25 +669,25 @@ export const SkillResponseNode = memo(
               withHistory: true,
             },
           },
-          // Include the original context items from the response
-          ...responseContextItems.map((item) => ({
-            ...item,
-            metadata: {
-              ...item.metadata,
-              withHistory: undefined,
-            },
-          })),
+          // // Include the original context items from the response
+          // ...responseContextItems.map((item) => ({
+          //   ...item,
+          //   metadata: {
+          //     ...item.metadata,
+          //     withHistory: undefined,
+          //   },
+          // })),
         ];
 
         // Create node connect filters - include both the response and its context items
         const connectFilters = [
           { type: 'skillResponse' as CanvasNodeType, entityId: data.entityId },
-          ...responseContextItems
-            .filter((item) => item.type !== 'skillResponse')
-            .map((item) => ({
-              type: item.type as CanvasNodeType,
-              entityId: item.entityId,
-            })),
+          // ...responseContextItems
+          //   .filter((item) => item.type !== 'skillResponse')
+          //   .map((item) => ({
+          //     type: item.type as CanvasNodeType,
+          //     entityId: item.entityId,
+          //   })),
         ];
 
         const { position, connectTo } = getConnectionInfo(
@@ -891,6 +934,7 @@ export const SkillResponseNode = memo(
             modelInfo={modelInfo}
             createdAt={createdAt}
             language={language}
+            resultId={entityId}
           />
         </div>
       </div>

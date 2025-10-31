@@ -2962,6 +2962,70 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/getCreditBalanceResponse'
+
+  /credit/result:
+    get:
+      tags:
+        - credit
+      summary: Get credit usage by result ID
+      description: Get credit usage by result ID
+      operationId: getCreditUsageByResultId
+      parameters:
+        - name: resultId
+          in: query
+          description: Result ID
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetCreditUsageByResultIdResponse'
+  /credit/execution:
+    get:
+      tags:
+        - credit
+      summary: Get credit usage by execution ID
+      description: Get credit usage by execution ID
+      operationId: getCreditUsageByExecutionId
+      parameters:
+        - name: executionId
+          in: query
+          description: Execution ID
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetCreditUsageByExecutionIdResponse'
+  /credit/canvas:
+    get:
+      tags:
+        - credit
+      summary: Get credit usage by canvas ID
+      description: Get credit usage by canvas ID
+      operationId: getCreditUsageByCanvasId
+      parameters:
+        - name: canvasId
+          in: query
+          description: Canvas ID
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetCreditUsageByCanvasIdResponse'
   /subscription/plans:
     get:
       tags:
@@ -4484,6 +4548,9 @@ components:
         contentPreview:
           type: string
           description: Preview content for this resource
+        shareId:
+          type: string
+          description: Share ID
         content:
           type: string
           description: Document content for this resource (only returned in getResourceDetail API)
@@ -6110,6 +6177,16 @@ components:
           properties:
             data:
               $ref: '#/components/schemas/RawCanvasData'
+    SharedCanvasData:
+      allOf:
+        - $ref: '#/components/schemas/RawCanvasData'
+        - type: object
+          properties:
+            resources:
+              type: array
+              description: Resources in the canvas
+              items:
+                $ref: '#/components/schemas/Resource'
     ExportCanvasResponse:
       allOf:
         - $ref: '#/components/schemas/BaseResponse'
@@ -7054,6 +7131,9 @@ components:
         coverStorageKey:
           type: string
           description: Cover storage key
+        creditUsage:
+          type: number
+          description: Credit usage
     CreateShareResponse:
       allOf:
         - $ref: '#/components/schemas/BaseResponse'
@@ -8123,6 +8203,57 @@ components:
                 creditAmount:
                   type: number
                   description: Credit amount
+    GetCreditUsageByResultIdResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            data:
+              type: object
+              description: Credit usage by result ID
+              properties:
+                total:
+                  type: number
+                  description: Total credit usage by result ID
+                usages:
+                  type: array
+                  description: Credit usage list by result ID
+                  items:
+                    $ref: '#/components/schemas/CreditUsage'
+    GetCreditUsageByExecutionIdResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            data:
+              type: object
+              description: Credit usage by execution ID
+              properties:
+                total:
+                  type: number
+                  description: Total credit usage by execution ID
+                usages:
+                  type: array
+                  description: Credit usage list by execution ID
+                  items:
+                    $ref: '#/components/schemas/CreditUsage'
+    GetCreditUsageByCanvasIdResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            data:
+              type: object
+              description: Credit usage by canvas ID
+              properties:
+                total:
+                  type: number
+                  description: Total credit usage by canvas ID
+                usages:
+                  type: array
+                  description: Credit usage list by canvas ID
+                  items:
+                    $ref: '#/components/schemas/CreditUsage'
     SubscriptionPlan:
       type: object
       properties:
@@ -9768,9 +9899,18 @@ components:
           description: Workflow app variables
           items:
             $ref: '#/components/schemas/WorkflowVariable'
+        resultNodeIds:
+          type: array
+          description: Result node IDs
+          items:
+            type: string
         coverStorageKey:
           type: string
           description: Cover image storage key
+        remixEnabled:
+          type: boolean
+          description: Whether remix is enabled for this app
+
     DeleteWorkflowAppRequest:
       type: object
       required:
@@ -9812,6 +9952,14 @@ components:
           description: Workflow app variables
           items:
             $ref: '#/components/schemas/WorkflowVariable'
+        resultNodeIds:
+          type: array
+          description: Result node IDs
+          items:
+            type: string
+        remixEnabled:
+          type: boolean
+          description: Whether remix is enabled for this app
         coverUrl:
           type: string
           description: Cover image URL

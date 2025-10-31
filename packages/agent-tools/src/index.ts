@@ -1,5 +1,6 @@
 export * from './base';
 export * from './browser-use';
+export * from './browser-use';
 export * from './builtin';
 export * from './calculator';
 export * from './code-interpreter';

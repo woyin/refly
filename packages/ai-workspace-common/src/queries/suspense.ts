@@ -19,6 +19,9 @@ import {
   getCreditBalance,
   getCreditRecharge,
   getCreditUsage,
+  getCreditUsageByCanvasId,
+  getCreditUsageByExecutionId,
+  getCreditUsageByResultId,
   getDocumentDetail,
   getPageByCanvasId,
   getPageDetail,
@@ -87,6 +90,12 @@ import {
   GetCreditBalanceError,
   GetCreditRechargeData,
   GetCreditRechargeError,
+  GetCreditUsageByCanvasIdData,
+  GetCreditUsageByCanvasIdError,
+  GetCreditUsageByExecutionIdData,
+  GetCreditUsageByExecutionIdError,
+  GetCreditUsageByResultIdData,
+  GetCreditUsageByResultIdError,
   GetCreditUsageData,
   GetCreditUsageError,
   GetDocumentDetailData,
@@ -832,6 +841,57 @@ export const useGetCreditBalanceSuspense = <
     queryKey: Common.UseGetCreditBalanceKeyFn(clientOptions, queryKey),
     queryFn: () =>
       getCreditBalance({ ...clientOptions }).then((response) => response.data as TData) as TData,
+    ...options,
+  });
+export const useGetCreditUsageByResultIdSuspense = <
+  TData = Common.GetCreditUsageByResultIdDefaultResponse,
+  TError = GetCreditUsageByResultIdError,
+  TQueryKey extends Array<unknown> = unknown[],
+>(
+  clientOptions: Options<GetCreditUsageByResultIdData, true>,
+  queryKey?: TQueryKey,
+  options?: Omit<UseQueryOptions<TData, TError>, 'queryKey' | 'queryFn'>,
+) =>
+  useSuspenseQuery<TData, TError>({
+    queryKey: Common.UseGetCreditUsageByResultIdKeyFn(clientOptions, queryKey),
+    queryFn: () =>
+      getCreditUsageByResultId({ ...clientOptions }).then(
+        (response) => response.data as TData,
+      ) as TData,
+    ...options,
+  });
+export const useGetCreditUsageByExecutionIdSuspense = <
+  TData = Common.GetCreditUsageByExecutionIdDefaultResponse,
+  TError = GetCreditUsageByExecutionIdError,
+  TQueryKey extends Array<unknown> = unknown[],
+>(
+  clientOptions: Options<GetCreditUsageByExecutionIdData, true>,
+  queryKey?: TQueryKey,
+  options?: Omit<UseQueryOptions<TData, TError>, 'queryKey' | 'queryFn'>,
+) =>
+  useSuspenseQuery<TData, TError>({
+    queryKey: Common.UseGetCreditUsageByExecutionIdKeyFn(clientOptions, queryKey),
+    queryFn: () =>
+      getCreditUsageByExecutionId({ ...clientOptions }).then(
+        (response) => response.data as TData,
+      ) as TData,
+    ...options,
+  });
+export const useGetCreditUsageByCanvasIdSuspense = <
+  TData = Common.GetCreditUsageByCanvasIdDefaultResponse,
+  TError = GetCreditUsageByCanvasIdError,
+  TQueryKey extends Array<unknown> = unknown[],
+>(
+  clientOptions: Options<GetCreditUsageByCanvasIdData, true>,
+  queryKey?: TQueryKey,
+  options?: Omit<UseQueryOptions<TData, TError>, 'queryKey' | 'queryFn'>,
+) =>
+  useSuspenseQuery<TData, TError>({
+    queryKey: Common.UseGetCreditUsageByCanvasIdKeyFn(clientOptions, queryKey),
+    queryFn: () =>
+      getCreditUsageByCanvasId({ ...clientOptions }).then(
+        (response) => response.data as TData,
+      ) as TData,
     ...options,
   });
 export const useGetSubscriptionPlansSuspense = <

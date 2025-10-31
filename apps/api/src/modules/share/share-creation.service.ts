@@ -4,7 +4,7 @@ import { PrismaService } from '../common/prisma.service';
 import { MiscService } from '../misc/misc.service';
 import { ShareRecord } from '../../generated/client';
 import * as Y from 'yjs';
-import { CreateShareRequest, EntityType, User } from '@refly/openapi-schema';
+import { CreateShareRequest, EntityType, SharedCanvasData, User } from '@refly/openapi-schema';
 import { PageNotFoundError, ParamsError, ShareNotFoundError } from '@refly/errors';
 import { CanvasService } from '../canvas/canvas.service';
 import { DocumentService } from '../knowledge/document.service';
@@ -25,6 +25,7 @@ import { ShareExtraData } from './share.dto';
 import { SHARE_CODE_PREFIX } from './const';
 import { safeParseJSON } from '@refly/utils';
 import { generateCoverUrl } from '../workflow-app/workflow-app.dto';
+import { omit } from '../../utils';
 
 function genShareId(entityType: keyof typeof SHARE_CODE_PREFIX): string {
   return SHARE_CODE_PREFIX[entityType] + createId();
@@ -59,8 +60,8 @@ export class ShareCreationService {
     shareId: string,
     allowDuplication: boolean,
     title?: string,
-  ) {
-    const canvasData = await this.canvasService.getCanvasRawData(user, canvasId);
+  ): Promise<SharedCanvasData> {
+    const canvasData: SharedCanvasData = await this.canvasService.getCanvasRawData(user, canvasId);
 
     // If title is provided, use it as the title of the canvas
     if (title) {
@@ -69,6 +70,29 @@ export class ShareCreationService {
 
     // Set up concurrency limit for image processing
     const limit = pLimit(5); // Limit to 5 concurrent operations
+
+    // Process resources in parallel
+    const resources = await this.prisma.resource.findMany({
+      where: {
+        uid: user.uid,
+        canvasId,
+        deletedAt: null,
+      },
+    });
+
+    const resourceShareRecords = await Promise.all(
+      resources.map((resource) => {
+        return this.createShareForResource(user, {
+          entityId: resource.resourceId,
+          entityType: 'resource',
+          parentShareId: shareId,
+          allowDuplication,
+        });
+      }),
+    );
+    canvasData.resources = resourceShareRecords.map((resource) =>
+      omit(resource.resource, ['content']),
+    );
 
     // Find all image video audio nodes
     const mediaNodes =
@@ -439,6 +463,7 @@ export class ShareCreationService {
     const resource = resourcePO2DTO(resourceDetail);
 
     // Process resource images
+    resource.shareId = shareId;
     resource.content = await this.miscService.processContentImages(resource.content ?? '');
     resource.contentPreview = resource.content.slice(0, 500);
 
@@ -831,6 +856,8 @@ export class ShareCreationService {
     const tasks = nodeRelations.map((relation) => {
       return limit(async () => {
         const { relationId, nodeType, entityId } = relation;
+
+        // NOTE: Resources are not stored in canvas any more. This is kept for backward compatibility.
         if (nodeType === 'resource') {
           const { shareRecord } = await this.createShareForResource(user, {
             entityId,
@@ -982,7 +1009,7 @@ export class ShareCreationService {
   }
 
   async createShareForWorkflowApp(user: User, param: CreateShareRequest) {
-    const { entityId: appId, title, parentShareId, allowDuplication } = param;
+    const { entityId: appId, title, parentShareId, allowDuplication, creditUsage } = param;
 
     // Check if shareRecord already exists
     const existingShareRecord = await this.prisma.shareRecord.findFirst({
@@ -1038,9 +1065,11 @@ export class ShareCreationService {
         ? generateCoverUrl(workflowApp.coverStorageKey)
         : undefined,
       templateContent: workflowApp.templateContent,
+      resultNodeIds: workflowApp.resultNodeIds,
       query: workflowApp.query,
       variables: JSON.parse(workflowApp.variables || '[]'),
       canvasData: canvasDataWithId, // Use the extended canvas data with canvasId
+      creditUsage,
       createdAt: workflowApp.createdAt,
       updatedAt: workflowApp.updatedAt,
     };
