@@ -26,6 +26,7 @@ export default memo(
     type = 'text/html',
     onTypeChange,
     showActions = true,
+    purePreview = false,
   }: {
     code: string;
     language: string;
@@ -42,6 +43,7 @@ export default memo(
     type?: CodeArtifactType;
     onTypeChange?: (type: CodeArtifactType) => void;
     showActions?: boolean;
+    purePreview?: boolean;
   }) {
     const { t } = useTranslation();
     const [refresh, setRefresh] = useState(0);
@@ -129,55 +131,59 @@ export default memo(
     return (
       <div className="flex flex-col h-full border border-gray-200">
         {/* Top header with main tab navigation */}
-        <div className="flex items-center justify-between h-12 py-2 px-3 border-x-0 border-t-0 border-b-[1px] border-solid border-refly-Card-Border">
-          <div className="flex items-center gap-3">
-            <Segmented
-              shape="round"
-              size="small"
-              value={activeTab}
-              onChange={handleSegmentChange}
-              options={segmentedOptions}
-            />
-            <Divider type="vertical" className="h-4 bg-refly-Card-Border m-0" />
-            {onTypeChange ? (
-              <Select
-                value={type}
-                onChange={onTypeChange}
-                options={getArtifactTypeOptions()}
+        {!purePreview && (
+          <div className="flex items-center justify-between h-12 py-2 px-3 border-x-0 border-t-0 border-b-[1px] border-solid border-refly-Card-Border">
+            <div className="flex items-center gap-3">
+              <Segmented
+                shape="round"
                 size="small"
-                className="max-w-32"
-                popupMatchSelectWidth={false}
-                bordered={false}
+                value={activeTab}
+                onChange={handleSegmentChange}
+                options={segmentedOptions}
               />
-            ) : (
-              <span className="text-sm text-refly-text-0">{getSimpleTypeDescription(type)}</span>
-            )}
-          </div>
+              <Divider type="vertical" className="h-4 bg-refly-Card-Border m-0" />
+              {onTypeChange ? (
+                <Select
+                  value={type}
+                  onChange={onTypeChange}
+                  options={getArtifactTypeOptions()}
+                  size="small"
+                  className="max-w-32"
+                  popupMatchSelectWidth={false}
+                  bordered={false}
+                />
+              ) : (
+                <span className="text-sm text-refly-text-0">{getSimpleTypeDescription(type)}</span>
+              )}
+            </div>
 
-          <div className="flex items-center gap-2">
-            <Tooltip title={t('codeArtifact.buttons.copy')}>
-              <Button
-                type="text"
-                icon={<Copy size={16} color="var(--refly-text-0)" />}
-                onClick={handleCopyCode}
-                size="small"
-              />
-            </Tooltip>
+            <div className="flex items-center gap-2">
+              <Tooltip title={t('codeArtifact.buttons.copy')}>
+                <Button
+                  type="text"
+                  icon={<Copy size={16} color="var(--refly-text-0)" />}
+                  onClick={handleCopyCode}
+                  size="small"
+                />
+              </Tooltip>
 
-            <Tooltip title={t('codeArtifact.buttons.refresh')}>
-              <Button
-                type="text"
-                icon={<Reload size={16} color="var(--refly-text-0)" />}
-                onClick={handleRefresh}
-                disabled={isGenerating}
-                size="small"
-              />
-            </Tooltip>
+              <Tooltip title={t('codeArtifact.buttons.refresh')}>
+                <Button
+                  type="text"
+                  icon={<Reload size={16} color="var(--refly-text-0)" />}
+                  onClick={handleRefresh}
+                  disabled={isGenerating}
+                  size="small"
+                />
+              </Tooltip>
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Content area */}
-        <div className={'flex flex-grow overflow-auto flex-col rounded-md m-4'}>
+        <div
+          className={`flex flex-grow overflow-auto flex-col rounded-md ${!purePreview ? 'm-4' : ''}`}
+        >
           {activeTab === 'code' ? (
             <MonacoEditor
               content={editorContent}
@@ -206,6 +212,7 @@ export default memo(
                     }
                     readonly={readOnly || canvasReadOnly}
                     showActions={showActions}
+                    purePreview={purePreview}
                   />
                 </div>
               )}

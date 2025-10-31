@@ -56,6 +56,7 @@ const translations = {
         embedding: '向量嵌入',
         reranking: '重排序',
         other: '其他',
+        commission: '模板使用',
       },
       depleted: '已用尽',
       expired: '已失效',
@@ -1388,7 +1389,8 @@ const translations = {
       run: {
         title: '运行调试',
         run: '运行',
-        executing: '运行中...',
+        executing: '运行中',
+        remix: '再创作',
         copyWorkflow: 'Remix 工作流',
         copyShareLink: '复制分享链接',
         shareLinkCopied: '分享链接已复制到剪贴板',
@@ -3405,6 +3407,7 @@ const translations = {
     viewPublished: '查看已发布',
     runLogs: '运行日志',
     products: '结果产物',
+    productsGenerated: '已为你生成 {{count}} 个结果',
     emptyLogs: '暂无运行日志，点击创建应用，开始运行',
     coverImage: '封面图片',
     coverImageHint: '支持 JPG、PNG、WebP 格式，文件大小 5MB 以内',
@@ -3414,6 +3417,13 @@ const translations = {
     coverImageRequired: '封面图片为必填项',
     enableRemix: '启用 Remix',
     remixHint: '允许其他人Remix和修改此工作流应用',
+    runResult: '运行结果',
+    changeResult: '更换结果',
+    resultsSelected: '个结果已选择',
+    selectResults: '选择结果',
+    noResultsAvailable: '暂无可用结果',
+    noResultsSelected: '暂无选择结果',
+    resultPreview: '产物预览',
     run: {
       completed: 'App 运行成功',
       failed: 'App 运行失败',
@@ -3424,6 +3434,11 @@ const translations = {
       executionIdFailed: '获取执行 ID 失败',
       executeFailed: '执行工作流失败',
       executeError: '执行工作流失败',
+    },
+    revenueSharing: {
+      title: '模板被运行可享受积分收益分成',
+      earningsHint: '预计模板每次运行可获得 <num>{{creditEarningsPerRun}}</num> 积分',
+      howToEarn: '如何获得收益',
     },
   },
   project: {
@@ -3550,6 +3565,13 @@ const translations = {
       swipeHint: '左右滑动切换幻灯片 ({current}/{total})',
       codeComponent: '代码组件',
       documentComponent: '文档组件',
+      artifact: {
+        notSelected: '未选择组件',
+        loading: '加载中...',
+        generating: '生成中...',
+        code: '代码',
+        fixCodeNeeded: '需要修复代码',
+      },
       skillResponse: {
         notSelected: '未选择技能响应组件',
       },
@@ -3689,6 +3711,7 @@ const translations = {
         promotion: '促销',
         refund: '退款',
         subscription: '订阅',
+        commission: '模板收益',
       },
       status: {
         unused: '未使用',

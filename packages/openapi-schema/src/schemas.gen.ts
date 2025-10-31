@@ -4708,6 +4708,10 @@ export const CreateShareRequestSchema = {
       type: 'string',
       description: 'Cover storage key',
     },
+    creditUsage: {
+      type: 'number',
+      description: 'Credit usage',
+    },
   },
 } as const;
 
@@ -6285,6 +6289,96 @@ export const getCreditBalanceResponseSchema = {
             creditAmount: {
               type: 'number',
               description: 'Credit amount',
+            },
+          },
+        },
+      },
+    },
+  ],
+} as const;
+
+export const GetCreditUsageByResultIdResponseSchema = {
+  allOf: [
+    {
+      $ref: '#/components/schemas/BaseResponse',
+    },
+    {
+      type: 'object',
+      properties: {
+        data: {
+          type: 'object',
+          description: 'Credit usage by result ID',
+          properties: {
+            total: {
+              type: 'number',
+              description: 'Total credit usage by result ID',
+            },
+            usages: {
+              type: 'array',
+              description: 'Credit usage list by result ID',
+              items: {
+                $ref: '#/components/schemas/CreditUsage',
+              },
+            },
+          },
+        },
+      },
+    },
+  ],
+} as const;
+
+export const GetCreditUsageByExecutionIdResponseSchema = {
+  allOf: [
+    {
+      $ref: '#/components/schemas/BaseResponse',
+    },
+    {
+      type: 'object',
+      properties: {
+        data: {
+          type: 'object',
+          description: 'Credit usage by execution ID',
+          properties: {
+            total: {
+              type: 'number',
+              description: 'Total credit usage by execution ID',
+            },
+            usages: {
+              type: 'array',
+              description: 'Credit usage list by execution ID',
+              items: {
+                $ref: '#/components/schemas/CreditUsage',
+              },
+            },
+          },
+        },
+      },
+    },
+  ],
+} as const;
+
+export const GetCreditUsageByCanvasIdResponseSchema = {
+  allOf: [
+    {
+      $ref: '#/components/schemas/BaseResponse',
+    },
+    {
+      type: 'object',
+      properties: {
+        data: {
+          type: 'object',
+          description: 'Credit usage by canvas ID',
+          properties: {
+            total: {
+              type: 'number',
+              description: 'Total credit usage by canvas ID',
+            },
+            usages: {
+              type: 'array',
+              description: 'Credit usage list by canvas ID',
+              items: {
+                $ref: '#/components/schemas/CreditUsage',
+              },
             },
           },
         },
@@ -8516,9 +8610,20 @@ export const CreateWorkflowAppRequestSchema = {
         $ref: '#/components/schemas/WorkflowVariable',
       },
     },
+    resultNodeIds: {
+      type: 'array',
+      description: 'Result node IDs',
+      items: {
+        type: 'string',
+      },
+    },
     coverStorageKey: {
       type: 'string',
       description: 'Cover image storage key',
+    },
+    remixEnabled: {
+      type: 'boolean',
+      description: 'Whether remix is enabled for this app',
     },
   },
 } as const;
@@ -8572,6 +8677,17 @@ export const WorkflowAppSchema = {
       items: {
         $ref: '#/components/schemas/WorkflowVariable',
       },
+    },
+    resultNodeIds: {
+      type: 'array',
+      description: 'Result node IDs',
+      items: {
+        type: 'string',
+      },
+    },
+    remixEnabled: {
+      type: 'boolean',
+      description: 'Whether remix is enabled for this app',
     },
     coverUrl: {
       type: 'string',
