@@ -1384,6 +1384,8 @@ const translations = {
         duplicateFileName: '相同文件名已存在，请替换文件',
         tooManyFiles: '最多可上传{{max}}个文件',
         noSpacesAllowed: '变量名称不能包含空格',
+        optionSelectedDeleteTooltip: '该选项已被选中作为变量值，暂时无法删除',
+        optionSelectedEditTooltip: '该选项已被选中作为变量值，暂时无法编辑',
       },
       run: {
         title: '运行调试',

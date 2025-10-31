@@ -829,7 +829,19 @@ export class CreditService {
     };
   }
 
-  async countResultCreditUsage(resultId: string): Promise<number> {
+  async countResultCreditUsage(user: User, resultId: string): Promise<number> {
+    // Verify that the action result belongs to the user
+    const actionResult = await this.prisma.actionResult.findFirst({
+      where: {
+        resultId,
+        uid: user.uid,
+      },
+    });
+
+    if (!actionResult) {
+      return 0;
+    }
+
     const usages = await this.prisma.creditUsage.findMany({
       where: {
         actionResultId: resultId,
@@ -840,22 +852,23 @@ export class CreditService {
     }, 0);
   }
 
-  async countCanvasCreditUsage(canvasData: RawCanvasData): Promise<number> {
+  async countCanvasCreditUsage(user: User, canvasData: RawCanvasData): Promise<number> {
     const canvasResultIds = canvasData.nodes
       .filter((node) => node.type === 'skillResponse')
       .map((node) => node.data.entityId);
     const total = await Promise.all(
-      canvasResultIds.map((canvasResultId) => this.countResultCreditUsage(canvasResultId)),
+      canvasResultIds.map((canvasResultId) => this.countResultCreditUsage(user, canvasResultId)),
     );
     return total.reduce((sum, total) => {
       return sum + total;
     }, 0);
   }
 
-  async countExecutionCreditUsageByExecutionId(executionId: string): Promise<number> {
+  async countExecutionCreditUsageByExecutionId(user: User, executionId: string): Promise<number> {
     const execution = await this.prisma.workflowExecution.findUnique({
       where: {
         executionId,
+        uid: user.uid,
       },
     });
     if (!execution) {
@@ -867,7 +880,7 @@ export class CreditService {
       },
     });
     const total = await Promise.all(
-      results.map((result) => this.countResultCreditUsage(result.resultId)),
+      results.map((result) => this.countResultCreditUsage(user, result.resultId)),
     );
     return total.reduce((sum, total) => {
       return sum + total;
@@ -880,7 +893,7 @@ export class CreditService {
       .filter((node) => node.type === 'skillResponse')
       .map((node) => node.data.entityId);
     const total = await Promise.all(
-      canvasResultIds.map((canvasResultId) => this.countResultCreditUsage(canvasResultId)),
+      canvasResultIds.map((canvasResultId) => this.countResultCreditUsage(user, canvasResultId)),
     );
     return total.reduce((sum, total) => {
       return sum + total;

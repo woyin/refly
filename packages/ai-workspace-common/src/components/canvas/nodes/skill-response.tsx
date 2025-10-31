@@ -56,6 +56,7 @@ import { NodeExecutionStatus } from './shared/node-execution-status';
 import { MultimodalContentPreview } from '@refly-packages/ai-workspace-common/components/canvas/nodes/shared/multimodal-content-preview';
 import { NodeIcon } from '@refly-packages/ai-workspace-common/components/canvas/nodes/shared/node-icon';
 import { logEvent } from '@refly/telemetry-web';
+import { removeToolUseTags } from '@refly-packages/ai-workspace-common/utils';
 
 const NODE_WIDTH = 320;
 const NODE_SIDE_CONFIG = { width: NODE_WIDTH, height: 'auto', maxHeight: 214 };
@@ -593,12 +594,13 @@ export const SkillResponseNode = memo(
           }
 
           // Extract full content from all steps and remove tool_use tags
-          const fullContent = data.data.steps
-            ?.map((step) => step?.content || '')
-            .filter(Boolean)
-            .join('\n\n')
-            .replace(/<tool_use>[\s\S]*?<\/tool_use>/g, '')
-            .trim();
+          const fullContent = removeToolUseTags(
+            (data.data?.steps || [])
+              ?.map((step) => step?.content || '')
+              .filter(Boolean)
+              .join('\n\n')
+              .trim(),
+          )?.trim();
 
           const { position, connectTo } = getConnectionInfo(
             { entityId, type: 'skillResponse' },
