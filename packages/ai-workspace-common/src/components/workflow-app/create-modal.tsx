@@ -126,6 +126,8 @@ export const CreateWorkflowAppModal = ({
   const { workflowVariables } = workflow ?? {};
   const { nodes } = useRealtimeCanvasData();
 
+  const skillResponseNodes = nodes.filter((node) => node.type === 'skillResponse');
+
   // Fetch credit usage data
   const { data: creditUsageData } = useGetCreditUsageByCanvasId({
     query: { canvasId },
@@ -145,10 +147,20 @@ export const CreateWorkflowAppModal = ({
 
     return nodes.filter(
       (node) =>
-        ['document', 'codeArtifact', 'website', 'video', 'audio'].includes(node.type) ||
+        ['document', 'codeArtifact', 'website', 'video', 'audio', 'skillResponse'].includes(
+          node.type,
+        ) ||
         (node.type === 'image' && !!node.data?.metadata?.resultId),
     ) as unknown as CanvasNode[];
   }, [nodes]);
+
+  // Use skillResponseNodes if resultNodes is empty
+  const displayNodes: CanvasNode[] = useMemo(() => {
+    if (resultNodes?.length > 0) {
+      return resultNodes;
+    }
+    return skillResponseNodes as unknown as CanvasNode[];
+  }, [resultNodes, skillResponseNodes]);
 
   // Load existing app data
   const loadAppData = useCallback(async (appId: string) => {
@@ -393,8 +405,12 @@ export const CreateWorkflowAppModal = ({
         remixEnabled: appData.remixEnabled ?? false,
       });
 
-      // Set result node IDs if exists
-      setSelectedResults(appData.resultNodeIds ?? []);
+      // Set result node IDs if exists, intersect with displayNodes to ensure only valid nodes are selected
+      const savedNodeIds = appData.resultNodeIds ?? [];
+      const validNodeIds =
+        displayNodes?.map((node) => node.id).filter((id): id is string => !!id) ?? [];
+      const intersectedNodeIds = savedNodeIds.filter((id) => validNodeIds.includes(id));
+      setSelectedResults(intersectedNodeIds);
 
       // Set cover image if exists
       if (appData.coverUrl) {
@@ -412,17 +428,17 @@ export const CreateWorkflowAppModal = ({
         setCoverStorageKey(undefined);
       }
     }
-  }, [appData, visible, title, form]);
+  }, [appData, visible, title, form, displayNodes]);
 
   // Auto-select all result nodes when creating a new app
   useEffect(() => {
-    if (visible && !appId && resultNodes?.length > 0 && selectedResults.length === 0) {
-      const allNodeIds = resultNodes.map((node) => node.id).filter((id): id is string => !!id);
+    if (visible && !appId && displayNodes?.length > 0 && selectedResults.length === 0) {
+      const allNodeIds = displayNodes.map((node) => node.id).filter((id): id is string => !!id);
       if (allNodeIds.length > 0) {
         setSelectedResults(allNodeIds);
       }
     }
-  }, [visible, appId, resultNodes]);
+  }, [visible, appId, displayNodes]);
 
   // Upload button component
   const uploadButton = (
@@ -548,19 +564,18 @@ export const CreateWorkflowAppModal = ({
                   <MultiSelectResult
                     selectedResults={selectedResults}
                     onSelectionChange={setSelectedResults}
-                    options={resultNodes}
+                    options={displayNodes}
                   />
                 </div>
                 <div
-                  className="w-full rounded-lg border border-solid p-3"
+                  className="w-full rounded-lg border border-solid p-3 bg-[#FBFBFB] dark:bg-[#1E1E1E]"
                   style={{
                     borderColor: 'var(--refly-Card-Border)',
-                    backgroundColor: 'var(--refly-bg-content-z2)',
                   }}
                 >
                   <SelectedResultsGrid
                     selectedResults={selectedResults}
-                    options={resultNodes as unknown as CanvasNode[]}
+                    options={displayNodes as unknown as CanvasNode[]}
                   />
                 </div>
               </div>
