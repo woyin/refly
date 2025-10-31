@@ -15,6 +15,7 @@ import BannerSvg from './banner.svg';
 import { useRealtimeCanvasData } from '@refly-packages/ai-workspace-common/hooks/canvas/use-realtime-canvas-data';
 import { CanvasNode } from '@refly/openapi-schema';
 import { useGetCreditUsageByCanvasId } from '../../queries/queries';
+import { calculateCreditEarnings } from '@refly-packages/ai-workspace-common/utils';
 
 interface CreateWorkflowAppModalProps {
   title: string;
@@ -126,6 +127,8 @@ export const CreateWorkflowAppModal = ({
   const { workflowVariables } = workflow ?? {};
   const { nodes } = useRealtimeCanvasData();
 
+  const skillResponseNodes = nodes.filter((node) => node.type === 'skillResponse');
+
   // Fetch credit usage data
   const { data: creditUsageData } = useGetCreditUsageByCanvasId({
     query: { canvasId },
@@ -134,7 +137,7 @@ export const CreateWorkflowAppModal = ({
   // Calculate credit earnings per run, default to 0
   const creditEarningsPerRun = useMemo(() => {
     const total = creditUsageData?.data?.total ?? 0;
-    return total > 0 ? Math.ceil(total * 0.2) : 0;
+    return calculateCreditEarnings(total);
   }, [creditUsageData]);
 
   // Filter nodes by the specified types (similar to result-list logic)
@@ -150,25 +153,46 @@ export const CreateWorkflowAppModal = ({
     ) as unknown as CanvasNode[];
   }, [nodes]);
 
-  // Load existing app data
-  const loadAppData = useCallback(async (appId: string) => {
-    if (!appId) return;
-
-    setLoadingAppData(true);
-    try {
-      const { data } = await getClient().getWorkflowAppDetail({
-        query: { appId },
-      });
-
-      if (data?.success && data?.data) {
-        setAppData(data.data);
-      }
-    } catch (error) {
-      console.error('Failed to load app data:', error);
-    } finally {
-      setLoadingAppData(false);
+  // Use skillResponseNodes if resultNodes is empty
+  const displayNodes: CanvasNode[] = useMemo(() => {
+    if (resultNodes?.length > 0) {
+      return resultNodes;
     }
-  }, []);
+    return skillResponseNodes as unknown as CanvasNode[];
+  }, [resultNodes, skillResponseNodes]);
+
+  // Load existing app data
+  const loadAppData = useCallback(
+    async (appId: string) => {
+      if (!appId) return;
+
+      setLoadingAppData(true);
+      try {
+        const { data } = await getClient().getWorkflowAppDetail({
+          query: { appId },
+        });
+
+        if (data?.success && data?.data) {
+          setAppData(data.data);
+
+          // When editing existing app, use saved node IDs
+          const savedNodeIds = data.data?.resultNodeIds ?? [];
+          const validNodeIds =
+            displayNodes?.map((node) => node.id).filter((id): id is string => !!id) ?? [];
+          const intersectedNodeIds = savedNodeIds.filter((id) => validNodeIds.includes(id));
+
+          if (intersectedNodeIds.length > 0) {
+            setSelectedResults(intersectedNodeIds);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to load app data:', error);
+      } finally {
+        setLoadingAppData(false);
+      }
+    },
+    [displayNodes?.length],
+  );
 
   // Handle cover image upload
   const uploadCoverImage = async (file: File): Promise<string> => {
@@ -393,9 +417,6 @@ export const CreateWorkflowAppModal = ({
         remixEnabled: appData.remixEnabled ?? false,
       });
 
-      // Set result node IDs if exists
-      setSelectedResults(appData.resultNodeIds ?? []);
-
       // Set cover image if exists
       if (appData.coverUrl) {
         setCoverFileList([
@@ -413,6 +434,20 @@ export const CreateWorkflowAppModal = ({
       }
     }
   }, [appData, visible, title, form]);
+
+  // Auto-select all result nodes when creating a new app or loading existing app
+  useEffect(() => {
+    if (visible && displayNodes?.length > 0) {
+      if (!appId) {
+        // When creating new app, select all display nodes
+        const validNodeIds =
+          displayNodes?.map((node) => node.id).filter((id): id is string => !!id) ?? [];
+        if (validNodeIds.length > 0) {
+          setSelectedResults(validNodeIds);
+        }
+      }
+    }
+  }, [visible, appId, displayNodes?.length, appData]);
 
   // Upload button component
   const uploadButton = (
@@ -538,19 +573,18 @@ export const CreateWorkflowAppModal = ({
                   <MultiSelectResult
                     selectedResults={selectedResults}
                     onSelectionChange={setSelectedResults}
-                    options={resultNodes}
+                    options={displayNodes}
                   />
                 </div>
                 <div
-                  className="w-full rounded-lg border border-solid p-3"
+                  className="w-full rounded-lg border border-solid p-3 bg-[#FBFBFB] dark:bg-[#1E1E1E]"
                   style={{
                     borderColor: 'var(--refly-Card-Border)',
-                    backgroundColor: 'var(--refly-bg-content-z2)',
                   }}
                 >
                   <SelectedResultsGrid
                     selectedResults={selectedResults}
-                    options={resultNodes as unknown as CanvasNode[]}
+                    options={displayNodes as unknown as CanvasNode[]}
                   />
                 </div>
               </div>

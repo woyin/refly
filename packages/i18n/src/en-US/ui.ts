@@ -3427,6 +3427,7 @@ const translations = {
       description: {
         '5k_tokens': '{{cost}} credit(s) per 5k tokens',
         product: '{{cost}} credit(s) per product',
+        canvasTotal: 'Workflow estimated cost: {{cost}} credit(s)',
       },
     },
     plans: {
@@ -3668,6 +3669,8 @@ const translations = {
     runLogs: 'Run Logs',
     products: 'Products',
     productsGenerated: 'Generated {{count}} results for you',
+    productsGeneratedWithCost:
+      'Generated {{count}} results for you, used {{executionCost}} credits',
     emptyLogs: 'No run logs, click to create app, start running',
     coverImage: 'Cover Image',
     coverImageHint: 'Support JPG, PNG, WebP formats, file size within 5MB',

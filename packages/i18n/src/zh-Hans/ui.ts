@@ -90,6 +90,7 @@ const translations = {
       description: {
         '5k_tokens': '每 5k token 消耗 {{cost}} 积分',
         product: '每个产物消耗 {{cost}} 积分',
+        canvasTotal: '工作流预计消耗 {{cost}} 积分',
       },
     },
     plans: {
@@ -3408,6 +3409,7 @@ const translations = {
     runLogs: '运行日志',
     products: '结果产物',
     productsGenerated: '已为你生成 {{count}} 个结果',
+    productsGeneratedWithCost: '已为你生成 {{count}} 个结果，使用 {{executionCost}} 积分',
     emptyLogs: '暂无运行日志，点击创建应用，开始运行',
     coverImage: '封面图片',
     coverImageHint: '支持 JPG、PNG、WebP 格式，文件大小 5MB 以内',

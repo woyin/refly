@@ -123,6 +123,7 @@ export const SelectedResultsGrid = memo(
                   style={{
                     minWidth: '128px',
                     aspectRatio: '128 / 77',
+                    maxHeight: '166px',
                     borderRadius: '8px',
                     backgroundColor: 'var(--refly-bg-content-z2)',
                     ...(bordered
@@ -170,6 +171,7 @@ export const SelectedResultsGrid = memo(
                         : fullRows === 0
                           ? undefined
                           : '77px', // Fallback during measurement
+                    maxHeight: '166px',
                     aspectRatio: fullRows > 0 && itemHeight !== null ? undefined : '128 / 77',
                     borderRadius: '8px',
                     backgroundColor: 'var(--refly-bg-content-z2)',

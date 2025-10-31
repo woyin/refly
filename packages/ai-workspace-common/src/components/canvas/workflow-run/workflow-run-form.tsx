@@ -13,6 +13,7 @@ import { useNavigate } from 'react-router-dom';
 import { getFileType } from '../workflow-variables/utils';
 import { ToolsDependencyChecker } from '@refly-packages/ai-workspace-common/components/canvas/tools-dependency';
 import { MixedTextEditor } from '@refly-packages/ai-workspace-common/components/workflow-app/mixed-text-editor';
+import { calculateCreditCost } from '@refly-packages/ai-workspace-common/utils';
 
 const EmptyContent = () => {
   const { t } = useTranslation();
@@ -575,7 +576,7 @@ export const WorkflowRunForm = ({
               {(executionCreditUsage ?? workflowApp?.creditUsage) && (
                 <Tooltip
                   title={t('subscription.creditBilling.description.canvasTotal', {
-                    total: executionCreditUsage ?? workflowApp?.creditUsage,
+                    cost: calculateCreditCost(workflowApp?.creditUsage) ?? 0,
                   })}
                 >
                   <div className="flex items-center bg-[#F6F6F6] dark:bg-[#232323] rounded-[12px] px-4 h-10 min-w-[94px] gap-1 border border-transparent select-none font-roboto">
@@ -606,7 +607,7 @@ export const WorkflowRunForm = ({
                     </svg>
 
                     <span className="font-semibold text-[20px] leading-[1.25em] font-roboto text-[#1C1F23] dark:text-white inline-flex items-center gap-[3px]">
-                      {Math.ceil((workflowApp?.creditUsage ?? 0) * 1.2) ?? 0}
+                      {calculateCreditCost(workflowApp?.creditUsage) ?? 0}
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
                         width="15"

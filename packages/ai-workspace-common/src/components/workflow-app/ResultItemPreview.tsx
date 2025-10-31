@@ -249,8 +249,6 @@ const DefaultPreview = memo(
     return (
       <div className="w-full h-full relative">
         <PreviewComponent node={node} purePreview={true} />
-        {/* Transparent overlay to prevent direct interaction */}
-        <div className="absolute inset-0 bg-transparent cursor-pointer" />
       </div>
     );
   },
