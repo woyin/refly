@@ -81,7 +81,7 @@ export class WorkflowAppService {
 
     const canvasData = await this.canvasService.getCanvasRawData(user, canvasId);
 
-    const creditUsage = await this.creditService.countCanvasCreditUsage(canvasData);
+    const creditUsage = await this.creditService.countCanvasCreditUsage(user, canvasData);
 
     if (title) {
       canvasData.title = title;
