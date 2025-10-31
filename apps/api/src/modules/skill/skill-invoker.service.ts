@@ -72,7 +72,7 @@ export class SkillInvokerService {
     private readonly toolCallService: ToolCallService,
     private readonly skillEngineService: SkillEngineService,
     private readonly actionService: ActionService,
-    private readonly stepCacheService: StepService,
+    private readonly stepService: StepService,
     @Optional()
     @InjectQueue(QUEUE_SYNC_REQUEST_USAGE)
     private requestUsageQueue?: Queue<SyncRequestUsageJobData>,
@@ -393,7 +393,7 @@ export class SkillInvokerService {
       }
     };
 
-    const resultAggregator = new ResultAggregator(this.stepCacheService, resultId, version);
+    const resultAggregator = new ResultAggregator(this.stepService, resultId, version);
 
     // Initialize structuredData with original query if available
     const originalQuery = data.input?.originalQuery;

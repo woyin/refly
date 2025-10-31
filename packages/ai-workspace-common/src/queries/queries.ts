@@ -6,6 +6,7 @@ import { useMutation, UseMutationOptions, useQuery, UseQueryOptions } from '@tan
 import {
   abortAction,
   addNodesToCanvasPage,
+  authorizeComposioConnection,
   autoNameCanvas,
   batchCreateProviderItems,
   batchCreateResource,
@@ -72,6 +73,7 @@ import {
   getCanvasTransactions,
   getCodeArtifactDetail,
   getCollabToken,
+  getComposioConnectionStatus,
   getCreditBalance,
   getCreditRecharge,
   getCreditUsage,
@@ -123,6 +125,7 @@ import {
   refreshToken,
   reindexResource,
   resendVerification,
+  revokeComposioConnection,
   scrape,
   search,
   serveStatic,
@@ -159,6 +162,8 @@ import {
   AbortActionError,
   AddNodesToCanvasPageData,
   AddNodesToCanvasPageError,
+  AuthorizeComposioConnectionData,
+  AuthorizeComposioConnectionError,
   AutoNameCanvasData,
   AutoNameCanvasError,
   BatchCreateProviderItemsData,
@@ -288,6 +293,8 @@ import {
   GetCodeArtifactDetailData,
   GetCodeArtifactDetailError,
   GetCollabTokenError,
+  GetComposioConnectionStatusData,
+  GetComposioConnectionStatusError,
   GetCreditBalanceError,
   GetCreditRechargeData,
   GetCreditRechargeError,
@@ -379,6 +386,8 @@ import {
   ReindexResourceError,
   ResendVerificationData,
   ResendVerificationError,
+  RevokeComposioConnectionData,
+  RevokeComposioConnectionError,
   ScrapeData,
   ScrapeError,
   SearchData,
@@ -1255,6 +1264,23 @@ export const useListToolsets = <
     queryKey: Common.UseListToolsetsKeyFn(clientOptions, queryKey),
     queryFn: () =>
       listToolsets({ ...clientOptions }).then((response) => response.data as TData) as TData,
+    ...options,
+  });
+export const useGetComposioConnectionStatus = <
+  TData = Common.GetComposioConnectionStatusDefaultResponse,
+  TError = GetComposioConnectionStatusError,
+  TQueryKey extends Array<unknown> = unknown[],
+>(
+  clientOptions: Options<GetComposioConnectionStatusData, true>,
+  queryKey?: TQueryKey,
+  options?: Omit<UseQueryOptions<TData, TError>, 'queryKey' | 'queryFn'>,
+) =>
+  useQuery<TData, TError>({
+    queryKey: Common.UseGetComposioConnectionStatusKeyFn(clientOptions, queryKey),
+    queryFn: () =>
+      getComposioConnectionStatus({ ...clientOptions }).then(
+        (response) => response.data as TData,
+      ) as TData,
     ...options,
   });
 export const useServeStatic = <
@@ -2773,6 +2799,42 @@ export const useDeleteToolset = <
   useMutation<TData, TError, Options<DeleteToolsetData, true>, TContext>({
     mutationKey: Common.UseDeleteToolsetKeyFn(mutationKey),
     mutationFn: (clientOptions) => deleteToolset(clientOptions) as unknown as Promise<TData>,
+    ...options,
+  });
+export const useAuthorizeComposioConnection = <
+  TData = Common.AuthorizeComposioConnectionMutationResult,
+  TError = AuthorizeComposioConnectionError,
+  TQueryKey extends Array<unknown> = unknown[],
+  TContext = unknown,
+>(
+  mutationKey?: TQueryKey,
+  options?: Omit<
+    UseMutationOptions<TData, TError, Options<AuthorizeComposioConnectionData, true>, TContext>,
+    'mutationKey' | 'mutationFn'
+  >,
+) =>
+  useMutation<TData, TError, Options<AuthorizeComposioConnectionData, true>, TContext>({
+    mutationKey: Common.UseAuthorizeComposioConnectionKeyFn(mutationKey),
+    mutationFn: (clientOptions) =>
+      authorizeComposioConnection(clientOptions) as unknown as Promise<TData>,
+    ...options,
+  });
+export const useRevokeComposioConnection = <
+  TData = Common.RevokeComposioConnectionMutationResult,
+  TError = RevokeComposioConnectionError,
+  TQueryKey extends Array<unknown> = unknown[],
+  TContext = unknown,
+>(
+  mutationKey?: TQueryKey,
+  options?: Omit<
+    UseMutationOptions<TData, TError, Options<RevokeComposioConnectionData, true>, TContext>,
+    'mutationKey' | 'mutationFn'
+  >,
+) =>
+  useMutation<TData, TError, Options<RevokeComposioConnectionData, true>, TContext>({
+    mutationKey: Common.UseRevokeComposioConnectionKeyFn(mutationKey),
+    mutationFn: (clientOptions) =>
+      revokeComposioConnection(clientOptions) as unknown as Promise<TData>,
     ...options,
   });
 export const useScrape = <

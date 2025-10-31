@@ -1,29 +1,34 @@
-import { AgentBaseToolset } from './base';
 import { ToolsetDefinition } from '@refly/openapi-schema';
+import { AgentBaseToolset } from './base';
+import { BrowserUseToolset, BrowserUseToolsetDefinition } from './browser-use';
 import { BuiltinToolset, BuiltinToolsetDefinition } from './builtin';
-import { FirecrawlToolset, FirecrawlToolsetDefinition } from './firecrawl';
 import { CalculatorToolset, CalculatorToolsetDefinition } from './calculator';
-import { GoogleDriveToolset, GoogleDriveToolsetDefinition } from './google-drive';
-import { JinaToolset, JinaToolsetDefinition } from './jina';
 import { CodeInterpreterToolset, CodeInterpreterToolsetDefinition } from './code-interpreter';
-import { WhaleWisdomToolset, WhaleWisdomToolsetDefinition } from './whalewisdom';
-import { GoogleDocsToolset, GoogleDocsToolsetDefinition } from './google-docs';
-import { GoogleSheetsToolset, GoogleSheetsToolsetDefinition } from './google-sheets';
-import { TwitterToolset, TwitterToolsetDefinition } from './twitter';
-import { NotionToolset, NotionToolsetDefinition } from './notion';
 import { FalAudioToolset, FalAudioToolsetDefinition } from './fal-audio';
 import { FalImageToolset, FalImageToolsetDefinition } from './fal-image';
 import { FalVideoToolset, FalVideoToolsetDefinition } from './fal-video';
+import { FirecrawlToolset, FirecrawlToolsetDefinition } from './firecrawl';
+import { GitHubToolsetDefinition } from './github';
+import { GmailToolsetDefinition } from './gmail';
+import { GoogleDocsToolsetDefinition } from './google-docs';
+import { GoogleDriveToolsetDefinition } from './google-drive';
+import { GoogleSheetsToolsetDefinition } from './google-sheets';
+import { JinaToolset, JinaToolsetDefinition } from './jina';
+import { LinkedInToolsetDefinition } from './linkedin';
+import { NotionToolset, NotionToolsetDefinition } from './notion';
 import { PerplexityToolset, PerplexityToolsetDefinition } from './perplexity';
 import { ProductHuntToolset, ProductHuntToolsetDefinition } from './producthunt';
-import { BrowserUseToolset, BrowserUseToolsetDefinition } from './browser-use';
+import { RedditToolsetDefinition } from './reddit';
+import { TwitterToolsetDefinition } from './twitter';
+import { WhaleWisdomToolset, WhaleWisdomToolsetDefinition } from './whalewisdom';
 
 export type AnyToolsetClass = new (...args: any[]) => AgentBaseToolset<any>;
 
+// Oauth tool use external sdk to execute, so the class is undefined
 export const toolsetInventory: Record<
   string,
   {
-    class: AnyToolsetClass;
+    class: AnyToolsetClass | undefined;
     definition: ToolsetDefinition;
   }
 > = {
@@ -40,7 +45,7 @@ export const toolsetInventory: Record<
     definition: CalculatorToolsetDefinition,
   },
   [GoogleDriveToolsetDefinition.key]: {
-    class: GoogleDriveToolset,
+    class: undefined,
     definition: GoogleDriveToolsetDefinition,
   },
   [JinaToolsetDefinition.key]: {
@@ -56,15 +61,15 @@ export const toolsetInventory: Record<
     definition: WhaleWisdomToolsetDefinition,
   },
   [GoogleDocsToolsetDefinition.key]: {
-    class: GoogleDocsToolset,
+    class: undefined,
     definition: GoogleDocsToolsetDefinition,
   },
   [GoogleSheetsToolsetDefinition.key]: {
-    class: GoogleSheetsToolset,
+    class: undefined,
     definition: GoogleSheetsToolsetDefinition,
   },
   [TwitterToolsetDefinition.key]: {
-    class: TwitterToolset,
+    class: undefined,
     definition: TwitterToolsetDefinition,
   },
   [NotionToolsetDefinition.key]: {
@@ -94,5 +99,21 @@ export const toolsetInventory: Record<
   [BrowserUseToolsetDefinition.key]: {
     class: BrowserUseToolset,
     definition: BrowserUseToolsetDefinition,
+  },
+  [GitHubToolsetDefinition.key]: {
+    class: undefined,
+    definition: GitHubToolsetDefinition,
+  },
+  [GmailToolsetDefinition.key]: {
+    class: undefined,
+    definition: GmailToolsetDefinition,
+  },
+  [LinkedInToolsetDefinition.key]: {
+    class: undefined,
+    definition: LinkedInToolsetDefinition,
+  },
+  [RedditToolsetDefinition.key]: {
+    class: undefined,
+    definition: RedditToolsetDefinition,
   },
 };

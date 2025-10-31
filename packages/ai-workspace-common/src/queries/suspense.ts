@@ -15,6 +15,7 @@ import {
   getCanvasTransactions,
   getCodeArtifactDetail,
   getCollabToken,
+  getComposioConnectionStatus,
   getCreditBalance,
   getCreditRecharge,
   getCreditUsage,
@@ -81,6 +82,8 @@ import {
   GetCodeArtifactDetailData,
   GetCodeArtifactDetailError,
   GetCollabTokenError,
+  GetComposioConnectionStatusData,
+  GetComposioConnectionStatusError,
   GetCreditBalanceError,
   GetCreditRechargeData,
   GetCreditRechargeError,
@@ -972,6 +975,23 @@ export const useListToolsetsSuspense = <
     queryKey: Common.UseListToolsetsKeyFn(clientOptions, queryKey),
     queryFn: () =>
       listToolsets({ ...clientOptions }).then((response) => response.data as TData) as TData,
+    ...options,
+  });
+export const useGetComposioConnectionStatusSuspense = <
+  TData = Common.GetComposioConnectionStatusDefaultResponse,
+  TError = GetComposioConnectionStatusError,
+  TQueryKey extends Array<unknown> = unknown[],
+>(
+  clientOptions: Options<GetComposioConnectionStatusData, true>,
+  queryKey?: TQueryKey,
+  options?: Omit<UseQueryOptions<TData, TError>, 'queryKey' | 'queryFn'>,
+) =>
+  useSuspenseQuery<TData, TError>({
+    queryKey: Common.UseGetComposioConnectionStatusKeyFn(clientOptions, queryKey),
+    queryFn: () =>
+      getComposioConnectionStatus({ ...clientOptions }).then(
+        (response) => response.data as TData,
+      ) as TData,
     ...options,
   });
 export const useServeStaticSuspense = <
