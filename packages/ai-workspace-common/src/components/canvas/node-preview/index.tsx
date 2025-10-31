@@ -55,7 +55,13 @@ export const PreviewComponent = memo(
         case 'tool':
           return <ToolNodePreview />;
         case 'skillResponse':
-          return <SkillResponseNodePreview node={node} resultId={node.data?.entityId} />;
+          return (
+            <SkillResponseNodePreview
+              purePreview={purePreview}
+              node={node}
+              resultId={node.data?.entityId}
+            />
+          );
         case 'codeArtifact':
           return <CodeArtifactNodePreview nodeId={node.id} purePreview={purePreview} />;
         case 'website':

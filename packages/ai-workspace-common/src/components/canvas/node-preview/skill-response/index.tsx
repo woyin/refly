@@ -37,12 +37,17 @@ import { PreviewChatInput } from './preview-chat-input';
 interface SkillResponseNodePreviewProps {
   node: CanvasNode<ResponseNodeMeta>;
   resultId: string;
+  purePreview?: boolean;
 }
 
 const OUTPUT_STEP_NAMES = ['answerQuestion', 'generateDocument', 'generateCodeArtifact'];
 const EMPTY_TOOLSET: GenericToolset = { id: 'empty', type: 'regular', name: 'empty' };
 
-const SkillResponseNodePreviewComponent = ({ node, resultId }: SkillResponseNodePreviewProps) => {
+const SkillResponseNodePreviewComponent = ({
+  node,
+  resultId,
+  purePreview,
+}: SkillResponseNodePreviewProps) => {
   const { result, isStreaming, updateActionResult } = useActionResultStoreShallow((state) => ({
     result: state.resultMap[resultId],
     isStreaming: !!state.streamResults[resultId],
@@ -283,38 +288,40 @@ const SkillResponseNodePreviewComponent = ({ node, resultId }: SkillResponseNode
         }
       }}
     >
-      <div className="px-4 pt-4">
-        <EditChatInput
-          enabled={editMode}
-          resultId={resultId}
-          version={version}
-          contextItems={contextItems}
-          query={currentQuery}
-          actionMeta={actionMeta}
-          modelInfo={
-            modelInfo ?? {
-              name: '',
-              label: '',
-              provider: '',
-              contextLimit: 0,
-              maxOutput: 0,
+      {
+        <div className="px-4 pt-4">
+          <EditChatInput
+            enabled={editMode}
+            resultId={resultId}
+            version={version}
+            contextItems={contextItems}
+            query={currentQuery}
+            actionMeta={actionMeta}
+            modelInfo={
+              modelInfo ?? {
+                name: '',
+                label: '',
+                provider: '',
+                contextLimit: 0,
+                maxOutput: 0,
+              }
             }
-          }
-          setEditMode={setEditMode}
-          runtimeConfig={runtimeConfig}
-          onQueryChange={setCurrentQuery}
-          selectedToolsets={selectedToolsets}
-          setSelectedToolsets={setSelectedToolsets}
-        />
-        <PreviewChatInput
-          enabled={!editMode}
-          readonly={readonly}
-          contextItems={contextItems}
-          query={currentQuery}
-          actionMeta={actionMeta}
-          setEditMode={setEditMode}
-        />
-      </div>
+            setEditMode={setEditMode}
+            runtimeConfig={runtimeConfig}
+            onQueryChange={setCurrentQuery}
+            selectedToolsets={selectedToolsets}
+            setSelectedToolsets={setSelectedToolsets}
+          />
+          <PreviewChatInput
+            enabled={!editMode}
+            readonly={readonly}
+            contextItems={contextItems}
+            query={currentQuery}
+            actionMeta={actionMeta}
+            setEditMode={purePreview ? undefined : setEditMode}
+          />
+        </div>
+      }
 
       <div className="flex-1 min-h-0 overflow-y-auto px-4">
         {!result && !loading ? (
@@ -366,7 +373,7 @@ const SkillResponseNodePreviewComponent = ({ node, resultId }: SkillResponseNode
         )}
       </div>
 
-      {outputStep && result?.status === 'finish' && (
+      {outputStep && result?.status === 'finish' && !purePreview && (
         <ActionContainer result={result} step={outputStep} nodeId={node.id} />
       )}
 

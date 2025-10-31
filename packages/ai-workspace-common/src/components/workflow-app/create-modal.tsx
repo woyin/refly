@@ -147,9 +147,7 @@ export const CreateWorkflowAppModal = ({
 
     return nodes.filter(
       (node) =>
-        ['document', 'codeArtifact', 'website', 'video', 'audio', 'skillResponse'].includes(
-          node.type,
-        ) ||
+        ['document', 'codeArtifact', 'website', 'video', 'audio'].includes(node.type) ||
         (node.type === 'image' && !!node.data?.metadata?.resultId),
     ) as unknown as CanvasNode[];
   }, [nodes]);
