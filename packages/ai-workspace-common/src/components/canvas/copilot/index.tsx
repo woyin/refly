@@ -35,7 +35,7 @@ export const Copilot = memo(({ copilotWidth, setCopilotWidth }: CopilotProps) =>
 
       <div className="flex-grow overflow-y-auto">
         {sessionId ? (
-          <SessionDetail sessionId={sessionId} />
+          <SessionDetail sessionId={sessionId} setQuery={setQuery} />
         ) : (
           <Greeting onQueryClick={handleQueryClick} />
         )}

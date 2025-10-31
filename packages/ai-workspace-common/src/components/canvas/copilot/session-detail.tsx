@@ -5,9 +5,12 @@ import { useActionResultStoreShallow, useCopilotStoreShallow } from '@refly/stor
 import { ActionResult } from '@refly/openapi-schema';
 import { Markdown } from '@refly-packages/ai-workspace-common/components/markdown';
 import { useTranslation } from 'react-i18next';
+import { Greeting } from './greeting';
+import cn from 'classnames';
 
 interface SessionDetailProps {
   sessionId: string;
+  setQuery: (query: string) => void;
 }
 
 interface CopilotMessageProps {
@@ -89,7 +92,7 @@ const CopilotMessage = memo(({ result, isFinal }: CopilotMessageProps) => {
 });
 CopilotMessage.displayName = 'CopilotMessage';
 
-export const SessionDetail = memo(({ sessionId }: SessionDetailProps) => {
+export const SessionDetail = memo(({ sessionId, setQuery }: SessionDetailProps) => {
   const { sessionResultIds, setSessionResultIds, createdCopilotSessionIds } =
     useCopilotStoreShallow((state) => ({
       sessionResultIds: state.sessionResultIds[sessionId],
@@ -120,6 +123,8 @@ export const SessionDetail = memo(({ sessionId }: SessionDetailProps) => {
       enabled: sessionId && !createdCopilotSessionIds[sessionId],
     },
   );
+
+  console.log('SessionDetail data', data);
 
   useEffect(() => {
     if (data) {
@@ -166,10 +171,10 @@ export const SessionDetail = memo(({ sessionId }: SessionDetailProps) => {
   }, []);
 
   return (
-    <div className="w-full px-4">
+    <div className={cn('w-full px-4', results?.length === 0 ? 'h-full' : '')}>
       {isLoading ? (
         loadingSkeleton
-      ) : (
+      ) : results?.length > 0 ? (
         <div ref={listRef} className="flex flex-col gap-4 py-5">
           {results.map((result, index) => (
             <CopilotMessage
@@ -178,6 +183,10 @@ export const SessionDetail = memo(({ sessionId }: SessionDetailProps) => {
               isFinal={index === results.length - 1}
             />
           ))}
+        </div>
+      ) : (
+        <div className="flex items-center justify-center h-full">
+          <Greeting onQueryClick={setQuery} />
         </div>
       )}
     </div>
