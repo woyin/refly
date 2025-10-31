@@ -404,13 +404,6 @@ export const CreateWorkflowAppModal = ({
         remixEnabled: appData.remixEnabled ?? false,
       });
 
-      // Set result node IDs if exists, intersect with displayNodes to ensure only valid nodes are selected
-      const savedNodeIds = appData.resultNodeIds ?? [];
-      const validNodeIds =
-        displayNodes?.map((node) => node.id).filter((id): id is string => !!id) ?? [];
-      const intersectedNodeIds = savedNodeIds.filter((id) => validNodeIds.includes(id));
-      setSelectedResults(intersectedNodeIds);
-
       // Set cover image if exists
       if (appData.coverUrl) {
         setCoverFileList([
@@ -429,15 +422,29 @@ export const CreateWorkflowAppModal = ({
     }
   }, [appData, visible, title, form, displayNodes]);
 
-  // Auto-select all result nodes when creating a new app
+  // Auto-select all result nodes when creating a new app or loading existing app
   useEffect(() => {
-    if (visible && !appId && displayNodes?.length > 0) {
-      const allNodeIds = displayNodes.map((node) => node.id).filter((id): id is string => !!id);
-      if (allNodeIds.length > 0) {
-        setSelectedResults(allNodeIds);
+    if (visible && displayNodes?.length > 0) {
+      if (!appId) {
+        // When creating new app, select all display nodes
+        const validNodeIds =
+          displayNodes?.map((node) => node.id).filter((id): id is string => !!id) ?? [];
+        if (validNodeIds.length > 0) {
+          setSelectedResults(validNodeIds);
+        }
+      } else if (appData) {
+        // When editing existing app, use saved node IDs
+        const savedNodeIds = appData.resultNodeIds ?? [];
+        const validNodeIds =
+          displayNodes?.map((node) => node.id).filter((id): id is string => !!id) ?? [];
+        const intersectedNodeIds = savedNodeIds.filter((id) => validNodeIds.includes(id));
+
+        if (intersectedNodeIds.length > 0) {
+          setSelectedResults(intersectedNodeIds);
+        }
       }
     }
-  }, [visible, appId, displayNodes]);
+  }, [visible, appId, displayNodes, appData]);
 
   // Upload button component
   const uploadButton = (
