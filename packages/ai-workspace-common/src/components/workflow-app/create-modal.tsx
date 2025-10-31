@@ -15,6 +15,7 @@ import BannerSvg from './banner.svg';
 import { useRealtimeCanvasData } from '@refly-packages/ai-workspace-common/hooks/canvas/use-realtime-canvas-data';
 import { CanvasNode } from '@refly/openapi-schema';
 import { useGetCreditUsageByCanvasId } from '../../queries/queries';
+import { calculateCreditEarnings } from '@refly-packages/ai-workspace-common/utils';
 
 interface CreateWorkflowAppModalProps {
   title: string;
@@ -136,7 +137,7 @@ export const CreateWorkflowAppModal = ({
   // Calculate credit earnings per run, default to 0
   const creditEarningsPerRun = useMemo(() => {
     const total = creditUsageData?.data?.total ?? 0;
-    return total > 0 ? Math.ceil(total * 0.2) : 0;
+    return calculateCreditEarnings(total);
   }, [creditUsageData]);
 
   // Filter nodes by the specified types (similar to result-list logic)
