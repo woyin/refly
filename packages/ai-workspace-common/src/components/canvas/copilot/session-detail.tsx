@@ -144,7 +144,7 @@ export const SessionDetail = memo(({ sessionId }: SessionDetailProps) => {
   useEffect(() => {
     const timeout = setTimeout(() => {
       scrollToBottom();
-    }, 100);
+    }, 200);
 
     return () => clearTimeout(timeout);
   }, [results?.length, lastResultContent]);

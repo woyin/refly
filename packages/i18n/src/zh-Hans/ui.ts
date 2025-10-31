@@ -1153,6 +1153,7 @@ const translations = {
       video: '视频',
       audio: '音频',
       start: '开始',
+      startNode: '开始节点',
       documentSelection: '文档选中内容',
       resourceSelection: '资源选中内容',
       skillResponseSelection: '技能响应选中内容',
