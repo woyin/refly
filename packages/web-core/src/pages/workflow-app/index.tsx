@@ -386,7 +386,12 @@ const WorkflowAppPage: React.FC = () => {
                               lineHeight: '1.4285714285714286em',
                             }}
                           >
-                            {t('workflowApp.productsGenerated', { count: products.length })}
+                            {!!executionCreditUsage && executionCreditUsage > 0
+                              ? t('workflowApp.productsGeneratedWithCost', {
+                                  count: products.length,
+                                  executionCost: Math.ceil((executionCreditUsage ?? 0) * 1.2) ?? 0,
+                                })
+                              : t('workflowApp.productsGenerated', { count: products.length })}
                           </div>
                         )}
 
