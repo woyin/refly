@@ -51,8 +51,9 @@ export const ScaleboxToolsetDefinition: ToolsetDefinition = {
     'zh-CN': 'Scalebox',
   },
   descriptionDict: {
-    en: 'Run multi-language code in a controllable sandbox. Manage sandboxes, files, commands and code execution.',
-    'zh-CN': '在可控沙箱中运行多语言代码，支持沙箱管理、文件操作、命令与代码执行。',
+    en: 'Perfect for data analysis, visualization, and automation tasks. Execute code in multiple languages, manage files and directories, run system commands, and create data visualizations with pre-installed tools like Jupyter, NumPy, Pandas, Matplotlib, and Seaborn.',
+    'zh-CN':
+      '适用于数据分析、可视化和自动化任务。支持多语言代码执行、文件目录管理、系统命令运行，以及使用预装的Jupyter、NumPy、Pandas、Matplotlib、Seaborn等工具创建数据可视化。',
   },
   tools: [
     { name: 'create', descriptionDict: { en: 'Create a sandbox', 'zh-CN': '创建沙箱' } },
@@ -947,8 +948,12 @@ export class ScaleboxInterpreterRunCode extends AgentBaseTool<ScaleboxToolParams
     cwd: z.string().optional(),
   });
 
-  description =
-    'Execute code using CodeInterpreter. Use this as ALTERNATIVE to runCode when you need simpler execution without sandbox management. Single-shot execution with no persistent contexts. Good for quick code testing but lacks the image generation capabilities of runCode.';
+  description = `Execute code using CodeInterpreter with pre-installed data science environment. 
+    - Perfect for data analysis, visualization, and machine learning tasks. 
+    - Pre-installed packages include: JupyterLab, NumPy, Pandas, Matplotlib, Seaborn, and Scikit-learn. 
+    - Use this as ALTERNATIVE to runCode when you need simpler execution without sandbox management. 
+    - Single-shot execution with no persistent contexts. 
+    - Good for quick data science tasks but lacks the advanced image generation and file management capabilities of runCode.`;
   protected params: ScaleboxToolParams;
 
   constructor(params: ScaleboxToolParams) {
