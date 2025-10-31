@@ -5941,9 +5941,21 @@ export type InitializeWorkflowRequest = {
    */
   canvasId: string;
   /**
-   * New canvas ID
+   * Source canvas ID
    */
-  newCanvasId?: string;
+  sourceCanvasId?: string;
+  /**
+   * Source canvas data
+   */
+  sourceCanvasData?: RawCanvasData;
+  /**
+   * Whether to create a new canvas
+   */
+  createNewCanvas?: boolean;
+  /**
+   * Node behavior when executing workflow
+   */
+  nodeBehavior?: 'create' | 'update';
   /**
    * Workflow variables
    */
@@ -5953,6 +5965,11 @@ export type InitializeWorkflowRequest = {
    */
   startNodes?: Array<string>;
 };
+
+/**
+ * Node behavior when executing workflow
+ */
+export type nodeBehavior = 'create' | 'update';
 
 export type InitializeWorkflowResponse = BaseResponse & {
   data?: {

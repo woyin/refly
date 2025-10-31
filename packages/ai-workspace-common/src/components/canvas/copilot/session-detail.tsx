@@ -1,12 +1,16 @@
-import { memo, useCallback, useEffect, useMemo, useRef } from 'react';
-import { Skeleton, Divider } from 'antd';
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import cn from 'classnames';
+import { Skeleton, Divider, Button } from 'antd';
 import { useGetCopilotSessionDetail } from '@refly-packages/ai-workspace-common/queries';
 import { useActionResultStoreShallow, useCopilotStoreShallow } from '@refly/stores';
 import { ActionResult } from '@refly/openapi-schema';
 import { Markdown } from '@refly-packages/ai-workspace-common/components/markdown';
 import { useTranslation } from 'react-i18next';
 import { Greeting } from './greeting';
-import cn from 'classnames';
+import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
+import { safeParseJSON } from '@refly/utils/parse';
+import { generateCanvasDataFromWorkflowPlan } from '@refly/canvas-common';
+import { useInitializeWorkflow } from '@refly-packages/ai-workspace-common/hooks/use-initialize-workflow';
 
 interface SessionDetailProps {
   sessionId: string;
@@ -63,12 +67,60 @@ ThinkingDots.displayName = 'ThinkingDots';
 const CopilotMessage = memo(({ result, isFinal }: CopilotMessageProps) => {
   const { input, steps, status } = result;
   const content = steps?.[0]?.content ?? '';
-  console.log('CopilotMessage content', result);
+
+  const workflowPlan = useMemo(() => {
+    const toolCalls = steps?.[0]?.toolCalls ?? [];
+    const workflowPlanToolCall = toolCalls.find((call) => call.toolName === 'generate_workflow');
+    console.log('workflowPlanToolCall', workflowPlanToolCall);
+    if (!workflowPlanToolCall?.input) {
+      return null;
+    }
+
+    // Handle different input formats
+    if (typeof workflowPlanToolCall.input === 'string') {
+      return safeParseJSON(workflowPlanToolCall.input);
+    }
+
+    // If input is an object, check if it has an 'input' property that needs parsing
+    if (typeof workflowPlanToolCall.input === 'object' && 'input' in workflowPlanToolCall.input) {
+      return safeParseJSON(workflowPlanToolCall.input.input);
+    }
+
+    // If input is already the parsed object
+    return workflowPlanToolCall.input;
+  }, [steps]);
+
+  console.log('workflowPlan', workflowPlan);
+
+  const { canvasId } = useCanvasContext();
+  const [isLoading, setIsLoading] = useState(false);
   const { t } = useTranslation();
 
   const isThinking = useMemo(() => {
     return ['waiting', 'executing'].includes(status ?? '') && !content;
   }, [status, content]);
+
+  const { initializeWorkflow } = useInitializeWorkflow();
+
+  const handleApproveAndRun = useCallback(async () => {
+    if (!workflowPlan) {
+      return;
+    }
+
+    setIsLoading(true);
+    const canvasData = generateCanvasDataFromWorkflowPlan(workflowPlan);
+
+    try {
+      await initializeWorkflow({
+        canvasId: canvasId,
+        sourceCanvasData: canvasData,
+        nodeBehavior: 'create',
+        // variables: workflowPlan.variables,
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  }, [canvasId, workflowPlan]);
 
   return (
     <div className="flex flex-col gap-4">
@@ -85,6 +137,13 @@ const CopilotMessage = memo(({ result, isFinal }: CopilotMessageProps) => {
         </div>
       ) : (
         <Markdown content={content} mode="readonly" />
+      )}
+      {workflowPlan && (
+        <div className="mt-1">
+          <Button type="primary" onClick={handleApproveAndRun} loading={isLoading}>
+            {t('copilot.sessionDetail.approveAndRun')}
+          </Button>
+        </div>
       )}
       {!isFinal && <Divider type="horizontal" className="my-[10px] bg-refly-Card-Border h-[1px]" />}
     </div>

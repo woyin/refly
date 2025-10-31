@@ -1112,7 +1112,7 @@ export class CanvasService {
     const processedVariables = await Promise.all(
       variables.map(async (variable) => {
         const processedValues = await Promise.all(
-          variable.value.map(async (value) => {
+          (variable.value ?? []).map(async (value) => {
             if (value.type === 'resource' && value.resource) {
               return await this.processResourceValue(user, canvasId, value);
             }

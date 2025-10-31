@@ -24,10 +24,13 @@ export class WorkflowController {
   ): Promise<InitializeWorkflowResponse> {
     const executionId = await this.workflowService.initializeWorkflowExecution(
       user,
-      request.newCanvasId ?? request.canvasId,
+      request.canvasId,
       request.variables,
       {
-        sourceCanvasId: request.canvasId,
+        sourceCanvasId: request.sourceCanvasId,
+        sourceCanvasData: request.sourceCanvasData,
+        createNewCanvas: request.createNewCanvas,
+        nodeBehavior: request.nodeBehavior,
         startNodes: request.startNodes,
         checkCanvasOwnership: true,
       },

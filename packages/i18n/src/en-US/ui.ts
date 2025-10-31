@@ -3064,6 +3064,7 @@ const translations = {
     },
     sessionDetail: {
       thinking: 'Thinking',
+      approveAndRun: 'Approve and Run',
     },
     addContext: 'Add Context',
     moreSettings: 'More Settings',

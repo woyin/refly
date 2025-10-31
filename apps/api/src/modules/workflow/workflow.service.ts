@@ -71,19 +71,19 @@ export class WorkflowService {
   ): Promise<string> {
     let canvasData: RawCanvasData;
     const {
-      sourceCanvasId,
+      sourceCanvasId = canvasId,
       sourceCanvasData,
       checkCanvasOwnership,
       createNewCanvas,
       nodeBehavior = 'update',
     } = options ?? {};
 
-    if (sourceCanvasId) {
+    if (sourceCanvasData) {
+      canvasData = sourceCanvasData;
+    } else if (sourceCanvasId) {
       canvasData = await this.canvasService.getCanvasRawData(user, sourceCanvasId, {
         checkOwnership: checkCanvasOwnership,
       });
-    } else if (sourceCanvasData) {
-      canvasData = sourceCanvasData;
     } else {
       throw new Error('Source canvas data or source canvas ID is required');
     }

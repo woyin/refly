@@ -8411,10 +8411,25 @@ export const InitializeWorkflowRequestSchema = {
       description: 'Canvas ID to initialize workflow for',
       example: 'canvas-123',
     },
-    newCanvasId: {
+    sourceCanvasId: {
       type: 'string',
-      description: 'New canvas ID',
+      description: 'Source canvas ID',
       example: 'canvas-456',
+    },
+    sourceCanvasData: {
+      description: 'Source canvas data',
+      $ref: '#/components/schemas/RawCanvasData',
+    },
+    createNewCanvas: {
+      description: 'Whether to create a new canvas',
+      type: 'boolean',
+      default: false,
+    },
+    nodeBehavior: {
+      description: 'Node behavior when executing workflow',
+      type: 'string',
+      enum: ['create', 'update'],
+      default: 'update',
     },
     variables: {
       type: 'array',

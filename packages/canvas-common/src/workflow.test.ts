@@ -548,7 +548,7 @@ describe('prepareNodeExecutions', () => {
     ] as WorkflowNode[]);
   });
 
-  it('marks skill nodes as finished regardless of subtree membership (isNewCanvas=false)', () => {
+  it('marks skill nodes as finished regardless of subtree membership (nodeBehavior=update)', () => {
     setMockSequences({
       nodeIds: ['N1', 'N2', 'N3', 'N4'],
       entityIds: ['E1', 'E2', 'E3', 'E4'],
@@ -618,7 +618,7 @@ describe('prepareNodeExecutions', () => {
       executionId: 'exec-skill',
       canvasData: canvasWithSkill,
       variables,
-      isNewCanvas: false,
+      nodeBehavior: 'update',
     });
 
     expect(startNodes).toEqual(['S']);
@@ -638,7 +638,7 @@ describe('prepareNodeExecutions', () => {
     expect(responseNode?.status).toBe('waiting');
   });
 
-  it('marks skill nodes as finished in isNewCanvas=true mode', () => {
+  it('marks skill nodes as finished in nodeBehavior=create mode', () => {
     setMockSequences({
       nodeIds: ['N1', 'N2', 'N3', 'N4'],
       entityIds: ['E1', 'E2', 'E3', 'E4'],
@@ -684,7 +684,7 @@ describe('prepareNodeExecutions', () => {
       executionId: 'exec-skill-new-canvas',
       canvasData: canvasWithSkill,
       variables,
-      isNewCanvas: true,
+      nodeBehavior: 'create',
     });
 
     expect(startNodes).toEqual(['N5']); // SKILL1 becomes N5

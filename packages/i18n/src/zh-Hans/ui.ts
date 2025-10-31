@@ -3045,6 +3045,7 @@ const translations = {
     },
     sessionDetail: {
       thinking: '思考中',
+      approveAndRun: '采纳并运行',
     },
     addContext: '添加上下文',
     moreSettings: '更多设置',
