@@ -52,14 +52,14 @@ export const workflowPlanSchema = z.object({
     .describe('Array of variables defined for the workflow'),
 });
 
+export type WorkflowPlan = z.infer<typeof workflowPlanSchema>;
+
 // Generate canvas data from workflow plan
 // 1. each task should be represented as a 'skillResponse' node
 // 2. each product should be represented as a product node with type being the product type
 // 3. connect task nodes to parent nodes according to its contextItems definition
 // 4. connect product nodes to parent task nodes according to parent task's products definition
-export const generateCanvasDataFromWorkflowPlan = (
-  workflowPlan: z.infer<typeof workflowPlanSchema>,
-): RawCanvasData => {
+export const generateCanvasDataFromWorkflowPlan = (workflowPlan: WorkflowPlan): RawCanvasData => {
   const nodes: RawCanvasData['nodes'] = [];
   const edges: RawCanvasData['edges'] = [];
 
