@@ -440,6 +440,7 @@ const WorkflowAppPage: React.FC = () => {
                     {t('workflowApp.resultPreview')}
                   </div>
                   <SelectedResultsGrid
+                    fillRow
                     bordered
                     selectedResults={workflowApp?.resultNodeIds ?? []}
                     options={workflowApp?.canvasData?.nodes || []}
