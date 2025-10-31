@@ -52,7 +52,6 @@ import { useLinearThreadReset } from '@refly-packages/ai-workspace-common/hooks/
 import HelperLines from './common/helper-line/index';
 import { useListenNodeOperationEvents } from '@refly-packages/ai-workspace-common/hooks/canvas/use-listen-node-events';
 import { runtime } from '@refly/ui-kit';
-import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
 import {
   NodeContextMenuSource,
   NodeDragCreateInfo,
@@ -133,20 +132,6 @@ const Flow = memo(({ canvasId, copilotWidth, setCopilotWidth }: FlowProps) => {
   );
   const selectedNodes = nodes.filter((node) => node.selected) || [];
 
-  const getPageByCanvasId = useCallback(async () => {
-    if (!canvasId) return;
-
-    const res = await getClient().getPageByCanvasId({
-      path: { canvasId },
-    });
-    if (res?.data?.success) {
-      const pageData = res.data.data;
-      if (pageData?.page?.pageId) {
-        setCanvasPage(canvasId, pageData.page.pageId);
-      }
-    }
-  }, [canvasId]);
-
   const {
     onNodesChange,
     truncateAllNodesContent,
@@ -177,18 +162,12 @@ const Flow = memo(({ canvasId, copilotWidth, setCopilotWidth }: FlowProps) => {
     operatingNodeId,
     setOperatingNodeId,
     setInitialFitViewCompleted,
-    setCanvasPage,
-    showSlideshow,
-    setShowSlideshow,
     setContextMenuOpenedCanvasId,
   } = useCanvasStoreShallow((state) => ({
     canvasInitialized: state.canvasInitialized[canvasId],
     operatingNodeId: state.operatingNodeId,
     setOperatingNodeId: state.setOperatingNodeId,
     setInitialFitViewCompleted: state.setInitialFitViewCompleted,
-    setCanvasPage: state.setCanvasPage,
-    showSlideshow: state.showSlideshow,
-    setShowSlideshow: state.setShowSlideshow,
     setContextMenuOpenedCanvasId: state.setContextMenuOpenedCanvasId,
   }));
 
@@ -496,14 +475,6 @@ const Flow = memo(({ canvasId, copilotWidth, setCopilotWidth }: FlowProps) => {
   }, [loading]);
 
   useEffect(() => {
-    if (!readonly) {
-      getPageByCanvasId();
-    }
-
-    if (showSlideshow) {
-      setShowSlideshow(false);
-    }
-
     if (showWorkflowRun) {
       setShowWorkflowRun(false);
     }
