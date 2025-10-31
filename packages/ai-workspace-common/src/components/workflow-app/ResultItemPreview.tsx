@@ -106,9 +106,11 @@ const VideoPreview = memo(
         />
         {/* Play button overlay - only show when not playing */}
         {!isPlaying && (
-          <div className="absolute inset-0 flex items-center justify-center">
+          <div
+            className="absolute inset-0 flex items-center justify-center"
+            onClick={handleVideoClick}
+          >
             <div
-              onClick={handleVideoClick}
               className={`w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200 ${
                 isHovered ? 'scale-110' : ''
               }`}
