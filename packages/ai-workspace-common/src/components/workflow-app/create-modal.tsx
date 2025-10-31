@@ -181,9 +181,7 @@ export const CreateWorkflowAppModal = ({
             displayNodes?.map((node) => node.id).filter((id): id is string => !!id) ?? [];
           const intersectedNodeIds = savedNodeIds.filter((id) => validNodeIds.includes(id));
 
-          if (intersectedNodeIds.length > 0) {
-            setSelectedResults(intersectedNodeIds);
-          }
+          setSelectedResults(intersectedNodeIds);
         }
       } catch (error) {
         console.error('Failed to load app data:', error);
@@ -437,14 +435,12 @@ export const CreateWorkflowAppModal = ({
 
   // Auto-select all result nodes when creating a new app or loading existing app
   useEffect(() => {
-    if (visible && displayNodes?.length > 0) {
+    if (visible) {
       if (!appId) {
         // When creating new app, select all display nodes
         const validNodeIds =
           displayNodes?.map((node) => node.id).filter((id): id is string => !!id) ?? [];
-        if (validNodeIds.length > 0) {
-          setSelectedResults(validNodeIds);
-        }
+        setSelectedResults(validNodeIds);
       }
     }
   }, [visible, appId, displayNodes?.length, appData]);

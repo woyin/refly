@@ -7,11 +7,12 @@ export interface SelectedResultsGridProps {
   selectedResults: string[];
   options: CanvasNode[];
   bordered?: boolean;
+  fillRow?: boolean; // Whether items should stretch to fill available space in a row
 }
 
 // Grid component to display selected results in a card layout
 export const SelectedResultsGrid = memo(
-  ({ selectedResults, options, bordered = false }: SelectedResultsGridProps) => {
+  ({ selectedResults, options, bordered = false, fillRow = false }: SelectedResultsGridProps) => {
     const { t } = useTranslation();
     const firstItemRef = useRef<HTMLDivElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
@@ -119,7 +120,7 @@ export const SelectedResultsGrid = memo(
                   ref={index === 0 ? firstItemRef : null}
                   className={`relative cursor-pointer overflow-hidden rounded-lg ${
                     bordered ? 'border' : ''
-                  }`}
+                  } ${fillRow ? 'w-full' : ''}`}
                   style={{
                     minWidth: '128px',
                     aspectRatio: '128 / 77',
@@ -158,9 +159,9 @@ export const SelectedResultsGrid = memo(
               {lastRowItems.map((node) => (
                 <div
                   key={node.id}
-                  className={`relative cursor-pointer overflow-hidden rounded-lg flex-1 ${
-                    bordered ? 'border' : ''
-                  }`}
+                  className={`relative cursor-pointer overflow-hidden rounded-lg ${
+                    fillRow ? 'flex-1' : ''
+                  } ${bordered ? 'border' : ''}`}
                   style={{
                     minWidth: '128px',
                     // Use measured height if there are full rows above and height is measured,
