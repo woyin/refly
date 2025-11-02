@@ -7948,7 +7948,7 @@ export const AuthPatternSchema = {
 
 export const ToolsetDefinitionSchema = {
   type: 'object',
-  required: ['key', 'descriptionDict', 'tools'],
+  required: ['key', 'labelDict', 'descriptionDict'],
   properties: {
     key: {
       type: 'string',

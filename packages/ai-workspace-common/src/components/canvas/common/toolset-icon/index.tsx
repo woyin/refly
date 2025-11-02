@@ -1,7 +1,8 @@
 import React from 'react';
 import { cn } from '@refly-packages/ai-workspace-common/utils/cn';
 import { GenericToolset } from '@refly/openapi-schema';
-import { Mcp } from 'refly-icons';
+import { Mcp, Websearch, DocInline, Code, Email } from 'refly-icons';
+import { CalendarOutlined } from '@ant-design/icons';
 import { Favicon } from '@refly-packages/ai-workspace-common/components/common/favicon';
 import { Logo } from '@refly-packages/ai-workspace-common/components/common/logo';
 import { useListToolsetInventory } from '@refly-packages/ai-workspace-common/queries';
@@ -12,6 +13,14 @@ interface ToolsetIconConfig {
   builtinClassName?: string;
 }
 
+const builtinToolsetIconMap = {
+  web_search: Websearch,
+  generate_doc: DocInline,
+  generate_code_artifact: Code,
+  send_email: Email,
+  get_time: CalendarOutlined,
+};
+
 /**
  * Renders an icon for a given toolset. When necessary and allowed, it will look up
  * additional toolset metadata from inventory to resolve the final domain for favicon.
@@ -20,10 +29,9 @@ interface ToolsetIconConfig {
  */
 export const ToolsetIcon: React.FC<{
   toolset: GenericToolset;
-  isBuiltin?: boolean;
   config?: ToolsetIconConfig;
   disableInventoryLookup?: boolean;
-}> = React.memo(({ toolset, config, isBuiltin, disableInventoryLookup }) => {
+}> = React.memo(({ toolset, config, disableInventoryLookup }) => {
   if (!toolset) return null;
 
   const { size = 24, className, builtinClassName } = config ?? {};
@@ -38,13 +46,28 @@ export const ToolsetIcon: React.FC<{
   }
 
   // Builtin icon never needs inventory lookup
-  if (isBuiltin) {
+  if (toolset.builtin) {
+    const toolsetKey = toolset.toolset?.key;
+    const IconComponent = toolsetKey ? builtinToolsetIconMap[toolsetKey] : null;
+
     return (
       <div
         className={cn('flex items-center justify-center overflow-hidden', className)}
         aria-label={`Toolset icon for ${toolset.toolset?.definition?.domain ?? 'unknown domain'}`}
       >
-        <Logo logoProps={{ show: true, className: builtinClassName }} textProps={{ show: false }} />
+        {IconComponent ? (
+          // Handle different icon component types
+          toolsetKey === 'get_time' ? (
+            <IconComponent className={builtinClassName} style={{ fontSize: size }} />
+          ) : (
+            <IconComponent size={size} className={builtinClassName} />
+          )
+        ) : (
+          <Logo
+            logoProps={{ show: true, className: builtinClassName }}
+            textProps={{ show: false }}
+          />
+        )}
       </div>
     );
   }

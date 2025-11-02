@@ -5616,7 +5616,7 @@ export type ToolsetDefinition = {
   /**
    * Toolset label dictionary
    */
-  labelDict?: {
+  labelDict: {
     [key: string]: unknown;
   };
   /**
@@ -5628,7 +5628,7 @@ export type ToolsetDefinition = {
   /**
    * Toolset tools
    */
-  tools: Array<ToolDefinition>;
+  tools?: Array<ToolDefinition>;
   /**
    * Whether the toolset requires auth
    */

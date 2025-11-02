@@ -5,6 +5,7 @@ import type { RunnableConfig } from '@langchain/core/runnables';
 import type { ToolsetDefinition, User } from '@refly/openapi-schema';
 import type { AgentToolConstructor, ToolCallResult } from '../base';
 import type { ReflyService } from './interface';
+
 export const BuiltinToolsetDefinition: ToolsetDefinition = {
   key: 'builtin',
   domain: 'https://refly.ai',
@@ -67,9 +68,81 @@ interface BuiltinToolParams {
   reflyService: ReflyService;
 }
 
+export const BuiltinLibrarySearchDefinition: ToolsetDefinition = {
+  key: 'library_search',
+  labelDict: {
+    en: 'Library Search',
+    'zh-CN': '知识库搜索',
+  },
+  descriptionDict: {
+    en: 'Search within Refly knowledge base, documents, and resources.',
+    'zh-CN': '在 Refly 知识库、文档和资源中搜索。',
+  },
+};
+
+export const BuiltinWebSearchDefinition: ToolsetDefinition = {
+  key: 'web_search',
+  labelDict: {
+    en: 'Web Search',
+    'zh-CN': '网络搜索',
+  },
+  descriptionDict: {
+    en: 'Search the web for current information and news.',
+    'zh-CN': '在网络上搜索最新信息和新闻。',
+  },
+};
+
+export const BuiltinGenerateDocDefinition: ToolsetDefinition = {
+  key: 'generate_doc',
+  labelDict: {
+    en: 'Generate Document',
+    'zh-CN': '生成文档',
+  },
+  descriptionDict: {
+    en: 'Generate a new document based on a title and content.',
+    'zh-CN': '基于标题和内容生成新文档。',
+  },
+};
+
+export const BuiltinGenerateCodeArtifactDefinition: ToolsetDefinition = {
+  key: 'generate_code_artifact',
+  labelDict: {
+    en: 'Generate Code Artifact',
+    'zh-CN': '生成代码组件',
+  },
+  descriptionDict: {
+    en: 'Generate a new code artifact based on title, type, and content.',
+    'zh-CN': '基于标题、类型和内容生成新的代码组件。',
+  },
+};
+
+export const BuiltinSendEmailDefinition: ToolsetDefinition = {
+  key: 'send_email',
+  labelDict: {
+    en: 'Send Email',
+    'zh-CN': '发送邮件',
+  },
+  descriptionDict: {
+    en: 'Send an email to a specified recipient with subject and HTML content.',
+    'zh-CN': '向指定收件人发送带有主题和HTML内容的电子邮件。',
+  },
+};
+
+export const BuiltinGetTimeDefinition: ToolsetDefinition = {
+  key: 'get_time',
+  labelDict: {
+    en: 'Get Time',
+    'zh-CN': '获取时间',
+  },
+  descriptionDict: {
+    en: 'Get the current date and time information.',
+    'zh-CN': '获取当前日期和时间信息。',
+  },
+};
+
 export class BuiltinLibrarySearch extends AgentBaseTool<BuiltinToolParams> {
   name = 'library_search';
-  toolsetKey = BuiltinToolsetDefinition.key;
+  toolsetKey = 'library_search';
 
   schema = z.object({
     query: z.string().describe('The search query to execute'),
@@ -177,7 +250,7 @@ export class BuiltinWebSearch extends AgentBaseTool<BuiltinToolParams> {
 
 export class BuiltinGenerateDoc extends AgentBaseTool<BuiltinToolParams> {
   name = 'generate_doc';
-  toolsetKey = BuiltinToolsetDefinition.key;
+  toolsetKey = 'generate_doc';
 
   schema = z.object({
     title: z.string().describe('Title of the document to generate'),
@@ -226,7 +299,7 @@ export class BuiltinGenerateDoc extends AgentBaseTool<BuiltinToolParams> {
 
 export class BuiltinGenerateCodeArtifact extends AgentBaseTool<BuiltinToolParams> {
   name = 'generate_code_artifact';
-  toolsetKey = BuiltinToolsetDefinition.key;
+  toolsetKey = 'generate_code_artifact';
 
   schema = z.object({
     title: z.string().describe('Title of the code artifact to generate'),
@@ -287,7 +360,7 @@ export class BuiltinGenerateCodeArtifact extends AgentBaseTool<BuiltinToolParams
 
 export class BuiltinSendEmail extends AgentBaseTool<BuiltinToolParams> {
   name = 'send_email';
-  toolsetKey = BuiltinToolsetDefinition.key;
+  toolsetKey = 'send_email';
 
   schema = z.object({
     subject: z.string().describe('The subject of the email'),
@@ -342,7 +415,7 @@ export class BuiltinSendEmail extends AgentBaseTool<BuiltinToolParams> {
 
 export class BuiltinGetTime extends AgentBaseTool<BuiltinToolParams> {
   name = 'get_time';
-  toolsetKey = BuiltinToolsetDefinition.key;
+  toolsetKey = 'get_time';
 
   schema = z.object({});
 
@@ -381,6 +454,38 @@ export class BuiltinGetTime extends AgentBaseTool<BuiltinToolParams> {
       };
     }
   }
+}
+
+export class BuiltinLibrarySearchToolset extends AgentBaseToolset<BuiltinToolParams> {
+  toolsetKey = BuiltinLibrarySearchDefinition.key;
+  tools = [BuiltinLibrarySearch] satisfies readonly AgentToolConstructor<BuiltinToolParams>[];
+}
+
+export class BuiltinWebSearchToolset extends AgentBaseToolset<BuiltinToolParams> {
+  toolsetKey = BuiltinWebSearchDefinition.key;
+  tools = [BuiltinWebSearch] satisfies readonly AgentToolConstructor<BuiltinToolParams>[];
+}
+
+export class BuiltinGenerateDocToolset extends AgentBaseToolset<BuiltinToolParams> {
+  toolsetKey = BuiltinGenerateDocDefinition.key;
+  tools = [BuiltinGenerateDoc] satisfies readonly AgentToolConstructor<BuiltinToolParams>[];
+}
+
+export class BuiltinGenerateCodeArtifactToolset extends AgentBaseToolset<BuiltinToolParams> {
+  toolsetKey = BuiltinGenerateCodeArtifactDefinition.key;
+  tools = [
+    BuiltinGenerateCodeArtifact,
+  ] satisfies readonly AgentToolConstructor<BuiltinToolParams>[];
+}
+
+export class BuiltinSendEmailToolset extends AgentBaseToolset<BuiltinToolParams> {
+  toolsetKey = BuiltinSendEmailDefinition.key;
+  tools = [BuiltinSendEmail] satisfies readonly AgentToolConstructor<BuiltinToolParams>[];
+}
+
+export class BuiltinGetTimeToolset extends AgentBaseToolset<BuiltinToolParams> {
+  toolsetKey = BuiltinGetTimeDefinition.key;
+  tools = [BuiltinGetTime] satisfies readonly AgentToolConstructor<BuiltinToolParams>[];
 }
 
 export class BuiltinToolset extends AgentBaseToolset<BuiltinToolParams> {

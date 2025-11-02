@@ -15,13 +15,7 @@ function renderLabelIcon(source: string, variableType?: string, toolset?: Generi
   }
 
   if (source === 'toolsets' || source === 'tools') {
-    return (
-      <ToolsetIcon
-        toolset={toolset}
-        isBuiltin={toolset?.id === 'builtin'}
-        config={TOOLSET_ICON_CONFIG}
-      />
-    );
+    return <ToolsetIcon toolset={toolset} config={TOOLSET_ICON_CONFIG} />;
   }
 
   return null;

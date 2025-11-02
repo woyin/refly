@@ -37,7 +37,7 @@ const isToolsetInstalled = (
 ): boolean => {
   return installedToolsets.some((t) => {
     if (toolset.type === 'regular') {
-      return toolset.id === 'builtin' || t.toolset?.key === toolset.toolset?.key;
+      return toolset.builtin || t.toolset?.key === toolset.toolset?.key;
     } else if (toolset.type === 'mcp') {
       return t.name === toolset.name;
     }
@@ -387,16 +387,12 @@ const ToolsDependencyContent = React.memo(
                     >
                       {/* Tool Header */}
                       <div className="py-1 px-2 flex items-center justify-between gap-3">
-                        <ToolsetIcon
-                          toolset={toolset}
-                          isBuiltin={toolset.id === 'builtin'}
-                          config={{ builtinClassName: '!w-6 !h-6' }}
-                        />
+                        <ToolsetIcon toolset={toolset} config={{ builtinClassName: '!w-6 !h-6' }} />
 
                         <div className="flex-1 min-w-0 flex flex-col gap-0.5">
                           <div className="flex items-center gap-1">
                             <div className="min-w-0 max-w-full text-refly-text-0 text-sm font-semibold leading-5 truncate">
-                              {toolset.type === 'regular' && toolset.id === 'builtin'
+                              {toolset.type === 'regular' && toolset.builtin
                                 ? (toolset?.toolset?.definition?.labelDict?.[
                                     currentLanguage
                                   ] as string)
@@ -609,7 +605,6 @@ export const ToolsDependencyChecker = ({ canvasData }: { canvasData?: RawCanvasD
                 <ToolsetIcon
                   key={toolset.toolset.id}
                   toolset={toolset.toolset}
-                  isBuiltin={toolset.toolset.id === 'builtin'}
                   config={{
                     size: 14,
                     className:

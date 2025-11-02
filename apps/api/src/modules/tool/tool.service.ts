@@ -21,6 +21,7 @@ import { genToolsetID, safeParseJSON, validateConfig } from '@refly/utils';
 import {
   BuiltinToolset,
   BuiltinToolsetDefinition,
+  builtinToolsetInventory,
   toolsetInventory,
   AnyToolsetClass,
   GenerateWorkflow,
@@ -77,19 +78,22 @@ export class ToolService {
       .sort((a, b) => a.key.localeCompare(b.key));
   }
 
-  async listRegularTools(user: User, param?: ListToolsData['query']): Promise<GenericToolset[]> {
-    const builtinToolset: GenericToolset = {
-      type: 'regular',
-      id: 'builtin',
-      name: 'Builtin',
+  listBuiltinTools(): GenericToolset[] {
+    return Object.values(builtinToolsetInventory).map((toolset) => ({
+      type: 'regular' as const,
+      id: toolset.definition.key,
+      name: (toolset.definition.labelDict?.en as string) ?? toolset.definition.key,
       builtin: true,
       toolset: {
         toolsetId: 'builtin',
-        key: 'builtin',
-        name: 'Builtin',
-        definition: BuiltinToolsetDefinition,
+        key: toolset.definition.key,
+        name: (toolset.definition.labelDict?.en as string) ?? toolset.definition.key,
+        definition: toolset.definition,
       },
-    };
+    }));
+  }
+
+  async listRegularTools(user: User, param?: ListToolsData['query']): Promise<GenericToolset[]> {
     const { isGlobal, enabled } = param ?? {};
 
     // Build where condition dynamically
@@ -106,7 +110,7 @@ export class ToolService {
     const toolsets = await this.prisma.toolset.findMany({
       where: whereCondition,
     });
-    return [builtinToolset, ...toolsets.map(toolsetPo2GenericToolset)];
+    return toolsets.map(toolsetPo2GenericToolset);
   }
 
   async listMcpTools(user: User, param?: ListToolsData['query']): Promise<GenericToolset[]> {
@@ -119,11 +123,12 @@ export class ToolService {
   }
 
   async listTools(user: User, param?: ListToolsData['query']): Promise<GenericToolset[]> {
+    const builtinTools = this.listBuiltinTools();
     const [regularTools, mcpTools] = await Promise.all([
       this.listRegularTools(user, param),
       this.listMcpTools(user, param),
     ]);
-    return [...regularTools, ...mcpTools];
+    return [...builtinTools, ...regularTools, ...mcpTools];
   }
 
   /**
@@ -393,10 +398,10 @@ export class ToolService {
     const mcpToolMap = new Map<string, string[]>();
 
     for (const selectedToolset of toolsets) {
-      const { type, id, selectedTools } = selectedToolset;
+      const { type, id, selectedTools, builtin } = selectedToolset;
 
       if (type === 'regular') {
-        if (id === 'builtin') {
+        if (builtin) {
           continue;
         }
         regularToolsetIds.push(id);
@@ -741,7 +746,7 @@ export class ToolService {
     engine: SkillEngine,
   ): Promise<StructuredToolInterface[]> {
     let builtinTools: DynamicStructuredTool[] = [];
-    if (toolsets.find((t) => t.type === 'regular' && t.id === 'builtin')) {
+    if (toolsets.find((t) => t.type === 'regular' && t.builtin)) {
       builtinTools = this.instantiateBuiltinToolsets(user, engine);
     }
 

@@ -1,6 +1,19 @@
 import { AgentBaseToolset } from './base';
 import { ToolsetDefinition } from '@refly/openapi-schema';
-import { BuiltinToolset, BuiltinToolsetDefinition } from './builtin';
+import {
+  BuiltinToolset,
+  BuiltinToolsetDefinition,
+  BuiltinWebSearchToolset,
+  BuiltinWebSearchDefinition,
+  BuiltinGenerateDocToolset,
+  BuiltinGenerateDocDefinition,
+  BuiltinGenerateCodeArtifactToolset,
+  BuiltinGenerateCodeArtifactDefinition,
+  BuiltinSendEmailToolset,
+  BuiltinSendEmailDefinition,
+  BuiltinGetTimeToolset,
+  BuiltinGetTimeDefinition,
+} from './builtin';
 import { FirecrawlToolset, FirecrawlToolsetDefinition } from './firecrawl';
 import { CalculatorToolset, CalculatorToolsetDefinition } from './calculator';
 import { GoogleDriveToolset, GoogleDriveToolsetDefinition } from './google-drive';
@@ -22,6 +35,35 @@ import { ApifyToolset, ApifyToolsetDefinition } from './apify';
 import { NovitaSandboxToolset, NovitaSandboxToolsetDefinition } from './novita-sandbox';
 
 export type AnyToolsetClass = new (...args: any[]) => AgentBaseToolset<any>;
+
+export const builtinToolsetInventory: Record<
+  string,
+  {
+    class: AnyToolsetClass;
+    definition: ToolsetDefinition;
+  }
+> = {
+  [BuiltinWebSearchDefinition.key]: {
+    class: BuiltinWebSearchToolset,
+    definition: BuiltinWebSearchDefinition,
+  },
+  [BuiltinGenerateDocDefinition.key]: {
+    class: BuiltinGenerateDocToolset,
+    definition: BuiltinGenerateDocDefinition,
+  },
+  [BuiltinGenerateCodeArtifactDefinition.key]: {
+    class: BuiltinGenerateCodeArtifactToolset,
+    definition: BuiltinGenerateCodeArtifactDefinition,
+  },
+  [BuiltinSendEmailDefinition.key]: {
+    class: BuiltinSendEmailToolset,
+    definition: BuiltinSendEmailDefinition,
+  },
+  [BuiltinGetTimeDefinition.key]: {
+    class: BuiltinGetTimeToolset,
+    definition: BuiltinGetTimeDefinition,
+  },
+};
 
 export const toolsetInventory: Record<
   string,

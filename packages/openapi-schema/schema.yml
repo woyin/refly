@@ -9285,8 +9285,8 @@ components:
       type: object
       required:
         - key
+        - labelDict
         - descriptionDict
-        - tools
       properties:
         key:
           type: string
