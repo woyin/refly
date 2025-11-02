@@ -162,17 +162,6 @@ export class Agent extends BaseSkill {
       try {
         // Use llmForGraph, which is the (potentially tool-bound) LLM instance for the graph
         const response = await llmForGraph.invoke(nodeState.messages);
-
-        this.engine.logger.log('LLM response received:', {
-          hasToolCalls: !!response.tool_calls,
-          toolCallsCount: response.tool_calls?.length || 0,
-          toolCalls: response.tool_calls,
-          content:
-            typeof response.content === 'string'
-              ? response.content.substring(0, 100)
-              : 'Non-string content',
-        });
-
         return { messages: [response] };
       } catch (error) {
         this.engine.logger.error(`LLM node execution failed: ${error.stack}`);
@@ -337,13 +326,14 @@ export class Agent extends BaseSkill {
       user,
       config,
     );
+    const iTools = convertToTools(tools);
 
     const module: SkillPromptModule = {
       buildSystemPrompt:
         mode === 'copilot_agent'
-          ? () => buildWorkflowCopilotPrompt()
+          ? () => buildWorkflowCopilotPrompt({ installedTools: config.configurable.installedTools })
           : toolsAvailable
-            ? () => buildSystemPrompt(convertToTools(tools), locale)
+            ? () => buildSystemPrompt(iTools, locale)
             : commonQnA.buildCommonQnASystemPrompt,
       buildContextUserPrompt: commonQnA.buildCommonQnAContextUserPrompt,
       buildUserPrompt: commonQnA.buildCommonQnAUserPrompt,
@@ -359,8 +349,6 @@ export class Agent extends BaseSkill {
     config.metadata.step = { name: 'answerQuestion' };
 
     try {
-      this.engine.logger.log('Starting agent execution with messages:', requestMessages.length);
-
       const result = await compiledLangGraphApp.invoke(
         { messages: requestMessages },
         {

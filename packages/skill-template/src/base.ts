@@ -26,6 +26,7 @@ import {
 } from '@refly/openapi-schema';
 import { EventEmitter } from 'node:stream';
 import { preprocess, PreprocessResult } from './scheduler/utils/preprocess';
+import { ITool } from './tool';
 
 export abstract class BaseSkill {
   /**
@@ -305,6 +306,7 @@ export interface SkillRunnableConfig extends RunnableConfig {
     runtimeConfig?: SkillRuntimeConfig;
     emitter?: EventEmitter<SkillEventMap>;
     selectedTools?: StructuredToolInterface[];
+    installedTools?: ITool[];
     preprocessResult?: PreprocessResult;
   };
   metadata?: SkillRunnableMeta;

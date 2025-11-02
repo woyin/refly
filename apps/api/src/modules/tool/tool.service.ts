@@ -34,6 +34,7 @@ import {
   convertMcpServersToClientConfig,
   MultiServerMCPClient,
   SkillEngine,
+  ITool,
 } from '@refly/skill-template';
 import { extractToolsetsWithNodes } from '@refly/canvas-common';
 import { QUEUE_SYNC_TOOL_CREDIT_USAGE } from '../../utils/const';
@@ -129,6 +130,15 @@ export class ToolService {
       this.listMcpTools(user, param),
     ]);
     return [...builtinTools, ...regularTools, ...mcpTools];
+  }
+
+  async listInstalledTools(user: User): Promise<ITool[]> {
+    const tools = await this.listTools(user, { enabled: true });
+    return tools.map((tool) => ({
+      id: tool.id,
+      name: tool.name,
+      description: tool.toolset?.definition?.descriptionDict?.en as string,
+    }));
   }
 
   /**

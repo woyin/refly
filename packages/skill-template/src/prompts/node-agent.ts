@@ -1,4 +1,4 @@
-import { ITool } from '../tool';
+import { formatITools, ITool } from '../tool';
 
 export const SYSTEM_PROMPT = `You are an AI assistant with access to tools to help answer user questions.
 
@@ -422,24 +422,11 @@ Assistant: I'll help you create a website with real-time weather data for your c
 Remember: Always execute tools and wait for real results. Never simulate tool execution.
 `;
 
-export const AvailableTools = (tools: ITool[]) => {
-  const availableTools = tools
-    .map((tool) => {
-      return `
-Tool Name: ${tool.id}
-Description: ${tool.description || tool.inputSchema.title || 'No description available.'}
-Input Schema: ${JSON.stringify(tool.inputSchema, null, 2)}
-`;
-    })
-    .join('');
-  return `You have access to the following tools:\n${availableTools}`;
-};
-
 export const buildSystemPrompt = (tools: ITool[], _locale: string): string => {
   if (tools && tools.length > 0) {
     const systemPrompt = SYSTEM_PROMPT.replace('{{ TOOL_USE_EXAMPLES }}', ToolUseExamples).replace(
       '{{ AVAILABLE_TOOLS }}',
-      AvailableTools(tools),
+      formatITools(tools),
     );
     // .replace('{{ LOCALE }}', locale);
     return systemPrompt;

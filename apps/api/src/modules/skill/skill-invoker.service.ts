@@ -206,6 +206,8 @@ export class SkillInvokerService {
       config.configurable.selectedTools = tools;
     }
 
+    config.configurable.installedTools = await this.toolService.listInstalledTools(user);
+
     if (eventListener) {
       const emitter = new EventEmitter<SkillEventMap>();
 
