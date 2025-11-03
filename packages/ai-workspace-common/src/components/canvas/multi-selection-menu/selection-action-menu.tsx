@@ -22,8 +22,6 @@ import { IContextItem } from '@refly/common-types';
 import { useContextPanelStore } from '@refly/stores';
 import { convertContextItemsToNodeFilters } from '@refly/canvas-common';
 import { useNodeCluster } from '@refly-packages/ai-workspace-common/hooks/canvas/use-node-cluster';
-import { HoverCard, HoverContent } from '@refly-packages/ai-workspace-common/components/hover-card';
-import { useHoverCard } from '@refly-packages/ai-workspace-common/hooks/use-hover-card';
 
 interface MenuItem {
   key: string;
@@ -35,7 +33,6 @@ interface MenuItem {
   primary?: boolean;
   type: 'button' | 'divider';
   disabled?: boolean;
-  hoverContent?: HoverContent;
 }
 
 interface SelectionActionMenuProps {
@@ -53,7 +50,6 @@ export const SelectionActionMenu: FC<SelectionActionMenuProps> = ({ onClose }) =
   const { invokeAction } = useInvokeAction({ source: 'selection-action-menu' });
   const { selectNodeCluster, groupNodeCluster, layoutNodeCluster } = useNodeCluster();
   const nodes = useStore((state) => state.nodes);
-  const { hoverCardEnabled } = useHoverCard();
 
   const checkHasSkill = useCallback(() => {
     return nodes.filter((node) => node.selected).some((node) => node.type === 'skill');
@@ -240,12 +236,6 @@ export const SelectionActionMenu: FC<SelectionActionMenuProps> = ({ onClose }) =
             onClick: handleAskAI,
             type: 'button' as const,
             primary: true,
-            hoverContent: {
-              title: t('canvas.nodeActions.askAI'),
-              description: t('canvas.nodeActions.askAIDescription'),
-              videoUrl:
-                'https://static.refly.ai/onboarding/selection-node-action/selection-nodeAction-askAI.webm',
-            },
           },
       hasSkill
         ? {
@@ -255,12 +245,6 @@ export const SelectionActionMenu: FC<SelectionActionMenuProps> = ({ onClose }) =
             onClick: handleBatchAskAI,
             type: 'button' as const,
             primary: true,
-            hoverContent: {
-              title: t('canvas.nodeActions.batchRun'),
-              description: t('canvas.nodeActions.batchRunDescription'),
-              videoUrl:
-                'https://static.refly.ai/onboarding/selection-node-action/selection-node-action-batchRun.webm',
-            },
           }
         : null,
       { key: 'divider-1', type: 'divider' } as MenuItem,
@@ -270,12 +254,6 @@ export const SelectionActionMenu: FC<SelectionActionMenuProps> = ({ onClose }) =
         label: t('canvas.nodeActions.addToContext'),
         onClick: handleAddToContext,
         type: 'button' as const,
-        hoverContent: {
-          title: t('canvas.nodeActions.addToContext'),
-          description: t('canvas.nodeActions.addToContextDescription'),
-          videoUrl:
-            'https://static.refly.ai/onboarding/selection-node-action/selection-nodeAction-addToContext.webm',
-        },
       },
       { key: 'divider-2', type: 'divider' } as MenuItem,
       {
@@ -284,12 +262,6 @@ export const SelectionActionMenu: FC<SelectionActionMenuProps> = ({ onClose }) =
         label: t('canvas.nodeActions.group'),
         onClick: handleGroup,
         type: 'button' as const,
-        hoverContent: {
-          title: t('canvas.nodeActions.group'),
-          description: t('canvas.nodeActions.groupDescription'),
-          videoUrl:
-            'https://static.refly.ai/onboarding/selection-node-action/selection-nodeAction-group.webm',
-        },
       },
       { key: 'divider-3', type: 'divider' } as MenuItem,
       {
@@ -298,11 +270,6 @@ export const SelectionActionMenu: FC<SelectionActionMenuProps> = ({ onClose }) =
         label: t('canvas.nodeActions.selectCluster'),
         onClick: handleSelectCluster,
         type: 'button' as const,
-        hoverContent: {
-          title: t('canvas.nodeActions.selectCluster'),
-          description: t('canvas.nodeActions.selectClusterDescription'),
-          videoUrl: 'https://static.refly.ai/onboarding/nodeAction/nodeAction-selectOrLayout.webm',
-        },
       },
       {
         key: 'groupCluster',
@@ -310,11 +277,6 @@ export const SelectionActionMenu: FC<SelectionActionMenuProps> = ({ onClose }) =
         label: t('canvas.nodeActions.groupCluster'),
         onClick: handleGroupCluster,
         type: 'button' as const,
-        hoverContent: {
-          title: t('canvas.nodeActions.groupCluster'),
-          description: t('canvas.nodeActions.groupClusterDescription'),
-          videoUrl: 'https://static.refly.ai/onboarding/nodeAction/nodeAction-groupChildNodes.webm',
-        },
       },
       {
         key: 'layoutCluster',
@@ -322,11 +284,6 @@ export const SelectionActionMenu: FC<SelectionActionMenuProps> = ({ onClose }) =
         label: t('canvas.nodeActions.layoutCluster'),
         onClick: handleLayoutCluster,
         type: 'button' as const,
-        hoverContent: {
-          title: t('canvas.nodeActions.layoutCluster'),
-          description: t('canvas.nodeActions.layoutClusterDescription'),
-          videoUrl: 'https://static.refly.ai/onboarding/nodeAction/nodeAction-selectOrLayout.webm',
-        },
       },
       { key: 'divider-4', type: 'divider' } as MenuItem,
       {
@@ -336,11 +293,6 @@ export const SelectionActionMenu: FC<SelectionActionMenuProps> = ({ onClose }) =
         onClick: handleDelete,
         danger: true,
         type: 'button' as const,
-        hoverContent: {
-          title: t('canvas.nodeActions.deleteAll'),
-          description: t('canvas.nodeActions.deleteAllDescription'),
-          videoUrl: 'https://static.refly.ai/onboarding/nodeAction/nodeAction-delete.webm',
-        },
       },
     ].filter(Boolean);
   }, [
@@ -393,20 +345,6 @@ export const SelectionActionMenu: FC<SelectionActionMenuProps> = ({ onClose }) =
             <span className="flex-1 text-left truncate">{item.label}</span>
           </Button>
         );
-
-        if (item.hoverContent && hoverCardEnabled) {
-          return (
-            <HoverCard
-              key={item.key}
-              title={item.hoverContent.title}
-              description={item.hoverContent.description}
-              videoUrl={item.hoverContent.videoUrl}
-              placement="right"
-            >
-              {button}
-            </HoverCard>
-          );
-        }
 
         return button;
       })}
