@@ -15,10 +15,14 @@ import {
   getCanvasTransactions,
   getCodeArtifactDetail,
   getCollabToken,
+  getComposioConnectionStatus,
   getCopilotSessionDetail,
   getCreditBalance,
   getCreditRecharge,
   getCreditUsage,
+  getCreditUsageByCanvasId,
+  getCreditUsageByExecutionId,
+  getCreditUsageByResultId,
   getDocumentDetail,
   getPageByCanvasId,
   getPageDetail,
@@ -83,11 +87,19 @@ import {
   GetCodeArtifactDetailData,
   GetCodeArtifactDetailError,
   GetCollabTokenError,
+  GetComposioConnectionStatusData,
+  GetComposioConnectionStatusError,
   GetCopilotSessionDetailData,
   GetCopilotSessionDetailError,
   GetCreditBalanceError,
   GetCreditRechargeData,
   GetCreditRechargeError,
+  GetCreditUsageByCanvasIdData,
+  GetCreditUsageByCanvasIdError,
+  GetCreditUsageByExecutionIdData,
+  GetCreditUsageByExecutionIdError,
+  GetCreditUsageByResultIdData,
+  GetCreditUsageByResultIdError,
   GetCreditUsageData,
   GetCreditUsageError,
   GetDocumentDetailData,
@@ -869,6 +881,57 @@ export const useGetCreditBalanceSuspense = <
       getCreditBalance({ ...clientOptions }).then((response) => response.data as TData) as TData,
     ...options,
   });
+export const useGetCreditUsageByResultIdSuspense = <
+  TData = Common.GetCreditUsageByResultIdDefaultResponse,
+  TError = GetCreditUsageByResultIdError,
+  TQueryKey extends Array<unknown> = unknown[],
+>(
+  clientOptions: Options<GetCreditUsageByResultIdData, true>,
+  queryKey?: TQueryKey,
+  options?: Omit<UseQueryOptions<TData, TError>, 'queryKey' | 'queryFn'>,
+) =>
+  useSuspenseQuery<TData, TError>({
+    queryKey: Common.UseGetCreditUsageByResultIdKeyFn(clientOptions, queryKey),
+    queryFn: () =>
+      getCreditUsageByResultId({ ...clientOptions }).then(
+        (response) => response.data as TData,
+      ) as TData,
+    ...options,
+  });
+export const useGetCreditUsageByExecutionIdSuspense = <
+  TData = Common.GetCreditUsageByExecutionIdDefaultResponse,
+  TError = GetCreditUsageByExecutionIdError,
+  TQueryKey extends Array<unknown> = unknown[],
+>(
+  clientOptions: Options<GetCreditUsageByExecutionIdData, true>,
+  queryKey?: TQueryKey,
+  options?: Omit<UseQueryOptions<TData, TError>, 'queryKey' | 'queryFn'>,
+) =>
+  useSuspenseQuery<TData, TError>({
+    queryKey: Common.UseGetCreditUsageByExecutionIdKeyFn(clientOptions, queryKey),
+    queryFn: () =>
+      getCreditUsageByExecutionId({ ...clientOptions }).then(
+        (response) => response.data as TData,
+      ) as TData,
+    ...options,
+  });
+export const useGetCreditUsageByCanvasIdSuspense = <
+  TData = Common.GetCreditUsageByCanvasIdDefaultResponse,
+  TError = GetCreditUsageByCanvasIdError,
+  TQueryKey extends Array<unknown> = unknown[],
+>(
+  clientOptions: Options<GetCreditUsageByCanvasIdData, true>,
+  queryKey?: TQueryKey,
+  options?: Omit<UseQueryOptions<TData, TError>, 'queryKey' | 'queryFn'>,
+) =>
+  useSuspenseQuery<TData, TError>({
+    queryKey: Common.UseGetCreditUsageByCanvasIdKeyFn(clientOptions, queryKey),
+    queryFn: () =>
+      getCreditUsageByCanvasId({ ...clientOptions }).then(
+        (response) => response.data as TData,
+      ) as TData,
+    ...options,
+  });
 export const useGetSubscriptionPlansSuspense = <
   TData = Common.GetSubscriptionPlansDefaultResponse,
   TError = GetSubscriptionPlansError,
@@ -1010,6 +1073,23 @@ export const useListToolsetsSuspense = <
     queryKey: Common.UseListToolsetsKeyFn(clientOptions, queryKey),
     queryFn: () =>
       listToolsets({ ...clientOptions }).then((response) => response.data as TData) as TData,
+    ...options,
+  });
+export const useGetComposioConnectionStatusSuspense = <
+  TData = Common.GetComposioConnectionStatusDefaultResponse,
+  TError = GetComposioConnectionStatusError,
+  TQueryKey extends Array<unknown> = unknown[],
+>(
+  clientOptions: Options<GetComposioConnectionStatusData, true>,
+  queryKey?: TQueryKey,
+  options?: Omit<UseQueryOptions<TData, TError>, 'queryKey' | 'queryFn'>,
+) =>
+  useSuspenseQuery<TData, TError>({
+    queryKey: Common.UseGetComposioConnectionStatusKeyFn(clientOptions, queryKey),
+    queryFn: () =>
+      getComposioConnectionStatus({ ...clientOptions }).then(
+        (response) => response.data as TData,
+      ) as TData,
     ...options,
   });
 export const useServeStaticSuspense = <

@@ -51,8 +51,9 @@ export const ScaleboxToolsetDefinition: ToolsetDefinition = {
     'zh-CN': 'Scalebox',
   },
   descriptionDict: {
-    en: 'Run multi-language code in a controllable sandbox. Manage sandboxes, files, commands and code execution.',
-    'zh-CN': '在可控沙箱中运行多语言代码，支持沙箱管理、文件操作、命令与代码执行。',
+    en: 'Perfect for data analysis, visualization, and automation tasks. Execute code in multiple languages, manage files and directories, run system commands, and create data visualizations with pre-installed tools like Jupyter, NumPy, Pandas, Matplotlib, and Seaborn.',
+    'zh-CN':
+      '适用于数据分析、可视化和自动化任务。支持多语言代码执行、文件目录管理、系统命令运行，以及使用预装的Jupyter、NumPy、Pandas、Matplotlib、Seaborn等工具创建数据可视化。',
   },
   tools: [
     { name: 'create', descriptionDict: { en: 'Create a sandbox', 'zh-CN': '创建沙箱' } },
@@ -104,10 +105,6 @@ export const ScaleboxToolsetDefinition: ToolsetDefinition = {
         'zh-CN': '通过 CodeInterpreter 运行代码（单次）',
       },
     },
-    {
-      name: 'list',
-      descriptionDict: { en: 'List sandboxes with pagination', 'zh-CN': '分页列出沙箱' },
-    },
   ],
   requiresAuth: true,
   authPatterns: [
@@ -153,12 +150,16 @@ export class ScaleboxCreate extends AgentBaseTool<ScaleboxToolParams> {
 
   schema = z.object({
     type: z.string().describe('Sandbox type, e.g. code-interpreter').default('code-interpreter'),
-    timeoutMs: z.number().describe('Timeout in milliseconds').default(300000),
+    timeoutMs: z
+      .number()
+      .describe('Timeout in milliseconds default is 30 minutes')
+      .default(1800000),
     metadata: z.record(z.any()).describe('Metadata to associate with sandbox').optional(),
     envs: z.record(z.string()).describe('Environment variables').optional(),
   });
 
-  description = 'Create a sandbox using Scalebox SDK';
+  description =
+    'Create a new sandbox environment. This should be your FIRST step when starting any code execution task. Choose appropriate sandbox type (e.g., code-interpreter) and timeout settings.';
   protected params: ScaleboxToolParams;
 
   constructor(params: ScaleboxToolParams) {
@@ -392,9 +393,30 @@ export class ScaleboxFilesRead extends AgentBaseTool<ScaleboxToolParams> {
   name = 'filesRead';
   toolsetKey = ScaleboxToolsetDefinition.key;
 
-  schema = z.object({ sandboxId: z.string(), path: z.string() });
+  schema = z.object({
+    sandboxId: z.string().describe('Sandbox ID'),
+    path: z.string().describe('Path to the file to read'),
+    format: z
+      .enum(['text', 'base64'])
+      .describe('File content format: text (plain text) or base64 (binary files auto-upload)')
+      .default('text')
+      .optional(),
+    user: z.string().describe('Execute as specified user').default('root').optional(),
+    requestTimeoutMs: z.number().describe('Request timeout (milliseconds)').optional(),
+  });
 
-  description = 'Read a file from sandbox';
+  description = `Read file content from sandbox:
+
+- text: Return pure text string content (default)
+- base64: Return base64 encoded data and auto-upload binary files
+
+Support options:
+- user: Specify execution user identity (default is 'root')
+- requestTimeoutMs: Set request timeout (milliseconds)
+
+Usage examples:
+- Read text file: {sandboxId: "xxx", path: "/etc/hostname"}
+- Read binary file: {sandboxId: "xxx", path: "/image.png", format: "base64"}`;
   protected params: ScaleboxToolParams;
 
   constructor(params: ScaleboxToolParams) {
@@ -408,11 +430,75 @@ export class ScaleboxFilesRead extends AgentBaseTool<ScaleboxToolParams> {
       const sbx = await Sandbox.connect(input?.sandboxId ?? '', {
         apiKey: this.params?.apiKey ?? '',
       });
-      const content = await sbx?.files?.read?.(input?.path ?? '');
+
+      const readOpts: any = {};
+
+      // Set user identity
+      if (input?.user && input.user !== 'root') {
+        readOpts.user = input.user;
+      }
+
+      // Set request timeout
+      if (input?.requestTimeoutMs) {
+        readOpts.requestTimeoutMs = input.requestTimeoutMs;
+      }
+
+      // Set format (default is text)
+      if (input?.format === 'base64') {
+        readOpts.format = 'bytes';
+      }
+
+      const content = await sbx?.files?.read?.(input?.path ?? '', readOpts);
+
+      let resultData: any;
+
+      // Handle base64 format with auto-upload
+      if (input?.format === 'base64') {
+        // Auto-upload binary files
+        const entityId = await this.params?.reflyService?.genImageID?.();
+        const filename = `${input.path.split('/').pop() ?? 'file'}`;
+        const hasDataUrlPrefix = typeof content === 'string' && content.startsWith('data:');
+        const base64 = hasDataUrlPrefix
+          ? content
+          : `data:application/octet-stream;base64,${content}`;
+
+        try {
+          const uploaded = await this.params?.reflyService?.uploadBase64?.(this.params?.user, {
+            base64,
+            filename,
+            entityId,
+          });
+
+          if (uploaded) {
+            resultData = {
+              format: 'base64',
+              upload: {
+                storageKey: uploaded.storageKey,
+                url: uploaded.url,
+              },
+              filename,
+            };
+          } else {
+            resultData = {
+              format: 'base64',
+              error: 'Upload failed - no upload result returned',
+            };
+          }
+        } catch (uploadError) {
+          resultData = {
+            format: 'base64',
+            error: uploadError instanceof Error ? uploadError.message : 'Upload failed',
+          };
+        }
+      } else {
+        // Text format - return content directly
+        resultData = { content };
+      }
+
       return {
         status: 'success',
-        data: { content: content ?? '' },
-        summary: 'File read successfully',
+        data: resultData,
+        summary: `File read successfully (format: ${input?.format ?? 'text'})`,
       };
     } catch (error) {
       return {
@@ -444,7 +530,7 @@ export class ScaleboxFilesWrite extends AgentBaseTool<ScaleboxToolParams> {
   });
 
   description =
-    'Write a file to sandbox. Provide content directly, fetch from external URL, or use internal storage key. Path should be an absolute path starting from root (/).';
+    'Write files to the sandbox environment. Use this SECOND in your workflow after creating a sandbox. You can provide content directly, fetch from external URLs, or use internal storage keys. Always use absolute paths starting from root (/). Essential for uploading data files, code files, or any resources needed for code execution.';
   protected params: ScaleboxToolParams;
 
   constructor(params: ScaleboxToolParams) {
@@ -749,7 +835,7 @@ export class ScaleboxRunCode extends AgentBaseTool<ScaleboxToolParams> {
   });
 
   description =
-    'Run code in a specified language using sandbox.runCode. Code execution happens in /workspace directory by default, so use absolute paths for file operations.';
+    'Execute code in the sandbox environment - THIS SHOULD BE YOUR PRIMARY CODE EXECUTION METHOD due to its superior image generation capabilities. Use this THIRD and FINAL step in your workflow after creating sandbox and uploading files. Supports Python, JavaScript, TypeScript, R, Java, Bash, Node.js, and Deno. Automatically handles image outputs (PNG charts, plots, visualizations) and uploads them to canvas. Code executes in /workspace directory by default - use absolute paths for file operations.';
   protected params: ScaleboxToolParams;
 
   constructor(params: ScaleboxToolParams) {
@@ -794,8 +880,6 @@ export class ScaleboxRunCode extends AgentBaseTool<ScaleboxToolParams> {
         }),
       );
 
-      const storageKeys = (uploads ?? []).map((u) => u?.storageKey ?? '').filter((k) => !!k);
-
       // Add uploaded images to canvas as image nodes when canvasId is available
       const parentResultId = config?.configurable?.resultId ?? '';
       if ((uploads?.length ?? 0) > 0) {
@@ -817,6 +901,7 @@ export class ScaleboxRunCode extends AgentBaseTool<ScaleboxToolParams> {
                     title,
                     entityId,
                     metadata: {
+                      resultId: entityId,
                       storageKey,
                       imageUrl: url,
                       parentResultId,
@@ -835,7 +920,7 @@ export class ScaleboxRunCode extends AgentBaseTool<ScaleboxToolParams> {
 
       return {
         status: 'success',
-        data: { logs: { stdout, stderr }, storageKeys },
+        data: { logs: { stdout, stderr }, uploads },
         summary: 'Code executed',
       };
     } catch (error) {
@@ -863,7 +948,12 @@ export class ScaleboxInterpreterRunCode extends AgentBaseTool<ScaleboxToolParams
     cwd: z.string().optional(),
   });
 
-  description = 'Run code using CodeInterpreter (single-shot; no persistent contexts)';
+  description = `Execute code using CodeInterpreter with pre-installed data science environment. 
+    - Perfect for data analysis, visualization, and machine learning tasks. 
+    - Pre-installed packages include: JupyterLab, NumPy, Pandas, Matplotlib, Seaborn, and Scikit-learn. 
+    - Use this as ALTERNATIVE to runCode when you need simpler execution without sandbox management. 
+    - Single-shot execution with no persistent contexts. 
+    - Good for quick data science tasks but lacks the advanced image generation and file management capabilities of runCode.`;
   protected params: ScaleboxToolParams;
 
   constructor(params: ScaleboxToolParams) {
@@ -902,53 +992,6 @@ export class ScaleboxInterpreterRunCode extends AgentBaseTool<ScaleboxToolParams
   }
 }
 
-/**
- * list sandboxes (paginated)
- */
-export class ScaleboxList extends AgentBaseTool<ScaleboxToolParams> {
-  name = 'list';
-  toolsetKey = ScaleboxToolsetDefinition.key;
-
-  schema = z.object({
-    pageLimit: z.number().describe('Max number of pages to fetch').default(1),
-    itemLimit: z.number().describe('Max number of items to fetch').optional(),
-  });
-
-  description = 'List sandboxes with pagination';
-  protected params: ScaleboxToolParams;
-
-  constructor(params: ScaleboxToolParams) {
-    super(params);
-    this.params = params;
-  }
-
-  async _call(input: z.infer<typeof this.schema>): Promise<ToolCallResult> {
-    ensureApiKey(this.params?.apiKey ?? '');
-    try {
-      const paginator = Sandbox.list({ apiKey: this.params.apiKey });
-      const items: any[] = [];
-      let pages = 0;
-      // Iterate with safeguards
-      while ((paginator?.hasNext ?? false) && pages < (input?.pageLimit ?? 1)) {
-        const chunk = (await paginator?.nextItems?.()) ?? [];
-        if (Array.isArray(chunk) && chunk?.length > 0) {
-          const remaining = (input?.itemLimit ?? Number.MAX_SAFE_INTEGER) - items.length;
-          if (remaining <= 0) break;
-          items.push(...chunk.slice(0, remaining));
-        }
-        pages += 1;
-      }
-      return { status: 'success', data: { items }, summary: 'Sandboxes listed' };
-    } catch (error) {
-      return {
-        status: 'error',
-        error: 'Failed to list sandboxes',
-        summary: error instanceof Error ? error.message : 'Unknown error during list',
-      };
-    }
-  }
-}
-
 export class ScaleboxToolset extends AgentBaseToolset<ScaleboxToolParams> {
   toolsetKey = ScaleboxToolsetDefinition.key;
   tools = [
@@ -968,6 +1011,5 @@ export class ScaleboxToolset extends AgentBaseToolset<ScaleboxToolParams> {
     ScaleboxPtyExec,
     ScaleboxRunCode,
     ScaleboxInterpreterRunCode,
-    ScaleboxList,
   ] satisfies readonly AgentToolConstructor<ScaleboxToolParams>[];
 }

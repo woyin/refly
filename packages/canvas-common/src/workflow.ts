@@ -229,7 +229,11 @@ export const prepareNodeExecutions = (params: {
     const children = childMap.get(node.id) || [];
 
     // Set status based on whether the node is in the subtree (computed with original ids) and not a skill node
-    const status = subtreeNodes.has(node.id) && node.type !== 'skill' ? 'waiting' : 'finish';
+    const status =
+      subtreeNodes.has(node.id) &&
+      ['skillResponse', 'document', 'codeArtifact', 'image', 'video', 'audio'].includes(node.type)
+        ? 'waiting'
+        : 'finish';
 
     // Build connection filters based on parent entity IDs
     const connectTo: CanvasNodeFilter[] = parents

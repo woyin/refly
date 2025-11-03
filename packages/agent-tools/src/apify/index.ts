@@ -130,14 +130,6 @@ export const ApifyToolsetDefinition: ToolsetDefinition = {
           '获取 Apify Actor 的详细信息，特别是输入模式（Input Schema）。这是工作流的第二步 - 在使用 searchActors 找到 actor 名称后使用。这将提供运行 Actor 所需的准确输入参数及其类型。',
       },
     },
-    {
-      name: 'getDatasetItems',
-      descriptionDict: {
-        en: 'Retrieve dataset items with pagination, sorting, and field selection. Use clean=true to skip empty items and hidden fields. Include or omit fields using comma-separated lists. For nested objects, first flatten them (e.g., flatten="metadata"), then reference nested fields via dot notation (e.g., fields="metadata.url").',
-        'zh-CN':
-          '使用分页、排序和字段选择检索数据集项目。使用 clean=true 跳过空项目和隐藏字段。使用逗号分隔列表包含或排除字段。对于嵌套对象，首先扁平化它们（例如，flatten="metadata"），然后通过点符号引用嵌套字段（例如，fields="metadata.url"）。',
-      },
-    },
   ],
   requiresAuth: true,
   authPatterns: [
@@ -206,7 +198,65 @@ export class ApifyRunActor extends AgentBaseTool<ApifyToolParams> {
       const run = await client.actor(input.actorId).call(input.input);
 
       // Fetch and return Actor results from the run's dataset
-      const { items } = await client.dataset(run.defaultDatasetId).listItems();
+      const v = await client.dataset(run.defaultDatasetId).listItems();
+
+      if (!v) {
+        return {
+          status: 'error',
+          error: 'Dataset not found',
+          summary: `Dataset '${run.defaultDatasetId}' not found.`,
+        };
+      }
+
+      // Convert dataset items to CSV and upload via Refly service
+      const items = Array.isArray(v?.items) ? (v.items as Record<string, any>[]) : [];
+
+      // Helper to convert items to CSV string
+      const toCsv = (rows: Record<string, any>[]): string => {
+        if (!Array.isArray(rows) || rows.length === 0) {
+          return '';
+        }
+
+        const headers: string[] = [];
+        for (const row of rows) {
+          const keys = Object.keys(row ?? {});
+          for (const key of keys) {
+            if (!headers.includes(key)) headers.push(key);
+          }
+        }
+
+        const escapeValue = (value: unknown): string => {
+          if (value == null) return '';
+          const normalized =
+            typeof value === 'object' ? (JSON.stringify(value) ?? '') : String(value ?? '');
+          const escaped = normalized.replace(/"/g, '""');
+          const needsQuotes = /[",\n\r]/.test(escaped);
+          return needsQuotes ? `"${escaped}"` : escaped;
+        };
+
+        const lines: string[] = [];
+        lines.push(headers.join(','));
+        for (const row of rows) {
+          const values = headers.map((h) => escapeValue((row as Record<string, any>)?.[h]));
+          lines.push(values.join(','));
+        }
+        return lines.join('\n');
+      };
+
+      let storageKey: string | undefined;
+      try {
+        const csv = toCsv(items);
+        const buffer = Buffer.from(csv ?? '', 'utf8');
+        const ts = new Date().toISOString().replace(/[:.]/g, '-');
+        const originalname = `${run.defaultDatasetId}-${ts}.csv`;
+        const uploadRes = await this.params?.reflyService?.uploadFile?.(this.params?.user, {
+          file: { buffer, mimetype: 'text/csv', originalname },
+        });
+        storageKey = uploadRes?.storageKey ?? undefined;
+      } catch {
+        // Ignore upload errors; continue returning the dataset items
+        storageKey = undefined;
+      }
 
       // Calculate credit cost
       const creditCost = calculateCreditCost(run, items.length);
@@ -215,8 +265,7 @@ export class ApifyRunActor extends AgentBaseTool<ApifyToolParams> {
         status: 'success',
         data: {
           run,
-          items,
-          datasetUrl: `https://console.apify.com/storage/datasets/${run.defaultDatasetId}`,
+          storageKey,
         },
         creditCost,
         summary: `Successfully ran Actor "${input.actorId}" and retrieved ${items.length} results`,
@@ -715,6 +764,5 @@ export class ApifyToolset extends AgentBaseToolset<ApifyToolParams> {
     ApifyRunActor,
     ApifySearchActors,
     ApifyFetchActorDetails,
-    ApifyGetDatasetItems,
   ] satisfies readonly AgentToolConstructor<ApifyToolParams>[];
 }

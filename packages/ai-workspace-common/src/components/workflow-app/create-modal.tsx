@@ -1,14 +1,21 @@
 import { memo, useCallback, useEffect, useMemo, useState } from 'react';
 import { Button, Form, Input, message, Modal, Upload, Image, Switch, Spin } from 'antd';
 import { PlusOutlined, LoadingOutlined } from '@ant-design/icons';
-import { useTranslation } from 'react-i18next';
+import { Trans, useTranslation } from 'react-i18next';
 import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
 import { copyToClipboard } from '@refly-packages/ai-workspace-common/utils';
 import { getShareLink } from '@refly-packages/ai-workspace-common/utils/share';
-import { Checked } from 'refly-icons';
+import { ArrowRight, Checked } from 'refly-icons';
 import type { UploadFile, UploadProps } from 'antd/es/upload/interface';
 import { logEvent } from '@refly/telemetry-web';
+import { MultiSelectResult } from './multi-select-result';
+import { SelectedResultsGrid } from './selected-results-grid';
+import BannerSvg from './banner.svg';
+import { useRealtimeCanvasData } from '@refly-packages/ai-workspace-common/hooks/canvas/use-realtime-canvas-data';
+import { CanvasNode } from '@refly/openapi-schema';
+import { useGetCreditUsageByCanvasId } from '../../queries/queries';
+import { calculateCreditEarnings } from '@refly-packages/ai-workspace-common/utils';
 
 interface CreateWorkflowAppModalProps {
   title: string;
@@ -113,28 +120,77 @@ export const CreateWorkflowAppModal = ({
   const [appData, setAppData] = useState<any>(null);
   const [loadingAppData, setLoadingAppData] = useState(false);
 
+  // Run result selection state
+  const [selectedResults, setSelectedResults] = useState<string[]>([]);
+
   const { workflow } = useCanvasContext();
   const { workflowVariables } = workflow ?? {};
+  const { nodes } = useRealtimeCanvasData();
+
+  const skillResponseNodes = nodes.filter((node) => node.type === 'skillResponse');
+
+  // Fetch credit usage data
+  const { data: creditUsageData } = useGetCreditUsageByCanvasId({
+    query: { canvasId },
+  });
+
+  // Calculate credit earnings per run, default to 0
+  const creditEarningsPerRun = useMemo(() => {
+    const total = creditUsageData?.data?.total ?? 0;
+    return calculateCreditEarnings(total);
+  }, [creditUsageData]);
+
+  // Filter nodes by the specified types (similar to result-list logic)
+  const resultNodes: CanvasNode[] = useMemo(() => {
+    if (!nodes?.length) {
+      return [] as unknown as CanvasNode[];
+    }
+
+    return nodes.filter(
+      (node) =>
+        ['document', 'codeArtifact', 'website', 'video', 'audio'].includes(node.type) ||
+        (node.type === 'image' && !!node.data?.metadata?.resultId),
+    ) as unknown as CanvasNode[];
+  }, [nodes]);
+
+  // Use skillResponseNodes if resultNodes is empty
+  const displayNodes: CanvasNode[] = useMemo(() => {
+    if (resultNodes?.length > 0) {
+      return resultNodes;
+    }
+    return skillResponseNodes as unknown as CanvasNode[];
+  }, [resultNodes, skillResponseNodes]);
 
   // Load existing app data
-  const loadAppData = useCallback(async (appId: string) => {
-    if (!appId) return;
+  const loadAppData = useCallback(
+    async (appId: string) => {
+      if (!appId) return;
 
-    setLoadingAppData(true);
-    try {
-      const { data } = await getClient().getWorkflowAppDetail({
-        query: { appId },
-      });
+      setLoadingAppData(true);
+      try {
+        const { data } = await getClient().getWorkflowAppDetail({
+          query: { appId },
+        });
 
-      if (data?.success && data?.data) {
-        setAppData(data.data);
+        if (data?.success && data?.data) {
+          setAppData(data.data);
+
+          // When editing existing app, use saved node IDs
+          const savedNodeIds = data.data?.resultNodeIds ?? [];
+          const validNodeIds =
+            displayNodes?.map((node) => node.id).filter((id): id is string => !!id) ?? [];
+          const intersectedNodeIds = savedNodeIds.filter((id) => validNodeIds.includes(id));
+
+          setSelectedResults(intersectedNodeIds);
+        }
+      } catch (error) {
+        console.error('Failed to load app data:', error);
+      } finally {
+        setLoadingAppData(false);
       }
-    } catch (error) {
-      console.error('Failed to load app data:', error);
-    } finally {
-      setLoadingAppData(false);
-    }
-  }, []);
+    },
+    [displayNodes?.length],
+  );
 
   // Handle cover image upload
   const uploadCoverImage = async (file: File): Promise<string> => {
@@ -249,7 +305,8 @@ export const CreateWorkflowAppModal = ({
           variables: workflowVariables ?? [],
           coverStorageKey,
           remixEnabled,
-        } as any,
+          resultNodeIds: selectedResults,
+        },
       });
 
       const shareId = data?.data?.shareId ?? '';
@@ -339,6 +396,7 @@ export const CreateWorkflowAppModal = ({
         setCoverFileList([]);
         setCoverStorageKey(undefined);
         setAppData(null);
+        setSelectedResults([]);
       }
 
       // Reset preview state
@@ -375,6 +433,18 @@ export const CreateWorkflowAppModal = ({
     }
   }, [appData, visible, title, form]);
 
+  // Auto-select all result nodes when creating a new app or loading existing app
+  useEffect(() => {
+    if (visible) {
+      if (!appId) {
+        // When creating new app, select all display nodes
+        const validNodeIds =
+          displayNodes?.map((node) => node.id).filter((id): id is string => !!id) ?? [];
+        setSelectedResults(validNodeIds);
+      }
+    }
+  }, [visible, appId, displayNodes?.length, appData]);
+
   // Upload button component
   const uploadButton = (
     <div>
@@ -382,6 +452,11 @@ export const CreateWorkflowAppModal = ({
       <div style={{ marginTop: 8 }}>{t('workflowApp.uploadCover')}</div>
     </div>
   );
+
+  // Check if upload is in progress
+  const isUploading = useMemo(() => {
+    return coverUploading || coverFileList.some((file) => file.status === 'uploading');
+  }, [coverUploading, coverFileList]);
 
   return (
     <Modal
@@ -393,6 +468,7 @@ export const CreateWorkflowAppModal = ({
       okText={t('common.confirm')}
       cancelText={t('common.cancel')}
       title={t('workflowApp.publish')}
+      okButtonProps={{ disabled: isUploading }}
     >
       {contextHolder}
       <div className="w-full h-full pt-4 overflow-y-auto">
@@ -402,7 +478,54 @@ export const CreateWorkflowAppModal = ({
           </div>
         ) : (
           <Form form={form}>
+            {/* Revenue Sharing Info Card */}
+            <div className="w-full mb-4">
+              <div
+                className="rounded-lg p-3.5 border border-orange-200/30 bg-cover bg-center bg-no-repeat"
+                style={{
+                  backgroundImage: `url(${BannerSvg})`,
+                }}
+              >
+                <div className="flex flex-col gap-2.5">
+                  {/* Main Title */}
+                  <div className="text-sm font-semibold text-black leading-[1.43]">
+                    {t('workflowApp.revenueSharing.title')}
+                  </div>
+
+                  {/* Bottom Row */}
+                  <div className="flex items-center justify-between">
+                    <div className="text-xs font-semibold text-black/50 leading-[1.67]">
+                      <Trans
+                        i18nKey="workflowApp.revenueSharing.earningsHint"
+                        values={{ creditEarningsPerRun }}
+                        components={{
+                          num: (
+                            <span className="mx-1 text-base font-extrabold text-black leading-none" />
+                          ),
+                        }}
+                      />
+                    </div>
+                    <div
+                      className="flex items-center gap-1 cursor-pointer hover:opacity-80 transition-opacity"
+                      onClick={() =>
+                        window.open(
+                          'https://www.notion.so/reflydoc/Welcome-to-Refly-28cd62ce60718093b830c4b9fc8b22a3',
+                          '_blank',
+                        )
+                      }
+                    >
+                      <span className="text-xs text-black/30 leading-[1.82]">
+                        {t('workflowApp.revenueSharing.howToEarn')}
+                      </span>
+                      <ArrowRight size={12} color="rgba(0, 0, 0, 0.3)" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
             <div className="flex flex-col gap-2">
+              {/* Template Content */}
               {/* Title Field */}
               <div className="flex flex-col gap-2">
                 <label
@@ -424,7 +547,6 @@ export const CreateWorkflowAppModal = ({
                   />
                 </Form.Item>
               </div>
-
               {/* Description Field */}
               <div className="flex flex-col gap-2 mt-5">
                 <div className="flex items-center justify-between">
@@ -444,7 +566,30 @@ export const CreateWorkflowAppModal = ({
                   />
                 </Form.Item>
               </div>
-
+              {/* Run Result */}
+              <div className="flex flex-col gap-2 mt-5">
+                <div className="flex items-center justify-between h-4">
+                  <div className="text-xs font-semibold text-refly-text-0 leading-[1.33]">
+                    {t('workflowApp.runResult')}
+                  </div>
+                  <MultiSelectResult
+                    selectedResults={selectedResults}
+                    onSelectionChange={setSelectedResults}
+                    options={displayNodes}
+                  />
+                </div>
+                <div
+                  className="w-full rounded-lg border border-solid p-3 bg-[#FBFBFB] dark:bg-[#1E1E1E]"
+                  style={{
+                    borderColor: 'var(--refly-Card-Border)',
+                  }}
+                >
+                  <SelectedResultsGrid
+                    selectedResults={selectedResults}
+                    options={displayNodes as unknown as CanvasNode[]}
+                  />
+                </div>
+              </div>
               {/* Remix Settings */}
               <div className="flex flex-col gap-2 mt-5">
                 <div className="flex items-center justify-between">
@@ -460,7 +605,6 @@ export const CreateWorkflowAppModal = ({
                 </div>
                 <div className="text-xs text-refly-text-2">{t('workflowApp.remixHint')}</div>
               </div>
-
               {/* Cover Image Upload */}
               <div className="flex flex-col gap-2 mt-5">
                 <div className="text-xs font-semibold text-refly-text-0 leading-[1.33]">

@@ -303,9 +303,6 @@ const RichChatInputComponent = forwardRef<RichChatInputRef, RichChatInputProps>(
       setIsMentionListVisible,
     ]);
 
-    // Create Tiptap editor
-    const internalUpdateRef = useRef(false);
-
     // Keyboard shortcut: Alt+Cmd+V (Mac) or Alt+Ctrl+V (Windows) to trigger variable extraction
     const selectedSkillNodeId = useStore(
       useShallow((state: any) => {
@@ -361,7 +358,6 @@ const RichChatInputComponent = forwardRef<RichChatInputRef, RichChatInputProps>(
         onUpdate: ({ editor }) => {
           const content = serializeDocToTokens(editor?.state?.doc);
           // Keep raw text in state for UX; content is already serialized with mentions
-          internalUpdateRef.current = true;
           setQuery(content);
         },
         onFocus: () => {
@@ -405,14 +401,11 @@ const RichChatInputComponent = forwardRef<RichChatInputRef, RichChatInputProps>(
       }
     }, [editor, setQuery, handleSendMessage, serializeDocToTokens]);
 
+    const isSyncedExternalQuery = useRef(false);
+
     // Update editor content when query changes externally
     useEffect(() => {
-      if (!editor) return;
-      if (internalUpdateRef.current) {
-        // Skip applying content when the change originated from editor updates
-        internalUpdateRef.current = false;
-        return;
-      }
+      if (!editor || isSyncedExternalQuery.current) return;
       const currentText = serializeDocToTokens(editor?.state?.doc);
       const nextText = query ?? '';
       if (currentText !== nextText) {
@@ -431,10 +424,8 @@ const RichChatInputComponent = forwardRef<RichChatInputRef, RichChatInputProps>(
               },
             ],
           } as any;
-          internalUpdateRef.current = true;
           editor.commands.setContent(jsonDoc);
         } else {
-          internalUpdateRef.current = true;
           editor.commands.setContent(nextText);
         }
 
@@ -446,7 +437,8 @@ const RichChatInputComponent = forwardRef<RichChatInputRef, RichChatInputProps>(
           editor.commands.setTextSelection({ from: clampedFrom, to: clampedTo });
         }
       }
-    }, [query, editor, workflowVariables, allItems]);
+      isSyncedExternalQuery.current = true;
+    }, [query, editor, workflowVariables, allItems, isSyncedExternalQuery]);
 
     // Additional effect to re-render content when canvas data becomes available
     useEffect(() => {
@@ -488,7 +480,6 @@ const RichChatInputComponent = forwardRef<RichChatInputRef, RichChatInputProps>(
           // Preserve full selection range
           const prevFrom = editor.state?.selection?.from ?? null;
           const prevTo = editor.state?.selection?.to ?? null;
-          internalUpdateRef.current = true;
           editor.commands.setContent(jsonDoc);
 
           if (prevFrom !== null && prevTo !== null) {

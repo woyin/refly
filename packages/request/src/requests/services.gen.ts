@@ -364,6 +364,15 @@ import type {
   GetCreditUsageResponse2,
   GetCreditBalanceError,
   GetCreditBalanceResponse,
+  GetCreditUsageByResultIdData,
+  GetCreditUsageByResultIdError,
+  GetCreditUsageByResultIdResponse2,
+  GetCreditUsageByExecutionIdData,
+  GetCreditUsageByExecutionIdError,
+  GetCreditUsageByExecutionIdResponse2,
+  GetCreditUsageByCanvasIdData,
+  GetCreditUsageByCanvasIdError,
+  GetCreditUsageByCanvasIdResponse2,
   GetSubscriptionPlansError,
   GetSubscriptionPlansResponse2,
   GetSubscriptionUsageError,
@@ -434,6 +443,15 @@ import type {
   DeleteToolsetData,
   DeleteToolsetError,
   DeleteToolsetResponse,
+  AuthorizeComposioConnectionData,
+  AuthorizeComposioConnectionError,
+  AuthorizeComposioConnectionResponse,
+  RevokeComposioConnectionData,
+  RevokeComposioConnectionError,
+  RevokeComposioConnectionResponse,
+  GetComposioConnectionStatusData,
+  GetComposioConnectionStatusError,
+  GetComposioConnectionStatusResponse,
   ScrapeData,
   ScrapeError,
   ScrapeResponse,
@@ -2407,6 +2425,57 @@ export const getCreditBalance = <ThrowOnError extends boolean = false>(
 };
 
 /**
+ * Get credit usage by result ID
+ * Get credit usage by result ID
+ */
+export const getCreditUsageByResultId = <ThrowOnError extends boolean = false>(
+  options: Options<GetCreditUsageByResultIdData, ThrowOnError>,
+) => {
+  return (options?.client ?? client).get<
+    GetCreditUsageByResultIdResponse2,
+    GetCreditUsageByResultIdError,
+    ThrowOnError
+  >({
+    ...options,
+    url: '/credit/result',
+  });
+};
+
+/**
+ * Get credit usage by execution ID
+ * Get credit usage by execution ID
+ */
+export const getCreditUsageByExecutionId = <ThrowOnError extends boolean = false>(
+  options: Options<GetCreditUsageByExecutionIdData, ThrowOnError>,
+) => {
+  return (options?.client ?? client).get<
+    GetCreditUsageByExecutionIdResponse2,
+    GetCreditUsageByExecutionIdError,
+    ThrowOnError
+  >({
+    ...options,
+    url: '/credit/execution',
+  });
+};
+
+/**
+ * Get credit usage by canvas ID
+ * Get credit usage by canvas ID
+ */
+export const getCreditUsageByCanvasId = <ThrowOnError extends boolean = false>(
+  options: Options<GetCreditUsageByCanvasIdData, ThrowOnError>,
+) => {
+  return (options?.client ?? client).get<
+    GetCreditUsageByCanvasIdResponse2,
+    GetCreditUsageByCanvasIdError,
+    ThrowOnError
+  >({
+    ...options,
+    url: '/credit/canvas',
+  });
+};
+
+/**
  * Get subscription plans
  * Get subscription plans
  */
@@ -2796,6 +2865,57 @@ export const deleteToolset = <ThrowOnError extends boolean = false>(
   return (options?.client ?? client).post<DeleteToolsetResponse, DeleteToolsetError, ThrowOnError>({
     ...options,
     url: '/tool/toolset/delete',
+  });
+};
+
+/**
+ * Authorize Composio connection
+ * Generate an OAuth authorization URL for a Composio integration.
+ */
+export const authorizeComposioConnection = <ThrowOnError extends boolean = false>(
+  options: Options<AuthorizeComposioConnectionData, ThrowOnError>,
+) => {
+  return (options?.client ?? client).post<
+    AuthorizeComposioConnectionResponse,
+    AuthorizeComposioConnectionError,
+    ThrowOnError
+  >({
+    ...options,
+    url: '/tool/composio/{app}/authorize',
+  });
+};
+
+/**
+ * Revoke Composio connection
+ * Revoke a user's Composio connection and reset OAuth state.
+ */
+export const revokeComposioConnection = <ThrowOnError extends boolean = false>(
+  options: Options<RevokeComposioConnectionData, ThrowOnError>,
+) => {
+  return (options?.client ?? client).post<
+    RevokeComposioConnectionResponse,
+    RevokeComposioConnectionError,
+    ThrowOnError
+  >({
+    ...options,
+    url: '/tool/composio/{app}/revoke',
+  });
+};
+
+/**
+ * Get Composio connection status
+ * Query the current Composio connection status for a user by app slug.
+ */
+export const getComposioConnectionStatus = <ThrowOnError extends boolean = false>(
+  options: Options<GetComposioConnectionStatusData, ThrowOnError>,
+) => {
+  return (options?.client ?? client).get<
+    GetComposioConnectionStatusResponse,
+    GetComposioConnectionStatusError,
+    ThrowOnError
+  >({
+    ...options,
+    url: '/tool/composio/{app}/status',
   });
 };
 

@@ -3005,6 +3005,70 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/getCreditBalanceResponse'
+
+  /credit/result:
+    get:
+      tags:
+        - credit
+      summary: Get credit usage by result ID
+      description: Get credit usage by result ID
+      operationId: getCreditUsageByResultId
+      parameters:
+        - name: resultId
+          in: query
+          description: Result ID
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetCreditUsageByResultIdResponse'
+  /credit/execution:
+    get:
+      tags:
+        - credit
+      summary: Get credit usage by execution ID
+      description: Get credit usage by execution ID
+      operationId: getCreditUsageByExecutionId
+      parameters:
+        - name: executionId
+          in: query
+          description: Execution ID
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetCreditUsageByExecutionIdResponse'
+  /credit/canvas:
+    get:
+      tags:
+        - credit
+      summary: Get credit usage by canvas ID
+      description: Get credit usage by canvas ID
+      operationId: getCreditUsageByCanvasId
+      parameters:
+        - name: canvasId
+          in: query
+          description: Canvas ID
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetCreditUsageByCanvasIdResponse'
   /subscription/plans:
     get:
       tags:
@@ -3516,6 +3580,71 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/BaseResponse'
+  /tool/composio/{app}/authorize:
+    post:
+      tags:
+        - v1/tool/composio
+      summary: Authorize Composio connection
+      description: Generate an OAuth authorization URL for a Composio integration.
+      operationId: authorizeComposioConnection
+      parameters:
+        - name: app
+          in: path
+          required: true
+          description: Composio app slug (e.g., gmail, slack).
+          schema:
+            type: string
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InitiateComposioConnectionResponse'
+  /tool/composio/{app}/revoke:
+    post:
+      tags:
+        - v1/tool/composio
+      summary: Revoke Composio connection
+      description: Revoke a user's Composio connection and reset OAuth state.
+      operationId: revokeComposioConnection
+      parameters:
+        - name: app
+          in: path
+          required: true
+          description: Composio app slug (e.g., gmail, slack).
+          schema:
+            type: string
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ComposioRevokeResponse'
+        '404':
+          description: connection not found
+  /tool/composio/{app}/status:
+    get:
+      tags:
+        - v1/tool/composio
+      summary: Get Composio connection status
+      description: Query the current Composio connection status for a user by app slug.
+      operationId: getComposioConnectionStatus
+      parameters:
+        - name: app
+          in: path
+          required: true
+          description: Composio app slug (e.g., gmail, slack).
+          schema:
+            type: string
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ComposioConnectionStatusResponse'
   /misc/scrape:
     post:
       tags:
@@ -7045,6 +7174,9 @@ components:
         coverStorageKey:
           type: string
           description: Cover storage key
+        creditUsage:
+          type: number
+          description: Credit usage
     CreateShareResponse:
       allOf:
         - $ref: '#/components/schemas/BaseResponse'
@@ -8167,6 +8299,57 @@ components:
                 creditAmount:
                   type: number
                   description: Credit amount
+    GetCreditUsageByResultIdResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            data:
+              type: object
+              description: Credit usage by result ID
+              properties:
+                total:
+                  type: number
+                  description: Total credit usage by result ID
+                usages:
+                  type: array
+                  description: Credit usage list by result ID
+                  items:
+                    $ref: '#/components/schemas/CreditUsage'
+    GetCreditUsageByExecutionIdResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            data:
+              type: object
+              description: Credit usage by execution ID
+              properties:
+                total:
+                  type: number
+                  description: Total credit usage by execution ID
+                usages:
+                  type: array
+                  description: Credit usage list by execution ID
+                  items:
+                    $ref: '#/components/schemas/CreditUsage'
+    GetCreditUsageByCanvasIdResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            data:
+              type: object
+              description: Credit usage by canvas ID
+              properties:
+                total:
+                  type: number
+                  description: Total credit usage by canvas ID
+                usages:
+                  type: array
+                  description: Credit usage list by canvas ID
+                  items:
+                    $ref: '#/components/schemas/CreditUsage'
     SubscriptionPlan:
       type: object
       properties:
@@ -9424,11 +9607,62 @@ components:
           properties:
             data:
               $ref: '#/components/schemas/ToolsetInstance'
+    InitiateComposioConnectionResponse:
+      type: object
+      required:
+        - redirectUrl
+        - connectionRequestId
+        - app
+      properties:
+        redirectUrl:
+          type: string
+          format: uri
+          description: OAuth redirect URL provided by Composio.
+        connectionRequestId:
+          type: string
+          description: Connection request identifier from Composio.
+        app:
+          type: string
+          description: Composio app slug (e.g., gmail, slack).
+    ComposioConnectionStatus:
+      type: string
+      description: Current status of the Composio connection.
+      enum:
+        - active
+        - revoked
+    ComposioConnectionStatusResponse:
+      type: object
+      required:
+        - status
+        - integrationId
+      properties:
+        status:
+          $ref: '#/components/schemas/ComposioConnectionStatus'
+        connectedAccountId:
+          type: string
+          nullable: true
+          description: Connected account identifier returned by Composio, if available.
+        integrationId:
+          type: string
+          description: Composio integration identifier (app slug).
+    ComposioRevokeResponse:
+      type: object
+      required:
+        - success
+        - message
+      properties:
+        success:
+          type: boolean
+          description: Whether the connection was revoked successfully.
+        message:
+          type: string
+          description: Human-readable message describing the outcome.
     GenericToolsetType:
       type: string
       enum:
         - regular
         - mcp
+        - external_oauth
     GenericToolset:
       type: object
       required:
@@ -9775,9 +10009,18 @@ components:
           description: Workflow app variables
           items:
             $ref: '#/components/schemas/WorkflowVariable'
+        resultNodeIds:
+          type: array
+          description: Result node IDs
+          items:
+            type: string
         coverStorageKey:
           type: string
           description: Cover image storage key
+        remixEnabled:
+          type: boolean
+          description: Whether remix is enabled for this app
+
     DeleteWorkflowAppRequest:
       type: object
       required:
@@ -9819,6 +10062,14 @@ components:
           description: Workflow app variables
           items:
             $ref: '#/components/schemas/WorkflowVariable'
+        resultNodeIds:
+          type: array
+          description: Result node IDs
+          items:
+            type: string
+        remixEnabled:
+          type: boolean
+          description: Whether remix is enabled for this app
         coverUrl:
           type: string
           description: Cover image URL

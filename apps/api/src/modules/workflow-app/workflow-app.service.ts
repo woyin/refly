@@ -20,6 +20,7 @@ import { ShareNotFoundError, WorkflowAppNotFoundError } from '@refly/errors';
 import { ToolService } from '../tool/tool.service';
 import { VariableExtractionService } from '../variable-extraction/variable-extraction.service';
 import { ResponseNodeMeta } from '@refly/canvas-common';
+import { CreditService } from '../credit/credit.service';
 
 /**
  * Structure of shared workflow app data
@@ -48,12 +49,14 @@ export class WorkflowAppService {
     private readonly shareCreationService: ShareCreationService,
     private readonly toolService: ToolService,
     private readonly variableExtractionService: VariableExtractionService,
+    private readonly creditService: CreditService,
   ) {}
 
   async createWorkflowApp(user: User, body: CreateWorkflowAppRequest) {
     const { canvasId, title, query, variables, description } = body;
     const coverStorageKey = (body as any).coverStorageKey;
     const remixEnabled = (body as any).remixEnabled ?? false;
+    const resultNodeIds = (body as any).resultNodeIds ?? [];
 
     const existingWorkflowApp = await this.prisma.workflowApp.findFirst({
       where: { canvasId, uid: user.uid, deletedAt: null },
@@ -70,6 +73,8 @@ export class WorkflowAppService {
     }
 
     const canvasData = await this.canvasService.getCanvasRawData(user, canvasId);
+
+    const creditUsage = await this.creditService.countCanvasCreditUsage(user, canvasData);
 
     if (title) {
       canvasData.title = title;
@@ -117,6 +122,7 @@ export class WorkflowAppService {
           coverStorageKey: coverStorageKey as any,
           templateContent: null,
           remixEnabled,
+          resultNodeIds,
           updatedAt: new Date(),
         },
       });
@@ -134,6 +140,7 @@ export class WorkflowAppService {
           coverStorageKey: coverStorageKey as any,
           templateContent: null,
           remixEnabled,
+          resultNodeIds,
         },
       });
     }
@@ -146,6 +153,7 @@ export class WorkflowAppService {
         title: canvasData.title,
         parentShareId: null,
         allowDuplication: true,
+        creditUsage,
       });
 
       // Update WorkflowApp record with shareId

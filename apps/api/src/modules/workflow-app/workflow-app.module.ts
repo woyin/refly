@@ -8,7 +8,7 @@ import { WorkflowModule } from '../workflow/workflow.module';
 import { ShareModule } from '../share/share.module';
 import { ToolModule } from '../tool/tool.module';
 import { VariableExtractionModule } from '../variable-extraction/variable-extraction.module';
-
+import { CreditModule } from '../credit/credit.module';
 @Module({
   imports: [
     CommonModule,
@@ -18,6 +18,7 @@ import { VariableExtractionModule } from '../variable-extraction/variable-extrac
     ShareModule,
     ToolModule,
     VariableExtractionModule,
+    CreditModule,
   ],
   controllers: [WorkflowAppController],
   providers: [WorkflowAppService],

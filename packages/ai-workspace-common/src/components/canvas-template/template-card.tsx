@@ -1,6 +1,5 @@
 import { useUserStoreShallow, useAuthStoreShallow } from '@refly/stores';
 import { logEvent } from '@refly/telemetry-web';
-import { useNavigate } from 'react-router-dom';
 import { useDuplicateCanvas } from '@refly-packages/ai-workspace-common/hooks/use-duplicate-canvas';
 import { CanvasTemplate } from '@refly/openapi-schema';
 import { IoPersonOutline } from 'react-icons/io5';
@@ -30,7 +29,6 @@ export const TemplateCard = ({ template, className, showUser = true }: TemplateC
   const { setLoginModalOpen } = useAuthStoreShallow((state) => ({
     setLoginModalOpen: state.setLoginModalOpen,
   }));
-  const navigate = useNavigate();
 
   const handlePreview = useCallback(
     (e: React.MouseEvent<HTMLDivElement>) => {
@@ -42,11 +40,11 @@ export const TemplateCard = ({ template, className, showUser = true }: TemplateC
 
       if (template.shareId) {
         setModalVisible(false);
-        navigate(`/app/${template.shareId}`);
+        window.open(`/app/${template.shareId}`, '_blank');
         return;
       }
     },
-    [template, navigate, setModalVisible],
+    [template, setModalVisible],
   );
 
   const handleUse = useCallback(
