@@ -1152,7 +1152,7 @@ const translations = {
       mediaSkillResponse: '媒体技能响应',
       video: '视频',
       audio: '音频',
-      start: '开始',
+      start: '用户输入',
       documentSelection: '文档选中内容',
       resourceSelection: '资源选中内容',
       skillResponseSelection: '技能响应选中内容',
