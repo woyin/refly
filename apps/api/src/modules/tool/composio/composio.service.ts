@@ -1,13 +1,13 @@
 import { Composio, ToolExecuteResponse } from '@composio/core';
+import { JSONSchemaToZod } from '@dmitryrechkin/json-schema-to-zod';
 import { DynamicStructuredTool, type StructuredToolInterface } from '@langchain/core/tools';
+import { InjectQueue } from '@nestjs/bullmq';
 import { Injectable, Logger, NotFoundException, Optional } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { InjectQueue } from '@nestjs/bullmq';
-import { Queue } from 'bullmq';
 import { ComposioConnectionStatus, GenericToolset, User } from '@refly/openapi-schema';
-import { PrismaService } from '../../common/prisma.service';
-import { JSONSchemaToZod } from '@dmitryrechkin/json-schema-to-zod';
+import { Queue } from 'bullmq';
 import { QUEUE_SYNC_TOOL_CREDIT_USAGE } from '../../../utils/const';
+import { PrismaService } from '../../common/prisma.service';
 import { SyncToolCreditUsageJobData } from '../../credit/credit.dto';
 
 @Injectable()
@@ -27,8 +27,9 @@ export class ComposioService {
       const message =
         'COMPOSIO_API_KEY is not configured. Set the environment variable to enable Composio integration.';
       this.logger.error(message);
+    } else {
+      this.composio = new Composio({ apiKey });
     }
-    this.composio = new Composio({ apiKey });
   }
 
   /**
@@ -167,7 +168,6 @@ export class ComposioService {
     });
     return tools;
   }
-
   /**
    * Execute a tool via toolName
    * @param user - The user objectoc
@@ -304,7 +304,21 @@ export class ComposioService {
       const tools = await this.fetchOAuthTools(user, integrationId);
       // Convert to LangChain DynamicStructuredTool
       const langchainTools = tools
-        .filter((tool) => tool?.function?.name) // Filter out invalid tools
+        .filter((tool) => {
+          const fn = tool?.function;
+          if (!fn?.name) return false;
+          // Skip deprecated tools
+          const description = fn?.description ?? tool?.description ?? '';
+          if (/deprecated/i.test(description)) {
+            return false;
+          }
+          const params = (fn.parameters ?? {}) as Record<string, any>;
+          const properties = params?.properties ?? {};
+          const deprecatedProps = Object.keys(properties)
+            .map((key) => (properties[key]?.deprecated ? key : null))
+            .filter(Boolean);
+          return deprecatedProps.length === 0;
+        })
         .map((tool) => {
           const fn = tool.function;
           const toolName = fn?.name ?? 'unknown_tool';

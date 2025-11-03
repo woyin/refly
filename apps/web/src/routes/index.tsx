@@ -16,7 +16,6 @@ import {
   WorkflowAppPage,
   WorkflowListPage,
   AppManager,
-  OAuthCallbackPage,
 } from '@refly/web-core';
 
 import type { RouteObject } from 'react-router-dom';
@@ -85,9 +84,5 @@ export const RoutesList: RouteObject[] = [
   {
     path: '/app-manager',
     element: <AppManager />,
-  },
-  {
-    path: '/oauth/callback',
-    element: <OAuthCallbackPage />,
   },
 ];
