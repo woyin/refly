@@ -55,6 +55,9 @@ export class CopilotService {
       where: {
         copilotSessionId: sessionId,
       },
+      orderBy: {
+        createdAt: 'asc',
+      },
     });
     const actionDetails = await this.actionService.batchProcessActionResults(user, results);
 

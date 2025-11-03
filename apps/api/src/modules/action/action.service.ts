@@ -72,16 +72,23 @@ export class ActionService {
   }
 
   async batchProcessActionResults(user: User, results: ActionResult[]): Promise<ActionDetail[]> {
-    // Group results by resultId and keep only the latest version for each
+    // Group results by resultId and keep only the latest version for each, maintaining input order
     const latestResultsMap = new Map<string, ActionResult>();
+    const orderedResultIds: string[] = [];
+
     for (const result of results) {
       const existing = latestResultsMap.get(result.resultId);
       if (!existing || (result.version ?? 0) > (existing.version ?? 0)) {
         latestResultsMap.set(result.resultId, result);
+        // Only add to ordered list if this is the first time we encounter this resultId
+        if (!existing) {
+          orderedResultIds.push(result.resultId);
+        }
       }
     }
 
-    const filteredResults = Array.from(latestResultsMap.values());
+    // Get filtered results in the order they first appeared in the input
+    const filteredResults = orderedResultIds.map((resultId) => latestResultsMap.get(resultId));
 
     // If no results found, return empty array
     if (!filteredResults.length) {
