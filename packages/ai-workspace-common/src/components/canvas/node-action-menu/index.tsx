@@ -2,20 +2,8 @@ import { Button, Divider } from 'antd';
 import { useTranslation } from 'react-i18next';
 import { FC, useCallback, useMemo, useEffect, useState, useRef } from 'react';
 import { useReactFlow } from '@xyflow/react';
-import { IconPreview } from '@refly-packages/ai-workspace-common/components/common/icon';
-import { useCanvasStoreShallow } from '@refly/stores';
 import { CanvasNode } from '@refly/canvas-common';
-import {
-  Edit,
-  AddContext,
-  Fullscreen,
-  InputContext,
-  SubNode,
-  Delete,
-  AiChat,
-  AutoLayout,
-  Group,
-} from 'refly-icons';
+import { Edit, AddContext, InputContext, Delete, AiChat } from 'refly-icons';
 import { Ungroup, ChevronDown } from 'lucide-react';
 import { locateToNodePreviewEmitter } from '@refly-packages/ai-workspace-common/events/locateToNodePreview';
 import {
@@ -66,9 +54,6 @@ export const NodeActionMenu: FC<NodeActionMenuProps> = ({
   const { t } = useTranslation();
   const { getNode } = useReactFlow();
   const { canvasId } = useCanvasContext();
-  const { setShowPreview } = useCanvasStoreShallow((state) => ({
-    setShowPreview: state.setShowPreview,
-  }));
   const { previewNode } = useNodePreviewControl({ canvasId });
 
   const { activeDocumentId } = useDocumentStoreShallow((state) => ({
@@ -86,9 +71,6 @@ export const NodeActionMenu: FC<NodeActionMenuProps> = ({
     setLocalSizeMode(nodeData?.metadata?.sizeMode || 'adaptive');
   }, [nodeData?.metadata?.sizeMode]);
 
-  const { nodePreviews } = useCanvasStoreShallow((state) => ({
-    nodePreviews: state.config[canvasId]?.nodePreviews ?? [],
-  }));
   const { ungroupNodes } = useUngroupNodes();
 
   const handleAskAI = useCallback(() => {
@@ -122,21 +104,6 @@ export const NodeActionMenu: FC<NodeActionMenuProps> = ({
     });
     onClose?.();
   }, [node, nodeId, canvasId, onClose, previewNode]);
-
-  const handleFullScreenPreview = useCallback(() => {
-    setShowPreview(true);
-    const isPreviewOpen = nodePreviews?.some((preview) => preview.id === nodeId);
-
-    if (!isPreviewOpen) {
-      previewNode(node);
-    }
-
-    requestAnimationFrame(() => {
-      nodeActionEmitter.emit(createNodeEventName(nodeId, 'fullScreenPreview'));
-    });
-
-    onClose?.();
-  }, [node, nodeId, canvasId, onClose, previewNode, nodeType, nodePreviews]);
 
   const handleUngroup = useCallback(() => {
     ungroupNodes(nodeId);
@@ -232,27 +199,6 @@ export const NodeActionMenu: FC<NodeActionMenuProps> = ({
           : []),
       ];
 
-      const operationItems: MenuItem[] = [
-        ...(nodeType !== 'image'
-          ? [
-              {
-                key: 'preview',
-                icon: IconPreview,
-                label: t('canvas.nodeActions.preview'),
-                onClick: handlePreview,
-                type: 'button' as const,
-              },
-            ]
-          : []),
-        {
-          key: 'fullScreen',
-          icon: Fullscreen,
-          label: t('canvas.nodeActions.fullScreen'),
-          onClick: handleFullScreenPreview,
-          type: 'button' as const,
-        },
-      ];
-
       const nodeTypeItems: Record<string, MenuItem[]> = {
         memo: [
           {
@@ -298,51 +244,9 @@ export const NodeActionMenu: FC<NodeActionMenuProps> = ({
         ].filter(Boolean),
       };
 
-      const clusterItems: MenuItem[] = [
-        { key: 'divider-cluster', type: 'divider' as const } as MenuItem,
-        {
-          key: 'selectCluster',
-          icon: SubNode,
-          label: t('canvas.nodeActions.selectCluster'),
-          onClick: handleSelectCluster,
-          type: 'button' as const,
-        },
-        {
-          key: 'groupCluster',
-          icon: Group,
-          label: t('canvas.nodeActions.groupCluster'),
-          onClick: handleGroupCluster,
-          type: 'button' as const,
-        },
-        {
-          key: 'layoutCluster',
-          icon: AutoLayout,
-          label: t('canvas.nodeActions.layoutCluster'),
-          onClick: handleLayoutCluster,
-          type: 'button' as const,
-        },
-        ...(nodeType === 'group'
-          ? [{ key: 'divider-cluster-2', type: 'divider' as const } as MenuItem]
-          : []),
-        ...(nodeType === 'group'
-          ? [
-              {
-                key: 'delete',
-                icon: Delete,
-                label: t('canvas.nodeActions.delete'),
-                onClick: handleDelete,
-                danger: true,
-                type: 'button' as const,
-              },
-            ]
-          : []),
-      ];
-
       return [
         ...(nodeType !== 'skill' ? commonItems : []),
-        ...(!['memo', 'skill', 'group', 'image'].includes(nodeType) ? operationItems : []),
         ...(nodeTypeItems[nodeType] || []),
-        ...(!['memo', 'skill', 'image'].includes(nodeType) ? clusterItems : []),
       ].filter(Boolean);
     },
     [
