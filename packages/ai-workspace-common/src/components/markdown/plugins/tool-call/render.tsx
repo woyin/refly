@@ -5,6 +5,7 @@ import { MarkdownMode } from '../../types';
 import { ToolCallStatus, parseToolCallStatus } from './types';
 import { CopilotWorkflowPlan } from '@refly-packages/ai-workspace-common/components/markdown/plugins/tool-call/copilot-workflow-plan';
 import { WorkflowPlan } from '@refly/canvas-common';
+import { safeParseJSON } from '@refly/utils/parse';
 
 // SVG icons for the component
 const ExecutingIcon = () => (
@@ -98,8 +99,8 @@ const ToolCall: React.FC<ToolCallProps> = (props) => {
 
   const isCopilotGenerateWorkflow = toolsetKey === 'copilot' && toolName === 'generate_workflow';
   if (isCopilotGenerateWorkflow) {
-    const argsStr = props['data-tool-arguments'] || '{}';
-    const structuredArgs = JSON.parse(JSON.parse(argsStr).input) as WorkflowPlan;
+    const resultStr = props['data-tool-result'] || '{}';
+    const structuredArgs = safeParseJSON(resultStr)?.data as WorkflowPlan;
     return <CopilotWorkflowPlan data={structuredArgs} />;
   }
 

@@ -43,15 +43,58 @@ export const workflowPlanSchema = z.object({
   variables: z
     .array(
       z.object({
+        variableId: z.string().describe('Variable ID, unique and readonly'),
+        variableType: z
+          .literal('string')
+          .describe('Variable type (currently only string is supported)'),
         name: z.string().describe('Variable name used in the workflow'),
-        type: z.string().describe('Data type of the variable (e.g., string, number, boolean)'),
         description: z.string().describe('Description of what this variable represents'),
+        value: z
+          .array(z.object({ type: z.literal('text'), text: z.string() }))
+          .describe('Variable values'),
       }),
     )
     .describe('Array of variables defined for the workflow'),
 });
 
 export type WorkflowPlan = z.infer<typeof workflowPlanSchema>;
+
+export const normalizeWorkflowPlan = (plan: WorkflowPlan): WorkflowPlan => {
+  return {
+    ...plan,
+    tasks:
+      plan.tasks?.map((task) => {
+        // Ensure toolsets array exists
+        const toolsets = Array.isArray(task.toolsets) ? [...task.toolsets] : [];
+
+        // Check if task has products
+        if (Array.isArray(task.products) && task.products.length > 0) {
+          // Get product types for this task
+          const productTypes = new Set<string>();
+          for (const productId of task.products) {
+            const product = plan.products?.find((p) => p.id === productId);
+            if (product?.type) {
+              productTypes.add(product.type);
+            }
+          }
+
+          // Add required toolsets based on product types
+          if (productTypes.has('document') && !toolsets.includes('generate_doc')) {
+            toolsets.push('generate_doc');
+          }
+
+          if (productTypes.has('codeArtifact') && !toolsets.includes('generate_code_artifact')) {
+            toolsets.push('generate_code_artifact');
+          }
+        }
+
+        return {
+          ...task,
+          toolsets,
+        };
+      }) ?? [],
+  };
+};
 
 // Generate canvas data from workflow plan
 // 1. each task should be represented as a 'skillResponse' node

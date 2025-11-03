@@ -29,6 +29,14 @@ export const buildWorkflowCopilotPrompt = (params: { installedToolsets: GenericT
 5. Call the "generate_workflow" tool with the complete plan structure
 6. **After calling "generate_workflow", do not provide detailed workflow descriptions** - just briefly acknowledge that the workflow has been generated and let the workflow itself do the execution
 
+### When Request Needs Clarification
+Instead of using an unavailable tool, ask clarifying questions using natural language:
+1. Ask about the workflow's main objectives and expected outcomes
+2. Clarify what final products should be delivered to the user
+3. Ask about dependencies between tasks
+4. Confirm what tools should be used for each task
+5. Once you have sufficient information, generate the workflow
+
 ### When User Provides Modifications to Existing Workflow
 When the user provides feedback or requests changes to a previously generated workflow:
 1. Analyze the user's modification requirements carefully
@@ -41,14 +49,6 @@ When the user provides feedback or requests changes to a previously generated wo
 3. Regenerate the complete workflow plan incorporating all changes
 4. **IMPORTANT: Must call "generate_workflow" again with the updated plan** - do not just describe changes
 5. Provide a clear summary of what was changed and how the updated workflow addresses the user's feedback
-
-### When Request Needs Clarification
-Instead of using an unavailable tool, ask clarifying questions using natural language:
-1. Ask about the workflow's main objectives and expected outcomes
-2. Clarify what final products should be delivered to the user
-3. Ask about dependencies between tasks
-4. Confirm what tools should be used for each task
-5. Once you have sufficient information, generate the workflow
 
 ## Workflow Plan Structure
 
@@ -98,9 +98,11 @@ Each product should have:
 
 ### 3. variables (Array of workflow variables)
 Each variable should have:
-- **name**: Variable identifier used in task prompts
-- **type**: Data type (string | number | boolean | array | object)
-- **description**: What the variable represents
+- **variableId**: Variable ID, unique and readonly
+- **variableType**: Variable type (currently only string is supported)
+- **name**: Variable name used in the workflow
+- **description**: Description of what this variable represents
+- **value**: Variable values, currently only text is supported
 
 **Variable Usage:**
 - Variables enhance workflow reusability and flexibility
@@ -208,14 +210,28 @@ When users request changes to a workflow they've already seen:
   ],
   "variables": [
     {
+      "variableId": "var-1",
+      "variableType": "string",
       "name": "companyName",
-      "type": "string",
-      "description": "Name of the company to analyze"
+      "description": "Name of the company to analyze",
+      "value": [
+        {
+          "type": "text",
+          "text": "Apple"
+        }
+      ]
     },
     {
+      "variableId": "var-2",
+      "variableType": "string",
       "name": "analysisAspect",
-      "type": "string",
-      "description": "Specific aspect to focus on (e.g., financial performance, market strategy, innovation)"
+      "description": "Specific aspect to focus on (e.g., financial performance, market strategy, innovation)",
+      "value": [
+        {
+          "type": "text",
+          "text": "financial performance"
+        }
+      ]
     }
   ]
 }
@@ -279,14 +295,28 @@ When users request changes to a workflow they've already seen:
   ],
   "variables": [
     {
+      "variableId": "var-1",
+      "variableType": "string",
       "name": "topicName",
-      "type": "string",
-      "description": "The technical topic to write about"
+      "description": "The technical topic to write about",
+      "value": [
+        {
+          "type": "text",
+          "text": "React"
+        }
+      ]
     },
     {
+      "variableId": "var-2",
+      "variableType": "string",
       "name": "toneStyle",
-      "type": "string",
-      "description": "Writing tone (e.g., professional, casual, tutorial-style)"
+      "description": "Writing tone (e.g., professional, casual, tutorial-style)",
+      "value": [
+        {
+          "type": "text",
+          "text": "professional"
+        }
+      ]
     }
   ]
 }
@@ -319,12 +349,5 @@ When selecting toolsets for tasks:
 - Copy the exact ID into the toolsets array
 - Never use toolset names or keys, always use the ID
 - Verify that the tools you select match the tools referenced in the task prompt
-
-### 3. Do Not Provide Detailed Workflow Descriptions After Calling generate_workflow
-After successfully calling the "generate_workflow" tool:
-- **Do NOT describe the workflow structure, tasks, or products in detail**
-- Do NOT explain what each task will do or how they connect
-- Only provide a brief acknowledgment that the workflow has been generated
-- Let the workflow execution handle the actual work
-- This keeps the conversation focused on execution rather than repetitive explanations  `;
+`;
 };

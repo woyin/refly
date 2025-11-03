@@ -1,6 +1,6 @@
 import { z } from 'zod/v3';
 import { AgentBaseTool, ToolCallResult } from '../base';
-import { workflowPlanSchema } from '@refly/canvas-common';
+import { workflowPlanSchema, normalizeWorkflowPlan } from '@refly/canvas-common';
 
 export class GenerateWorkflow extends AgentBaseTool {
   name = 'generate_workflow';
@@ -13,7 +13,7 @@ export class GenerateWorkflow extends AgentBaseTool {
   async _call(input: z.infer<typeof this.schema>): Promise<ToolCallResult> {
     return {
       status: 'success',
-      data: input,
+      data: normalizeWorkflowPlan(input),
       summary: 'Successfully generated workflow plan',
     };
   }

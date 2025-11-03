@@ -12,10 +12,11 @@ import { useTranslation } from 'react-i18next';
 import { Greeting } from './greeting';
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
 import { safeParseJSON } from '@refly/utils/parse';
-import { generateCanvasDataFromWorkflowPlan } from '@refly/canvas-common';
+import { generateCanvasDataFromWorkflowPlan, WorkflowPlan } from '@refly/canvas-common';
 import { useInitializeWorkflow } from '@refly-packages/ai-workspace-common/hooks/use-initialize-workflow';
 import { useReactFlow } from '@xyflow/react';
 import { useDeleteNode } from '@refly-packages/ai-workspace-common/hooks/canvas';
+import { useVariablesManagement } from '@refly-packages/ai-workspace-common/hooks/use-variables-management';
 
 interface SessionDetailProps {
   sessionId: string;
@@ -76,26 +77,20 @@ const CopilotMessage = memo(({ result, isFinal }: CopilotMessageProps) => {
   const workflowPlan = useMemo(() => {
     const toolCalls = steps?.[0]?.toolCalls ?? [];
     const workflowPlanToolCall = toolCalls.find((call) => call.toolName === 'generate_workflow');
-    console.log('workflowPlanToolCall', workflowPlanToolCall);
-    if (!workflowPlanToolCall?.input) {
+    const output = workflowPlanToolCall?.output;
+
+    if (!output) {
       return null;
     }
 
     // Handle different input formats
-    if (typeof workflowPlanToolCall.input === 'string') {
-      return safeParseJSON(workflowPlanToolCall.input);
-    }
-
-    // If input is an object, check if it has an 'input' property that needs parsing
-    if (typeof workflowPlanToolCall.input === 'object' && 'input' in workflowPlanToolCall.input) {
-      return safeParseJSON(workflowPlanToolCall.input.input);
+    if (typeof output === 'string') {
+      return safeParseJSON(output);
     }
 
     // If input is already the parsed object
-    return workflowPlanToolCall.input;
+    return (output as { data: WorkflowPlan })?.data;
   }, [steps]);
-
-  console.log('workflowPlan', workflowPlan);
 
   const { canvasId, forceSyncState } = useCanvasContext();
   const [isLoading, setIsLoading] = useState(false);
@@ -114,6 +109,7 @@ const CopilotMessage = memo(({ result, isFinal }: CopilotMessageProps) => {
   });
 
   const { getNodes } = useReactFlow();
+  const { refetch: refetchVariables } = useVariablesManagement(canvasId);
 
   const handleApproveAndRun = useCallback(async () => {
     if (!workflowPlan) {
@@ -166,6 +162,7 @@ const CopilotMessage = memo(({ result, isFinal }: CopilotMessageProps) => {
         nodeBehavior: 'create',
         variables: workflowPlan.variables,
       });
+      refetchVariables();
     } finally {
       setIsLoading(false);
     }
