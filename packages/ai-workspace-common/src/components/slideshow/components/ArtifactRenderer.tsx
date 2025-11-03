@@ -179,7 +179,7 @@ const ArtifactRenderer = memo(
             </div>
           ) : (
             <div
-              className={`flex-1 ${isFullscreen ? 'h-[calc(100vh-100px)]' : ''} overflow-${rendererType === 'document' ? 'auto' : 'hidden'}`}
+              className={`flex-1 ${isFullscreen ? 'h-[calc(100vh-100px)]' : ''} overflow-${rendererType === 'document' ? 'auto' : 'auto'}`}
             >
               {status === 'generating' ? (
                 <div className="flex h-full w-full items-center justify-center">

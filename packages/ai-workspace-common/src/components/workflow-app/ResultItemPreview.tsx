@@ -2,7 +2,6 @@ import { memo, useState, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { CanvasNode } from '@refly/canvas-common';
 import { PreviewComponent } from '@refly-packages/ai-workspace-common/components/canvas/node-preview';
-import { Markdown } from '@refly-packages/ai-workspace-common/components/markdown';
 import { Play } from 'refly-icons';
 import AudioBgSvg from './audioBg.svg';
 import ViewSvg from './view.svg';
@@ -15,22 +14,6 @@ import { NodeRelation } from '@refly-packages/ai-workspace-common/components/sli
 import { Modal } from 'antd';
 import { CloseCircleOutlined } from '@ant-design/icons';
 import { NodeRenderer } from '@refly-packages/ai-workspace-common/components/slideshow/components/NodeRenderer';
-
-// Document preview component
-const DocumentPreview = memo(
-  ({ node }: { node: CanvasNode; onViewClick?: (nodeId: string) => void }) => {
-    return (
-      <div className="w-full h-full relative overflow-hidden">
-        <Markdown
-          content={node.data?.contentPreview || ''}
-          className="text-xs p-2 h-full overflow-hidden text-refly-text-0"
-        />
-      </div>
-    );
-  },
-);
-
-DocumentPreview.displayName = 'DocumentPreview';
 
 // Image preview component
 const ImagePreview = memo(
