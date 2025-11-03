@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect, useRef } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { Button, Empty, Skeleton, Tooltip, Popover, Divider } from 'antd';
 import type { PopoverProps } from 'antd';
 import { useTranslation } from 'react-i18next';
@@ -56,20 +56,6 @@ export const ToolSelectorPopover: React.FC<ToolsetSelectorPopoverProps> = ({
 
   const loading = isLoading || isRefetching;
   const toolsets = data?.data || [];
-  const builtinToolsets = toolsets?.filter((toolset) => toolset?.builtin) ?? [];
-
-  // Ensure builtin toolsets are initialized exactly once when no selection is provided
-  const hasInitializedBuiltinToolsets = useRef(false);
-  useEffect(() => {
-    if (hasInitializedBuiltinToolsets.current) return;
-    const hasNoSelection = !(selectedToolsets?.length ?? 0);
-    const hasBuiltin = (builtinToolsets?.length ?? 0) > 0;
-    if (hasNoSelection && hasBuiltin) {
-      onSelectedToolsetsChange?.(builtinToolsets);
-      setSelectedToolsets?.(builtinToolsets);
-    }
-    hasInitializedBuiltinToolsets.current = true;
-  }, [selectedToolsets, builtinToolsets, onSelectedToolsetsChange, setSelectedToolsets]);
 
   useEffect(() => {
     if (selectedToolsets?.length && toolsets?.length) {
@@ -87,7 +73,6 @@ export const ToolSelectorPopover: React.FC<ToolsetSelectorPopoverProps> = ({
 
   const handleToolSelect = useCallback(
     (toolset: GenericToolset) => {
-      hasInitializedBuiltinToolsets.current = true;
       const newSelectedToolsets = selectedToolsetIds.has(toolset.id)
         ? (selectedToolsets?.filter((t) => t.id !== toolset.id) ?? [])
         : [
