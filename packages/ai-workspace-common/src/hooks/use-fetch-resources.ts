@@ -3,6 +3,9 @@ import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/ca
 import { useListResources } from '@refly-packages/ai-workspace-common/queries/queries';
 import { useGetProjectCanvasId } from './use-get-project-canvasId';
 
+// later optimize to support page scroll
+const DEFAULT_PAGE_SIZE = 100;
+
 export const useFetchResources = () => {
   const { canvasId, shareData, shareLoading } = useCanvasContext();
   const { projectId } = useGetProjectCanvasId();
@@ -18,6 +21,7 @@ export const useFetchResources = () => {
       query: {
         canvasId,
         projectId,
+        pageSize: DEFAULT_PAGE_SIZE,
       },
     },
     [],
