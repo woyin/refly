@@ -3,7 +3,6 @@ import { Dropdown, DropdownProps, MenuProps } from 'antd';
 import { ArrowDown } from 'refly-icons';
 import { useTranslation } from 'react-i18next';
 import './index.scss';
-import { Logo } from '@refly-packages/ai-workspace-common/components/common/logo';
 import { cn } from '@refly/utils/cn';
 import { useNavigate } from 'react-router-dom';
 import { useDuplicateCanvas } from '@refly-packages/ai-workspace-common/hooks/use-duplicate-canvas';
@@ -12,6 +11,7 @@ import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/ca
 import { useCanvasLayout } from '@refly-packages/ai-workspace-common/hooks/canvas/use-canvas-layout';
 import { useOnViewportChange, useReactFlow } from '@xyflow/react';
 import { reflyEnv } from '@refly/utils/env';
+import { Home } from 'refly-icons';
 
 interface MenuItemLabelProps {
   icon?: React.ReactNode;
@@ -311,7 +311,7 @@ export const ActionsInCanvasDropdown = memo((props: ActionsInCanvasDropdownProps
           { 'bg-refly-tertiary-hover': popupVisible },
         )}
       >
-        <Logo textProps={{ show: false }} logoProps={{ show: true, className: '!w-5 !h-5' }} />
+        <Home size={20} />
         <ArrowDown size={10} />
       </div>
     </Dropdown>
