@@ -157,6 +157,7 @@ export const generateCanvasDataFromWorkflowPlan = (
         position: { x: taskStartX, y: taskIndex * rowStepY },
         data: {
           title: taskTitle,
+          editedTitle: taskTitle,
           entityId: taskEntityId,
           contentPreview: '',
           metadata: {
