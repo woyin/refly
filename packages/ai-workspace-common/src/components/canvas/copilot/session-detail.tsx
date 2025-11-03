@@ -1,12 +1,12 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import cn from 'classnames';
-import { Skeleton, Divider, Button } from 'antd';
+import { Skeleton, Divider, Button, Modal } from 'antd';
 import {
   useGetCopilotSessionDetail,
   useListTools,
 } from '@refly-packages/ai-workspace-common/queries';
 import { useActionResultStoreShallow, useCopilotStoreShallow } from '@refly/stores';
-import { ActionResult } from '@refly/openapi-schema';
+import { ActionResult, CanvasNode } from '@refly/openapi-schema';
 import { Markdown } from '@refly-packages/ai-workspace-common/components/markdown';
 import { useTranslation } from 'react-i18next';
 import { Greeting } from './greeting';
@@ -14,6 +14,8 @@ import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/ca
 import { safeParseJSON } from '@refly/utils/parse';
 import { generateCanvasDataFromWorkflowPlan } from '@refly/canvas-common';
 import { useInitializeWorkflow } from '@refly-packages/ai-workspace-common/hooks/use-initialize-workflow';
+import { useReactFlow } from '@xyflow/react';
+import { useDeleteNode } from '@refly-packages/ai-workspace-common/hooks/canvas';
 
 interface SessionDetailProps {
   sessionId: string;
@@ -95,26 +97,66 @@ const CopilotMessage = memo(({ result, isFinal }: CopilotMessageProps) => {
 
   console.log('workflowPlan', workflowPlan);
 
-  const { canvasId } = useCanvasContext();
+  const { canvasId, forceSyncState } = useCanvasContext();
   const [isLoading, setIsLoading] = useState(false);
   const { t } = useTranslation();
+  const [modal, contextHolder] = Modal.useModal();
 
   const isThinking = useMemo(() => {
     return ['waiting', 'executing'].includes(status ?? '') && !content;
   }, [status, content]);
 
   const { initializeWorkflow } = useInitializeWorkflow();
+  const { deleteNodes } = useDeleteNode();
 
   const { data: tools } = useListTools({ query: { enabled: true } }, undefined, {
     enabled: !!canvasId,
   });
+
+  const { getNodes } = useReactFlow();
 
   const handleApproveAndRun = useCallback(async () => {
     if (!workflowPlan) {
       return;
     }
 
+    // Check current canvas nodes
+    const currentNodes = getNodes() as CanvasNode[];
+    const startNodes = currentNodes.filter((node) => node.type === 'start');
+    const skillNodes = currentNodes.filter((node) => node.type === 'skill');
+
+    // Check if canvas only contains one start node or one start node + one skill node with empty contentPreview
+    const shouldSkipConfirmation =
+      (currentNodes.length === 1 && startNodes.length === 1) ||
+      (currentNodes.length === 2 &&
+        startNodes.length === 1 &&
+        skillNodes.length === 1 &&
+        !skillNodes[0]?.data?.contentPreview);
+
+    if (!shouldSkipConfirmation) {
+      // Show confirmation modal
+      const confirmed = await new Promise<boolean>((resolve) => {
+        modal.confirm({
+          title: t('copilot.sessionDetail.confirmClearCanvas.title'),
+          content: t('copilot.sessionDetail.confirmClearCanvas.content'),
+          okText: t('copilot.sessionDetail.confirmClearCanvas.confirm'),
+          cancelText: t('copilot.sessionDetail.confirmClearCanvas.cancel'),
+          centered: true,
+          onOk: () => resolve(true),
+          onCancel: () => resolve(false),
+        });
+      });
+
+      if (!confirmed) {
+        return;
+      }
+    }
+
     setIsLoading(true);
+
+    deleteNodes(currentNodes.filter((node) => node.type !== 'start'));
+    await forceSyncState();
+
     const canvasData = generateCanvasDataFromWorkflowPlan(workflowPlan, tools?.data ?? []);
 
     try {
@@ -122,12 +164,12 @@ const CopilotMessage = memo(({ result, isFinal }: CopilotMessageProps) => {
         canvasId: canvasId,
         sourceCanvasData: canvasData,
         nodeBehavior: 'create',
-        // variables: workflowPlan.variables,
+        variables: workflowPlan.variables,
       });
     } finally {
       setIsLoading(false);
     }
-  }, [canvasId, workflowPlan, tools?.data]);
+  }, [canvasId, workflowPlan, tools?.data, getNodes, t]);
 
   return (
     <div className="flex flex-col gap-4">
@@ -153,6 +195,7 @@ const CopilotMessage = memo(({ result, isFinal }: CopilotMessageProps) => {
         </div>
       )}
       {!isFinal && <Divider type="horizontal" className="my-[10px] bg-refly-Card-Border h-[1px]" />}
+      {contextHolder}
     </div>
   );
 });
@@ -189,8 +232,6 @@ export const SessionDetail = memo(({ sessionId, setQuery }: SessionDetailProps) 
       enabled: sessionId && !createdCopilotSessionIds[sessionId],
     },
   );
-
-  console.log('SessionDetail data', data);
 
   useEffect(() => {
     if (data) {
