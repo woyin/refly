@@ -1,4 +1,4 @@
-import { memo, useState, useRef } from 'react';
+import { memo, useState, useRef, useCallback, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { CanvasNode } from '@refly/canvas-common';
 import { PreviewComponent } from '@refly-packages/ai-workspace-common/components/canvas/node-preview';
@@ -15,6 +15,26 @@ import { Modal } from 'antd';
 import { CloseCircleOutlined } from '@ant-design/icons';
 import { NodeRenderer } from '@refly-packages/ai-workspace-common/components/slideshow/components/NodeRenderer';
 
+// Global media manager to stop all playing media
+const mediaManager = {
+  stopFunctions: new Set<() => void>(),
+  register: (stopFn: () => void) => {
+    mediaManager.stopFunctions.add(stopFn);
+    return () => {
+      mediaManager.stopFunctions.delete(stopFn);
+    };
+  },
+  stopAll: () => {
+    for (const stopFn of mediaManager.stopFunctions) {
+      try {
+        stopFn();
+      } catch (error) {
+        console.error('Error stopping media:', error);
+      }
+    }
+  },
+};
+
 // Image preview component
 const ImagePreview = memo(
   ({
@@ -23,8 +43,13 @@ const ImagePreview = memo(
   }: { node: CanvasNode; onViewClick?: (nodeId: string) => void; inModal?: boolean }) => {
     const { t } = useTranslation();
 
+    const handleClick = useCallback(() => {
+      // Stop all playing media when clicking on image
+      mediaManager.stopAll();
+    }, []);
+
     return (
-      <div className="w-full h-full relative overflow-hidden">
+      <div className="w-full h-full relative overflow-hidden" onClick={handleClick}>
         <img
           src={node.data?.metadata?.imageUrl as string}
           alt={node.data?.title || t('common.untitled')}
@@ -48,13 +73,33 @@ const VideoPreview = memo(
     const [progress, setProgress] = useState(0);
     const videoRef = useRef<HTMLVideoElement>(null);
 
-    const handleVideoClick = () => {
+    // Register stop function with media manager
+    useEffect(() => {
+      const stopVideo = () => {
+        if (videoRef.current) {
+          videoRef.current.pause();
+          setIsPlaying(false);
+          setProgress(0);
+        }
+      };
+
+      const unregister = mediaManager.register(stopVideo);
+      return unregister;
+    }, []);
+
+    const handleVideoClick = (e: React.MouseEvent) => {
+      e.stopPropagation();
       if (videoRef.current) {
         if (isPlaying) {
+          // If playing, just pause it
           videoRef.current.pause();
           setIsPlaying(false);
         } else {
-          videoRef.current.play();
+          // If not playing, stop all other media first, then play this one
+          mediaManager.stopAll();
+          videoRef.current.play().catch((error) => {
+            console.error('Error playing video:', error);
+          });
           setIsPlaying(true);
         }
       }
@@ -76,6 +121,7 @@ const VideoPreview = memo(
         className="w-full h-full relative overflow-hidden group flex items-center justify-center"
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
+        onClick={handleVideoClick}
       >
         <video
           ref={videoRef}
@@ -83,7 +129,6 @@ const VideoPreview = memo(
           className={`w-full h-full ${inModal ? 'object-contain' : 'object-cover'}`}
           muted
           preload="metadata"
-          onClick={handleVideoClick}
           onEnded={handleVideoEnd}
           onTimeUpdate={handleTimeUpdate}
         />
@@ -138,13 +183,33 @@ const AudioPreview = memo(
     const [progress, setProgress] = useState(0);
     const audioRef = useRef<HTMLAudioElement>(null);
 
-    const handleAudioClick = () => {
+    // Register stop function with media manager
+    useEffect(() => {
+      const stopAudio = () => {
+        if (audioRef.current) {
+          audioRef.current.pause();
+          setIsPlaying(false);
+          setProgress(0);
+        }
+      };
+
+      const unregister = mediaManager.register(stopAudio);
+      return unregister;
+    }, []);
+
+    const handleAudioClick = (e: React.MouseEvent) => {
+      e.stopPropagation();
       if (audioRef.current) {
         if (isPlaying) {
+          // If playing, just pause it
           audioRef.current.pause();
           setIsPlaying(false);
         } else {
-          audioRef.current.play();
+          // If not playing, stop all other media first, then play this one
+          mediaManager.stopAll();
+          audioRef.current.play().catch((error) => {
+            console.error('Error playing audio:', error);
+          });
           setIsPlaying(true);
         }
       }
@@ -232,8 +297,13 @@ AudioPreview.displayName = 'AudioPreview';
 // Default preview component without view overlay (handled by parent)
 const DefaultPreview = memo(
   ({ node }: { node: CanvasNode; onViewClick?: (nodeId: string) => void }) => {
+    const handleClick = useCallback(() => {
+      // Stop all playing media when clicking on default preview
+      mediaManager.stopAll();
+    }, []);
+
     return (
-      <div className="w-full h-full relative">
+      <div className="w-full h-full relative" onClick={handleClick}>
         <PreviewComponent node={node} purePreview={true} />
       </div>
     );
@@ -277,12 +347,24 @@ export const ResultItemPreview = memo(
       content = <DefaultPreview node={node} />;
     }
 
+    // Stop all media when modal opens or closes
+    useEffect(() => {
+      // Stop all playing media when modal state changes (both open and close)
+      mediaManager.stopAll();
+    }, [wideModeOpen]);
+
     // 宽屏弹窗开关
     const handleWideModeOpen = (e: React.MouseEvent) => {
       e.stopPropagation();
+      // Stop all playing media when opening modal
+      mediaManager.stopAll();
       setWideModeOpen(true);
     };
-    const handleWideModeClose = () => setWideModeOpen(false);
+    const handleWideModeClose = () => {
+      // Stop all playing media when closing modal
+      mediaManager.stopAll();
+      setWideModeOpen(false);
+    };
 
     return (
       <>
