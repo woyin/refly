@@ -65,6 +65,36 @@ describe('generateCanvasDataFromWorkflowPlan', () => {
     expect(taskNode.data?.metadata?.contextItems).toEqual([]);
   });
 
+  it('should populate contextItems with dependent tasks and products', () => {
+    const planProducts = [{ id: 'prod-1', type: 'document', title: 'Document Product' }];
+    const task1 = createTask('task-1', 'Task 1', 'Prompt 1', {
+      products: ['prod-1'],
+    });
+    const task2 = createTask('task-2', 'Task 2', 'Prompt 2', {
+      dependentTasks: ['task-1'],
+      dependentProducts: ['prod-1'],
+    });
+
+    const workflowPlan = createWorkflowPlan([task1, task2], planProducts);
+    const result = generateCanvasDataFromWorkflowPlan(workflowPlan, []);
+
+    expect(result.nodes).toHaveLength(3); // 2 tasks + 1 product
+
+    const task2Node = result.nodes.find((n) => n.data?.title === 'Task 2');
+    expect(task2Node).toBeDefined();
+    expect(task2Node?.data?.metadata?.contextItems).toHaveLength(2); // 1 task + 1 product
+
+    const contextItems = task2Node?.data?.metadata?.contextItems as any[];
+    expect(contextItems).toContainEqual({
+      entityId: expect.any(String),
+      type: 'skillResponse',
+    });
+    expect(contextItems).toContainEqual({
+      entityId: expect.any(String),
+      type: 'document',
+    });
+  });
+
   it('should create task nodes with toolsets metadata', () => {
     const toolsets = createToolsets([
       { id: 'toolset1', name: 'Toolset 1', selectedTools: ['tool1', 'tool2'] },

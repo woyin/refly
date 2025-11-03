@@ -1,6 +1,7 @@
 import { z } from 'zod/v3';
 import { GenericToolset, RawCanvasData } from '@refly/openapi-schema';
 import { genNodeEntityId, genNodeID, genUniqueId } from '@refly/utils';
+import { IContextItem } from '@refly/common-types';
 
 export const workflowPlanSchema = z.object({
   tasks: z
@@ -22,7 +23,7 @@ export const workflowPlanSchema = z.object({
           .optional()
           .describe('Products from previous tasks that should be consumed by this task'),
         toolsets: z
-          .array(z.string().describe('Toolset key'))
+          .array(z.string().describe('Toolset ID'))
           .describe('Toolsets selected for this task'),
       }),
     )
@@ -69,6 +70,7 @@ export const generateCanvasDataFromWorkflowPlan = (
   const taskIdToNodeId = new Map<string, string>();
   const productIdToNodeId = new Map<string, string>();
   const taskIdToEntityId = new Map<string, string>();
+  const productIdToEntityId = new Map<string, string>();
 
   // Simple layout positions
   const taskStartX = 0;
@@ -77,17 +79,20 @@ export const generateCanvasDataFromWorkflowPlan = (
   const productStepY = 180;
 
   if (Array.isArray(workflowPlan.tasks)) {
+    // Phase 1: Create all task and product nodes, establish mappings
     workflowPlan.tasks.forEach((task, taskIndex) => {
       const taskId = task?.id ?? `task-${taskIndex}`;
       const taskTitle = task?.title ?? '';
       const taskPrompt = task?.prompt ?? '';
 
-      // Build selected toolsets metadata from task toolset keys
+      // Build selected toolsets metadata from task toolset ids
       const selectedToolsets = [];
       if (Array.isArray(task.toolsets)) {
-        for (const toolsetKey of task.toolsets) {
+        for (const toolsetId of task.toolsets) {
           // Find the corresponding toolset from the available toolsets
-          const toolset = toolsets?.find((t) => t.id === toolsetKey);
+          const toolset =
+            toolsets?.find((t) => t.id === toolsetId) ||
+            toolsets?.find((t) => t.toolset?.key === toolsetId);
           if (toolset) {
             selectedToolsets.push({
               type: toolset.type,
@@ -100,7 +105,7 @@ export const generateCanvasDataFromWorkflowPlan = (
         }
       }
 
-      // Create task node (skillResponse)
+      // Create task node (skillResponse) with empty contextItems for now
       const taskNodeId = genNodeID();
       const taskEntityId = genNodeEntityId('skillResponse');
       const taskNode = {
@@ -114,7 +119,7 @@ export const generateCanvasDataFromWorkflowPlan = (
           metadata: {
             structuredData: { query: taskPrompt },
             selectedToolsets,
-            contextItems: [],
+            contextItems: [], // Will be populated in phase 2
           },
         },
       };
@@ -122,36 +127,6 @@ export const generateCanvasDataFromWorkflowPlan = (
       nodes.push(taskNode);
       taskIdToNodeId.set(taskId, taskNodeId);
       taskIdToEntityId.set(taskId, taskEntityId);
-
-      // Create edges from dependent tasks to this task
-      if (Array.isArray(task.dependentTasks)) {
-        for (const dependentTaskId of task.dependentTasks) {
-          const sourceNodeId = taskIdToNodeId.get(dependentTaskId);
-          if (sourceNodeId) {
-            edges.push({
-              id: `edge-${genUniqueId()}`,
-              source: sourceNodeId,
-              target: taskNodeId,
-              type: 'default',
-            });
-          }
-        }
-      }
-
-      // Create edges from dependent products to this task
-      if (Array.isArray(task.dependentProducts)) {
-        for (const dependentProductId of task.dependentProducts) {
-          const sourceNodeId = productIdToNodeId.get(dependentProductId);
-          if (sourceNodeId) {
-            edges.push({
-              id: `edge-${genUniqueId()}`,
-              source: sourceNodeId,
-              target: taskNodeId,
-              type: 'default',
-            });
-          }
-        }
-      }
 
       // Create product nodes and connect from task node
       if (Array.isArray(task.products) && task.products.length > 0) {
@@ -185,6 +160,7 @@ export const generateCanvasDataFromWorkflowPlan = (
 
           nodes.push(productNode);
           productIdToNodeId.set(productId, productNodeId);
+          productIdToEntityId.set(productId, productEntityId);
 
           edges.push({
             id: `edge-${genUniqueId()}`,
@@ -193,6 +169,84 @@ export const generateCanvasDataFromWorkflowPlan = (
             type: 'default',
           });
         });
+      }
+    });
+
+    // Phase 2: Update task nodes with proper contextItems and create dependency edges
+    workflowPlan.tasks.forEach((task, taskIndex) => {
+      const taskId = task?.id ?? `task-${taskIndex}`;
+      const taskNodeId = taskIdToNodeId.get(taskId);
+      const taskEntityId = taskIdToEntityId.get(taskId);
+
+      if (!taskNodeId || !taskEntityId) return;
+
+      // Build context items from dependent tasks and products
+      const contextItems: IContextItem[] = [];
+
+      // Add dependent tasks to context items
+      if (Array.isArray(task.dependentTasks)) {
+        for (const dependentTaskId of task.dependentTasks) {
+          const dependentEntityId = taskIdToEntityId.get(dependentTaskId);
+          if (dependentEntityId) {
+            contextItems.push({
+              entityId: dependentEntityId,
+              type: 'skillResponse',
+            });
+          }
+        }
+      }
+
+      // Add dependent products to context items
+      if (Array.isArray(task.dependentProducts)) {
+        for (const dependentProductId of task.dependentProducts) {
+          const dependentEntityId = productIdToEntityId.get(dependentProductId);
+          if (dependentEntityId) {
+            // Find the product definition to get its type
+            const productDef = workflowPlan.products?.find((p) => p.id === dependentProductId);
+            if (productDef) {
+              contextItems.push({
+                entityId: dependentEntityId,
+                type: productDef.type as any,
+              });
+            }
+          }
+        }
+      }
+
+      // Update the task node's contextItems
+      const taskNode = nodes.find((n) => n.id === taskNodeId);
+      if (taskNode?.data?.metadata) {
+        taskNode.data.metadata.contextItems = contextItems;
+      }
+
+      // Create edges from dependent tasks to this task
+      if (Array.isArray(task.dependentTasks)) {
+        for (const dependentTaskId of task.dependentTasks) {
+          const sourceNodeId = taskIdToNodeId.get(dependentTaskId);
+          if (sourceNodeId) {
+            edges.push({
+              id: `edge-${genUniqueId()}`,
+              source: sourceNodeId,
+              target: taskNodeId,
+              type: 'default',
+            });
+          }
+        }
+      }
+
+      // Create edges from dependent products to this task
+      if (Array.isArray(task.dependentProducts)) {
+        for (const dependentProductId of task.dependentProducts) {
+          const sourceNodeId = productIdToNodeId.get(dependentProductId);
+          if (sourceNodeId) {
+            edges.push({
+              id: `edge-${genUniqueId()}`,
+              source: sourceNodeId,
+              target: taskNodeId,
+              type: 'default',
+            });
+          }
+        }
       }
     });
   }

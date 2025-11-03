@@ -328,7 +328,10 @@ export class Agent extends BaseSkill {
     const module: SkillPromptModule = {
       buildSystemPrompt:
         mode === 'copilot_agent'
-          ? () => buildWorkflowCopilotPrompt({ installedTools: config.configurable.installedTools })
+          ? () =>
+              buildWorkflowCopilotPrompt({
+                installedToolsets: config.configurable.installedToolsets,
+              })
           : toolsAvailable
             ? () => buildSystemPrompt(iTools, locale)
             : commonQnA.buildCommonQnASystemPrompt,
