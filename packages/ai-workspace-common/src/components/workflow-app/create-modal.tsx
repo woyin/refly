@@ -453,6 +453,11 @@ export const CreateWorkflowAppModal = ({
     </div>
   );
 
+  // Check if upload is in progress
+  const isUploading = useMemo(() => {
+    return coverUploading || coverFileList.some((file) => file.status === 'uploading');
+  }, [coverUploading, coverFileList]);
+
   return (
     <Modal
       centered
@@ -463,6 +468,7 @@ export const CreateWorkflowAppModal = ({
       okText={t('common.confirm')}
       cancelText={t('common.cancel')}
       title={t('workflowApp.publish')}
+      okButtonProps={{ disabled: isUploading }}
     >
       {contextHolder}
       <div className="w-full h-full pt-4 overflow-y-auto">

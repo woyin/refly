@@ -74,7 +74,12 @@ const WorkflowAppPage: React.FC = () => {
   const { refetchUsage } = useSubscriptionUsage();
 
   // Use shareId to directly access static JSON file
-  const { data: workflowApp, loading: isLoading } = useFetchShareData(shareId);
+  const { data: workflowApp, loading: isLoading } = useFetchShareData(shareId, {
+    cache: 'no-store',
+    headers: {
+      'Cache-Control': 'no-store',
+    },
+  });
 
   // Track enter_template_page event when page loads
   useEffect(() => {
