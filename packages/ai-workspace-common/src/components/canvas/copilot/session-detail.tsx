@@ -184,7 +184,7 @@ const CopilotMessage = memo(({ result, isFinal }: CopilotMessageProps) => {
       ) : (
         <Markdown content={content} mode="readonly" />
       )}
-      {workflowPlan && (
+      {workflowPlan && status === 'finish' && (
         <div className="mt-1">
           <Button type="primary" onClick={handleApproveAndRun} loading={isLoading}>
             {t('copilot.sessionDetail.approveAndRun')}
