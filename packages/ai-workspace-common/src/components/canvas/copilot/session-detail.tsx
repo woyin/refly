@@ -1,7 +1,10 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import cn from 'classnames';
 import { Skeleton, Divider, Button } from 'antd';
-import { useGetCopilotSessionDetail } from '@refly-packages/ai-workspace-common/queries';
+import {
+  useGetCopilotSessionDetail,
+  useListTools,
+} from '@refly-packages/ai-workspace-common/queries';
 import { useActionResultStoreShallow, useCopilotStoreShallow } from '@refly/stores';
 import { ActionResult } from '@refly/openapi-schema';
 import { Markdown } from '@refly-packages/ai-workspace-common/components/markdown';
@@ -102,13 +105,17 @@ const CopilotMessage = memo(({ result, isFinal }: CopilotMessageProps) => {
 
   const { initializeWorkflow } = useInitializeWorkflow();
 
+  const { data: tools } = useListTools({ query: { enabled: true } }, undefined, {
+    enabled: !!canvasId,
+  });
+
   const handleApproveAndRun = useCallback(async () => {
     if (!workflowPlan) {
       return;
     }
 
     setIsLoading(true);
-    const canvasData = generateCanvasDataFromWorkflowPlan(workflowPlan);
+    const canvasData = generateCanvasDataFromWorkflowPlan(workflowPlan, tools?.data ?? []);
 
     try {
       await initializeWorkflow({
@@ -120,7 +127,7 @@ const CopilotMessage = memo(({ result, isFinal }: CopilotMessageProps) => {
     } finally {
       setIsLoading(false);
     }
-  }, [canvasId, workflowPlan]);
+  }, [canvasId, workflowPlan, tools?.data]);
 
   return (
     <div className="flex flex-col gap-4">

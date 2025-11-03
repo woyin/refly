@@ -497,13 +497,13 @@ export class CanvasSyncService {
     options?: { autoLayout?: boolean },
   ) {
     const releaseLock = await this.lockState(canvasId);
+    if (!releaseLock) {
+      this.logger.warn(`[addNodeToCanvas] failed to acquire lock for canvas ${canvasId}`);
+      return;
+    }
+
     const { nodes, edges } = await this.getCanvasData(user, { canvasId });
 
-    this.logger.log(
-      `[addNodeToCanvas] add node to canvas ${canvasId}, node: ${JSON.stringify(node)}, ` +
-        `connectTo: ${JSON.stringify(connectTo)}, options: ${JSON.stringify(options)}, ` +
-        `existing nodes: ${nodes.length}, existing edges: ${edges.length}`,
-    );
     const { newNode, newEdges } = prepareAddNode({
       node,
       nodes,
@@ -561,7 +561,7 @@ export class CanvasSyncService {
       orderBy: { version: 'desc' },
     });
 
-    this.addNodeToCanvas(user, parentResult.targetId, node, connectTo, options);
+    await this.addNodeToCanvas(user, parentResult.targetId, node, connectTo, options);
   }
 
   async createCanvasVersion(

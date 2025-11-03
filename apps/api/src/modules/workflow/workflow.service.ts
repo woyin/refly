@@ -31,7 +31,7 @@ import { WorkflowNodeExecution as WorkflowNodeExecutionPO } from '../../generate
 import { QUEUE_POLL_WORKFLOW, QUEUE_RUN_WORKFLOW } from '../../utils/const';
 import { WorkflowExecutionNotFoundError } from '@refly/errors';
 import { RedisService } from '../common/redis.service';
-import { RunWorkflowJobData } from './workflow.dto';
+import { PollWorkflowJobData, RunWorkflowJobData } from './workflow.dto';
 
 const WORKFLOW_POLL_INTERVAL = 1500;
 
@@ -45,8 +45,9 @@ export class WorkflowService {
     private readonly skillService: SkillService,
     private readonly canvasService: CanvasService,
     private readonly canvasSyncService: CanvasSyncService,
-    @InjectQueue(QUEUE_RUN_WORKFLOW) private readonly runWorkflowQueue?: Queue,
-    @InjectQueue(QUEUE_POLL_WORKFLOW) private readonly pollWorkflowQueue?: Queue,
+    @InjectQueue(QUEUE_RUN_WORKFLOW) private readonly runWorkflowQueue?: Queue<RunWorkflowJobData>,
+    @InjectQueue(QUEUE_POLL_WORKFLOW)
+    private readonly pollWorkflowQueue?: Queue<PollWorkflowJobData>,
   ) {}
 
   /**
@@ -183,7 +184,7 @@ export class WorkflowService {
     if (this.pollWorkflowQueue) {
       await this.pollWorkflowQueue.add(
         'pollWorkflow',
-        { user, executionId },
+        { user, executionId, nodeBehavior },
         { delay: WORKFLOW_POLL_INTERVAL, removeOnComplete: true },
       );
     }
@@ -294,7 +295,9 @@ export class WorkflowService {
       // If it's new canvas mode, add the new node to the new canvas
       const connectToFilters: CanvasNodeFilter[] = safeParseJSON(nodeExecution.connectTo) ?? [];
 
-      await this.canvasSyncService.addNodeToCanvas(user, canvasId, node, connectToFilters);
+      await this.canvasSyncService.addNodeToCanvas(user, canvasId, node, connectToFilters, {
+        autoLayout: true,
+      });
     } else {
       await this.syncNodeDiffToCanvas(user, canvasId, [
         {
@@ -451,7 +454,9 @@ export class WorkflowService {
   /**
    * Poll one workflow execution: enqueue ready waiting nodes and decide whether to requeue a poll.
    */
-  async pollWorkflow(user: Pick<User, 'uid'>, executionId: string): Promise<void> {
+  async pollWorkflow(data: PollWorkflowJobData): Promise<void> {
+    const { user, executionId, nodeBehavior } = data;
+
     // Load all nodes for this execution in a single query
     const allNodes = await this.prisma.workflowNodeExecution.findMany({
       select: {
@@ -498,6 +503,7 @@ export class WorkflowService {
             user: { uid: user.uid },
             executionId,
             nodeId: n.nodeId,
+            nodeBehavior,
           },
           {
             jobId: `run:${executionId}:${n.nodeId}`,
@@ -576,7 +582,7 @@ export class WorkflowService {
     if (hasPendingOrExecuting && this.pollWorkflowQueue) {
       await this.pollWorkflowQueue.add(
         'pollWorkflow',
-        { user, executionId },
+        { user, executionId, nodeBehavior },
         { delay: WORKFLOW_POLL_INTERVAL, removeOnComplete: true },
       );
     }

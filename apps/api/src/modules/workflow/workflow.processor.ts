@@ -33,7 +33,7 @@ export class PollWorkflowProcessor extends WorkerHost {
 
   async process(job: Job<PollWorkflowJobData>) {
     try {
-      await this.workflowService.pollWorkflow(job.data.user, job.data.executionId);
+      await this.workflowService.pollWorkflow(job.data);
     } catch (error) {
       this.logger.error(`[${QUEUE_POLL_WORKFLOW}] Error processing job ${job.id}: ${error?.stack}`);
       throw error;

@@ -24,6 +24,7 @@ export interface PollWorkflowJobData {
   user: JobUser;
   executionId: string;
   delayMs?: number;
+  nodeBehavior?: 'create' | 'update';
 }
 
 export interface InitializeWorkflowResponse {

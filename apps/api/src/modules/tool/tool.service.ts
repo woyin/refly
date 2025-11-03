@@ -755,9 +755,10 @@ export class ToolService {
     toolsets: GenericToolset[],
     engine: SkillEngine,
   ): Promise<StructuredToolInterface[]> {
+    const builtinKeys = toolsets.filter((t) => t.type === 'regular' && t.builtin).map((t) => t.id);
     let builtinTools: DynamicStructuredTool[] = [];
-    if (toolsets.find((t) => t.type === 'regular' && t.builtin)) {
-      builtinTools = this.instantiateBuiltinToolsets(user, engine);
+    if (builtinKeys.length > 0) {
+      builtinTools = this.instantiateBuiltinToolsets(user, engine, builtinKeys);
     }
 
     let copilotTools: DynamicStructuredTool[] = [];
@@ -784,13 +785,18 @@ export class ToolService {
   /**
    * Instantiate builtin toolsets into structured tools.
    */
-  private instantiateBuiltinToolsets(user: User, engine: SkillEngine): DynamicStructuredTool[] {
+  private instantiateBuiltinToolsets(
+    user: User,
+    engine: SkillEngine,
+    keys: string[],
+  ): DynamicStructuredTool[] {
     const toolsetInstance = new BuiltinToolset({
       reflyService: engine.service,
       user,
     });
 
     return BuiltinToolsetDefinition.tools
+      ?.filter((tool) => keys.includes(tool.name))
       ?.map((tool) => toolsetInstance.getToolInstance(tool.name))
       .map(
         (tool) =>

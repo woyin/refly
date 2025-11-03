@@ -120,13 +120,11 @@ export class Agent extends BaseSkill {
   };
 
   private async initializeAgentComponents(
-    user: User,
+    _user: User,
     config?: SkillRunnableConfig,
   ): Promise<AgentComponents> {
-    const userId = user?.uid ?? user?.email ?? JSON.stringify(user);
     const { selectedTools = [] } = config?.configurable ?? {};
 
-    this.engine.logger.log(`Initializing new agent components for user ${userId}`);
     let actualToolNodeInstance: ToolNode<typeof MessagesAnnotation.State> | null = null;
     let availableToolsForNode: StructuredToolInterface[] = [];
 
@@ -306,7 +304,6 @@ export class Agent extends BaseSkill {
       toolsAvailable: selectedTools.length > 0,
     };
 
-    this.engine.logger.log(`Agent components initialized and cached for user ${userId}`);
     return components;
   }
 
@@ -393,7 +390,7 @@ I'll do my best to help you find a solution!
 
       return { messages: [errorMessage] };
     } finally {
-      this.engine.logger.log('Agent execution finished.');
+      // do nothing
     }
   };
 
