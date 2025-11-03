@@ -8,6 +8,7 @@ import { useTranslation } from 'react-i18next';
 import { Typography, Dropdown, Divider } from 'antd';
 import { useListTools } from '@refly-packages/ai-workspace-common/queries';
 import { GenericToolset } from '@refly/openapi-schema';
+import { processQueryWithMentions } from '@refly/utils/query-processor';
 
 const { Paragraph } = Typography;
 
@@ -205,7 +206,7 @@ export const CopilotWorkflowPlan = memo(({ data }: CopilotWorkflowPlanProps) => 
               className="text-refly-text-2 flex-1 truncate text-xs leading-4 !m-0"
               ellipsis={{ rows: 1, tooltip: true }}
             >
-              {task.prompt}
+              {processQueryWithMentions(task.prompt).processedQuery || task.prompt}
             </Paragraph>
           </div>
           <LabelsDisplay
