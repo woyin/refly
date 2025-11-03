@@ -1,4 +1,4 @@
-import { useCallback, useState, useEffect, useMemo } from 'react';
+import { useCallback, useState, useEffect, useMemo, useRef } from 'react';
 import { staticPublicEndpoint } from '@refly/ui-kit';
 
 /**
@@ -7,16 +7,22 @@ import { staticPublicEndpoint } from '@refly/ui-kit';
  * @param shareId - The ID of the share to fetch
  * @returns Object containing loading state, error state, and fetched data
  */
-export const useFetchShareData = <T = any>(shareId?: string) => {
+export const useFetchShareData = <T = any>(shareId?: string, options?: RequestInit) => {
   const [data, setData] = useState<T | null>(null);
   const [loading, setLoading] = useState<boolean>(!!shareId);
   const [error, setError] = useState<Error | null>(null);
   const [dataForShareId, setDataForShareId] = useState<string | null>(null);
 
+  // Use ref to store options to avoid dependency issues
+  const optionsRef = useRef<RequestInit | undefined>(options);
+  useEffect(() => {
+    optionsRef.current = options;
+  }, [options]);
+
   // Function to fetch share data
   const fetchShareData = useCallback(async (id: string) => {
     try {
-      const response = await fetch(`${staticPublicEndpoint}/share/${id}.json`);
+      const response = await fetch(`${staticPublicEndpoint}/share/${id}.json`, optionsRef.current);
       if (!response.ok) {
         throw new Error(`Failed to fetch share data: ${response?.status}`);
       }
