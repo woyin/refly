@@ -243,6 +243,7 @@ export const Subscription = () => {
           promotion: t('credit.recharge.source.promotion'),
           refund: t('credit.recharge.source.refund'),
           subscription: t('credit.recharge.source.subscription'),
+          commission: t('credit.recharge.source.commission'),
         };
         return sourceMap[source] || source;
       },

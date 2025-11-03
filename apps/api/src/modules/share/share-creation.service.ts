@@ -1009,7 +1009,7 @@ export class ShareCreationService {
   }
 
   async createShareForWorkflowApp(user: User, param: CreateShareRequest) {
-    const { entityId: appId, title, parentShareId, allowDuplication } = param;
+    const { entityId: appId, title, parentShareId, allowDuplication, creditUsage } = param;
 
     // Check if shareRecord already exists
     const existingShareRecord = await this.prisma.shareRecord.findFirst({
@@ -1065,9 +1065,11 @@ export class ShareCreationService {
         ? generateCoverUrl(workflowApp.coverStorageKey)
         : undefined,
       templateContent: workflowApp.templateContent,
+      resultNodeIds: workflowApp.resultNodeIds,
       query: workflowApp.query,
       variables: JSON.parse(workflowApp.variables || '[]'),
       canvasData: canvasDataWithId, // Use the extended canvas data with canvasId
+      creditUsage,
       createdAt: workflowApp.createdAt,
       updatedAt: workflowApp.updatedAt,
     };

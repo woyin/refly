@@ -3402,6 +3402,10 @@ export type CreateShareRequest = {
    * Cover storage key
    */
   coverStorageKey?: string;
+  /**
+   * Credit usage
+   */
+  creditUsage?: number;
 };
 
 export type CreateShareResponse = BaseResponse & {
@@ -4459,6 +4463,54 @@ export type getCreditBalanceResponse = BaseResponse & {
      * Credit amount
      */
     creditAmount?: number;
+  };
+};
+
+export type GetCreditUsageByResultIdResponse = BaseResponse & {
+  /**
+   * Credit usage by result ID
+   */
+  data?: {
+    /**
+     * Total credit usage by result ID
+     */
+    total?: number;
+    /**
+     * Credit usage list by result ID
+     */
+    usages?: Array<CreditUsage>;
+  };
+};
+
+export type GetCreditUsageByExecutionIdResponse = BaseResponse & {
+  /**
+   * Credit usage by execution ID
+   */
+  data?: {
+    /**
+     * Total credit usage by execution ID
+     */
+    total?: number;
+    /**
+     * Credit usage list by execution ID
+     */
+    usages?: Array<CreditUsage>;
+  };
+};
+
+export type GetCreditUsageByCanvasIdResponse = BaseResponse & {
+  /**
+   * Credit usage by canvas ID
+   */
+  data?: {
+    /**
+     * Total credit usage by canvas ID
+     */
+    total?: number;
+    /**
+     * Credit usage list by canvas ID
+     */
+    usages?: Array<CreditUsage>;
   };
 };
 
@@ -5698,7 +5750,50 @@ export type UpsertToolsetResponse = BaseResponse & {
   data?: ToolsetInstance;
 };
 
-export type GenericToolsetType = 'regular' | 'mcp';
+export type InitiateComposioConnectionResponse = {
+  /**
+   * OAuth redirect URL provided by Composio.
+   */
+  redirectUrl: string;
+  /**
+   * Connection request identifier from Composio.
+   */
+  connectionRequestId: string;
+  /**
+   * Composio app slug (e.g., gmail, slack).
+   */
+  app: string;
+};
+
+/**
+ * Current status of the Composio connection.
+ */
+export type ComposioConnectionStatus = 'active' | 'revoked';
+
+export type ComposioConnectionStatusResponse = {
+  status: ComposioConnectionStatus;
+  /**
+   * Connected account identifier returned by Composio, if available.
+   */
+  connectedAccountId?: string | null;
+  /**
+   * Composio integration identifier (app slug).
+   */
+  integrationId: string;
+};
+
+export type ComposioRevokeResponse = {
+  /**
+   * Whether the connection was revoked successfully.
+   */
+  success: boolean;
+  /**
+   * Human-readable message describing the outcome.
+   */
+  message: string;
+};
+
+export type GenericToolsetType = 'regular' | 'mcp' | 'external_oauth';
 
 export type GenericToolset = {
   /**
@@ -6018,9 +6113,17 @@ export type CreateWorkflowAppRequest = {
    */
   variables: Array<WorkflowVariable>;
   /**
+   * Result node IDs
+   */
+  resultNodeIds?: Array<string>;
+  /**
    * Cover image storage key
    */
   coverStorageKey: string;
+  /**
+   * Whether remix is enabled for this app
+   */
+  remixEnabled?: boolean;
 };
 
 export type DeleteWorkflowAppRequest = {
@@ -6063,6 +6166,14 @@ export type WorkflowApp = {
    * Workflow app variables
    */
   variables: Array<WorkflowVariable>;
+  /**
+   * Result node IDs
+   */
+  resultNodeIds?: Array<string>;
+  /**
+   * Whether remix is enabled for this app
+   */
+  remixEnabled?: boolean;
   /**
    * Cover image URL
    */
@@ -7767,6 +7878,45 @@ export type GetCreditBalanceResponse = getCreditBalanceResponse;
 
 export type GetCreditBalanceError = unknown;
 
+export type GetCreditUsageByResultIdData = {
+  query: {
+    /**
+     * Result ID
+     */
+    resultId: string;
+  };
+};
+
+export type GetCreditUsageByResultIdResponse2 = GetCreditUsageByResultIdResponse;
+
+export type GetCreditUsageByResultIdError = unknown;
+
+export type GetCreditUsageByExecutionIdData = {
+  query: {
+    /**
+     * Execution ID
+     */
+    executionId: string;
+  };
+};
+
+export type GetCreditUsageByExecutionIdResponse2 = GetCreditUsageByExecutionIdResponse;
+
+export type GetCreditUsageByExecutionIdError = unknown;
+
+export type GetCreditUsageByCanvasIdData = {
+  query: {
+    /**
+     * Canvas ID
+     */
+    canvasId: string;
+  };
+};
+
+export type GetCreditUsageByCanvasIdResponse2 = GetCreditUsageByCanvasIdResponse;
+
+export type GetCreditUsageByCanvasIdError = unknown;
+
 export type GetSubscriptionPlansResponse2 = GetSubscriptionPlansResponse;
 
 export type GetSubscriptionPlansError = unknown;
@@ -8003,6 +8153,45 @@ export type DeleteToolsetData = {
 export type DeleteToolsetResponse = BaseResponse;
 
 export type DeleteToolsetError = unknown;
+
+export type AuthorizeComposioConnectionData = {
+  path: {
+    /**
+     * Composio app slug (e.g., gmail, slack).
+     */
+    app: string;
+  };
+};
+
+export type AuthorizeComposioConnectionResponse = InitiateComposioConnectionResponse;
+
+export type AuthorizeComposioConnectionError = unknown;
+
+export type RevokeComposioConnectionData = {
+  path: {
+    /**
+     * Composio app slug (e.g., gmail, slack).
+     */
+    app: string;
+  };
+};
+
+export type RevokeComposioConnectionResponse = ComposioRevokeResponse;
+
+export type RevokeComposioConnectionError = unknown;
+
+export type GetComposioConnectionStatusData = {
+  path: {
+    /**
+     * Composio app slug (e.g., gmail, slack).
+     */
+    app: string;
+  };
+};
+
+export type GetComposioConnectionStatusResponse = ComposioConnectionStatusResponse;
+
+export type GetComposioConnectionStatusError = unknown;
 
 export type ScrapeData = {
   body: ScrapeWeblinkRequest;
