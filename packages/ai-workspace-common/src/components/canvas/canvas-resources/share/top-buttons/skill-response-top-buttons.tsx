@@ -1,4 +1,4 @@
-import { Reload, More, Share } from 'refly-icons';
+import { More, Share } from 'refly-icons';
 import { Button, Dropdown, Tooltip } from 'antd';
 import type { MenuProps } from 'antd';
 import { CanvasNode } from '@refly/canvas-common';
@@ -47,7 +47,7 @@ export const SkillResponseTopButtons = ({ node }: SkillResponseTopButtonsProps) 
   const [isSharing, setIsSharing] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
 
-  const handleReRun = () => {
+  const _handleReRun = () => {
     nodeActionEmitter.emit(createNodeEventName(node.id, 'rerun'));
   };
 
@@ -206,18 +206,6 @@ export const SkillResponseTopButtons = ({ node }: SkillResponseTopButtonsProps) 
   ]);
   return (
     <div className="flex items-center gap-3">
-      {!readonly && (
-        <Tooltip title={t('canvas.nodeActions.rerun')}>
-          <Button
-            className="!h-5 !w-5 p-0"
-            size="small"
-            type="text"
-            icon={<Reload size={16} />}
-            onClick={handleReRun}
-          />
-        </Tooltip>
-      )}
-
       <Dropdown
         menu={{ items: moreMenuItems }}
         trigger={['click']}
