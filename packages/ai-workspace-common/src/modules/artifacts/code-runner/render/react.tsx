@@ -16,6 +16,7 @@ const ReactCodeRunner = memo(
     onRequestFix,
     showErrorMessage = true,
     showActions = true,
+    purePreview = false,
   }: {
     code: string;
     title: string;
@@ -23,6 +24,7 @@ const ReactCodeRunner = memo(
     onRequestFix?: (e: string) => void;
     showErrorMessage?: boolean;
     showActions?: boolean;
+    purePreview?: boolean;
   }) => {
     // Memoize tsconfig
     const tsConfig = useMemo(
@@ -69,7 +71,7 @@ const ReactCodeRunner = memo(
           showOpenNewtab={false}
           className="h-full w-full"
         />
-        {onRequestFix && showErrorMessage && showActions && (
+        {onRequestFix && showErrorMessage && showActions && !purePreview && (
           <ErrorMessage onRequestFix={onRequestFix} />
         )}
       </SandpackProvider>
@@ -81,7 +83,8 @@ const ReactCodeRunner = memo(
       prevProps.language === nextProps.language &&
       prevProps.showErrorMessage === nextProps.showErrorMessage &&
       prevProps.onRequestFix === nextProps.onRequestFix &&
-      prevProps.showActions === nextProps.showActions
+      prevProps.showActions === nextProps.showActions &&
+      prevProps.purePreview === nextProps.purePreview
     );
   },
 );

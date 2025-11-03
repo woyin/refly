@@ -57,20 +57,25 @@ export class CreditController {
   @UseGuards(JwtAuthGuard)
   @Get('/result')
   async getCreditUsageByResultId(
+    @LoginedUser() user: User,
     @Query() query: { resultId: string },
   ): Promise<GetCreditUsageByResultIdResponse> {
     const { resultId } = query;
-    const total = await this.creditService.countResultCreditUsage(resultId);
+    const total = await this.creditService.countResultCreditUsage(user, resultId);
     return buildSuccessResponse({ total });
   }
 
   @UseGuards(JwtAuthGuard)
   @Get('/execution')
   async getCreditUsageByExecutionId(
+    @LoginedUser() user: User,
     @Query() query: { executionId: string },
   ): Promise<GetCreditUsageByExecutionIdResponse> {
     const { executionId } = query;
-    const total = await this.creditService.countExecutionCreditUsageByExecutionId(executionId);
+    const total = await this.creditService.countExecutionCreditUsageByExecutionId(
+      user,
+      executionId,
+    );
     return buildSuccessResponse({ total });
   }
 

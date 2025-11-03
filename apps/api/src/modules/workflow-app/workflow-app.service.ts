@@ -63,6 +63,7 @@ export class WorkflowAppService {
     const { canvasId, title, query, variables, description } = body;
     const coverStorageKey = (body as any).coverStorageKey;
     const remixEnabled = (body as any).remixEnabled ?? false;
+    const resultNodeIds = (body as any).resultNodeIds ?? [];
 
     const existingWorkflowApp = await this.prisma.workflowApp.findFirst({
       where: { canvasId, uid: user.uid, deletedAt: null },
@@ -80,7 +81,7 @@ export class WorkflowAppService {
 
     const canvasData = await this.canvasService.getCanvasRawData(user, canvasId);
 
-    const creditUsage = await this.creditService.countCanvasCreditUsage(canvasData);
+    const creditUsage = await this.creditService.countCanvasCreditUsage(user, canvasData);
 
     if (title) {
       canvasData.title = title;
@@ -128,6 +129,7 @@ export class WorkflowAppService {
           coverStorageKey: coverStorageKey as any,
           templateContent: null,
           remixEnabled,
+          resultNodeIds,
           updatedAt: new Date(),
         },
       });
@@ -145,6 +147,7 @@ export class WorkflowAppService {
           coverStorageKey: coverStorageKey as any,
           templateContent: null,
           remixEnabled,
+          resultNodeIds,
         },
       });
     }

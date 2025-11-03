@@ -42,10 +42,12 @@ interface FollowingActionsProps {
   initContextItems: IContextItem[];
   initModelInfo: ModelInfo | null;
   nodeId: string;
+  initSelectedToolsets?: GenericToolset[];
 }
 export const FollowingActions = ({
   initContextItems,
   initModelInfo,
+  initSelectedToolsets,
   nodeId,
 }: FollowingActionsProps) => {
   const { canvasId } = useCanvasContext();
@@ -213,6 +215,10 @@ export const FollowingActions = ({
   useEffect(() => {
     setFollowUpModelInfo(initModelInfo || defaultModelInfo);
   }, [initModelInfo]);
+
+  useEffect(() => {
+    setSelectedToolsets(initSelectedToolsets ?? selectedToolsetsFromStore ?? []);
+  }, [initSelectedToolsets]);
 
   const handleAddToContext = useCallback(() => {
     nodeActionEmitter.emit(createNodeEventName(nodeId, 'addToContext'));

@@ -1,5 +1,5 @@
 import React, { useCallback } from 'react';
-import { Form, Input, Button, Radio, Tooltip, Select } from 'antd';
+import { Form, Input, Button, Radio, Tooltip, Select, message } from 'antd';
 import { useTranslation } from 'react-i18next';
 import { Add, Delete } from 'refly-icons';
 import { MdOutlineDragIndicator } from 'react-icons/md';
@@ -39,6 +39,18 @@ export const OptionTypeForm: React.FC<OptionTypeFormProps> = React.memo(
   }) => {
     const { t } = useTranslation();
     const isSingle = Form.useWatch('isSingle');
+    const selectedValue = Form.useWatch('selectedValue');
+
+    const isSelectedValue = useCallback(
+      (option: string) => {
+        if (!selectedValue) return false;
+        if (Array.isArray(selectedValue)) {
+          return selectedValue.includes(option);
+        }
+        return selectedValue === option;
+      },
+      [selectedValue],
+    );
 
     const handleAddOption = useCallback(() => {
       if (options.length < MAX_OPTIONS) {
@@ -62,9 +74,13 @@ export const OptionTypeForm: React.FC<OptionTypeFormProps> = React.memo(
 
     const handleEditStart = useCallback(
       (index: number) => {
+        if (isSelectedValue(options[index])) {
+          message.warning(t('canvas.workflow.variables.optionSelectedEditTooltip'));
+          return;
+        }
         onEditStart(index);
       },
-      [onEditStart],
+      [onEditStart, isSelectedValue, options],
     );
 
     const handleEditSave = useCallback(
@@ -228,17 +244,31 @@ export const OptionTypeForm: React.FC<OptionTypeFormProps> = React.memo(
                                   t('canvas.workflow.variables.clickToEdit') ||
                                   'Click to edit'}
                               </div>
-                              <Button
-                                className="hidden group-hover:block"
-                                type="text"
-                                size="small"
-                                icon={<Delete size={16} color="var(--refly-text-1)" />}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  e.preventDefault();
-                                  handleRemoveOption(index);
-                                }}
-                              />
+                              <Tooltip
+                                title={
+                                  isSelectedValue(option)
+                                    ? t('canvas.workflow.variables.optionSelectedDeleteTooltip')
+                                    : ''
+                                }
+                              >
+                                <Button
+                                  className="hidden group-hover:block"
+                                  type="text"
+                                  size="small"
+                                  disabled={isSelectedValue(option)}
+                                  icon={
+                                    <Delete
+                                      size={16}
+                                      color={`${isSelectedValue(option) ? 'var(--refly-text-3)' : 'var(--refly-text-1)'}`}
+                                    />
+                                  }
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    e.preventDefault();
+                                    handleRemoveOption(index);
+                                  }}
+                                />
+                              </Tooltip>
                             </div>
                           )}
                         </div>

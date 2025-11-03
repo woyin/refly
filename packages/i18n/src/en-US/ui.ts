@@ -236,9 +236,9 @@ const translations = {
         markdown: 'Markdown',
         code: 'Code',
         svgImage: 'SVG Image',
-        notSelected: 'No {type} component selected',
-        loading: '{type} loading...',
-        generating: '{type} generating...',
+        notSelected: 'No component selected',
+        loading: 'Loading...',
+        generating: 'Generating...',
         fixCodeNeeded: 'Code fix needed',
       },
       image: {
@@ -1159,7 +1159,7 @@ const translations = {
       mediaSkillResponse: 'Media Skill Response',
       video: 'Video',
       audio: 'Audio',
-      start: 'Start',
+      start: 'User Input',
       documentSelection: 'Document Selection',
       resourceSelection: 'Resource Selection',
       skillResponseSelection: 'Skill Response Selection',
@@ -1396,11 +1396,16 @@ const translations = {
         duplicateFileName: 'File with the same name already exists, please replace the file',
         tooManyFiles: 'Maximum {{max}} file allowed',
         noSpacesAllowed: 'Variable name cannot contain spaces',
+        optionSelectedDeleteTooltip:
+          'The option has been selected as a variable value, cannot be deleted temporarily',
+        optionSelectedEditTooltip:
+          'The option has been selected as a variable value, cannot be edited temporarily',
       },
       run: {
         title: 'Run Workflow',
         run: 'Run',
-        executing: 'Running...',
+        executing: 'Running',
+        remix: 'Remix',
         copyWorkflow: 'Remix Workflow',
         copyShareLink: 'Copy Share Link',
         shareLinkCopied: 'Share link copied to clipboard',
@@ -2504,6 +2509,11 @@ const translations = {
         required: 'OAuth authorization required',
         authorizeWith: 'Authorize with {{provider}}',
         checkFailed: 'Failed to check OAuth status',
+        revoke: 'Revoke Authorization',
+        revokeWith: 'Revoke {{provider}} Authorization',
+        revokeConfirm: 'Are you sure you want to revoke authorization?',
+        revokeSuccess: 'Successfully revoked authorization',
+        revokeError: 'Failed to revoke authorization',
       },
     },
     appearance: {
@@ -3422,6 +3432,7 @@ const translations = {
       description: {
         '5k_tokens': '{{cost}} credit(s) per 5k tokens',
         product: '{{cost}} credit(s) per product',
+        canvasTotal: 'Workflow estimated cost: {{cost}} credit(s)',
       },
     },
     plans: {
@@ -3662,6 +3673,9 @@ const translations = {
     viewPublished: 'View Published',
     runLogs: 'Run Logs',
     products: 'Products',
+    productsGenerated: 'Generated {{count}} results for you',
+    productsGeneratedWithCost:
+      'Generated {{count}} results for you, used {{executionCost}} credits',
     emptyLogs: 'No run logs, click to create app, start running',
     coverImage: 'Cover Image',
     coverImageHint: 'Support JPG, PNG, WebP formats, file size within 5MB',
@@ -3671,6 +3685,13 @@ const translations = {
     coverImageRequired: 'Cover image is required',
     enableRemix: 'Enable Remix',
     remixHint: 'Allow others to remix and modify this workflow app',
+    runResult: 'Run Result',
+    changeResult: 'Change Result',
+    resultsSelected: 'results selected',
+    selectResults: 'Select Results',
+    noResultsAvailable: 'No results available',
+    noResultsSelected: 'No results selected',
+    resultPreview: 'Result Preview',
     run: {
       completed: 'App run successfully',
       failed: 'App run failed',
@@ -3681,6 +3702,11 @@ const translations = {
       executionIdFailed: 'Failed to get execution ID',
       executeFailed: 'Failed to execute workflow',
       executeError: 'Failed to execute workflow',
+    },
+    revenueSharing: {
+      title: 'Earn credits by running templates',
+      earningsHint: 'Each run can earn <num>{{creditEarningsPerRun}}</num> credits',
+      howToEarn: 'How to earn',
     },
   },
   project: {
