@@ -41,7 +41,6 @@ import {
 } from '@refly-packages/ai-workspace-common/context/editor-performance';
 import { CanvasNodeType } from '@refly/openapi-schema';
 import { useEdgeOperations } from '@refly-packages/ai-workspace-common/hooks/canvas/use-edge-operations';
-import { MultiSelectionMenus } from './multi-selection-menu';
 import { CustomEdge } from './edges/custom-edge';
 import NotFoundOverlay from './NotFoundOverlay';
 import { useDragToCreateNode } from '@refly-packages/ai-workspace-common/hooks/canvas/use-drag-create-node';
@@ -127,7 +126,6 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
       edges: state.edges,
     })),
   );
-  const selectedNodes = nodes.filter((node) => node.selected) || [];
 
   const getPageByCanvasId = useCallback(async () => {
     if (!canvasId) return;
@@ -1125,8 +1123,6 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
           }}
           setOpen={(open) => setContextMenu((prev) => ({ ...prev, open }))}
         />
-
-        {selectedNodes.length > 0 && <MultiSelectionMenus />}
       </div>
     </Spin>
   );
