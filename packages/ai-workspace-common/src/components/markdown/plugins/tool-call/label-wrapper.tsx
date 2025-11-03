@@ -2,6 +2,7 @@ import { memo } from 'react';
 import { getVariableIcon } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/variable/getVariableIcon';
 import type { GenericToolset, WorkflowVariable } from '@refly/openapi-schema';
 import { ToolsetIcon } from '@refly-packages/ai-workspace-common/components/canvas/common/toolset-icon';
+import { useTranslation } from 'react-i18next';
 
 const TOOLSET_ICON_CONFIG = {
   size: 14,
@@ -26,10 +27,17 @@ interface LabelWrapperProps {
   variable?: WorkflowVariable;
   toolset?: GenericToolset;
 }
+
 export const LabelWrapper = memo(
   ({ source = 'variables', variable, toolset }: LabelWrapperProps) => {
+    const { i18n } = useTranslation();
+    const currentLanguage = i18n.language || 'en';
+
     const variableType = variable?.variableType;
-    const labelText = source === 'variables' ? (variable?.name ?? '') : (toolset?.name ?? '');
+    const labelText =
+      source === 'variables'
+        ? (variable?.name ?? '')
+        : (String(toolset?.toolset?.definition?.labelDict[currentLanguage]) ?? toolset?.name ?? '');
 
     return (
       <div className="flex items-center gap-1 h-[18px] px-1 rounded-[4px] bg-refly-tertiary-default border-[0.5px] border-solid border-refly-Card-Border">
