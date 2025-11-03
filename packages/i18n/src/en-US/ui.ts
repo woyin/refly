@@ -1159,7 +1159,7 @@ const translations = {
       mediaSkillResponse: 'Media Skill Response',
       video: 'Video',
       audio: 'Audio',
-      start: 'Start',
+      start: 'User Input',
       documentSelection: 'Document Selection',
       resourceSelection: 'Resource Selection',
       skillResponseSelection: 'Skill Response Selection',
