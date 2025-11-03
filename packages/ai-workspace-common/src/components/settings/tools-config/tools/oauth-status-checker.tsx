@@ -5,6 +5,7 @@ import React, { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import Google from '../../../../../../web-core/src/assets/google.svg';
 import {
+  checkComposioOAuthStatus,
   composioOAuthStatusKey,
   useComposioOAuthAuthorize,
   useComposioOAuthRevoke,
@@ -196,25 +197,59 @@ const OAuthStatusChecker: React.FC<OAuthStatusCheckerProps> = ({
   // Use mutation hook for authorization
   const { mutateAsync: authorizeOAuth, isPending: isConnecting } = useComposioOAuthAuthorize({
     onSuccess: (data) => {
-      console.log('Received OAuth initiation data:', data);
+      // Open Composio OAuth page in a new tab (better UX than popup)
+      const authWindow = window.open(data.redirectUrl, '_blank');
 
-      // Save connectionRequestId and app info to localStorage for polling
-      localStorage.setItem(
-        'composio_pending_oauth',
-        JSON.stringify({
-          connectionRequestId: data.connectionRequestId,
-          app: composioApp,
-          toolKey: toolKey,
-          timestamp: Date.now(),
-        }),
-      );
+      // polling to check auth information
+      if (authWindow) {
+        // Poll backend API to check if OAuth is complete
+        let pollAttempts = 0;
+        const maxPollAttempts = 300; // 5 minutes
 
-      // Open Composio OAuth page in a new window
-      window.open(data.redirectUrl, '_blank', 'noopener,noreferrer');
+        const checkInterval = setInterval(async () => {
+          // Check if tab was manually closed
+          if (authWindow.closed) {
+            clearInterval(checkInterval);
+            return;
+          }
+
+          pollAttempts++;
+          try {
+            // Check backend API for OAuth status
+            const status = await checkComposioOAuthStatus(composioApp);
+            if (status?.status === 'active' && status?.connectedAccountId) {
+              clearInterval(checkInterval);
+              setTimeout(() => {
+                if (!authWindow.closed) {
+                  authWindow.close();
+                }
+                // focus back to the tool config tab
+                window.focus();
+              }, 2000);
+            } else if (pollAttempts >= maxPollAttempts) {
+              clearInterval(checkInterval);
+              if (!authWindow.closed) {
+                authWindow.close();
+              }
+            }
+          } catch (error) {
+            console.warn('Failed to check OAuth status:', error);
+            // Continue polling even if request fails
+            if (pollAttempts >= maxPollAttempts) {
+              clearInterval(checkInterval);
+              if (!authWindow.closed) {
+                authWindow.close();
+              }
+            }
+          }
+        }, 1000);
+      }
     },
     onError: (error) => {
       console.error('Failed to initiate Composio connection:', error);
-      message.error(error.message || 'Failed to initiate OAuth authorization');
+      message.error(
+        error.message || 'Failed to initiate OAuth authorization, please refresh the page.',
+      );
     },
   });
 
@@ -222,13 +257,12 @@ const OAuthStatusChecker: React.FC<OAuthStatusCheckerProps> = ({
   const { mutateAsync: revokeOAuth, isPending: isRevoking } = useComposioOAuthRevoke({
     onSuccess: (data) => {
       message.success(data.message || 'Authorization revoked successfully');
-      // Invalidate query to refetch status
       queryClient.invalidateQueries({ queryKey: [composioOAuthStatusKey, composioApp] });
       onStatusChange?.('unauthorized');
     },
     onError: (error) => {
       console.error('Failed to revoke Composio connection:', error);
-      message.error(error.message || 'Failed to revoke authorization');
+      message.error(error.message || 'Failed to revoke authorization, please try again.');
     },
   });
 

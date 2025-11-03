@@ -175,27 +175,6 @@ export const useComposioOAuthStatus = <
   });
 };
 
-/**
- * Hook to initiate OAuth authorization flow
- * @param options - React Query mutation options
- * @returns Mutation function and status
- *
- * @example
- * const { mutateAsync, isPending } = useComposioOAuthAuthorize({
- *   onSuccess: (data) => {
- *     // Save connection info to localStorage
- *     localStorage.setItem('composio_pending_oauth', JSON.stringify({
- *       connectionRequestId: data.connectionRequestId,
- *       app: composioApp,
- *     }));
- *     // Redirect to OAuth page
- *     window.location.href = data.redirectUrl;
- *   },
- * });
- *
- * // Usage
- * await mutateAsync('googledrive');
- */
 export const useComposioOAuthAuthorize = <TContext = unknown>(
   options?: Omit<
     UseMutationOptions<ComposioOAuthAuthorizeResponse, ComposioOAuthError, string, TContext>,
@@ -208,23 +187,6 @@ export const useComposioOAuthAuthorize = <TContext = unknown>(
   });
 };
 
-/**
- * Hook to revoke OAuth authorization
- * @param options - React Query mutation options
- * @returns Mutation function and status
- *
- * @example
- * const { mutateAsync, isPending } = useComposioOAuthRevoke({
- *   onSuccess: () => {
- *     message.success('Authorization revoked successfully');
- *     // Refetch status to update UI
- *     queryClient.invalidateQueries({ queryKey: [composioOAuthStatusKey] });
- *   },
- * });
- *
- * // Usage
- * await mutateAsync('googledrive');
- */
 export const useComposioOAuthRevoke = <TContext = unknown>(
   options?: Omit<
     UseMutationOptions<ComposioOAuthRevokeResponse, ComposioOAuthError, string, TContext>,
