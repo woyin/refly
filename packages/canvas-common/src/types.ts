@@ -158,6 +158,7 @@ export type ResponseNodeMeta = {
   pilotSessionId?: string;
   pilotStepId?: string;
   [key: string]: any;
+  creditCost?: number;
 };
 
 export type ImageNodeMeta = {

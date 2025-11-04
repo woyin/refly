@@ -1,9 +1,10 @@
-import { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import dayjs from 'dayjs';
 import { Button, Table, Segmented } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { Spin } from '@refly-packages/ai-workspace-common/components/common/spin';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
 import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
 
 import {
@@ -15,6 +16,7 @@ import {
   useGetCreditBalance,
   useGetCreditUsage,
   useGetCreditRecharge,
+  useGetWorkflowAppDetail,
 } from '@refly-packages/ai-workspace-common/queries/queries';
 import { useSubscriptionUsage } from '@refly-packages/ai-workspace-common/hooks/use-subscription-usage';
 import { logEvent } from '@refly/telemetry-web';
@@ -49,6 +51,65 @@ interface PaginationState {
 }
 
 const filesPlanMap = { free: 100, starter: 200, maker: 500 };
+
+// Function to extract appId from commission description
+const extractAppIdFromCommissionDescription = (description?: string): string | null => {
+  if (!description) return null;
+  // Description format: "Commission credit for sharing execution {executionId} from app {appId}"
+  const match = description.match(/from app ([\w-]+)$/);
+  return match ? match[1] : null;
+};
+
+// Component to handle commission source display with app name
+const CommissionSourceCell = React.memo(({ record }: { record: CreditRechargeRecord }) => {
+  const { t } = useTranslation('ui');
+  const navigate = useNavigate();
+  const { setShowSettingModal } = useSiderStoreShallow((state) => ({
+    setShowSettingModal: state.setShowSettingModal,
+  }));
+  const appId = extractAppIdFromCommissionDescription(record.description);
+
+  const { data: appDetail, isLoading } = useGetWorkflowAppDetail(
+    appId ? { query: { appId } } : null,
+    [appId],
+    { enabled: !!appId },
+  );
+
+  const handleAppNameClick = useCallback(
+    (e: React.MouseEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const shareId = appDetail?.data?.shareId;
+      if (shareId) {
+        // Close settings modal before navigation
+        setShowSettingModal(false);
+        navigate(`/app/${shareId}`);
+      }
+    },
+    [appDetail?.data?.shareId, navigate, setShowSettingModal],
+  );
+
+  if (isLoading || !appDetail) {
+    return <span>{t('credit.recharge.source.commission')}</span>;
+  }
+
+  const appName = appDetail?.data?.title ?? t('credit.recharge.source.commission');
+  return (
+    <span className="inline-block max-w-[200px] overflow-hidden text-ellipsis whitespace-nowrap align-bottom">
+      {t('credit.recharge.source.commissionPrefix')}
+      {appDetail?.data?.shareId ? (
+        <span
+          className="cursor-pointer underline hover:text-blue-600 dark:hover:text-blue-400"
+          onClick={handleAppNameClick}
+        >
+          {appName}
+        </span>
+      ) : (
+        appName
+      )}
+    </span>
+  );
+});
 
 export const Subscription = () => {
   const { t } = useTranslation('ui');
@@ -236,14 +297,17 @@ export const Subscription = () => {
       dataIndex: 'source',
       key: 'source',
       align: 'left',
-      render: (source) => {
+      render: (source, record) => {
+        if (source === 'commission') {
+          return <CommissionSourceCell record={record} />;
+        }
+
         const sourceMap: Record<string, string> = {
           purchase: t('credit.recharge.source.purchase'),
           gift: t('credit.recharge.source.gift'),
           promotion: t('credit.recharge.source.promotion'),
           refund: t('credit.recharge.source.refund'),
           subscription: t('credit.recharge.source.subscription'),
-          commission: t('credit.recharge.source.commission'),
         };
         return sourceMap[source] || source;
       },

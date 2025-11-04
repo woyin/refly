@@ -9068,6 +9068,7 @@ components:
             - gift
             - promotion
             - refund
+            - commission
           default: "purchase"
         description:
           type: string
@@ -9119,6 +9120,7 @@ components:
             - media_generation
             - embedding
             - reranking
+            - commission
             - other
           default: "model_call"
         actionResultId:

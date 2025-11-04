@@ -3818,6 +3818,7 @@ const translations = {
         refund: 'Refund',
         subscription: 'Subscription',
         commission: 'Template commission',
+        commissionPrefix: 'Template earnings: ',
       },
     },
   },

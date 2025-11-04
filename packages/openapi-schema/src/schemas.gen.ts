@@ -7520,7 +7520,7 @@ export const CreditRechargeSchema = {
     source: {
       type: 'string',
       description: 'Recharge source type',
-      enum: ['subscription', 'purchase', 'gift', 'promotion', 'refund'],
+      enum: ['subscription', 'purchase', 'gift', 'promotion', 'refund', 'commission'],
       default: 'purchase',
     },
     description: {
@@ -7574,7 +7574,7 @@ export const CreditUsageSchema = {
     usageType: {
       type: 'string',
       description: 'Type of usage that consumed credits',
-      enum: ['model_call', 'media_generation', 'embedding', 'reranking', 'other'],
+      enum: ['model_call', 'media_generation', 'embedding', 'reranking', 'commission', 'other'],
       default: 'model_call',
     },
     actionResultId: {
