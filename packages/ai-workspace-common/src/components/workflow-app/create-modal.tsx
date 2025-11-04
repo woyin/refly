@@ -128,10 +128,16 @@ export const CreateWorkflowAppModal = ({
 
   const skillResponseNodes = nodes.filter((node) => node.type === 'skillResponse');
 
-  // Fetch credit usage data
-  const { data: creditUsageData } = useGetCreditUsageByCanvasId({
-    query: { canvasId },
-  });
+  // Fetch credit usage data when modal is visible
+  const { data: creditUsageData } = useGetCreditUsageByCanvasId(
+    {
+      query: { canvasId },
+    },
+    undefined,
+    {
+      enabled: visible,
+    },
+  );
 
   // Calculate credit earnings per run, default to 0
   const creditEarningsPerRun = useMemo(() => {

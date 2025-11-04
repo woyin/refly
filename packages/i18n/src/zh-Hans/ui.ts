@@ -3719,6 +3719,7 @@ const translations = {
         refund: '退款',
         subscription: '订阅',
         commission: '模板收益',
+        commissionWithName: '模板收益：{{appName}}',
       },
       status: {
         unused: '未使用',
