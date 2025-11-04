@@ -91,6 +91,9 @@ const translations = {
         allFailed: 'All images failed to upload',
       },
     },
+    errorNotice: {
+      resultId: 'Request ID: {{resultId}}',
+    },
     dropImageHere: 'Drop image here',
     presetColors: 'Preset Colors',
     duplicate: 'copy',

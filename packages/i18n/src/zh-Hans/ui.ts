@@ -266,6 +266,9 @@ const translations = {
         allFailed: '所有图片上传失败',
       },
     },
+    errorNotice: {
+      resultId: '请求 ID: {{resultId}}',
+    },
     dropImageHere: '拖放图片到这里',
     presetColors: '预设颜色',
     duplicate: '复制',
