@@ -54,20 +54,20 @@ export const TwitterToolsetDefinition: ToolsetDefinition = {
         'zh-CN': '获取特定用户发布的推文列表。',
       },
     },
-    {
-      name: 'list_followers',
-      descriptionDict: {
-        en: 'Get a list of users who follow a specific user.',
-        'zh-CN': '获取关注特定用户的用户列表。',
-      },
-    },
-    {
-      name: 'list_following',
-      descriptionDict: {
-        en: 'Get a list of users that a specific user is following.',
-        'zh-CN': '获取特定用户正在关注的用户列表。',
-      },
-    },
+    // {
+    //   name: 'list_followers',
+    //   descriptionDict: {
+    //     en: 'Get a list of users who follow a specific user.',
+    //     'zh-CN': '获取关注特定用户的用户列表。',
+    //   },
+    // },
+    // {
+    //   name: 'list_following',
+    //   descriptionDict: {
+    //     en: 'Get a list of users that a specific user is following.',
+    //     'zh-CN': '获取特定用户正在关注的用户列表。',
+    //   },
+    // },
     {
       name: 'follow_user',
       descriptionDict: {
