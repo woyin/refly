@@ -4,6 +4,7 @@ import { Button, Table, Segmented } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { Spin } from '@refly-packages/ai-workspace-common/components/common/spin';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
 import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
 
 import {
@@ -62,12 +63,30 @@ const extractAppIdFromCommissionDescription = (description?: string): string | n
 // Component to handle commission source display with app name
 const CommissionSourceCell = React.memo(({ record }: { record: CreditRechargeRecord }) => {
   const { t } = useTranslation('ui');
+  const navigate = useNavigate();
+  const { setShowSettingModal } = useSiderStoreShallow((state) => ({
+    setShowSettingModal: state.setShowSettingModal,
+  }));
   const appId = extractAppIdFromCommissionDescription(record.description);
 
   const { data: appDetail, isLoading } = useGetWorkflowAppDetail(
     appId ? { query: { appId } } : null,
     [appId],
     { enabled: !!appId },
+  );
+
+  const handleAppNameClick = useCallback(
+    (e: React.MouseEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const shareId = appDetail?.data?.shareId;
+      if (shareId) {
+        // Close settings modal before navigation
+        setShowSettingModal(false);
+        navigate(`/app/${shareId}`);
+      }
+    },
+    [appDetail?.data?.shareId, navigate, setShowSettingModal],
   );
 
   if (isLoading || !appDetail) {
@@ -77,7 +96,17 @@ const CommissionSourceCell = React.memo(({ record }: { record: CreditRechargeRec
   const appName = appDetail?.data?.title ?? t('credit.recharge.source.commission');
   return (
     <span className="commission-source-cell">
-      {t('credit.recharge.source.commissionWithName', { appName })}
+      {t('credit.recharge.source.commissionPrefix')}
+      {appDetail?.data?.shareId ? (
+        <span
+          className="cursor-pointer underline hover:text-blue-600 dark:hover:text-blue-400"
+          onClick={handleAppNameClick}
+        >
+          {appName}
+        </span>
+      ) : (
+        appName
+      )}
     </span>
   );
 });
