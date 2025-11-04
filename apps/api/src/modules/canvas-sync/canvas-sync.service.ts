@@ -497,11 +497,6 @@ export class CanvasSyncService {
     options?: { autoLayout?: boolean },
   ) {
     const releaseLock = await this.lockState(canvasId);
-    if (!releaseLock) {
-      this.logger.warn(`[addNodeToCanvas] failed to acquire lock for canvas ${canvasId}`);
-      return;
-    }
-
     const { nodes, edges } = await this.getCanvasData(user, { canvasId });
 
     const { newNode, newEdges } = prepareAddNode({

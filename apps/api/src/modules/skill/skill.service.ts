@@ -566,10 +566,9 @@ export class SkillService implements OnModuleInit {
       // Get history messages for the copilot session
       const historyResults = await this.prisma.actionResult.findMany({
         where: {
+          uid,
           copilotSessionId: param.copilotSessionId,
-          resultId: {
-            not: resultId,
-          },
+          resultId: { not: resultId },
         },
         orderBy: {
           createdAt: 'asc',

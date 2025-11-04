@@ -330,7 +330,7 @@ export class Agent extends BaseSkill {
         mode === 'copilot_agent'
           ? () =>
               buildWorkflowCopilotPrompt({
-                installedToolsets: config.configurable.installedToolsets,
+                installedToolsets: config.configurable.installedToolsets ?? [],
               })
           : toolsAvailable
             ? () => buildSystemPrompt(iTools, locale)

@@ -1062,7 +1062,7 @@ export class CanvasService {
 
   async exportCanvas(user: User, canvasId: string): Promise<string> {
     // Get the canvas raw data
-    const canvasData = await this.getCanvasRawData(user, canvasId);
+    const canvasData = await this.getCanvasRawData(user, canvasId, { checkOwnership: true });
 
     // Convert to JSON string
     const jsonData = JSON.stringify(canvasData, null, 2);

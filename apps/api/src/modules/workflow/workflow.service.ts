@@ -79,8 +79,9 @@ export class WorkflowService {
       sourceCanvasData,
       checkCanvasOwnership,
       createNewCanvas,
-      nodeBehavior = 'update',
+      nodeBehavior: requestedNodeBehavior,
     } = options ?? {};
+    const nodeBehavior = requestedNodeBehavior ?? (createNewCanvas ? 'create' : 'update');
 
     if (sourceCanvasData) {
       canvasData = sourceCanvasData;
