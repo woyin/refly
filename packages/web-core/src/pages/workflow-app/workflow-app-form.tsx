@@ -274,7 +274,7 @@ export const WorkflowAPPForm = ({
 
       match = variableRegex.exec(templateContent);
       while (match !== null) {
-        templateVariableNames.add(match[1].trim());
+        templateVariableNames.add(match?.[1]?.trim() ?? '');
         match = variableRegex.exec(templateContent);
       }
 
@@ -361,10 +361,10 @@ export const WorkflowAPPForm = ({
       } else {
         setInternalIsRunning(false);
       }
-    } catch (error) {
+    } catch (error: any) {
       // Form validation failed, scroll to first error
-      if (error?.errorFields && error.errorFields.length > 0) {
-        const firstErrorField = error.errorFields[0];
+      if (error?.errorFields && error?.errorFields?.length > 0) {
+        const firstErrorField = error?.errorFields?.[0];
         const fieldName = firstErrorField.name;
         if (Array.isArray(fieldName) && fieldName.length > 0) {
           const fieldNameStr = fieldName[0];
@@ -435,7 +435,7 @@ export const WorkflowAPPForm = ({
       return (
         <Form.Item
           key={name}
-          label={<FormItemLabel name={name} required={required} />}
+          label={<FormItemLabel name={name} required={required ?? false} />}
           name={name}
           rules={
             required
@@ -460,7 +460,7 @@ export const WorkflowAPPForm = ({
       return (
         <Form.Item
           key={name}
-          label={<FormItemLabel name={name} required={required} />}
+          label={<FormItemLabel name={name} required={required ?? false} />}
           name={name}
           rules={
             required
@@ -486,7 +486,7 @@ export const WorkflowAPPForm = ({
       return (
         <Form.Item
           key={name}
-          label={<FormItemLabel name={name} required={required} />}
+          label={<FormItemLabel name={name} required={required ?? false} />}
           name={name}
           rules={
             required
@@ -528,7 +528,7 @@ export const WorkflowAPPForm = ({
             <div className="space-y-4">
               <div className="bg-refly-bg-content-z2 rounded-2xl shadow-[0px_2px_20px_4px_rgba(0,0,0,0.04)] p-4">
                 <MixedTextEditor
-                  templateContent={templateContent}
+                  templateContent={templateContent ?? ''}
                   variables={templateVariables.length > 0 ? templateVariables : workflowVariables}
                   onVariablesChange={handleTemplateVariableChange}
                   disabled={isFormDisabled}
@@ -629,23 +629,15 @@ export const WorkflowAPPForm = ({
               <Button
                 className={cn(
                   'h-10 flex items-center justify-center',
+                  'w-[200px] min-w-[109px]',
                   'px-[44px] sm:px-[46px] gap-2',
                   'text-white font-roboto font-semibold text-[16px] leading-[1.25em]',
-                  'border-none shadow-none hover:!bg-[rgba(28,31,35,0.90)]',
+                  'border-none shadow-none rounded-[12px]',
+                  'transition-colors duration-150 ease-in-out',
                   isFormValid && !isRunButtonDisabled
-                    ? ''
-                    : 'bg-refly-bg-control-z1 hover:!bg-refly-tertiary-hover font-semibold',
+                    ? 'bg-[#1C1F23] hover:!bg-[rgba(28,31,35,0.90)]'
+                    : 'bg-refly-bg-control-z1 hover:!bg-refly-tertiary-hover',
                 )}
-                style={{
-                  width: '200px',
-                  minWidth: 109,
-                  fontFamily: 'Roboto, system-ui, sans-serif',
-                  fontWeight: 600,
-                  color: 'white',
-                  backgroundColor: '#1C1F23',
-                  borderRadius: '12px',
-                  transition: 'background-color 0.15s ease',
-                }}
                 type="primary"
                 onClick={handleRun}
                 loading={isRunButtonDisabled}
@@ -678,13 +670,7 @@ export const WorkflowAPPForm = ({
               {/* Remix Button */}
               {onCopyWorkflow && workflowApp?.remixEnabled && (
                 <Button
-                  className="h-10 w-[94px] flex items-center justify-center px-0 rounded-[12px] bg-[#F6F6F6] dark:bg-[#232323] border border-[rgba(28,31,35,0.3)] text-[#1C1F23] dark:text-white hover:bg-[#eaeaea] shadow-none font-semibold font-roboto text-[16px] leading-[1.25em] gap-0"
-                  style={{
-                    fontFamily: 'Roboto, system-ui, sans-serif',
-                    fontWeight: 600,
-                    borderWidth: 0.5,
-                    borderStyle: 'solid',
-                  }}
+                  className="h-10 w-[94px] flex items-center justify-center px-0 rounded-[12px] bg-[#F6F6F6] dark:bg-[#232323] border-[0.5px] border-solid border-[rgba(28,31,35,0.3)] text-[#1C1F23] dark:text-white hover:bg-[#eaeaea] shadow-none font-semibold font-roboto text-[16px] leading-[1.25em] gap-0"
                   type="default"
                   onClick={onCopyWorkflow}
                   title={t('canvas.workflow.run.remix')}
@@ -695,11 +681,8 @@ export const WorkflowAPPForm = ({
               {/* Share Icon Button */}
               {onCopyShareLink && (
                 <Button
-                  className="flex items-center justify-center rounded-[12px] bg-[#F6F6F6] dark:bg-[#232323] border border-[rgba(28,31,35,0.3)] text-[#1C1F23] dark:text-white hover:bg-[#eaeaea] shadow-none font-roboto h-10 w-[40px] "
+                  className="flex items-center justify-center rounded-[12px] bg-[#F6F6F6] dark:bg-[#232323] border border-[rgba(28,31,35,0.3)] text-[#1C1F23] dark:text-white hover:bg-[#eaeaea] shadow-none font-roboto h-10 w-10"
                   type="default"
-                  style={{
-                    width: '40px',
-                  }}
                   icon={<IconShare size={16} className="" />}
                   onClick={onCopyShareLink}
                   title={t('canvas.workflow.run.copyShareLink') || 'Copy Share Link'}
