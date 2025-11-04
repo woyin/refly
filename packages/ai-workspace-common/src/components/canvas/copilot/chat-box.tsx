@@ -1,4 +1,4 @@
-import { memo, useMemo, useEffect } from 'react';
+import { memo, useMemo, useEffect, useCallback } from 'react';
 
 import { useInvokeAction } from '@refly-packages/ai-workspace-common/hooks/canvas/use-invoke-action';
 import { genActionResultID, genCopilotSessionID } from '@refly/utils/id';
@@ -37,7 +37,7 @@ export const ChatBox = memo(({ canvasId, query, setQuery }: ChatBoxProps) => {
     setCurrentSessionId: state.setCurrentSessionId,
     appendSessionResultId: state.appendSessionResultId,
     setCreatedCopilotSessionId: state.setCreatedCopilotSessionId,
-    sessionResultIds: state.sessionResultIds[state.currentSessionId[canvasId]],
+    sessionResultIds: state.sessionResultIds[state.currentSessionId?.[canvasId]],
   }));
 
   const { resultMap } = useActionResultStoreShallow((state) => ({
@@ -60,16 +60,14 @@ export const ChatBox = memo(({ canvasId, query, setQuery }: ChatBoxProps) => {
     if (['finish', 'failed'].includes(firstResult?.status ?? '')) {
       refetchHistorySessions();
     }
-  }, [firstResult?.status]);
+  }, [firstResult?.status, refetchHistorySessions]);
 
   const { invokeAction } = useInvokeAction();
 
-  const handleSendMessage = async () => {
+  const handleSendMessage = useCallback(async () => {
     if (isExecuting) {
       return;
     }
-
-    console.log('handleSendMessage currentSessionId', currentSessionId);
 
     const resultId = genActionResultID();
     let sessionId = currentSessionId;
@@ -99,7 +97,17 @@ export const ChatBox = memo(({ canvasId, query, setQuery }: ChatBoxProps) => {
     setCurrentSessionId(canvasId, sessionId);
     appendSessionResultId(sessionId, resultId);
     setCreatedCopilotSessionId(sessionId);
-  };
+  }, [
+    isExecuting,
+    currentSessionId,
+    query,
+    canvasId,
+    invokeAction,
+    setQuery,
+    setCurrentSessionId,
+    appendSessionResultId,
+    setCreatedCopilotSessionId,
+  ]);
 
   return (
     <div className="w-full px-4 py-3 rounded-xl overflow-hidden border-[1px] border-solid border-refly-primary-default ">

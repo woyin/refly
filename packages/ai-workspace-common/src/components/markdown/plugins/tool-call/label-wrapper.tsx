@@ -37,7 +37,9 @@ export const LabelWrapper = memo(
     const labelText =
       source === 'variables'
         ? (variable?.name ?? '')
-        : (String(toolset?.toolset?.definition?.labelDict[currentLanguage]) ?? toolset?.name ?? '');
+        : (String(toolset?.toolset?.definition?.labelDict?.[currentLanguage]) ??
+          toolset?.name ??
+          '');
 
     return (
       <div className="flex items-center gap-1 h-[18px] px-1 rounded-[4px] bg-refly-tertiary-default border-[0.5px] border-solid border-refly-Card-Border">

@@ -97,7 +97,6 @@ export const CanvasTitle = memo(
     }, [canvasTitle]);
 
     const focusInput = useCallback(() => {
-      console.log('focusInput');
       if (inputRef.current) {
         inputRef.current.focus({ cursor: 'end' });
       }
@@ -110,7 +109,6 @@ export const CanvasTitle = memo(
     }, [mode]);
 
     const handleAutoName = useCallback(async () => {
-      console.log('handleAutoName');
       focusInput();
       if (!canvasId) return;
       setIsLoading(true);

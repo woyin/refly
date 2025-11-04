@@ -280,6 +280,7 @@ export const ActionsInCanvasDropdown = memo((props: ActionsInCanvasDropdownProps
       handleAutoLayout,
       canZoomIn,
       canZoomOut,
+      t,
     ],
   );
 

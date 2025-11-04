@@ -166,7 +166,18 @@ const CopilotMessage = memo(({ result, isFinal }: CopilotMessageProps) => {
     } finally {
       setIsLoading(false);
     }
-  }, [canvasId, workflowPlan, tools?.data, getNodes, t]);
+  }, [
+    canvasId,
+    workflowPlan,
+    tools?.data,
+    getNodes,
+    t,
+    modal,
+    deleteNodes,
+    forceSyncState,
+    initializeWorkflow,
+    refetchVariables,
+  ]);
 
   return (
     <div className="flex flex-col gap-4">

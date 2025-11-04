@@ -70,7 +70,6 @@ export const ToolbarButtons = memo(
             className={`p-2 font-semibold ${isResourceLibraryVisible ? 'bg-refly-fill-hover' : ''}`}
           >
             {t('canvas.toolbar.tooltip.resourceLibrary')}
-            {isResourceLibraryVisible}
           </Button>
         </div>
       </div>
