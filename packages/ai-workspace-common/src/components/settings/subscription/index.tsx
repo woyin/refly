@@ -95,7 +95,7 @@ const CommissionSourceCell = React.memo(({ record }: { record: CreditRechargeRec
 
   const appName = appDetail?.data?.title ?? t('credit.recharge.source.commission');
   return (
-    <span className="commission-source-cell">
+    <span className="inline-block max-w-[200px] overflow-hidden text-ellipsis whitespace-nowrap align-bottom">
       {t('credit.recharge.source.commissionPrefix')}
       {appDetail?.data?.shareId ? (
         <span

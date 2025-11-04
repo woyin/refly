@@ -21,6 +21,7 @@ import {
 } from '@refly/utils';
 import { CreditBalance } from './credit.dto';
 import { CanvasSyncService } from '../canvas-sync/canvas-sync.service';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class CreditService {
@@ -30,6 +31,7 @@ export class CreditService {
     protected readonly prisma: PrismaService,
     private readonly redis: RedisService,
     private readonly canvasSyncService: CanvasSyncService,
+    private readonly configService: ConfigService,
   ) {}
 
   /**
@@ -192,7 +194,9 @@ export class CreditService {
     // Calculate expiresAt for commission credit (1 month from now)
     const now = new Date();
     const expiresAt = new Date(now);
-    expiresAt.setMonth(expiresAt.getMonth() + 6);
+    expiresAt.setMonth(
+      expiresAt.getMonth() + this.configService.get('credit.commissionCreditExpiresIn'),
+    );
 
     await this.processCreditRecharge(shareUserId, creditUsage, {
       rechargeId: creditRechargeId,

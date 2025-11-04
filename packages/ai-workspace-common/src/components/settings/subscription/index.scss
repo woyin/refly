@@ -262,14 +262,6 @@
       background-color: #fff;
       border: 1px solid #e5e7eb;
 
-      .commission-source-cell {
-        display: inline-block;
-        max-width: 200px;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-        vertical-align: bottom;
-      }
 
       // Remove all table separator lines
       .ant-table-thead > tr > th::before,

@@ -12,6 +12,7 @@ import {
   GetCreditUsageByCanvasIdResponse,
 } from '@refly/openapi-schema';
 import { buildSuccessResponse } from '../../utils';
+import { ConfigService } from '@nestjs/config';
 
 // Define pagination DTO
 class PaginationDto {
@@ -19,12 +20,12 @@ class PaginationDto {
   pageSize?: string;
 }
 
-const EXECUTION_CREDIT_MARKUP = 1.2;
-const CANVAS_CREDIT_COMMISSION_RATE = 0.2;
-
 @Controller('v1/credit')
 export class CreditController {
-  constructor(private readonly creditService: CreditService) {}
+  constructor(
+    private readonly creditService: CreditService,
+    private readonly configService: ConfigService,
+  ) {}
 
   @UseGuards(JwtAuthGuard)
   @Get('/recharge')
@@ -79,7 +80,9 @@ export class CreditController {
       user,
       executionId,
     );
-    return buildSuccessResponse({ total: Math.ceil(total * EXECUTION_CREDIT_MARKUP) });
+    return buildSuccessResponse({
+      total: Math.ceil(total * this.configService.get('credit.executionCreditMarkup')),
+    });
   }
 
   @UseGuards(JwtAuthGuard)
@@ -90,6 +93,8 @@ export class CreditController {
   ): Promise<GetCreditUsageByCanvasIdResponse> {
     const { canvasId } = query;
     const total = await this.creditService.countCanvasCreditUsageByCanvasId(user, canvasId);
-    return buildSuccessResponse({ total: Math.ceil(total * CANVAS_CREDIT_COMMISSION_RATE) });
+    return buildSuccessResponse({
+      total: Math.ceil(total * this.configService.get('credit.canvasCreditCommissionRate')),
+    });
   }
 }
