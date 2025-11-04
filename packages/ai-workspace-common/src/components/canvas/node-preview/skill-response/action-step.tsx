@@ -319,14 +319,14 @@ export const ActionStepCard = memo(
           selection: {
             content: text,
             sourceEntityType: 'skillResponse',
-            sourceEntityId: result.resultId ?? '',
-            sourceTitle: result.title ?? '',
+            sourceEntityId: result?.resultId ?? '',
+            sourceTitle: result?.title ?? '',
           },
         };
 
         return item;
       },
-      [result.resultId, result.title],
+      [result?.resultId, result?.title],
     );
 
     // Prioritize original query from structuredData over other sources
@@ -396,16 +396,16 @@ export const ActionStepCard = memo(
 
         {step.content && (
           <ActualContent
-            resultId={result.resultId}
-            content={step.content}
+            resultId={result?.resultId}
+            content={step?.content}
             sources={parsedData.sources}
             buildContextItem={buildContextItem}
             step={step}
           />
         )}
 
-        {Array.isArray(step.artifacts) &&
-          step.artifacts.map((artifact) => (
+        {Array.isArray(step?.artifacts) &&
+          step?.artifacts?.map((artifact) => (
             <ArtifactItem
               key={artifact.entityId}
               artifact={artifact}

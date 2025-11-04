@@ -84,7 +84,7 @@ const SkillResponseNodePreviewComponent = ({
   }, [nodeSelectedToolsets]);
 
   useEffect(() => {
-    if (shareData && !result && shareData.resultId === resultId) {
+    if (shareData && !result && shareData?.resultId === resultId) {
       updateActionResult(resultId, shareData);
       setLoading(false);
     }
@@ -134,13 +134,13 @@ const SkillResponseNodePreviewComponent = ({
     if (isStreaming) {
       return;
     }
-    if (!shareId) {
+    if (!!resultId && shareData?.resultId !== resultId) {
       // Always refresh in background to keep store up-to-date
       fetchActionResult(resultId, { silent: !!result });
     } else if (result) {
       setLoading(false);
     }
-  }, [resultId, shareId, isStreaming]);
+  }, [resultId, shareId, isStreaming, shareData, node?.data?.metadata?.status]);
 
   const scrollToBottom = useCallback(
     (event: { resultId: string; payload: ActionResult }) => {
@@ -280,12 +280,22 @@ const SkillResponseNodePreviewComponent = ({
   const outputStep = steps.find((step) => OUTPUT_STEP_NAMES.includes(step.name));
 
   return purePreview ? (
-    <ActionStepCard
-      result={result}
-      step={outputStep}
-      status={result?.status}
-      query={currentQuery ?? title ?? ''}
-    />
+    !result && !loading ? (
+      <div className="h-full w-full flex items-center justify-center">
+        <Result
+          status="404"
+          subTitle={t('canvas.skillResponse.resultNotFound')}
+          extra={<Button onClick={handleDelete}>{t('canvas.nodeActions.delete')}</Button>}
+        />
+      </div>
+    ) : (
+      <ActionStepCard
+        result={result}
+        step={outputStep}
+        status={result?.status}
+        query={currentQuery ?? title ?? ''}
+      />
+    )
   ) : (
     <div
       className="flex flex-col gap-4 h-full w-full max-w-[1024px] mx-auto overflow-hidden"
