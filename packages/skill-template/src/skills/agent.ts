@@ -348,53 +348,31 @@ export class Agent extends BaseSkill {
 
     config.metadata.step = { name: 'answerQuestion' };
 
-    try {
-      const result = await compiledLangGraphApp.invoke(
-        { messages: requestMessages },
-        {
-          ...config,
-          recursionLimit: 20,
-          metadata: {
-            ...config.metadata,
-            ...currentSkill,
-            toolsAvailable,
-            toolCount: tools?.length || 0,
-          },
-        },
-      );
-
-      this.engine.logger.log(
-        `Agent execution completed: ${JSON.stringify({
-          messagesCount: result.messages?.length || 0,
-          toolCallCount:
-            result.messages?.filter((msg) => (msg as AIMessage).tool_calls?.length > 0).length || 0,
+    const result = await compiledLangGraphApp.invoke(
+      { messages: requestMessages },
+      {
+        ...config,
+        recursionLimit: 20,
+        metadata: {
+          ...config.metadata,
+          ...currentSkill,
           toolsAvailable,
           toolCount: tools?.length || 0,
-        })}`,
-      );
+        },
+      },
+    );
 
-      return { messages: result.messages };
-    } catch (error) {
-      this.engine.logger.error(`Agent execution failed: ${error.stack}`);
+    this.engine.logger.log(
+      `Agent execution completed: ${JSON.stringify({
+        messagesCount: result.messages?.length || 0,
+        toolCallCount:
+          result.messages?.filter((msg) => (msg as AIMessage).tool_calls?.length > 0).length || 0,
+        toolsAvailable,
+        toolCount: tools?.length || 0,
+      })}`,
+    );
 
-      const errorMessage = new AIMessage(`
-I encountered technical difficulties while processing your request. Here's what happened:
-
-**Error Details**: ${error.message}
-
-**Next Steps**:
-1. Try rephrasing your request in simpler terms
-2. Break down complex tasks into smaller steps
-3. Try again - this might be a temporary issue
-4. Provide more context about what you're trying to achieve
-
-I'll do my best to help you find a solution!
-      `);
-
-      return { messages: [errorMessage] };
-    } finally {
-      // do nothing
-    }
+    return { messages: result.messages };
   };
 
   toRunnable() {
