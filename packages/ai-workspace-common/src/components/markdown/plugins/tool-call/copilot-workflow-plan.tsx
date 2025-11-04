@@ -100,10 +100,7 @@ const LabelsDisplay = memo(({ toolsets }: { toolsets: GenericToolset[] }) => {
     key: `hidden-${toolset.id}-${index}`,
     label: (
       <div className="flex items-center">
-        <LabelWrapper
-          source="toolsets"
-          toolset={{ type: 'regular', id: toolset.id, name: toolset.name }}
-        />
+        <LabelWrapper source="toolsets" toolset={toolset} />
       </div>
     ),
   }));
