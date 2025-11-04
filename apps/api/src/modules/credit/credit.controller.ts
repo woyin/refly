@@ -87,6 +87,6 @@ export class CreditController {
   ): Promise<GetCreditUsageByCanvasIdResponse> {
     const { canvasId } = query;
     const total = await this.creditService.countCanvasCreditUsageByCanvasId(user, canvasId);
-    return buildSuccessResponse({ total });
+    return buildSuccessResponse({ total: Math.ceil(total * 0.2) });
   }
 }

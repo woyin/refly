@@ -891,14 +891,12 @@ export class CreditService {
 
   async countCanvasCreditUsageByCanvasId(user: User, canvasId: string): Promise<number> {
     const canvasData = await this.canvasSyncService.getCanvasData(user, { canvasId });
-    const canvasResultIds = canvasData.nodes
-      .filter((node) => node.type === 'skillResponse')
-      .map((node) => node.data.entityId);
-    const total = await Promise.all(
-      canvasResultIds.map((canvasResultId) => this.countResultCreditUsage(user, canvasResultId)),
-    );
-    return total.reduce((sum, total) => {
-      return sum + total;
+    const skillResponseNodes = canvasData.nodes.filter((node) => node.type === 'skillResponse');
+    const total = skillResponseNodes.reduce((sum, node) => {
+      const creditCost =
+        typeof node.data?.metadata?.creditCost === 'number' ? node.data.metadata.creditCost : 0;
+      return sum + creditCost;
     }, 0);
+    return total;
   }
 }

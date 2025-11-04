@@ -25,7 +25,6 @@ import FooterSection from '@refly-packages/ai-workspace-common/components/workfl
 import WhyChooseRefly from './WhyChooseRefly';
 import { SettingItem } from '@refly-packages/ai-workspace-common/components/sider/layout';
 import { SelectedResultsGrid } from '@refly-packages/ai-workspace-common/components/workflow-app/selected-results-grid';
-import { calculateCreditCost } from '@refly-packages/ai-workspace-common/utils';
 import { WorkflowAPPForm } from './workflow-app-form';
 
 // User Avatar component for header
@@ -395,7 +394,7 @@ const WorkflowAppPage: React.FC = () => {
                             {!!executionCreditUsage && executionCreditUsage > 0
                               ? t('workflowApp.productsGeneratedWithCost', {
                                   count: products.length,
-                                  executionCost: calculateCreditCost(executionCreditUsage) ?? 0,
+                                  executionCost: executionCreditUsage ?? 0,
                                 })
                               : t('workflowApp.productsGenerated', { count: products.length })}
                           </div>
