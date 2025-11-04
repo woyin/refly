@@ -1,7 +1,6 @@
 import type { WorkflowVariable, WorkflowExecutionStatus } from '@refly/openapi-schema';
 import { useTranslation } from 'react-i18next';
-import { Button, Input, Select, Form, Typography, message } from 'antd';
-import { Play, Copy } from 'refly-icons';
+import { Button, Input, Select, Form, Typography, message, Tooltip } from 'antd';
 import { IconShare } from '@refly-packages/ai-workspace-common/components/common/icon';
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import type { UploadFile } from 'antd/es/upload/interface';
@@ -15,15 +14,7 @@ import { MixedTextEditor } from '@refly-packages/ai-workspace-common/components/
 import { ResourceUpload } from '@refly-packages/ai-workspace-common/components/canvas/workflow-run/resource-upload';
 import { useFileUpload } from '@refly-packages/ai-workspace-common/components/canvas/workflow-variables';
 import { getFileType } from '@refly-packages/ai-workspace-common/components/canvas/workflow-variables/utils';
-
-const RequiredTagText = () => {
-  const { t } = useTranslation();
-  return (
-    <div className="flex-shrink-0 text-[10px] text-refly-text-2 leading-[16px] px-1 border-[1px] border-solid border-refly-Card-Border rounded-[4px]">
-      {t('canvas.workflow.variables.required') || 'Required'}
-    </div>
-  );
-};
+import { calculateCreditCost } from '@refly-packages/ai-workspace-common/utils';
 
 const EmptyContent = () => {
   const { t } = useTranslation();
@@ -31,19 +22,16 @@ const EmptyContent = () => {
     <div className="w-full h-full flex flex-col items-center justify-center">
       <img src={EmptyImage} alt="no variables" className="w-[120px] h-[120px] -mb-4" />
       <div className="text-sm text-refly-text-2 leading-5">
-        {t('canvas.workflow.run.emptyTitle', 'No variables defined')}
+        {t('canvas.workflow.run.emptyTitle')}
       </div>
       <div className="text-sm text-refly-text-2 leading-5">
-        {t(
-          'canvas.workflow.run.emptyDescription',
-          ' the workflow will be executed once if continued.',
-        )}
+        {t('canvas.workflow.run.emptyDescription')}
       </div>
     </div>
   );
 };
 
-const FormItemLabel = ({ name, required }: { name: string; required: boolean }) => {
+const FormItemLabel = ({ name }: { name: string; required: boolean }) => {
   return (
     <div className="flex items-center gap-2 min-w-0">
       <Typography.Paragraph
@@ -52,13 +40,11 @@ const FormItemLabel = ({ name, required }: { name: string; required: boolean }) 
       >
         {name}
       </Typography.Paragraph>
-
-      {required && <RequiredTagText />}
     </div>
   );
 };
 
-interface WorkflowRunFormProps {
+interface WorkflowAPPFormProps {
   workflowVariables: WorkflowVariable[];
   onSubmitVariables: (variables: WorkflowVariable[]) => Promise<void>;
   onCopyWorkflow?: () => void;
@@ -73,9 +59,10 @@ interface WorkflowRunFormProps {
   className?: string;
   templateContent?: string;
   workflowApp?: any;
+  executionCreditUsage?: number | null;
 }
 
-export const WorkflowRunForm = ({
+export const WorkflowAPPForm = ({
   workflowVariables,
   onSubmitVariables,
   onCopyWorkflow,
@@ -87,9 +74,9 @@ export const WorkflowRunForm = ({
   className,
   templateContent,
   workflowApp,
-}: WorkflowRunFormProps) => {
+}: WorkflowAPPFormProps) => {
   const { t } = useTranslation();
-  const { isLoggedRef } = useIsLogin();
+  const { getLoginStatus } = useIsLogin();
   const navigate = useNavigate();
 
   const [internalIsRunning, setInternalIsRunning] = useState(false);
@@ -287,7 +274,7 @@ export const WorkflowRunForm = ({
 
       match = variableRegex.exec(templateContent);
       while (match !== null) {
-        templateVariableNames.add(match[1].trim());
+        templateVariableNames.add(match?.[1]?.trim() ?? '');
         match = variableRegex.exec(templateContent);
       }
 
@@ -313,7 +300,7 @@ export const WorkflowRunForm = ({
     }
 
     // Check if user is logged in
-    if (!isLoggedRef.current) {
+    if (!getLoginStatus()) {
       // Redirect to login with return URL
       const returnUrl = encodeURIComponent(window.location.pathname + window.location.search);
       navigate(`/?autoLogin=true&returnUrl=${returnUrl}`);
@@ -346,12 +333,7 @@ export const WorkflowRunForm = ({
 
         if (hasInvalidValues) {
           // Show validation error message
-          message.warning(
-            t(
-              'canvas.workflow.run.validationError',
-              'Please fill in all required fields before running the workflow',
-            ),
-          );
+          message.warning(t('canvas.workflow.run.validationError'));
           return;
         }
 
@@ -379,10 +361,10 @@ export const WorkflowRunForm = ({
       } else {
         setInternalIsRunning(false);
       }
-    } catch (error) {
+    } catch (error: any) {
       // Form validation failed, scroll to first error
-      if (error?.errorFields && error.errorFields.length > 0) {
-        const firstErrorField = error.errorFields[0];
+      if (error?.errorFields && error?.errorFields?.length > 0) {
+        const firstErrorField = error?.errorFields?.[0];
         const fieldName = firstErrorField.name;
         if (Array.isArray(fieldName) && fieldName.length > 0) {
           const fieldNameStr = fieldName[0];
@@ -453,7 +435,7 @@ export const WorkflowRunForm = ({
       return (
         <Form.Item
           key={name}
-          label={<FormItemLabel name={name} required={required} />}
+          label={<FormItemLabel name={name} required={required ?? false} />}
           name={name}
           rules={
             required
@@ -478,7 +460,7 @@ export const WorkflowRunForm = ({
       return (
         <Form.Item
           key={name}
-          label={<FormItemLabel name={name} required={required} />}
+          label={<FormItemLabel name={name} required={required ?? false} />}
           name={name}
           rules={
             required
@@ -504,7 +486,7 @@ export const WorkflowRunForm = ({
       return (
         <Form.Item
           key={name}
-          label={<FormItemLabel name={name} required={required} />}
+          label={<FormItemLabel name={name} required={required ?? false} />}
           name={name}
           rules={
             required
@@ -534,6 +516,8 @@ export const WorkflowRunForm = ({
     setTemplateVariables(variables);
   }, []);
 
+  const isRunButtonDisabled = loading || isRunning;
+
   return (
     <div className={cn('w-full h-full gap-3 flex flex-col rounded-2xl', className)}>
       {
@@ -544,7 +528,7 @@ export const WorkflowRunForm = ({
             <div className="space-y-4">
               <div className="bg-refly-bg-content-z2 rounded-2xl shadow-[0px_2px_20px_4px_rgba(0,0,0,0.04)] p-4">
                 <MixedTextEditor
-                  templateContent={templateContent}
+                  templateContent={templateContent ?? ''}
                   variables={templateVariables.length > 0 ? templateVariables : workflowVariables}
                   onVariablesChange={handleTemplateVariableChange}
                   disabled={isFormDisabled}
@@ -587,44 +571,122 @@ export const WorkflowRunForm = ({
           )}
 
           <div className="p-3 sm:p-4 border-t border-refly-Card-Border bg-refly-bg-control-z0 rounded-b-lg">
-            <div className="flex gap-2">
+            <div className="w-full flex flex-row justify-end items-center gap-3">
+              {/* Credit Info Block */}
+              {
+                <Tooltip
+                  title={t('subscription.creditBilling.description.canvasTotal', {
+                    cost: calculateCreditCost(workflowApp?.creditUsage) ?? 0,
+                  })}
+                >
+                  <div className="flex items-center bg-[#F6F6F6] dark:bg-[#232323] rounded-[12px] px-4 h-10 min-w-[94px] gap-1 border border-transparent select-none font-roboto">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="22"
+                      height="22"
+                      viewBox="0 0 22 22"
+                      fill="none"
+                    >
+                      <path
+                        d="M10.9992 2.19922C11.3806 2.19922 11.7186 2.44489 11.8363 2.80766C12.9673 6.29581 15.7026 9.03109 19.1908 10.1622C19.5535 10.2799 19.7992 10.6178 19.7992 10.9992C19.7992 11.3806 19.5535 11.7186 19.1908 11.8363C15.7026 12.9673 12.9673 15.7026 11.8363 19.1908C11.7186 19.5535 11.3806 19.7992 10.9992 19.7992C10.6178 19.7992 10.2799 19.5535 10.1622 19.1908C9.03109 15.7026 6.29581 12.9673 2.80766 11.8363C2.44489 11.7186 2.19922 11.3806 2.19922 10.9992C2.19922 10.6178 2.44489 10.2799 2.80766 10.1622C6.29581 9.03109 9.03109 6.29581 10.1622 2.80766L10.2163 2.67703C10.3651 2.38714 10.6656 2.19922 10.9992 2.19922Z"
+                        fill="url(#paint0_linear_1586_21457)"
+                      />
+                      <defs>
+                        <linearGradient
+                          id="paint0_linear_1586_21457"
+                          x1="10"
+                          y1="3.49902"
+                          x2="16.5"
+                          y2="19.999"
+                          gradientUnits="userSpaceOnUse"
+                        >
+                          <stop stop-color="#32E2BB" />
+                          <stop offset="1" stop-color="#0E9F77" />
+                        </linearGradient>
+                      </defs>
+                    </svg>
+
+                    <span className="font-semibold text-[20px] leading-[1.25em] font-roboto text-[#1C1F23] dark:text-white inline-flex items-center gap-[3px]">
+                      {calculateCreditCost(workflowApp?.creditUsage) ?? 0}
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="15"
+                        height="5"
+                        viewBox="0 0 15 5"
+                        fill="none"
+                        className="fill-[#1C1F23] dark:fill-white"
+                      >
+                        <path d="M14.4697 0.915887C14.6995 1.06906 14.7639 1.38042 14.6121 1.61108C14.1144 2.36723 13.2896 3.54082 12.123 4.25476C11.3679 4.71688 10.4467 5.00886 9.37402 4.91199C8.3174 4.81654 7.2266 4.3538 6.09668 3.50867C5.53542 3.08897 5.09464 2.96119 4.76562 2.94421C4.43374 2.92718 4.1032 3.01782 3.75781 3.2157C3.15311 3.56226 2.61452 4.17132 2.17089 4.78259C2.00869 5.00607 1.69948 5.06906 1.46972 4.91589L0.22169 4.08387C-0.00807451 3.93069 -0.0713753 3.61969 0.0889509 3.39486C0.625529 2.64239 1.44023 1.6619 2.51562 1.04578C3.18379 0.663049 3.98585 0.401539 4.89355 0.44812C5.8041 0.49491 6.71106 0.845772 7.59473 1.50671C8.46471 2.15741 9.12402 2.37983 9.59863 2.42273C10.0571 2.46414 10.4486 2.34826 10.8184 2.12195C11.5184 1.69342 12.0448 0.950943 12.5293 0.223192C12.6824 -0.00666726 12.9919 -0.0693076 13.2217 0.0838687L14.4697 0.915887Z" />
+                      </svg>
+                    </span>
+                    <span className="text-xs font-roboto font-normal text-[#1C1F23] dark:text-white opacity-60 ml-0.5">
+                      / {t('canvas.workflow.run.run') || 'run'}
+                    </span>
+                  </div>
+                </Tooltip>
+              }
+              {/* RUN Button */}
               <Button
                 className={cn(
-                  'flex-1 h-9 sm:h-10 text-sm sm:text-base',
-                  (!isFormValid || isPolling) &&
-                    'bg-refly-bg-control-z1 hover:!bg-refly-tertiary-hover !text-refly-text-3 font-semibold',
+                  'h-10 flex items-center justify-center',
+                  'w-[200px] min-w-[109px]',
+                  'px-[44px] sm:px-[46px] gap-2',
+                  'text-white font-roboto font-semibold text-[16px] leading-[1.25em]',
+                  'border-none shadow-none rounded-[12px]',
+                  'transition-colors duration-150 ease-in-out',
+                  isFormValid && !isRunButtonDisabled
+                    ? 'bg-[#1C1F23] hover:!bg-[rgba(28,31,35,0.90)]'
+                    : 'bg-refly-bg-control-z1 hover:!bg-refly-tertiary-hover',
                 )}
                 type="primary"
-                icon={<Play size={14} className="sm:w-4 sm:h-4" />}
                 onClick={handleRun}
-                loading={loading || isRunning || isPolling}
-                disabled={loading || isRunning || isPolling}
+                loading={isRunButtonDisabled}
+                disabled={isRunButtonDisabled}
               >
-                {isPolling
-                  ? t('canvas.workflow.run.executing') || 'Executing...'
-                  : t('canvas.workflow.run.run') || 'Run'}
+                <span className="inline-flex items-center gap-[2px]">
+                  {isRunButtonDisabled
+                    ? t('canvas.workflow.run.executing')
+                    : t('canvas.workflow.run.run')}
+                  {!isRunButtonDisabled && (
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="18"
+                      height="18"
+                      viewBox="0 0 18 18"
+                      fill="none"
+                    >
+                      <path
+                        d="M1.80059 9.00078H15M15 9.00078L10.8 13.2008M15 9.00078L10.8 4.80078"
+                        stroke="white"
+                        stroke-opacity="0.5"
+                        stroke-width="1.5"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      />
+                    </svg>
+                  )}
+                </span>
               </Button>
-
+              {/* Remix Button */}
               {onCopyWorkflow && workflowApp?.remixEnabled && (
                 <Button
-                  className="h-9 sm:h-10 text-sm sm:text-base"
+                  className="h-10 w-[94px] flex items-center justify-center px-0 rounded-[12px] bg-[#F6F6F6] dark:bg-[#232323] border-[0.5px] border-solid border-[rgba(28,31,35,0.3)] text-[#1C1F23] dark:text-white hover:bg-[#eaeaea] shadow-none font-semibold font-roboto text-[16px] leading-[1.25em] gap-0"
                   type="default"
-                  icon={<Copy size={14} className="sm:w-4 sm:h-4" />}
                   onClick={onCopyWorkflow}
+                  title={t('canvas.workflow.run.remix')}
                 >
-                  {t('canvas.workflow.run.copyWorkflow') || 'Copy Workflow'}
+                  <span className="">{t('canvas.workflow.run.remix')}</span>
                 </Button>
               )}
-
+              {/* Share Icon Button */}
               {onCopyShareLink && (
                 <Button
-                  className="h-9 sm:h-10 text-sm sm:text-base"
+                  className="flex items-center justify-center rounded-[12px] bg-[#F6F6F6] dark:bg-[#232323] border border-[rgba(28,31,35,0.3)] text-[#1C1F23] dark:text-white hover:bg-[#eaeaea] shadow-none font-roboto h-10 w-10"
                   type="default"
-                  icon={<IconShare size={14} className="sm:w-4 sm:h-4" />}
+                  icon={<IconShare size={16} className="" />}
                   onClick={onCopyShareLink}
-                >
-                  {t('canvas.workflow.run.copyShareLink') || 'Copy Share Link'}
-                </Button>
+                  title={t('canvas.workflow.run.copyShareLink') || 'Copy Share Link'}
+                />
               )}
             </div>
           </div>
