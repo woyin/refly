@@ -93,7 +93,7 @@ describe('mirrorCanvasData', () => {
     expect(result).toEqual({ nodes: [], edges: [] });
   });
 
-  it('should generate new unique node IDs', () => {
+  it('should preserve original node IDs', () => {
     const node1 = createNode('original-node-1');
     const node2 = createNode('original-node-2');
     const input: CanvasData = {
@@ -104,9 +104,8 @@ describe('mirrorCanvasData', () => {
     const result = mirrorCanvasData(input);
 
     expect(result.nodes).toHaveLength(2);
-    expect(result.nodes[0].id).not.toBe('original-node-1');
-    expect(result.nodes[1].id).not.toBe('original-node-2');
-    expect(result.nodes[0].id).not.toBe(result.nodes[1].id);
+    expect(result.nodes[0].id).toBe('original-node-1');
+    expect(result.nodes[1].id).toBe('original-node-2');
   });
 
   it('should generate new unique entity IDs', () => {
@@ -143,7 +142,7 @@ describe('mirrorCanvasData', () => {
     expect(result.nodes[0].data?.metadata?.contentPreview).toBe('preview text');
   });
 
-  it('should update edge source and target references to new node IDs', () => {
+  it('should preserve edge source and target references to original node IDs', () => {
     const node1 = createNode('node-1');
     const node2 = createNode('node-2');
     const edge = createEdge('edge-1', 'node-1', 'node-2');
@@ -155,8 +154,8 @@ describe('mirrorCanvasData', () => {
     const result = mirrorCanvasData(input);
 
     expect(result.edges).toHaveLength(1);
-    expect(result.edges[0].source).not.toBe('node-1');
-    expect(result.edges[0].target).not.toBe('node-2');
+    expect(result.edges[0].source).toBe('node-1');
+    expect(result.edges[0].target).toBe('node-2');
     expect(result.edges[0].source).toBe(result.nodes[0].id);
     expect(result.edges[0].target).toBe(result.nodes[1].id);
   });
@@ -457,16 +456,16 @@ describe('mirrorCanvasData', () => {
 
     const result = mirrorCanvasData(input);
 
-    // All nodes should have new IDs
+    // All nodes should preserve original IDs
     expect(result.nodes).toHaveLength(4);
     const nodeIds = result.nodes.map((n) => n.id);
-    expect(new Set(nodeIds).size).toBe(4); // All IDs are unique
+    expect(nodeIds).toEqual(['node-1', 'node-2', 'node-3', 'node-4']);
 
     // All entity IDs should be new
     const entityIds = result.nodes.map((n) => n.data?.entityId).filter(Boolean);
     expect(new Set(entityIds).size).toBe(4); // All entity IDs are unique
 
-    // All edges should reference the new node IDs
+    // All edges should reference the original node IDs
     expect(result.edges).toHaveLength(3);
     for (const edge of result.edges) {
       expect(nodeIds).toContain(edge.source);

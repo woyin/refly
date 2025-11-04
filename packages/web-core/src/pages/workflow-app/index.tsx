@@ -177,10 +177,12 @@ const WorkflowAppPage: React.FC = () => {
 
   const products = useMemo(() => {
     return nodeExecutions
-      .filter((nodeExecution: WorkflowNodeExecution) =>
-        ['document', 'codeArtifact', 'image', 'video', 'audio'].includes(
-          nodeExecution.nodeType as CanvasNodeType,
-        ),
+      .filter(
+        (nodeExecution: WorkflowNodeExecution) =>
+          ['document', 'codeArtifact', 'image', 'video', 'audio', 'skillResponse'].includes(
+            nodeExecution.nodeType as CanvasNodeType,
+          ) &&
+          (workflowApp?.resultNodeIds?.includes(nodeExecution.nodeId) ?? false),
       )
       .filter((nodeExecution: WorkflowNodeExecution) => nodeExecution.status === 'finish');
   }, [nodeExecutions]);
