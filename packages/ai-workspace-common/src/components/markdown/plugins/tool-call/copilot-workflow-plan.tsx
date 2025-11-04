@@ -204,7 +204,14 @@ export const CopilotWorkflowPlan = memo(({ data }: CopilotWorkflowPlanProps) => 
             <NewConversation size={14} color="var(--refly-text-3)" />
             <Paragraph
               className="text-refly-text-2 flex-1 truncate text-xs leading-4 !m-0"
-              ellipsis={{ rows: 1, tooltip: true }}
+              ellipsis={{
+                rows: 1,
+                tooltip: (
+                  <div className="max-w-[300px] max-h-[200px] overflow-y-auto text-xs">
+                    {processQueryWithMentions(task.prompt).processedQuery || task.prompt}
+                  </div>
+                ),
+              }}
             >
               {processQueryWithMentions(task.prompt).processedQuery || task.prompt}
             </Paragraph>
