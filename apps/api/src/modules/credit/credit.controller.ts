@@ -76,7 +76,7 @@ export class CreditController {
       user,
       executionId,
     );
-    return buildSuccessResponse({ total });
+    return buildSuccessResponse({ total: Math.ceil(total * 1.2) });
   }
 
   @UseGuards(JwtAuthGuard)

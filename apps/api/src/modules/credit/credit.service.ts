@@ -192,7 +192,7 @@ export class CreditService {
     // Calculate expiresAt for commission credit (1 month from now)
     const now = new Date();
     const expiresAt = new Date(now);
-    expiresAt.setMonth(expiresAt.getMonth() + 1);
+    expiresAt.setMonth(expiresAt.getMonth() + 6);
 
     await this.processCreditRecharge(shareUserId, creditUsage, {
       rechargeId: creditRechargeId,
