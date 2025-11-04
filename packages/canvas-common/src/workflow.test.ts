@@ -178,7 +178,7 @@ describe('prepareNodeExecutions', () => {
         childNodeIds: ['A'],
         parentNodeIds: [],
         connectTo: [],
-        status: 'waiting',
+        status: 'finish',
         title: 'Start',
         node: {
           type: 'start',
@@ -376,7 +376,7 @@ describe('prepareNodeExecutions', () => {
         nodeType: 'start',
         title: 'Start',
         parentNodeIds: [],
-        status: 'waiting',
+        status: 'finish',
         childNodeIds: ['N2'],
         connectTo: [],
         entityId: 'E1',
@@ -634,7 +634,7 @@ describe('prepareNodeExecutions', () => {
     const startNode = nodeExecutions.find((n) => n.nodeId === 'S');
     const responseNode = nodeExecutions.find((n) => n.nodeId === 'A');
 
-    expect(startNode?.status).toBe('waiting');
+    expect(startNode?.status).toBe('finish');
     expect(responseNode?.status).toBe('waiting');
   });
 
