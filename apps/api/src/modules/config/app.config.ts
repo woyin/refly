@@ -197,10 +197,8 @@ export default () => ({
     apiKey: process.env.COMPOSIO_API_KEY,
   },
   credit: {
-    executionCreditMarkup: Number.parseInt(process.env.CREDIT_EXECUTION_CREDIT_MARKUP) || 1.2,
-    canvasCreditCommissionRate:
-      Number.parseInt(process.env.CREDIT_CANVAS_CREDIT_COMMISSION_RATE) || 0.2,
-    commissionCreditExpiresIn:
-      Number.parseInt(process.env.CREDIT_COMMISSION_CREDIT_EXPIRES_IN) || 6,
+    executionCreditMarkup: Number(process.env.CREDIT_EXECUTION_CREDIT_MARKUP) || 1.2,
+    canvasCreditCommissionRate: Number(process.env.CREDIT_CANVAS_CREDIT_COMMISSION_RATE) || 0.2,
+    commissionCreditExpiresIn: Number(process.env.CREDIT_COMMISSION_CREDIT_EXPIRES_IN) || 6,
   },
 });
