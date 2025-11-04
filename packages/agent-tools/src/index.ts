@@ -11,7 +11,7 @@ export * from './firecrawl';
 export * from './github';
 export * from './inventory';
 export * from './jina';
-export * from './linkedin';
+// export * from './linkedin';
 export * from './notion';
 export * from './perplexity';
 export * from './reddit';
