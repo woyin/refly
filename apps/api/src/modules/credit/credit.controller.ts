@@ -19,6 +19,9 @@ class PaginationDto {
   pageSize?: string;
 }
 
+const EXECUTION_CREDIT_MARKUP = 1.2;
+const CANVAS_CREDIT_COMMISSION_RATE = 0.2;
+
 @Controller('v1/credit')
 export class CreditController {
   constructor(private readonly creditService: CreditService) {}
@@ -76,7 +79,7 @@ export class CreditController {
       user,
       executionId,
     );
-    return buildSuccessResponse({ total: Math.ceil(total * 1.2) });
+    return buildSuccessResponse({ total: Math.ceil(total * EXECUTION_CREDIT_MARKUP) });
   }
 
   @UseGuards(JwtAuthGuard)
@@ -87,6 +90,6 @@ export class CreditController {
   ): Promise<GetCreditUsageByCanvasIdResponse> {
     const { canvasId } = query;
     const total = await this.creditService.countCanvasCreditUsageByCanvasId(user, canvasId);
-    return buildSuccessResponse({ total: Math.ceil(total * 0.2) });
+    return buildSuccessResponse({ total: Math.ceil(total * CANVAS_CREDIT_COMMISSION_RATE) });
   }
 }
