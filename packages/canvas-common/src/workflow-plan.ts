@@ -129,7 +129,7 @@ export const generateCanvasDataFromWorkflowPlan = (
       const taskPrompt = task?.prompt ?? '';
 
       // Build selected toolsets metadata from task toolset ids
-      const selectedToolsets = [];
+      const selectedToolsets: GenericToolset[] = [];
       if (Array.isArray(task.toolsets)) {
         for (const toolsetId of task.toolsets) {
           // Find the corresponding toolset from the available toolsets
@@ -137,13 +137,7 @@ export const generateCanvasDataFromWorkflowPlan = (
             toolsets?.find((t) => t.id === toolsetId) ||
             toolsets?.find((t) => t.toolset?.key === toolsetId);
           if (toolset) {
-            selectedToolsets.push({
-              type: toolset.type,
-              id: toolset.id,
-              name: toolset.name,
-              selectedTools: toolset.selectedTools,
-              builtin: toolset.builtin,
-            });
+            selectedToolsets.push(toolset);
           }
         }
       }
