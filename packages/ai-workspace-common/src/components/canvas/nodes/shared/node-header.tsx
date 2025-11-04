@@ -67,7 +67,7 @@ export const NodeHeader = memo(
             />
           ) : (
             <div
-              className="max-w-[50%] rounded-md h-6 px-0.5 box-border font-bold leading-6 truncate block hover:bg-refly-tertiary-hover"
+              className="rounded-md h-6 px-0.5 box-border font-bold leading-6 truncate block hover:bg-refly-tertiary-hover"
               title={title || fixedTitle}
               onClick={() => {
                 if (canEdit) {

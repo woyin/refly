@@ -279,7 +279,14 @@ const SkillResponseNodePreviewComponent = ({
 
   const outputStep = steps.find((step) => OUTPUT_STEP_NAMES.includes(step.name));
 
-  return (
+  return purePreview ? (
+    <ActionStepCard
+      result={result}
+      step={outputStep}
+      status={result?.status}
+      query={currentQuery ?? title ?? ''}
+    />
+  ) : (
     <div
       className="flex flex-col gap-4 h-full w-full max-w-[1024px] mx-auto overflow-hidden"
       onClick={() => {
@@ -318,7 +325,7 @@ const SkillResponseNodePreviewComponent = ({
             contextItems={contextItems}
             query={currentQuery}
             actionMeta={actionMeta}
-            setEditMode={purePreview ? undefined : setEditMode}
+            setEditMode={setEditMode}
           />
         </div>
       }
@@ -373,7 +380,7 @@ const SkillResponseNodePreviewComponent = ({
         )}
       </div>
 
-      {outputStep && result?.status === 'finish' && !purePreview && (
+      {outputStep && result?.status === 'finish' && (
         <ActionContainer
           result={result}
           step={outputStep}
