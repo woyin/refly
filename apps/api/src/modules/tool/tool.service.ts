@@ -676,7 +676,7 @@ export class ToolService {
     user: User,
     toolset: GenericToolset,
   ): Promise<GenericToolset | null> {
-    const { name, toolset: toolsetInstance } = toolset;
+    const { name, toolset: toolsetInstance, builtin } = toolset;
 
     // For regular toolsets, we search by key (not ID since ID is user-specific)
     const key = toolsetInstance?.key || toolset.id;
@@ -687,7 +687,7 @@ export class ToolService {
     }
 
     // Builtin toolset does not need to be imported
-    if (key === 'builtin') {
+    if (builtin) {
       return null;
     }
 
@@ -831,7 +831,7 @@ export class ToolService {
       copilotTools = this.instantiateCopilotToolsets();
     }
 
-    const regularToolsets = toolsets.filter((t) => t.type === 'regular' && t.id !== 'builtin');
+    const regularToolsets = toolsets.filter((t) => t.type === 'regular' && !t.builtin);
     const mcpServers = toolsets.filter((t) => t.type === 'mcp');
 
     const [regularTools, mcpTools, oauthToolsets] = await Promise.all([
