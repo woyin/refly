@@ -915,9 +915,17 @@ export class ToolService {
     const toolsetPOs = await this.prisma.toolset.findMany({
       where: {
         toolsetId: { in: toolsets.map((t) => t.id) },
-        OR: [{ uid: user.uid }, { isGlobal: true }],
         deletedAt: null,
-        authType: { not: 'oauth' },
+        OR: [
+          {
+            uid: user.uid,
+            OR: [{ authType: { not: 'oauth' } }, { authType: null }],
+          },
+          {
+            isGlobal: true,
+            OR: [{ authType: { not: 'oauth' } }, { authType: null }],
+          },
+        ],
       },
     });
 
