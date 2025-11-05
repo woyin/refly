@@ -5361,7 +5361,7 @@ export type CreditRecharge = {
   /**
    * Recharge source type
    */
-  source?: 'subscription' | 'purchase' | 'gift' | 'promotion' | 'refund';
+  source?: 'subscription' | 'purchase' | 'gift' | 'promotion' | 'refund' | 'commission';
   /**
    * Optional description for this recharge
    */
@@ -5383,7 +5383,7 @@ export type CreditRecharge = {
 /**
  * Recharge source type
  */
-export type source = 'subscription' | 'purchase' | 'gift' | 'promotion' | 'refund';
+export type source = 'subscription' | 'purchase' | 'gift' | 'promotion' | 'refund' | 'commission';
 
 /**
  * Credit usage record for tracking consumption
@@ -5412,7 +5412,7 @@ export type CreditUsage = {
   /**
    * Type of usage that consumed credits
    */
-  usageType: 'model_call' | 'media_generation' | 'embedding' | 'reranking' | 'other';
+  usageType: 'model_call' | 'media_generation' | 'embedding' | 'reranking' | 'commission' | 'other';
   /**
    * Related action result ID (if applicable)
    */
@@ -5438,7 +5438,13 @@ export type CreditUsage = {
 /**
  * Type of usage that consumed credits
  */
-export type usageType = 'model_call' | 'media_generation' | 'embedding' | 'reranking' | 'other';
+export type usageType =
+  | 'model_call'
+  | 'media_generation'
+  | 'embedding'
+  | 'reranking'
+  | 'commission'
+  | 'other';
 
 export type ListProvidersResponse = BaseResponse & {
   data?: Array<Provider>;

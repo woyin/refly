@@ -1,6 +1,6 @@
 import { IContextItem } from '@refly/common-types';
 import { CanvasData, CanvasEdge, CanvasNode, GenericToolset } from '@refly/openapi-schema';
-import { deepmerge, genNodeEntityId, genNodeID } from '@refly/utils';
+import { deepmerge, genNodeEntityId } from '@refly/utils';
 
 /**
  * Configuration options for the mirrorCanvasData function
@@ -15,20 +15,21 @@ interface MirrorCanvasOptions {
 }
 
 /**
- * Creates a deep copy of canvas data with new node and entity IDs
+ * Creates a deep copy of canvas data with new entity IDs while preserving node IDs
  *
  * This function performs a complete mirroring operation that:
- * 1. Generates new unique IDs for all nodes and their entities
- * 2. Updates all references to use the new IDs (edges, context items, etc.)
- * 3. Optionally transforms nodes/edges using provided processors
- * 4. Optionally replaces toolsets with new instances
+ * 1. Preserves original node IDs
+ * 2. Generates new unique IDs for all entities
+ * 3. Updates all references to use the new entity IDs (context items, etc.)
+ * 4. Optionally transforms nodes/edges using provided processors
+ * 5. Optionally replaces toolsets with new instances
  *
- * This is primarily used when duplicating canvases to ensure no ID conflicts
- * while preserving all relationships and data integrity.
+ * This is primarily used when duplicating canvases to ensure entity ID uniqueness
+ * while preserving all node IDs and relationships.
  *
  * @param data - The original canvas data containing nodes and edges
  * @param options - Optional configuration for the mirroring process
- * @returns A new CanvasData object with all IDs regenerated and references updated
+ * @returns A new CanvasData object with entity IDs regenerated and references updated
  *
  * @example
  * ```typescript
@@ -41,13 +42,7 @@ interface MirrorCanvasOptions {
 export const mirrorCanvasData = (data: CanvasData, options?: MirrorCanvasOptions) => {
   const { nodes, edges } = data;
 
-  // Phase 1: Create ID mapping tables
-  // Generate new unique IDs for all nodes to avoid conflicts when duplicating
-  const nodeIdMap = new Map<string, string>();
-  for (const node of nodes) {
-    nodeIdMap.set(node.id, genNodeID());
-  }
-
+  // Phase 1: Create entity ID mapping table
   // Generate new entity IDs for nodes that have entity data
   // Entity IDs are used to track unique content across the canvas
   const entityIdMap = new Map<string, string>(); // old entity id -> new entity id
@@ -61,23 +56,21 @@ export const mirrorCanvasData = (data: CanvasData, options?: MirrorCanvasOptions
     }
   }
 
-  // Phase 2: Transform nodes with new IDs and update all references
+  // Phase 2: Transform nodes with new entity IDs and update all references
   const newNodes: CanvasNode[] = [];
 
   // Track entity mappings for context management
   const entityMap = new Map<string, IContextItem>();
 
   for (const node of nodes) {
-    // Get the new IDs for this node
-    const targetNodeId = nodeIdMap.get(node.id);
+    // Preserve original node ID, only update entity ID
     const sourceEntityId = node.data?.entityId ?? '';
     const targetEntityId = entityIdMap.get(sourceEntityId) ?? sourceEntityId;
 
-    // Create a deep copy of the node with updated IDs
+    // Create a deep copy of the node with updated entity ID
     let newNode: CanvasNode = deepmerge(
       { ...node },
       {
-        id: targetNodeId,
         data: { entityId: targetEntityId },
       },
     );
@@ -114,16 +107,11 @@ export const mirrorCanvasData = (data: CanvasData, options?: MirrorCanvasOptions
     }
   }
 
-  // Phase 3: Transform edges to reference new node IDs
+  // Phase 3: Transform edges (preserve original node IDs)
   const newEdges: CanvasEdge[] = [];
   for (const edge of edges) {
-    // Update edge source and target to point to the new node IDs
-    // If a node ID is not found in the map (shouldn't happen), keep the original
-    let newEdge = {
-      ...edge,
-      source: nodeIdMap.get(edge.source) ?? edge.source,
-      target: nodeIdMap.get(edge.target) ?? edge.target,
-    };
+    // Preserve original edge source and target since node IDs are not regenerated
+    let newEdge = { ...edge };
 
     // Apply custom edge processor if provided
     if (options?.edgeProcessor) {

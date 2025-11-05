@@ -21,6 +21,7 @@ import {
 } from '@refly/utils';
 import { CreditBalance } from './credit.dto';
 import { CanvasSyncService } from '../canvas-sync/canvas-sync.service';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class CreditService {
@@ -30,6 +31,7 @@ export class CreditService {
     protected readonly prisma: PrismaService,
     private readonly redis: RedisService,
     private readonly canvasSyncService: CanvasSyncService,
+    private readonly configService: ConfigService,
   ) {}
 
   /**
@@ -184,6 +186,7 @@ export class CreditService {
     shareUserId: string,
     executionId: string,
     creditUsage: number,
+    appId?: string,
   ): Promise<void> {
     const creditUsageId = genCommissionCreditUsageId(executionId);
     const creditRechargeId = genCommissionCreditRechargeId(executionId);
@@ -191,12 +194,14 @@ export class CreditService {
     // Calculate expiresAt for commission credit (1 month from now)
     const now = new Date();
     const expiresAt = new Date(now);
-    expiresAt.setMonth(expiresAt.getMonth() + 1);
+    expiresAt.setMonth(
+      expiresAt.getMonth() + this.configService.get('credit.commissionCreditExpiresIn'),
+    );
 
     await this.processCreditRecharge(shareUserId, creditUsage, {
       rechargeId: creditRechargeId,
       source: 'commission',
-      description: `Commission credit for sharing execution ${executionId}`,
+      description: `Commission credit for sharing execution ${executionId} from app ${appId}`,
       createdAt: now,
       expiresAt,
     });
@@ -204,6 +209,7 @@ export class CreditService {
       usageId: creditUsageId,
       usageType: 'commission',
       createdAt: now,
+      description: `Commission credit for sharing execution ${executionId} from app ${appId}`,
     });
   }
 
@@ -889,14 +895,12 @@ export class CreditService {
 
   async countCanvasCreditUsageByCanvasId(user: User, canvasId: string): Promise<number> {
     const canvasData = await this.canvasSyncService.getCanvasData(user, { canvasId });
-    const canvasResultIds = canvasData.nodes
-      .filter((node) => node.type === 'skillResponse')
-      .map((node) => node.data.entityId);
-    const total = await Promise.all(
-      canvasResultIds.map((canvasResultId) => this.countResultCreditUsage(user, canvasResultId)),
-    );
-    return total.reduce((sum, total) => {
-      return sum + total;
+    const skillResponseNodes = canvasData.nodes.filter((node) => node.type === 'skillResponse');
+    const total = skillResponseNodes.reduce((sum, node) => {
+      const creditCost =
+        typeof node.data?.metadata?.creditCost === 'number' ? node.data.metadata.creditCost : 0;
+      return sum + creditCost;
     }, 0);
+    return total;
   }
 }

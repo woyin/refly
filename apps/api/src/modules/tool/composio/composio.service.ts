@@ -8,6 +8,7 @@ import { ComposioConnectionStatus, GenericToolset, User } from '@refly/openapi-s
 import { Queue } from 'bullmq';
 import { QUEUE_SYNC_TOOL_CREDIT_USAGE } from '../../../utils/const';
 import { PrismaService } from '../../common/prisma.service';
+import { CreditService } from '../../credit/credit.service';
 import { SyncToolCreditUsageJobData } from '../../credit/credit.dto';
 
 @Injectable()
@@ -18,6 +19,7 @@ export class ComposioService {
   constructor(
     private readonly config: ConfigService,
     private readonly prisma: PrismaService,
+    private readonly creditService: CreditService,
     @Optional()
     @InjectQueue(QUEUE_SYNC_TOOL_CREDIT_USAGE)
     private readonly toolCreditUsageQueue?: Queue<SyncToolCreditUsageJobData>,
@@ -337,7 +339,7 @@ export class ComposioService {
                 );
                 if (result?.successful) {
                   // Add credit billing logic after successful execution
-                  if (creditCost > 0 && this.toolCreditUsageQueue) {
+                  if (creditCost > 0) {
                     const jobData: SyncToolCreditUsageJobData = {
                       uid: user.uid,
                       creditCost: creditCost,
@@ -345,10 +347,7 @@ export class ComposioService {
                       toolsetName: toolsetPO?.name ?? toolset.name,
                       toolName: toolName,
                     };
-                    await this.toolCreditUsageQueue.add(
-                      `tool_credit_usage:${user.uid}:${integrationId}:${toolName}`,
-                      jobData,
-                    );
+                    await this.creditService.syncToolCreditUsage(jobData);
                   }
                   return JSON.stringify(result.data ?? null);
                 }

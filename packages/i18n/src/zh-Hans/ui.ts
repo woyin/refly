@@ -90,7 +90,7 @@ const translations = {
       description: {
         '5k_tokens': '每 5k token 消耗 {{cost}} 积分',
         product: '每个产物消耗 {{cost}} 积分',
-        canvasTotal: '工作流预计消耗 {{cost}} 积分',
+        canvasTotal: 'AI 输出不稳定，积分仅为预估情况，需按实际执行结果',
       },
     },
     plans: {
@@ -1399,7 +1399,7 @@ const translations = {
         run: '运行',
         executing: '运行中',
         remix: '再创作',
-        copyWorkflow: 'Remix 工作流',
+        copyWorkflow: '再创作工作流',
         copyShareLink: '复制分享链接',
         shareLinkCopied: '分享链接已复制到剪贴板',
         shareLinkCopyFailed: '复制分享链接失败',
@@ -3415,7 +3415,7 @@ const translations = {
     createSuccess: '模板创建成功, 请在模板库中查看',
     preview: '体验',
     use: '制作同款',
-    duplicateCanvas: 'Remix 工作流',
+    duplicateCanvas: '再创作工作流',
     canvasTitle: '工作流名称',
     duplicateCanvasTitlePlaceholder: '请输入新画布名称',
     moreTemplates: '更多模版',
@@ -3738,6 +3738,7 @@ const translations = {
         refund: '退款',
         subscription: '订阅',
         commission: '模板收益',
+        commissionPrefix: '模板收益：',
       },
       status: {
         unused: '未使用',

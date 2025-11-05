@@ -15,7 +15,6 @@ import BannerSvg from './banner.svg';
 import { useRealtimeCanvasData } from '@refly-packages/ai-workspace-common/hooks/canvas/use-realtime-canvas-data';
 import { CanvasNode } from '@refly/openapi-schema';
 import { useGetCreditUsageByCanvasId } from '../../queries/queries';
-import { calculateCreditEarnings } from '@refly-packages/ai-workspace-common/utils';
 
 interface CreateWorkflowAppModalProps {
   title: string;
@@ -129,15 +128,21 @@ export const CreateWorkflowAppModal = ({
 
   const skillResponseNodes = nodes.filter((node) => node.type === 'skillResponse');
 
-  // Fetch credit usage data
-  const { data: creditUsageData } = useGetCreditUsageByCanvasId({
-    query: { canvasId },
-  });
+  // Fetch credit usage data when modal is visible
+  const { data: creditUsageData } = useGetCreditUsageByCanvasId(
+    {
+      query: { canvasId },
+    },
+    undefined,
+    {
+      enabled: visible,
+    },
+  );
 
   // Calculate credit earnings per run, default to 0
   const creditEarningsPerRun = useMemo(() => {
     const total = creditUsageData?.data?.total ?? 0;
-    return calculateCreditEarnings(total);
+    return total;
   }, [creditUsageData]);
 
   // Filter nodes by the specified types (similar to result-list logic)
@@ -155,10 +160,7 @@ export const CreateWorkflowAppModal = ({
 
   // Use skillResponseNodes if resultNodes is empty
   const displayNodes: CanvasNode[] = useMemo(() => {
-    if (resultNodes?.length > 0) {
-      return resultNodes;
-    }
-    return skillResponseNodes as unknown as CanvasNode[];
+    return [...resultNodes, ...(skillResponseNodes ?? [])] as unknown as CanvasNode[];
   }, [resultNodes, skillResponseNodes]);
 
   // Load existing app data
@@ -178,7 +180,8 @@ export const CreateWorkflowAppModal = ({
           // When editing existing app, use saved node IDs
           const savedNodeIds = data.data?.resultNodeIds ?? [];
           const validNodeIds =
-            displayNodes?.map((node) => node.id).filter((id): id is string => !!id) ?? [];
+            displayNodes.filter((node): node is CanvasNode => !!node?.id)?.map((node) => node.id) ??
+            [];
           const intersectedNodeIds = savedNodeIds.filter((id) => validNodeIds.includes(id));
 
           setSelectedResults(intersectedNodeIds);
@@ -439,7 +442,9 @@ export const CreateWorkflowAppModal = ({
       if (!appId) {
         // When creating new app, select all display nodes
         const validNodeIds =
-          displayNodes?.map((node) => node.id).filter((id): id is string => !!id) ?? [];
+          displayNodes.filter((node): node is CanvasNode => !!node?.id)?.map((node) => node.id) ??
+          [];
+
         setSelectedResults(validNodeIds);
       }
     }

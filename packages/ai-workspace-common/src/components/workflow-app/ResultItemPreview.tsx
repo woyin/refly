@@ -303,7 +303,7 @@ const DefaultPreview = memo(
     }, []);
 
     return (
-      <div className="w-full h-full relative" onClick={handleClick}>
+      <div className="w-full h-full relative overflow-y-auto" onClick={handleClick}>
         <PreviewComponent node={node} purePreview={true} />
       </div>
     );

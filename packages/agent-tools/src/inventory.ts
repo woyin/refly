@@ -27,7 +27,7 @@ import { GoogleDocsToolsetDefinition } from './google-docs';
 import { GoogleDriveToolsetDefinition } from './google-drive';
 import { GoogleSheetsToolsetDefinition } from './google-sheets';
 import { JinaToolset, JinaToolsetDefinition } from './jina';
-import { LinkedInToolsetDefinition } from './linkedin';
+// import { LinkedInToolsetDefinition } from './linkedin';
 import { NotionToolset, NotionToolsetDefinition } from './notion';
 import { PerplexityToolset, PerplexityToolsetDefinition } from './perplexity';
 import { ProductHuntToolset, ProductHuntToolsetDefinition } from './producthunt';
@@ -150,10 +150,10 @@ export const toolsetInventory: Record<
     class: undefined,
     definition: GmailToolsetDefinition,
   },
-  [LinkedInToolsetDefinition.key]: {
-    class: undefined,
-    definition: LinkedInToolsetDefinition,
-  },
+  // [LinkedInToolsetDefinition.key]: {
+  //   class: undefined,
+  //   definition: LinkedInToolsetDefinition,
+  // },
   [RedditToolsetDefinition.key]: {
     class: undefined,
     definition: RedditToolsetDefinition,

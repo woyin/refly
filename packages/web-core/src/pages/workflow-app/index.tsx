@@ -8,7 +8,6 @@ import { GithubStar } from '@refly-packages/ai-workspace-common/components/commo
 import { Logo } from '@refly-packages/ai-workspace-common/components/common/logo';
 import { WorkflowAppProducts } from '@refly-packages/ai-workspace-common/components/workflow-app/products';
 import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
-import { WorkflowRunForm } from '@refly-packages/ai-workspace-common/components/canvas/workflow-run/workflow-run-form';
 import { useWorkflowExecutionPolling } from '@refly-packages/ai-workspace-common/hooks/use-workflow-execution-polling';
 import { ReactFlowProvider } from '@refly-packages/ai-workspace-common/components/canvas';
 import SettingModal from '@refly-packages/ai-workspace-common/components/settings';
@@ -26,7 +25,7 @@ import FooterSection from '@refly-packages/ai-workspace-common/components/workfl
 import WhyChooseRefly from './WhyChooseRefly';
 import { SettingItem } from '@refly-packages/ai-workspace-common/components/sider/layout';
 import { SelectedResultsGrid } from '@refly-packages/ai-workspace-common/components/workflow-app/selected-results-grid';
-import { calculateCreditCost } from '@refly-packages/ai-workspace-common/utils';
+import { WorkflowAPPForm } from './workflow-app-form';
 
 // User Avatar component for header
 const UserAvatar = () => {
@@ -178,13 +177,15 @@ const WorkflowAppPage: React.FC = () => {
 
   const products = useMemo(() => {
     return nodeExecutions
-      .filter((nodeExecution: WorkflowNodeExecution) =>
-        ['document', 'codeArtifact', 'image', 'video', 'audio'].includes(
-          nodeExecution.nodeType as CanvasNodeType,
-        ),
+      .filter(
+        (nodeExecution: WorkflowNodeExecution) =>
+          ['document', 'codeArtifact', 'image', 'video', 'audio', 'skillResponse'].includes(
+            nodeExecution.nodeType as CanvasNodeType,
+          ) &&
+          (workflowApp?.resultNodeIds?.includes(nodeExecution.nodeId) ?? false),
       )
       .filter((nodeExecution: WorkflowNodeExecution) => nodeExecution.status === 'finish');
-  }, [nodeExecutions]);
+  }, [nodeExecutions, workflowApp?.resultNodeIds]);
 
   useEffect(() => {
     products.length > 0 && setActiveTab('products');
@@ -365,7 +366,7 @@ const WorkflowAppPage: React.FC = () => {
 
                     {/* Workflow Form */}
                     <div className="mb-6 sm:mb-8 relative z-20">
-                      <WorkflowRunForm
+                      <WorkflowAPPForm
                         workflowApp={workflowApp}
                         workflowVariables={workflowVariables}
                         onSubmitVariables={onSubmit}
@@ -395,7 +396,7 @@ const WorkflowAppPage: React.FC = () => {
                             {!!executionCreditUsage && executionCreditUsage > 0
                               ? t('workflowApp.productsGeneratedWithCost', {
                                   count: products.length,
-                                  executionCost: calculateCreditCost(executionCreditUsage) ?? 0,
+                                  executionCost: executionCreditUsage ?? 0,
                                 })
                               : t('workflowApp.productsGenerated', { count: products.length })}
                           </div>
