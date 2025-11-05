@@ -574,11 +574,7 @@ export const WorkflowAPPForm = ({
             <div className="w-full flex flex-row justify-end items-center gap-3">
               {/* Credit Info Block */}
               {
-                <Tooltip
-                  title={t('subscription.creditBilling.description.canvasTotal', {
-                    cost: calculateCreditCost(workflowApp?.creditUsage) ?? 0,
-                  })}
-                >
+                <Tooltip title={t('subscription.creditBilling.description.canvasTotal')}>
                   <div className="flex items-center bg-[#F6F6F6] dark:bg-[#232323] rounded-[12px] px-4 h-10 min-w-[94px] gap-1 border border-transparent select-none font-roboto">
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
