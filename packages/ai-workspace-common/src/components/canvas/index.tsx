@@ -28,6 +28,7 @@ import {
   useCanvasStoreShallow,
   useCanvasNodesStore,
   useCanvasResourcesPanelStoreShallow,
+  useUserStoreShallow,
 } from '@refly/stores';
 import { Spin } from '@refly-packages/ai-workspace-common/components/common/spin';
 import { locateToNodePreviewEmitter } from '@refly-packages/ai-workspace-common/events/locateToNodePreview';
@@ -1105,8 +1106,9 @@ export const Canvas = (props: { canvasId: string; readonly?: boolean }) => {
     setShowLeftOverview: state.setShowLeftOverview,
     showWorkflowRun: state.showWorkflowRun,
   }));
+  const isLogin = useUserStoreShallow((state) => state.isLogin);
 
-  const [copilotWidth, setCopilotWidth] = useState(400);
+  const [copilotWidth, setCopilotWidth] = useState(!readonly && isLogin ? 400 : 0);
 
   useEffect(() => {
     if (sidePanelVisible && resourcesPanelWidth === 0) {
