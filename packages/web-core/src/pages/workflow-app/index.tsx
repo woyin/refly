@@ -330,7 +330,7 @@ const WorkflowAppPage: React.FC = () => {
           >
             {/* Gradient overlay - only shown when cover image exists */}
             {workflowApp?.coverUrl && (
-              <div className="absolute inset-0 bg-gradient-to-b from-white/30 to-white dark:from-black/30 dark:to-black backdrop-blur-[20px] pointer-events-none" />
+              <div className="absolute inset-0 bg-gradient-to-b from-white/30 to-white dark:from-[rgba(25,25,25,0.25)] dark:to-[#0E0E0E] backdrop-blur-[20px] pointer-events-none" />
             )}
             <Helmet>
               <title>{workflowApp?.title ?? ''}</title>
