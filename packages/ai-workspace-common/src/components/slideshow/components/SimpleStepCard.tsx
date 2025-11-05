@@ -3,10 +3,7 @@ import { Button } from 'antd';
 import { ActionStep, Source } from '@refly/openapi-schema';
 import { memo, useMemo, useState } from 'react';
 import { Markdown } from '@refly-packages/ai-workspace-common/components/markdown';
-import {
-  IconThinking,
-  IconCheck,
-} from '@refly-packages/ai-workspace-common/components/common/icon';
+import { IconThinking } from '@refly-packages/ai-workspace-common/components/common/icon';
 import { cn } from '@refly-packages/ai-workspace-common/utils/cn';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import { getParsedReasoningContent } from '@refly/utils';
@@ -101,23 +98,14 @@ const parseStructuredData = (
 };
 
 // Simplified step card
-export const SimpleStepCard = memo(({ step, index }: { step: ActionStep; index: number }) => {
-  const { t } = useTranslation();
+export const SimpleStepCard = memo(({ step }: { step: ActionStep; index: number }) => {
   const sources = useMemo(
     () => parseStructuredData(step?.structuredData, 'sources') as Source[],
     [step?.structuredData],
   );
 
-  const skillName = 'commonQnA'; // Default skill name
-
   return (
     <div className="flex flex-col gap-3 mb-6">
-      <div className="text-gray-600 text-sm flex items-center gap-2 font-medium border-b pb-2 dark:text-gray-300">
-        <IconCheck className="h-4 w-4 text-green-500" />
-        {t('canvas.skillResponse.stepTitle', { index })}{' '}
-        {` · ${t(`${skillName}.steps.${step.name}.name`, { ns: 'skill', defaultValue: step.name })}`}
-      </div>
-
       {step.reasoningContent && (
         <SimpleReasoningContent reasoningContent={step.reasoningContent} sources={sources} />
       )}
