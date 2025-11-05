@@ -32,6 +32,7 @@ import { McpServer as McpServerPO, Prisma, Toolset as ToolsetPO } from '../../ge
 import { QUEUE_SYNC_TOOL_CREDIT_USAGE } from '../../utils/const';
 import { EncryptionService } from '../common/encryption.service';
 import { PrismaService } from '../common/prisma.service';
+import { CreditService } from '../credit/credit.service';
 import { SyncToolCreditUsageJobData } from '../credit/credit.dto';
 import { mcpServerPO2DTO } from '../mcp-server/mcp-server.dto';
 import { McpServerService } from '../mcp-server/mcp-server.service';
@@ -52,6 +53,7 @@ export class ToolService {
     private readonly configService: ConfigService,
     private readonly mcpServerService: McpServerService,
     private readonly composioService: ComposioService,
+    private readonly creditService: CreditService,
     @Optional()
     @InjectQueue(QUEUE_SYNC_TOOL_CREDIT_USAGE)
     private readonly toolCreditUsageQueue?: Queue<SyncToolCreditUsageJobData>,
@@ -912,12 +914,7 @@ export class ToolService {
                 const isGlobal = t?.isGlobal ?? false;
                 const creditCost = (result as any)?.creditCost ?? 0;
                 const resultId = (_config as any)?.metadata?.resultId as string;
-                if (
-                  isGlobal &&
-                  result?.status !== 'error' &&
-                  creditCost > 0 &&
-                  this.toolCreditUsageQueue
-                ) {
+                if (isGlobal && result?.status !== 'error' && creditCost > 0) {
                   const jobData: SyncToolCreditUsageJobData = {
                     uid: user.uid,
                     creditCost,
@@ -926,10 +923,7 @@ export class ToolService {
                     toolName: tool.name,
                     resultId,
                   };
-                  await this.toolCreditUsageQueue.add(
-                    `tool_credit_usage:${user.uid}:${toolset.definition.key}:${tool.name}`,
-                    jobData,
-                  );
+                  await this.creditService.syncToolCreditUsage(jobData);
                 }
                 return result;
               },
