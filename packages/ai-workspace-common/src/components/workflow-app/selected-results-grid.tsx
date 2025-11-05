@@ -125,7 +125,7 @@ export const SelectedResultsGrid = memo(
                   } ${fillRow ? 'w-full' : ''}`}
                   style={{
                     minWidth: '128px',
-                    ...(fillRow ? {} : { width: '128px' }),
+                    ...(fillRow ? {} : { width: '140px' }),
                     aspectRatio: '128 / 77',
                     maxHeight: '166px',
                     borderRadius: '8px',
