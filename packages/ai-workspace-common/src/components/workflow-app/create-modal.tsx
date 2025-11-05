@@ -180,9 +180,8 @@ export const CreateWorkflowAppModal = ({
           // When editing existing app, use saved node IDs
           const savedNodeIds = data.data?.resultNodeIds ?? [];
           const validNodeIds =
-            displayNodes
-              .filter((node): node is CanvasNode => !!node?.id && node.type !== 'skillResponse')
-              ?.map((node) => node.id) ?? [];
+            displayNodes.filter((node): node is CanvasNode => !!node?.id)?.map((node) => node.id) ??
+            [];
           const intersectedNodeIds = savedNodeIds.filter((id) => validNodeIds.includes(id));
 
           setSelectedResults(intersectedNodeIds);
@@ -443,9 +442,8 @@ export const CreateWorkflowAppModal = ({
       if (!appId) {
         // When creating new app, select all display nodes
         const validNodeIds =
-          displayNodes
-            .filter((node): node is CanvasNode => !!node?.id && node.type !== 'skillResponse')
-            ?.map((node) => node.id) ?? [];
+          displayNodes.filter((node): node is CanvasNode => !!node?.id)?.map((node) => node.id) ??
+          [];
 
         setSelectedResults(validNodeIds);
       }
