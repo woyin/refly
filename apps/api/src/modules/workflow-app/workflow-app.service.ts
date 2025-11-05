@@ -11,21 +11,15 @@ import { Logger } from '@nestjs/common';
 import { PrismaService } from '../common/prisma.service';
 import { CanvasService } from '../canvas/canvas.service';
 import { MiscService } from '../misc/misc.service';
-import {
-  genCanvasID,
-  genWorkflowAppID,
-  replaceResourceMentionsInQuery,
-  safeParseJSON,
-} from '@refly/utils';
+import { genCanvasID, genWorkflowAppID, replaceResourceMentionsInQuery } from '@refly/utils';
 import { WorkflowService } from '../workflow/workflow.service';
 import { Injectable } from '@nestjs/common';
 import { ShareCommonService } from '../share/share-common.service';
 import { ShareCreationService } from '../share/share-creation.service';
 import { ShareNotFoundError, WorkflowAppNotFoundError } from '@refly/errors';
 import { ToolService } from '../tool/tool.service';
-import { CanvasSyncService } from '../canvas-sync/canvas-sync.service';
 import { VariableExtractionService } from '../variable-extraction/variable-extraction.service';
-import { initEmptyCanvasState, ResponseNodeMeta } from '@refly/canvas-common';
+import { ResponseNodeMeta } from '@refly/canvas-common';
 import { CreditService } from '../credit/credit.service';
 
 /**
@@ -54,7 +48,6 @@ export class WorkflowAppService {
     private readonly shareCommonService: ShareCommonService,
     private readonly shareCreationService: ShareCreationService,
     private readonly toolService: ToolService,
-    private readonly canvasSyncService: CanvasSyncService,
     private readonly variableExtractionService: VariableExtractionService,
     private readonly creditService: CreditService,
   ) {}
@@ -227,6 +220,10 @@ export class WorkflowAppService {
       where: { shareId, deletedAt: null },
     });
 
+    if (!workflowApp) {
+      throw new WorkflowAppNotFoundError();
+    }
+
     this.logger.log(`Executing workflow app via shareId: ${shareId} for user: ${user.uid}`);
 
     const shareDataRaw = await this.shareCommonService.getSharedData(shareRecord.storageKey);
@@ -252,25 +249,16 @@ export class WorkflowAppService {
     // variables with old resource entity ids (need to be replaced)
     const oldVariables = variables || canvasData.variables || [];
 
-    // variables without resource entity ids (to be generated in createCanvasWithState)
+    // variables without resource entity ids (to be generated in the new canvas)
     const processedOldVariables = await this.processVariablesForResource(user, oldVariables);
 
     const tempCanvasId = genCanvasID();
-    const state = initEmptyCanvasState();
 
-    const updatedCanvas = await this.canvasService.createCanvasWithState(
+    const finalVariables = await this.canvasService.processResourceVariables(
       user,
-      {
-        canvasId: tempCanvasId,
-        title: `${canvasData.title} (Execution)`,
-        variables: processedOldVariables,
-        visibility: false,
-      },
-      state,
+      tempCanvasId,
+      processedOldVariables,
     );
-
-    // variables with new resource entity ids
-    const finalVariables = safeParseJSON(updatedCanvas.workflow)?.variables ?? [];
 
     // Resource entity id map from old resource entity ids to new resource entity ids
     const entityIdMap = this.buildEntityIdMap(oldVariables, finalVariables);
@@ -324,18 +312,25 @@ export class WorkflowAppService {
       return node;
     });
 
-    state.nodes = updatedNodes;
-    state.edges = edges;
-    await this.canvasSyncService.saveState(tempCanvasId, state);
+    const sourceCanvasData: RawCanvasData = {
+      title: canvasData.title,
+      variables: finalVariables,
+      nodes: updatedNodes,
+      edges,
+    };
 
     const newCanvasId = genCanvasID();
 
     const executionId = await this.workflowService.initializeWorkflowExecution(
       user,
-      tempCanvasId,
       newCanvasId,
       finalVariables,
-      { appId: workflowApp?.appId },
+      {
+        appId: workflowApp.appId,
+        sourceCanvasData,
+        createNewCanvas: true,
+        nodeBehavior: 'create',
+      },
     );
 
     this.logger.log(`Started workflow execution: ${executionId} for shareId: ${shareId}`);

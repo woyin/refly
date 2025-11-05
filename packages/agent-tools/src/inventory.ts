@@ -1,7 +1,20 @@
 import { ToolsetDefinition } from '@refly/openapi-schema';
+import {
+  BuiltinToolset,
+  BuiltinToolsetDefinition,
+  BuiltinWebSearchToolset,
+  BuiltinWebSearchDefinition,
+  BuiltinGenerateDocToolset,
+  BuiltinGenerateDocDefinition,
+  BuiltinGenerateCodeArtifactToolset,
+  BuiltinGenerateCodeArtifactDefinition,
+  BuiltinSendEmailToolset,
+  BuiltinSendEmailDefinition,
+  BuiltinGetTimeToolset,
+  BuiltinGetTimeDefinition,
+} from './builtin';
 import { AgentBaseToolset } from './base';
 import { BrowserUseToolset, BrowserUseToolsetDefinition } from './browser-use';
-import { BuiltinToolset, BuiltinToolsetDefinition } from './builtin';
 import { CalculatorToolset, CalculatorToolsetDefinition } from './calculator';
 import { CodeInterpreterToolset, CodeInterpreterToolsetDefinition } from './code-interpreter';
 import { FalAudioToolset, FalAudioToolsetDefinition } from './fal-audio';
@@ -24,7 +37,35 @@ import { WhaleWisdomToolset, WhaleWisdomToolsetDefinition } from './whalewisdom'
 
 export type AnyToolsetClass = new (...args: any[]) => AgentBaseToolset<any>;
 
-// Oauth tool use external sdk to execute, so the class is undefined
+export const builtinToolsetInventory: Record<
+  string,
+  {
+    class: AnyToolsetClass;
+    definition: ToolsetDefinition;
+  }
+> = {
+  [BuiltinWebSearchDefinition.key]: {
+    class: BuiltinWebSearchToolset,
+    definition: BuiltinWebSearchDefinition,
+  },
+  [BuiltinGenerateDocDefinition.key]: {
+    class: BuiltinGenerateDocToolset,
+    definition: BuiltinGenerateDocDefinition,
+  },
+  [BuiltinGenerateCodeArtifactDefinition.key]: {
+    class: BuiltinGenerateCodeArtifactToolset,
+    definition: BuiltinGenerateCodeArtifactDefinition,
+  },
+  [BuiltinSendEmailDefinition.key]: {
+    class: BuiltinSendEmailToolset,
+    definition: BuiltinSendEmailDefinition,
+  },
+  [BuiltinGetTimeDefinition.key]: {
+    class: BuiltinGetTimeToolset,
+    definition: BuiltinGetTimeDefinition,
+  },
+};
+
 // Oauth tool use external sdk to execute, so the class is undefined
 export const toolsetInventory: Record<
   string,

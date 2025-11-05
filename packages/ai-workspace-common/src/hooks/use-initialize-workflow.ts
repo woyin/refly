@@ -109,8 +109,8 @@ export const useInitializeWorkflow = (canvasId?: string) => {
 
         const { error } = await getClient().initializeWorkflow({
           body: {
-            canvasId,
-            newCanvasId,
+            canvasId: newCanvasId,
+            sourceCanvasId: canvasId,
           },
         });
 

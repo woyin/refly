@@ -321,6 +321,12 @@ import type {
   RecoverPilotSessionData,
   RecoverPilotSessionError,
   RecoverPilotSessionResponse,
+  ListCopilotSessionsData,
+  ListCopilotSessionsError,
+  ListCopilotSessionsResponse2,
+  GetCopilotSessionDetailData,
+  GetCopilotSessionDetailError,
+  GetCopilotSessionDetailResponse2,
   InitializeWorkflowData,
   InitializeWorkflowError,
   InitializeWorkflowResponse2,
@@ -2166,6 +2172,40 @@ export const recoverPilotSession = <ThrowOnError extends boolean = false>(
   >({
     ...options,
     url: '/pilot/session/recover',
+  });
+};
+
+/**
+ * List copilot sessions
+ * List all copilot sessions
+ */
+export const listCopilotSessions = <ThrowOnError extends boolean = false>(
+  options?: Options<ListCopilotSessionsData, ThrowOnError>,
+) => {
+  return (options?.client ?? client).get<
+    ListCopilotSessionsResponse2,
+    ListCopilotSessionsError,
+    ThrowOnError
+  >({
+    ...options,
+    url: '/copilot/session/list',
+  });
+};
+
+/**
+ * Get copilot session detail
+ * Get detail for a copilot session
+ */
+export const getCopilotSessionDetail = <ThrowOnError extends boolean = false>(
+  options: Options<GetCopilotSessionDetailData, ThrowOnError>,
+) => {
+  return (options?.client ?? client).get<
+    GetCopilotSessionDetailResponse2,
+    GetCopilotSessionDetailError,
+    ThrowOnError
+  >({
+    ...options,
+    url: '/copilot/session/detail',
   });
 };
 

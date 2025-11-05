@@ -15,7 +15,7 @@ export class RunWorkflowProcessor extends WorkerHost {
 
   async process(job: Job<RunWorkflowJobData>) {
     try {
-      await this.workflowService.runWorkflow(job.data.user, job.data.executionId, job.data.nodeId);
+      await this.workflowService.runWorkflow(job.data);
     } catch (error) {
       this.logger.error(`[${QUEUE_RUN_WORKFLOW}] Error processing job ${job.id}: ${error?.stack}`);
       throw error;
@@ -33,7 +33,7 @@ export class PollWorkflowProcessor extends WorkerHost {
 
   async process(job: Job<PollWorkflowJobData>) {
     try {
-      await this.workflowService.pollWorkflow(job.data.user, job.data.executionId);
+      await this.workflowService.pollWorkflow(job.data);
     } catch (error) {
       this.logger.error(`[${QUEUE_POLL_WORKFLOW}] Error processing job ${job.id}: ${error?.stack}`);
       throw error;

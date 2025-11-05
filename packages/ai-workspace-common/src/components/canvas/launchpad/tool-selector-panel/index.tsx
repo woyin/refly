@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect, useRef } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { Button, Empty, Skeleton, Tooltip, Popover, Divider } from 'antd';
 import type { PopoverProps } from 'antd';
 import { useTranslation } from 'react-i18next';
@@ -56,20 +56,6 @@ export const ToolSelectorPopover: React.FC<ToolsetSelectorPopoverProps> = ({
 
   const loading = isLoading || isRefetching;
   const toolsets = data?.data || [];
-  const builtinToolsets = toolsets?.filter((toolset) => toolset?.id === 'builtin') ?? [];
-
-  // Ensure builtin toolsets are initialized exactly once when no selection is provided
-  const hasInitializedBuiltinToolsets = useRef(false);
-  useEffect(() => {
-    if (hasInitializedBuiltinToolsets.current) return;
-    const hasNoSelection = !(selectedToolsets?.length ?? 0);
-    const hasBuiltin = (builtinToolsets?.length ?? 0) > 0;
-    if (hasNoSelection && hasBuiltin) {
-      onSelectedToolsetsChange?.(builtinToolsets);
-      setSelectedToolsets?.(builtinToolsets);
-    }
-    hasInitializedBuiltinToolsets.current = true;
-  }, [selectedToolsets, builtinToolsets, onSelectedToolsetsChange, setSelectedToolsets]);
 
   useEffect(() => {
     if (selectedToolsets?.length && toolsets?.length) {
@@ -87,7 +73,6 @@ export const ToolSelectorPopover: React.FC<ToolsetSelectorPopoverProps> = ({
 
   const handleToolSelect = useCallback(
     (toolset: GenericToolset) => {
-      hasInitializedBuiltinToolsets.current = true;
       const newSelectedToolsets = selectedToolsetIds.has(toolset.id)
         ? (selectedToolsets?.filter((t) => t.id !== toolset.id) ?? [])
         : [
@@ -96,6 +81,7 @@ export const ToolSelectorPopover: React.FC<ToolsetSelectorPopoverProps> = ({
               id: toolset.id,
               type: toolset.type,
               name: toolset.name,
+              builtin: toolset.builtin,
               toolset: toolset.toolset,
               mcpServer: toolset.mcpServer,
             },
@@ -184,11 +170,10 @@ export const ToolSelectorPopover: React.FC<ToolsetSelectorPopoverProps> = ({
                   : toolset?.toolset?.definition?.descriptionDict?.[currentLanguage];
 
               const labelName =
-                toolset?.type === 'regular' && toolset?.id === 'builtin'
+                toolset?.type === 'regular' && toolset?.builtin
                   ? (toolset?.toolset?.definition?.labelDict?.[currentLanguage] as string)
                   : toolset.name;
 
-              const isBuiltin = toolset.id === 'builtin';
               return (
                 <div
                   key={toolset.id}
@@ -201,11 +186,7 @@ export const ToolSelectorPopover: React.FC<ToolsetSelectorPopoverProps> = ({
                 >
                   <div className="flex-1 min-w-0 flex flex-col">
                     <div className="flex items-center gap-3">
-                      <ToolsetIcon
-                        toolset={toolset}
-                        isBuiltin={isBuiltin}
-                        config={{ builtinClassName: '!w-6 !h-6' }}
-                      />
+                      <ToolsetIcon toolset={toolset} config={{ builtinClassName: '!w-6 !h-6' }} />
                       <div className="flex-1 min-w-0 flex flex-col">
                         <div className="text-sm text-refly-text-0 font-semibold block truncate leading-5">
                           {labelName || toolset.name}
@@ -258,7 +239,6 @@ export const ToolSelectorPopover: React.FC<ToolsetSelectorPopoverProps> = ({
                 <ToolsetIcon
                   key={toolset.id}
                   toolset={toolset}
-                  isBuiltin={toolset.id === 'builtin'}
                   config={{
                     size: 14,
                     className:

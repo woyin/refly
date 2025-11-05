@@ -49,7 +49,7 @@ const Header = memo(({ className }: { className?: string }) => {
 Header.displayName = 'Header';
 
 // Input parameter row component
-const InputParameterRow = memo(
+export const InputParameterRow = memo(
   ({
     variableType,
     label,

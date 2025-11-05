@@ -136,7 +136,7 @@ export class SkillInvokerService {
             });
           })
         : [];
-    console.log('aiMessages', aiMessages);
+
     return [new HumanMessage({ content: messageContent }), ...aiMessages];
   }
 
@@ -177,6 +177,7 @@ export class SkillInvokerService {
         uiLocale: userPo.uiLocale,
         tplConfig,
         runtimeConfig,
+        mode: data.mode,
         resultId: data.result?.resultId,
         version: data.result?.version,
       },
@@ -203,6 +204,10 @@ export class SkillInvokerService {
       const tools = await this.toolService.instantiateToolsets(user, toolsets, this.skillEngine);
       config.configurable.selectedTools = tools;
     }
+
+    config.configurable.installedToolsets = await this.toolService.listTools(user, {
+      enabled: true,
+    });
 
     if (eventListener) {
       const emitter = new EventEmitter<SkillEventMap>();

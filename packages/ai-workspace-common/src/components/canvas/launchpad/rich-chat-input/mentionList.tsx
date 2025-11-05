@@ -58,7 +58,8 @@ export const MentionList = ({
   isMentionListVisible?: boolean;
   query?: string;
 }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const currentLanguage = i18n.languages?.[0] || 'en';
   const [hoveredCategory, setHoveredCategory] = useState<string | null>('variables');
   // Keyboard navigation states
   const [focusLevel, setFocusLevel] = useState<'first' | 'second'>('first');
@@ -613,14 +614,18 @@ export const MentionList = ({
             <>
               <ToolsetIcon
                 toolset={item.toolset}
-                isBuiltin={item.toolset?.builtin}
                 config={{
                   size: 16,
                   className: 'flex-shrink-0',
                   builtinClassName: '!w-4 !h-4',
                 }}
               />
-              <div className="flex-1 text-sm text-refly-text-0 leading-5 truncate">{item.name}</div>
+              <div className="flex-1 text-sm text-refly-text-0 leading-5 truncate">
+                {item.toolset?.builtin
+                  ? ((item.toolset?.toolset?.definition?.labelDict?.[currentLanguage] as string) ??
+                    item.name)
+                  : item.name}
+              </div>
               {item.toolset?.uninstalled && (
                 <div className="text-xs text-refly-text-2 px-1.5 py-0.5 rounded bg-refly-fill-hover">
                   {t('canvas.toolsDepencency.uninstalled')}
@@ -636,7 +641,7 @@ export const MentionList = ({
         </div>
       );
     },
-    [categoryConfigs, query, isAddingVariable, formatVariableValue],
+    [categoryConfigs, query, isAddingVariable, formatVariableValue, currentLanguage],
   );
 
   // Generic function to render empty state

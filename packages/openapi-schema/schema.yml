@@ -28,6 +28,8 @@ tags:
     description: Skill management endpoints
   - name: pilot
     description: Pilot management endpoints
+  - name: copilot
+    description: Copilot management endpoints
   - name: codeArtifact
     description: Code artifact management endpoints
   - name: user
@@ -2652,6 +2654,47 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/BaseResponse'
+  /copilot/session/list:
+    get:
+      tags:
+        - copilot
+      summary: List copilot sessions
+      description: List all copilot sessions
+      operationId: listCopilotSessions
+      parameters:
+        - name: canvasId
+          in: query
+          description: Canvas ID
+          schema:
+            type: string
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListCopilotSessionsResponse'
+  /copilot/session/detail:
+    get:
+      tags:
+        - copilot
+      summary: Get copilot session detail
+      description: Get detail for a copilot session
+      operationId: getCopilotSessionDetail
+      parameters:
+        - name: sessionId
+          in: query
+          description: Copilot session ID
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetCopilotSessionDetailResponse'
   /workflow/initialize:
     post:
       tags:
@@ -7628,6 +7671,11 @@ components:
         - skill
         - tool
         - media
+    AgentMode:
+      type: string
+      enum:
+        - copilot_agent
+        - node_agent
     InvokeSkillRequest:
       type: object
       properties:
@@ -7694,6 +7742,13 @@ components:
           description: Selected toolsets
           items:
             $ref: '#/components/schemas/GenericToolset'
+        mode:
+          description: Agent mode
+          $ref: '#/components/schemas/AgentMode'
+          default: node_agent
+        copilotSessionId:
+          type: string
+          description: Copilot session ID
         workflowExecutionId:
           type: string
           description: Workflow execution ID for workflow context
@@ -8052,6 +8107,47 @@ components:
             data:
               description: Pilot session detail
               $ref: '#/components/schemas/PilotSession'
+    CopilotSession:
+      type: object
+      properties:
+        sessionId:
+          type: string
+          description: Copilot session ID
+        title:
+          type: string
+          description: Copilot session title
+        canvasId:
+          type: string
+          description: Copilot session canvas ID
+        createdAt:
+          type: string
+          description: Copilot session created at
+        updatedAt:
+          type: string
+          description: Copilot session updated at
+        results:
+          type: array
+          description: Copilot session results (only returned in detail API)
+          items:
+            $ref: '#/components/schemas/ActionResult'
+    ListCopilotSessionsResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            data:
+              type: array
+              description: Copilot session list
+              items:
+                $ref: '#/components/schemas/CopilotSession'
+    GetCopilotSessionDetailResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            data:
+              description: Copilot session detail
+              $ref: '#/components/schemas/CopilotSession'
     UpdateUserSettingsRequest:
       type: object
       properties:
@@ -9374,8 +9470,8 @@ components:
       type: object
       required:
         - key
+        - labelDict
         - descriptionDict
-        - tools
       properties:
         key:
           type: string
@@ -9760,10 +9856,24 @@ components:
           type: string
           description: Canvas ID to initialize workflow for
           example: "canvas-123"
-        newCanvasId:
+        sourceCanvasId:
           type: string
-          description: New canvas ID
+          description: Source canvas ID
           example: "canvas-456"
+        sourceCanvasData:
+          description: Source canvas data
+          $ref: '#/components/schemas/RawCanvasData'
+        createNewCanvas:
+          description: Whether to create a new canvas
+          type: boolean
+          default: false
+        nodeBehavior:
+          description: Node behavior when executing workflow
+          type: string
+          enum:
+            - create
+            - update
+          default: update
         variables:
           type: array
           description: Workflow variables

@@ -466,10 +466,7 @@ const ShareSettings = React.memo(({ canvasId, canvasTitle }: ShareSettingsProps)
         content={content}
         arrow={false}
       >
-        <Button
-          type="primary"
-          icon={<Share size={16} className="flex items-center justify-center" />}
-        >
+        <Button type="primary" icon={<Share size={16} />}>
           {t('common.share')}
         </Button>
       </Popover>

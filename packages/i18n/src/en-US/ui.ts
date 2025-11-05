@@ -91,9 +91,12 @@ const translations = {
         allFailed: 'All images failed to upload',
       },
     },
+    errorNotice: {
+      resultId: 'Request ID: {{resultId}}',
+    },
     dropImageHere: 'Drop image here',
     presetColors: 'Preset Colors',
-    duplicate: 'Duplicate',
+    duplicate: 'copy',
     shareSuccess: 'Share link copied to clipboard!',
     shareError: 'Share failed, please try again!',
     readonlyWarning: 'Read-Only Mode',
@@ -1160,6 +1163,7 @@ const translations = {
       video: 'Video',
       audio: 'Audio',
       start: 'User Input',
+      startNode: 'Start Node',
       documentSelection: 'Document Selection',
       resourceSelection: 'Resource Selection',
       skillResponseSelection: 'Skill Response Selection',
@@ -1286,6 +1290,9 @@ const translations = {
         layout: 'Auto Layout',
         mode: 'Interaction Mode',
         help: 'Help & Documentation',
+        resourceLibrary: 'Resource Library',
+        toolDependencies: 'Tool Dependencies',
+        duplicateWorkflow: 'Duplicate Workflow',
       },
       openDocs: 'Documentation',
       openTour: 'Feature Highlights',
@@ -3051,12 +3058,34 @@ const translations = {
     },
   },
   copilot: {
-    quickActions: 'Quick Actions',
-    selectedSkillHeader: {
-      title: 'Chat with {{name}}',
+    title: 'Workflow Assistant',
+    placeholder: 'Describe the workflow you want to generate...',
+    header: {
+      history: 'Chat History',
+      newConversation: 'New Chat',
+      close: 'Close',
     },
-    tokenUsageTotal: '{{count}} tokens',
-    greeting: 'Hello, {{name}}',
+    greeting: {
+      title: 'Workflow Copilot is here to help you',
+      youCanTry: 'You can try asking the following questions',
+      query1:
+        "Help me track and analyze Warren Buffett's U.S. stock portfolio changes this quarter.",
+      query2:
+        '‍Help me fetch the Product Hunt Top 10 today, generate a summary document and product podcast, and send the links to my email.',
+      query3:
+        'Help me generate a sequence of animation scenes in the style of Makoto Shinkai, telling the story of "growing up" from childhood to adulthood.',
+    },
+    sessionDetail: {
+      thinking: 'Thinking',
+      approveAndRun: 'Approve and Run',
+      confirmClearCanvas: {
+        title: 'Confirm Clear Canvas',
+        content:
+          'Running this workflow will clear all current canvas content. Do you want to continue?',
+        confirm: 'Continue',
+        cancel: 'Cancel',
+      },
+    },
     addContext: 'Add Context',
     moreSettings: 'More Settings',
     baseContextCard: {

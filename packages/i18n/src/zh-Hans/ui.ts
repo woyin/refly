@@ -266,6 +266,9 @@ const translations = {
         allFailed: '所有图片上传失败',
       },
     },
+    errorNotice: {
+      resultId: '请求 ID: {{resultId}}',
+    },
     dropImageHere: '拖放图片到这里',
     presetColors: '预设颜色',
     duplicate: '复制',
@@ -1155,6 +1158,7 @@ const translations = {
       video: '视频',
       audio: '音频',
       start: '用户输入',
+      startNode: '开始节点',
       documentSelection: '文档选中内容',
       resourceSelection: '资源选中内容',
       skillResponseSelection: '技能响应选中内容',
@@ -1266,7 +1270,7 @@ const translations = {
       tooltip: {
         undo: '撤销',
         redo: '重做',
-        initializeWorkflow: '运行调试',
+        initializeWorkflow: '调试',
         initializeWorkflowInNewCanvas: '初始化工作流到新画布',
         zoom: '缩放百分比',
         zoomReset: '重置',
@@ -1276,6 +1280,9 @@ const translations = {
         layout: '自动布局',
         mode: '交互模式',
         help: '帮助与文档',
+        resourceLibrary: '资源库',
+        toolDependencies: '依赖',
+        duplicateWorkflow: '复制工作流',
       },
       openDocs: '帮助文档',
       openTour: '功能亮点',
@@ -3035,12 +3042,30 @@ const translations = {
     },
   },
   copilot: {
-    quickActions: '快捷操作',
-    selectedSkillHeader: {
-      title: '和 {{name}} 聊聊',
+    title: '工作流助手',
+    placeholder: '描述你想生成的工作流...',
+    header: {
+      history: '历史会话',
+      newConversation: '新建会话',
+      close: '关闭',
     },
-    tokenUsageTotal: '{{count}} tokens',
-    greeting: '嗨，{{name}}',
+    greeting: {
+      title: '工作流Copilot为你服务',
+      youCanTry: '您可以试试询问以下问题',
+      query1: '帮我追踪并分析巴菲特本季度的美股持仓变动。',
+      query2: '帮我抓取今天的 Product Hunt Top 10，生成总结文档和产品播客，并把链接发到我的邮箱。',
+      query3: '帮我生成一组新海诚风格、讲述“从小到大”成长故事的序列动画场景。',
+    },
+    sessionDetail: {
+      thinking: '思考中',
+      approveAndRun: '采纳并运行',
+      confirmClearCanvas: {
+        title: '确认清空画布',
+        content: '运行此工作流将清空当前画布的所有内容。是否继续？',
+        confirm: '继续',
+        cancel: '取消',
+      },
+    },
     addContext: '添加上下文',
     moreSettings: '更多设置',
     baseContextCard: {
@@ -3434,13 +3459,7 @@ const translations = {
     run: {
       completed: 'App 运行成功',
       failed: 'App 运行失败',
-      error: '运行失败',
-      loginRequired: '请登录以运行此工作流',
-      loginRequiredCopy: '请登录以复制此工作流',
-      workflowStarted: '工作流已启动',
-      executionIdFailed: '获取执行 ID 失败',
-      executeFailed: '执行工作流失败',
-      executeError: '执行工作流失败',
+      error: '运行出错',
     },
     revenueSharing: {
       title: '模板被运行可享受积分收益分成',

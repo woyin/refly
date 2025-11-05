@@ -8,6 +8,7 @@ import { getShareLink } from '@refly-packages/ai-workspace-common/utils/share';
 import { Spin } from '@refly-packages/ai-workspace-common/components/common/spin';
 import './index.scss';
 import { Canvas } from '@refly/openapi-schema';
+import { useDuplicateCanvas } from '@refly-packages/ai-workspace-common/hooks/use-duplicate-canvas';
 
 interface WorkflowActionDropdown {
   workflow: Canvas;
@@ -23,13 +24,12 @@ export const WorkflowActionDropdown = memo((props: WorkflowActionDropdown) => {
   const [popupVisible, setPopupVisible] = useState(false);
   const [shareLoading, setShareLoading] = useState(false);
 
-  const { openRenameModal, openDeleteModal, openDuplicateModal } = useCanvasOperationStoreShallow(
-    (state) => ({
-      openRenameModal: state.openRenameModal,
-      openDeleteModal: state.openDeleteModal,
-      openDuplicateModal: state.openDuplicateModal,
-    }),
-  );
+  const { duplicateCanvas, loading: duplicateLoading } = useDuplicateCanvas();
+
+  const { openRenameModal, openDeleteModal } = useCanvasOperationStoreShallow((state) => ({
+    openRenameModal: state.openRenameModal,
+    openDeleteModal: state.openDeleteModal,
+  }));
 
   // Check if workflow is shared
   const isShared = workflow.shareRecord?.shareId;
@@ -92,6 +92,19 @@ export const WorkflowActionDropdown = memo((props: WorkflowActionDropdown) => {
     setPopupVisible(false);
   }, [workflow, t, onShareSuccess]);
 
+  const hideDropdown = useCallback(() => {
+    setPopupVisible(false);
+  }, [setPopupVisible]);
+
+  const handleDuplicate = useCallback(() => {
+    duplicateCanvas({
+      canvasId: workflow.canvasId,
+      title: workflow.title,
+      isCopy: true,
+      onSuccess: hideDropdown,
+    });
+  }, [workflow.canvasId, workflow.title, duplicateCanvas, hideDropdown]);
+
   const items: MenuProps['items'] = [
     {
       label: (
@@ -114,14 +127,15 @@ export const WorkflowActionDropdown = memo((props: WorkflowActionDropdown) => {
           className="flex items-center gap-1 w-28"
           onClick={(e) => {
             e.stopPropagation();
-            openDuplicateModal(workflow.canvasId, workflow.title);
-            setPopupVisible(false);
+            handleDuplicate();
           }}
         >
           {t('canvas.toolbar.duplicate')}
+          <Spin spinning={duplicateLoading} size="small" className="text-refly-text-3" />
         </div>
       ),
       key: 'duplicate',
+      disabled: duplicateLoading,
     },
     ...(isShared
       ? [
