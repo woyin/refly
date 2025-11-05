@@ -842,8 +842,8 @@ export class CreditService {
   }
 
   async countResultCreditUsage(user: User, resultId: string): Promise<number> {
-    // Get the last two action result records for this resultId, ordered by version desc
-    const actionResults = await this.prisma.actionResult.findMany({
+    // Get the latest action result record for this resultId, ordered by version desc
+    const actionResult = await this.prisma.actionResult.findFirst({
       where: {
         resultId,
         uid: user.uid,
@@ -851,42 +851,16 @@ export class CreditService {
       orderBy: {
         version: 'desc',
       },
-      take: 2,
     });
 
-    if (!actionResults.length) {
+    if (!actionResult) {
       return 0;
-    }
-
-    // Determine the version range to query
-    let minVersion: number;
-    let maxVersion: number;
-
-    if (actionResults.length === 1) {
-      // Only one record, query from 0 to current version
-      const currentVersion = actionResults[0].version;
-      minVersion = 0;
-      maxVersion = currentVersion;
-    } else {
-      // Two records, query versions between them (inclusive of higher version, exclusive of lower version)
-      const higherVersion = actionResults[0].version;
-      const lowerVersion = actionResults[1].version;
-      minVersion = lowerVersion + 1;
-      maxVersion = higherVersion;
-    }
-
-    // Build version array to query
-    const versionsToQuery = [];
-    for (let v = minVersion; v <= maxVersion; v++) {
-      versionsToQuery.push(v);
     }
 
     const usages = await this.prisma.creditUsage.findMany({
       where: {
         actionResultId: resultId,
-        version: {
-          in: versionsToQuery,
-        },
+        version: actionResult.version,
       },
     });
 
