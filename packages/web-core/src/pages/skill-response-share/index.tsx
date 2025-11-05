@@ -3,7 +3,6 @@ import { useTranslation } from 'react-i18next';
 import { Result } from 'antd';
 import { SimpleStepCard } from '@refly-packages/ai-workspace-common/components/slideshow/components/SimpleStepCard';
 import { useFetchShareData } from '@refly-packages/ai-workspace-common/hooks/use-fetch-share-data';
-import { PreviewChatInput } from '@refly-packages/ai-workspace-common/components/canvas/node-preview/skill-response/preview-chat-input';
 import { ActionStep } from '@refly/openapi-schema';
 import { useCallback, useState } from 'react';
 import PoweredByRefly from '../../components/common/PoweredByRefly';
@@ -45,7 +44,7 @@ const SkillResponseSharePage = () => {
     );
   }
 
-  const { title, steps = [], actionMeta } = skillResponseData;
+  const { steps = [] } = skillResponseData;
 
   return (
     <div className="flex h-full w-full grow relative">
@@ -58,7 +57,7 @@ const SkillResponseSharePage = () => {
       {/* Main content */}
       <div className="flex h-full w-full grow bg-white overflow-auto dark:bg-gray-900">
         <div className="flex flex-col space-y-4 p-4 h-full max-w-[1024px] mx-auto w-full">
-          {title && (
+          {/* {title && (
             <PreviewChatInput
               enabled={true}
               readonly={true}
@@ -67,7 +66,7 @@ const SkillResponseSharePage = () => {
               actionMeta={actionMeta}
               setEditMode={() => {}}
             />
-          )}
+          )} */}
 
           <div className="flex-grow">
             {steps.map((step: ActionStep, index: number) => (
