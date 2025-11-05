@@ -18,6 +18,31 @@ export const EnvironmentBanner = () => {
     setIsVisible(true);
   }, []);
 
+  useEffect(() => {
+    if (envTag !== 'test') {
+      return;
+    }
+
+    // Find existing favicon link or create new one
+    let link = document.querySelector("link[rel*='icon']") as HTMLLinkElement;
+
+    if (link) {
+      // Update existing favicon
+      link.href = '/logo-test.svg';
+      link.type = 'image/svg+xml';
+    } else {
+      // Create new favicon link if none exists
+      link = document.createElement('link');
+      link.rel = 'icon';
+      link.type = 'image/svg+xml';
+      link.href = '/logo-test.svg';
+      const head = document.getElementsByTagName('head')[0];
+      if (head) {
+        head.appendChild(link);
+      }
+    }
+  }, []);
+
   const hideBanner = () => {
     setIsVisible(false);
   };
@@ -27,7 +52,7 @@ export const EnvironmentBanner = () => {
   }
 
   const isTest = envTag === 'test';
-  const bannerColor = isTest ? 'bg-blue-400' : 'bg-yellow-400';
+  const bannerColor = isTest ? 'bg-orange-400' : 'bg-yellow-400';
   const bannerText = isTest ? 'TEST ENVIRONMENT' : 'STAGING ENVIRONMENT. PLEASE USE WITH CAUTION.';
 
   return (
