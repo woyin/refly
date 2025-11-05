@@ -19,13 +19,6 @@ export const BuiltinToolsetDefinition: ToolsetDefinition = {
   },
   tools: [
     {
-      name: 'library_search',
-      descriptionDict: {
-        en: 'Search within Refly knowledge base, documents, and resources.',
-        'zh-CN': '在 Refly 知识库、文档和资源中搜索。',
-      },
-    },
-    {
       name: 'web_search',
       descriptionDict: {
         en: 'Search the web for current information and news.',
@@ -491,7 +484,6 @@ export class BuiltinGetTimeToolset extends AgentBaseToolset<BuiltinToolParams> {
 export class BuiltinToolset extends AgentBaseToolset<BuiltinToolParams> {
   toolsetKey = BuiltinToolsetDefinition.key;
   tools = [
-    BuiltinLibrarySearch,
     BuiltinWebSearch,
     BuiltinGenerateDoc,
     BuiltinGenerateCodeArtifact,

@@ -1,8 +1,6 @@
 import { Popover } from 'antd';
 import { useEditor } from '../../core/components';
 import { useEffect, useRef } from 'react';
-import Magic from '../ui/icons/magic';
-import { Button } from 'antd';
 
 interface AIBtnSelectorProps {
   open: boolean;
@@ -24,14 +22,14 @@ export const AIBtnSelector = ({ open, onOpenChange }: AIBtnSelectorProps) => {
 
   return (
     <Popover open={open} onOpenChange={onOpenChange}>
-      <Button
+      {/* <Button
         className="gap-1 rounded-none text-primary text-primary-600 px-2"
         type="text"
         onClick={() => onOpenChange(true)}
       >
         <Magic className="w-4 h-4" />
         Ask AI
-      </Button>
+      </Button> */}
       {/* {open && (
         <PopoverContent
           align="start"

@@ -9,7 +9,7 @@ import { Divider } from 'antd';
 import { ColorSelector } from './selectors/color-selector';
 import { LinkSelector } from './selectors/link-selector';
 import { NodeSelector } from './selectors/node-selector';
-import { ContentSelectorButtons } from './selectors/content-selector-buttons';
+// import { ContentSelectorButtons } from './selectors/content-selector-buttons';
 import { AIBtnSelector } from './selectors/ai-btn-selector';
 
 import GenerativeMenuSwitch from './generative/inline/generative-menu-switch';
@@ -67,10 +67,10 @@ export const CollabGenAIMenuSwitch: React.FC<CollabGenAIMenuSwitchProps> = (prop
   return (
     <GenerativeMenuSwitch open={openAI} onOpenChange={setOpenAI}>
       <AIBtnSelector open={openAI} onOpenChange={setOpenAI} />
-      <ContentSelectorButtons
+      {/* <ContentSelectorButtons
         text={contentSelector?.text}
         handleClick={contentSelector?.handleClick}
-      />
+      /> */}
       <CreateMemoSelector text={contentSelector?.text} handleClick={contentSelector?.createMemo} />
       <Divider className="mx-0 h-8" type="vertical" />
       <NodeSelector open={openNode} onOpenChange={setOpenNode} />

@@ -31,6 +31,7 @@ const translations = {
       willAutoRenew: '将自动续订',
       viewBilling: '查看账单',
       changePlan: '变更套餐',
+      viewPricing: '查看定价',
       upgradePlan: '升级套餐',
       availableCredits: '剩余可用积分',
       remainingCredits: '剩余积分',
@@ -357,7 +358,7 @@ const translations = {
   },
   editor: {
     placeholder: {
-      default: "按空格键激活 AI，按 '/' 键激活命令",
+      default: "按 '/' 键激活命令",
       title: '请输入标题',
     },
     aiSelector: {
@@ -1018,7 +1019,7 @@ const translations = {
     canvas: {
       editor: {
         placeholder: {
-          default: "按空格键或 ++ 激活 AI，按 '/' 键激活命令",
+          default: "按 '/' 键激活命令",
           heading: '标题 {{level}}',
         },
         toolbar: {
@@ -3888,7 +3889,7 @@ const translations = {
     noSearchResults: '没有找到相关工作流',
     searchWorkflows: '搜索工作流',
     shared: '共享',
-    personal: '个人',
+    private: '私有',
     share: '分享',
     unshare: '取消分享',
     shareSuccess: '工作流 {{title}} 分享成功！链接已复制到剪贴板。',

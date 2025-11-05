@@ -1,14 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useSiderStoreShallow } from '@refly/stores';
 import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
-import { useGetProjectCanvasId } from '@refly-packages/ai-workspace-common/hooks/use-get-project-canvasId';
 import { useUserStore } from '@refly/stores';
 
 export const DATA_NUM = 100;
-const DATA_NUM_CANVAS_FOR_PROJECT = 1000;
 
 export const useHandleSiderData = (initData?: boolean) => {
-  const { projectId } = useGetProjectCanvasId();
   const {
     canvasList,
     updateCanvasList,
@@ -33,7 +30,7 @@ export const useHandleSiderData = (initData?: boolean) => {
 
   const requestCanvasList = async () => {
     const { data: res, error } = await getClient().listCanvases({
-      query: { page: 1, pageSize: projectId ? DATA_NUM_CANVAS_FOR_PROJECT : DATA_NUM, projectId },
+      query: { page: 1, pageSize: DATA_NUM },
     });
     if (error) {
       console.error('getCanvasList error', error);
@@ -100,7 +97,7 @@ export const useHandleSiderData = (initData?: boolean) => {
     if (isLoadingResource) return;
     setIsLoadingResource(true);
     const { data: res, error } = await getClient().listResources({
-      query: { page: 1, pageSize: 1000, projectId },
+      query: { page: 1, pageSize: 1000 },
     });
     setIsLoadingResource(false);
     if (error) {
@@ -114,7 +111,7 @@ export const useHandleSiderData = (initData?: boolean) => {
     if (isLoadingDocument) return;
     setIsLoadingDocument(true);
     const { data: res, error } = await getClient().listDocuments({
-      query: { page: 1, pageSize: 1000, projectId },
+      query: { page: 1, pageSize: 1000 },
     });
     setIsLoadingDocument(false);
     if (error) {
@@ -163,11 +160,8 @@ export const useHandleSiderData = (initData?: boolean) => {
     if (initData && !hasInitialized.current) {
       hasInitialized.current = true;
       loadSiderData(true);
-      if (projectId) {
-        getSourceList();
-      }
     }
-  }, [initData, projectId]);
+  }, [initData]);
 
   return {
     loadSiderData,

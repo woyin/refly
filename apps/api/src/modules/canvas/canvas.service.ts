@@ -70,7 +70,7 @@ export class CanvasService {
   ) {}
 
   async listCanvases(user: User, param: ListCanvasesData['query']): Promise<CanvasDetailModel[]> {
-    const { page = 1, pageSize = 10, projectId, order = 'updationDesc', keyword } = param;
+    const { page = 1, pageSize = 10, order = 'updationDesc', keyword } = param;
 
     // Build orderBy based on order parameter
     let orderBy: Prisma.CanvasOrderByWithRelationInput = { updatedAt: 'desc' as const };
@@ -96,7 +96,6 @@ export class CanvasService {
     const where: Prisma.CanvasWhereInput = {
       uid: user.uid,
       deletedAt: null,
-      projectId: projectId || null,
       visibility: true,
     };
 

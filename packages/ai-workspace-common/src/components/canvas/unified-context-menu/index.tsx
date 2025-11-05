@@ -6,7 +6,6 @@ import {
 } from '@refly-packages/ai-workspace-common/events/nodeOperations';
 import { ContextMenu } from '../context-menu';
 import { NodeContextMenu } from '../node-context-menu';
-import { SelectionContextMenu } from '../selection-context-menu';
 
 interface UnifiedContextMenuProps {
   open: boolean;
@@ -62,13 +61,6 @@ export const UnifiedContextMenu: FC<UnifiedContextMenuProps> = memo(
               dragCreateInfo={context.dragCreateInfo}
               setOpen={setOpen}
             />
-          </div>
-        );
-
-      case 'selection':
-        return (
-          <div ref={menuRef}>
-            <SelectionContextMenu open={open} position={position} setOpen={setOpen} />
           </div>
         );
 
