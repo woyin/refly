@@ -896,15 +896,21 @@ export class CreditService {
   }
 
   async countCanvasCreditUsage(user: User, canvasData: RawCanvasData): Promise<number> {
-    const canvasResultIds = canvasData.nodes
-      .filter((node) => node.type === 'skillResponse')
-      .map((node) => node.data.entityId);
-    const total = await Promise.all(
-      canvasResultIds.map((canvasResultId) => this.countResultCreditUsage(user, canvasResultId)),
+    const skillResponseNodes = canvasData.nodes.filter((node) => node.type === 'skillResponse');
+
+    const creditCosts = await Promise.all(
+      skillResponseNodes.map(async (node) => {
+        const resultCreditUsage = await this.countResultCreditUsage(user, node.data.entityId);
+        if (resultCreditUsage > 0) {
+          return resultCreditUsage;
+        }
+        return typeof node.data?.metadata?.creditCost === 'number'
+          ? node.data.metadata.creditCost
+          : 0;
+      }),
     );
-    return total.reduce((sum, total) => {
-      return sum + total;
-    }, 0);
+
+    return creditCosts.reduce((sum, cost) => sum + cost, 0);
   }
 
   async countExecutionCreditUsageByExecutionId(user: User, executionId: string): Promise<number> {
@@ -933,15 +939,7 @@ export class CreditService {
   async countCanvasCreditUsageByCanvasId(user: User, canvasId: string): Promise<number> {
     const canvasData = await this.canvasSyncService.getCanvasData(user, { canvasId });
     const creditUsage = await this.countCanvasCreditUsage(user, canvasData);
-    if (creditUsage > 0) {
-      return creditUsage;
-    }
-    const skillResponseNodes = canvasData.nodes.filter((node) => node.type === 'skillResponse');
-    const total = skillResponseNodes.reduce((sum, node) => {
-      const creditCost =
-        typeof node.data?.metadata?.creditCost === 'number' ? node.data.metadata.creditCost : 0;
-      return sum + creditCost;
-    }, 0);
-    return total;
+
+    return creditUsage;
   }
 }
