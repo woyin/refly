@@ -573,11 +573,10 @@ const RichChatInputComponent = forwardRef<RichChatInputRef, RichChatInputProps>(
           // For regular Enter key, send message if not in mention suggestion
           if (!e.shiftKey && (query?.trim() || !isLogin)) {
             // for long prompt friendly enter
-            return;
-            // e.preventDefault();
-            // e.stopPropagation();
-            // e.nativeEvent?.stopImmediatePropagation?.();
-            // handleSendMessageWithMentions();
+            e.preventDefault();
+            e.stopPropagation();
+            e.nativeEvent?.stopImmediatePropagation?.();
+            handleSendMessageWithMentions();
           }
         }
       },
