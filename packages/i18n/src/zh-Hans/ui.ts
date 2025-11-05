@@ -3044,6 +3044,7 @@ const translations = {
   },
   copilot: {
     title: '工作流助手',
+    assistant: '助手',
     placeholder: '描述你想生成的工作流...',
     header: {
       history: '历史会话',

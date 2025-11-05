@@ -39,7 +39,7 @@ interface CanvasResourcesPanelState {
 
 const DEFAULT_PANEL_WIDTH = 480;
 const defaultState = {
-  sidePanelVisible: true,
+  sidePanelVisible: false,
   wideScreenVisible: false,
   showLeftOverview: false,
   parentType: null,
@@ -79,11 +79,7 @@ export const useCanvasResourcesPanelStore = create<CanvasResourcesPanelState>()(
       },
       setSearchKeyword: (keyword: string) => set({ searchKeyword: keyword }),
       setShowWorkflowRun: (show: boolean) => {
-        if (show) {
-          set({ showWorkflowRun: show, sidePanelVisible: true });
-        } else {
-          set({ showWorkflowRun: show });
-        }
+        set({ showWorkflowRun: show });
       },
       resetState: () => set(defaultState),
     }),
@@ -95,7 +91,6 @@ export const useCanvasResourcesPanelStore = create<CanvasResourcesPanelState>()(
         activeNodes: state.activeNodes,
         parentType: state.parentType,
         panelWidth: state.panelWidth,
-        sidePanelVisible: state.sidePanelVisible,
         wideScreenVisible: state.wideScreenVisible,
         showWorkflowRun: state.showWorkflowRun,
       }),

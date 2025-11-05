@@ -3059,6 +3059,7 @@ const translations = {
   },
   copilot: {
     title: 'Workflow Assistant',
+    assistant: 'Assistant',
     placeholder: 'Describe the workflow you want to generate...',
     header: {
       history: 'Chat History',
