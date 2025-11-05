@@ -185,7 +185,7 @@ const WorkflowAppPage: React.FC = () => {
           (workflowApp?.resultNodeIds?.includes(nodeExecution.nodeId) ?? false),
       )
       .filter((nodeExecution: WorkflowNodeExecution) => nodeExecution.status === 'finish');
-  }, [nodeExecutions]);
+  }, [nodeExecutions, workflowApp?.resultNodeIds]);
 
   useEffect(() => {
     products.length > 0 && setActiveTab('products');
