@@ -420,7 +420,7 @@ export const ResultItemPreview = memo(
           {isHovered && !inModal && (
             <div
               onClick={handleWideModeOpen}
-              className="absolute z-10 flex items-center justify-center transition-opacity duration-200 cursor-pointer"
+              className="absolute z-50 flex items-center justify-center transition-opacity duration-200 cursor-pointer"
               style={{
                 right: '14px',
                 bottom: '14px',

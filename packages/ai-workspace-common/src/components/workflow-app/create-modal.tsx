@@ -179,6 +179,7 @@ export const CreateWorkflowAppModal = ({
 
           // When editing existing app, use saved node IDs
           const savedNodeIds = data.data?.resultNodeIds ?? [];
+          // using all display nodes by default
           const validNodeIds =
             displayNodes.filter((node): node is CanvasNode => !!node?.id)?.map((node) => node.id) ??
             [];
@@ -442,8 +443,11 @@ export const CreateWorkflowAppModal = ({
       if (!appId) {
         // When creating new app, select all display nodes
         const validNodeIds =
-          displayNodes.filter((node): node is CanvasNode => !!node?.id)?.map((node) => node.id) ??
-          [];
+          displayNodes
+            .filter((node): node is CanvasNode => !!node?.id)
+            // Exclude skillResponse nodes by default
+            ?.filter((node) => node.type !== 'skillResponse')
+            ?.map((node) => node.id) ?? [];
 
         setSelectedResults(validNodeIds);
       }
@@ -584,7 +588,7 @@ export const CreateWorkflowAppModal = ({
                   />
                 </div>
                 <div
-                  className="w-full rounded-lg border border-solid p-3 bg-[#FBFBFB] dark:bg-[#1E1E1E]"
+                  className="w-full rounded-lg border border-solid p-3 bg-[#FBFBFB] dark:bg-[var(--refly-bg-main-z1)]"
                   style={{
                     borderColor: 'var(--refly-Card-Border)',
                   }}
