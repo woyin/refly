@@ -17,6 +17,7 @@ import { useInitializeWorkflow } from '@refly-packages/ai-workspace-common/hooks
 import { useReactFlow } from '@xyflow/react';
 import { useDeleteNode } from '@refly-packages/ai-workspace-common/hooks/canvas';
 import { useVariablesManagement } from '@refly-packages/ai-workspace-common/hooks/use-variables-management';
+import { useFetchActionResult } from '@refly-packages/ai-workspace-common/hooks/canvas/use-fetch-action-result';
 
 interface SessionDetailProps {
   sessionId: string;
@@ -71,7 +72,7 @@ const ThinkingDots = memo(({ label }: ThinkingDotsProps) => {
 ThinkingDots.displayName = 'ThinkingDots';
 
 const CopilotMessage = memo(({ result, isFinal }: CopilotMessageProps) => {
-  const { input, steps, status } = result;
+  const { resultId, input, steps, status } = result;
   const content = steps?.[0]?.content ?? '';
 
   const workflowPlan = useMemo(() => {
@@ -91,6 +92,14 @@ const CopilotMessage = memo(({ result, isFinal }: CopilotMessageProps) => {
     // If input is already the parsed object
     return (output as { data: WorkflowPlan })?.data;
   }, [steps]);
+
+  const { fetchActionResult } = useFetchActionResult();
+
+  useEffect(() => {
+    if (status === 'finish' && resultId) {
+      fetchActionResult(resultId, { silent: true });
+    }
+  }, [status, resultId, fetchActionResult]);
 
   const { canvasId, forceSyncState } = useCanvasContext();
   const [isLoading, setIsLoading] = useState(false);
@@ -222,7 +231,7 @@ export const SessionDetail = memo(({ sessionId, setQuery }: SessionDetailProps) 
   }));
 
   const results = useMemo(() => {
-    return sessionResultIds?.map((resultId) => resultMap[resultId]) ?? [];
+    return sessionResultIds?.map((resultId) => resultMap[resultId])?.filter(Boolean) ?? [];
   }, [sessionResultIds, resultMap]);
 
   const lastResultContent = useMemo(() => {
