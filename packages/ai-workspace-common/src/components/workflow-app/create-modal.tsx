@@ -518,7 +518,7 @@ export const CreateWorkflowAppModal = ({
                       className="flex items-center gap-1 cursor-pointer hover:opacity-80 transition-opacity"
                       onClick={() =>
                         window.open(
-                          'https://www.notion.so/reflydoc/Welcome-to-Refly-28cd62ce60718093b830c4b9fc8b22a3',
+                          'notion.so/reflydoc/Template-Revenue-Sharing-Program-2a0d62ce60718011b2bef9bc8a9ac1f0',
                           '_blank',
                         )
                       }
