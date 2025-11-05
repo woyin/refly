@@ -3,7 +3,6 @@ import { Button, Dropdown, Divider, Avatar } from 'antd';
 import { useUserStore } from '@refly/stores';
 import { useSiderStoreShallow } from '@refly/stores';
 import { useLogout } from '@refly-packages/ai-workspace-common/hooks/use-logout';
-import { EXTENSION_DOWNLOAD_LINK } from '@refly/utils/url';
 import { useThemeStoreShallow } from '@refly/stores';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { SettingsModalActiveTab } from '@refly/stores';
@@ -13,7 +12,6 @@ import {
   InterfaceDark,
   InterfaceLight,
   ArrowRight,
-  Cuttools,
   Exit,
   Parse,
   Account,
@@ -194,10 +192,6 @@ export const SiderMenuSettingList = (props: SiderMenuSettingListProps) => {
     setShowSettingModal(true);
   }, [setSettingsModalActiveTab, setShowSettingModal]);
 
-  const handleChromeExtensionClick = useCallback(() => {
-    window.open(EXTENSION_DOWNLOAD_LINK, '_blank');
-  }, []);
-
   const handleLogoutClick = useCallback(() => {
     handleLogout();
   }, [handleLogout]);
@@ -294,16 +288,6 @@ export const SiderMenuSettingList = (props: SiderMenuSettingListProps) => {
       {
         type: 'divider' as const,
       },
-
-      {
-        key: 'chrome-extension',
-        label: (
-          <DropdownItem icon={<Cuttools size={18} />}>
-            {t('loggedHomePage.siderMenu.addToChrome')}
-          </DropdownItem>
-        ),
-        onClick: handleChromeExtensionClick,
-      },
       {
         key: 'logout',
         label: (
@@ -321,7 +305,6 @@ export const SiderMenuSettingList = (props: SiderMenuSettingListProps) => {
       handleSettingsClick,
       themeMode,
       themeDropdownItems,
-      handleChromeExtensionClick,
       handleLogoutClick,
     ],
   );
