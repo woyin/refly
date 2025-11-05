@@ -19,7 +19,16 @@ import { StorageExceededModal } from '@refly-packages/ai-workspace-common/compon
 import { useHandleSiderData } from '@refly-packages/ai-workspace-common/hooks/use-handle-sider-data';
 import { SettingsModalActiveTab, useSiderStoreShallow } from '@refly/stores';
 import { useCreateCanvas } from '@refly-packages/ai-workspace-common/hooks/canvas/use-create-canvas';
-import { Account, File, Project, Flow, Subscription, Contact, SideRight } from 'refly-icons';
+import {
+  Account,
+  File,
+  Project,
+  Flow,
+  Subscription,
+  Contact,
+  SideRight,
+  SideLeft,
+} from 'refly-icons';
 import { ContactUsPopover } from '@refly-packages/ai-workspace-common/components/contact-us-popover';
 
 import { useKnowledgeBaseStoreShallow } from '@refly/stores';
@@ -175,7 +184,7 @@ export const SiderLogo = (props: {
           type="text"
           size="small"
           className="text-refly-text-0 hover:bg-refly-tertiary-hover"
-          icon={<SideRight size={16} />}
+          icon={<SideLeft size={16} />}
           onClick={onCollapseClick}
         />
       )}
@@ -499,7 +508,7 @@ const FloatingExpandButton = React.memo(() => {
         type="text"
         size="small"
         className="bg-white dark:bg-gray-800 shadow-lg border border-refly-Card-Border text-refly-text-0 hover:bg-refly-tertiary-hover"
-        icon={<SideRight size={16} className="rotate-180" />}
+        icon={<SideRight size={16} className="" />}
         onClick={() => setCollapse(false)}
       />
     </div>
