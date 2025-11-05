@@ -516,7 +516,6 @@ export const SiderLayout = (props: { source: 'sider' | 'popover' }) => {
   }));
   const pathParams = useMatch('/canvas/:canvasId');
   const isWorkflowDetail = pathParams?.params?.canvasId && pathParams?.params?.canvasId !== 'empty';
-  console.log('isWorkflowDetail', isWorkflowDetail);
 
   const { showSettingModal, setShowSettingModal } = useSiderStoreShallow((state) => ({
     showSettingModal: state.showSettingModal,
