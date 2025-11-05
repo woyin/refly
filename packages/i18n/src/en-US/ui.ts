@@ -3513,6 +3513,7 @@ const translations = {
       willAutoRenew: 'will auto-renew',
       viewBilling: 'View Billing',
       changePlan: 'Change Plan',
+      viewPricing: 'View Pricing',
       upgradePlan: 'Upgrade Plan',
       availableCredits: 'Available Credits',
       remainingCredits: 'Credits',

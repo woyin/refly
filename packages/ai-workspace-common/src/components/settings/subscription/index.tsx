@@ -304,6 +304,10 @@ export const Subscription = () => {
     setSubscribeModalVisible(true);
   }, [setSubscribeModalVisible, setShowSettingModal, setOpenedFromSettings]);
 
+  const handleViewPricing = useCallback(() => {
+    window.open('/pricing', '_blank');
+  }, []);
+
   const PaidPlanCard = () => {
     return (
       <div className={`subscription-plan-card plan-${planType} w-full`}>
@@ -336,6 +340,12 @@ export const Subscription = () => {
                   {t('subscription.subscriptionManagement.changePlan')}
                 </Button>
               )}
+              <div
+                className="cursor-pointer text-sm font-semibold leading-5 flex h-[var(--height-button\_default,32px)] [padding:var(--spacing-button\_default-paddingTop,6px)_var(--spacing-button\_default-paddingRight,12px)_var(--spacing-button\_default-paddingTop,6px)_var(--spacing-button\_default-paddingLeft,12px)] justify-center items-center border-[color:var(--border---refly-Card-Border,rgba(0,0,0,0.10))] [background:var(--tertiary---refly-tertiary-default,rgba(0,0,0,0.04))] hover:[background:var(--refly-tertiary-hover,#00000014)] rounded-lg border-0 border-solid transition-colors duration-200"
+                onClick={handleViewPricing}
+              >
+                {t('subscription.subscriptionManagement.viewPricing')}
+              </div>
             </div>
           </div>
         </div>

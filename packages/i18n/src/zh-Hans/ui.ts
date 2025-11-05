@@ -31,6 +31,7 @@ const translations = {
       willAutoRenew: '将自动续订',
       viewBilling: '查看账单',
       changePlan: '变更套餐',
+      viewPricing: '查看定价',
       upgradePlan: '升级套餐',
       availableCredits: '剩余可用积分',
       remainingCredits: '剩余积分',
