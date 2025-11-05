@@ -353,9 +353,10 @@ const DocumentEditorHeader = memo(({ docId, nodeId, readonly }: DocumentEditorHe
 
   useEffect(() => {
     if (provider?.status !== 'connected') return;
-
-    syncTitleToYDoc((node?.data?.title as string) ?? '');
-  }, [node?.data?.title, provider?.status]);
+    setTimeout(() => {
+      syncTitleToYDoc((node?.data?.title as string) ?? '');
+    }, 100);
+  }, [provider?.status]);
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
     // Skip custom handling when IME composition is in progress
@@ -368,6 +369,10 @@ const DocumentEditorHeader = memo(({ docId, nodeId, readonly }: DocumentEditorHe
       editorEmitter.emit('insertBelow', '\n');
     }
   }, []);
+
+  useEffect(() => {
+    console.log('document?.title', document?.title);
+  }, [document?.title]);
 
   return (
     <div className="w-full mx-0 mt-4 max-w-screen-lg">
