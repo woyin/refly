@@ -1,11 +1,15 @@
-import { useState, useEffect } from 'react';
-import { envTag } from '@refly/ui-kit/src/utils/env';
+import { useState, useEffect, useCallback, useRef, memo } from 'react';
+import { useTranslation } from 'react-i18next';
+import { envTag } from '@refly/ui-kit';
+import { Button } from 'antd';
 
 /**
  * Environment banner component that displays for test and staging environments
  */
-export const EnvironmentBanner = () => {
+const EnvironmentBannerComponent = () => {
+  const { t } = useTranslation();
   const [isVisible, setIsVisible] = useState(false);
+  const bannerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     // Only show banner for test and staging environments
@@ -17,6 +21,24 @@ export const EnvironmentBanner = () => {
     // Banner is visible by default for test and staging environments
     setIsVisible(true);
   }, []);
+
+  // Set CSS variables based on banner visibility and measured height
+  useEffect(() => {
+    const root = document?.documentElement;
+    if (!root) {
+      return;
+    }
+
+    if (isVisible && bannerRef.current) {
+      // Measure actual banner height
+      const bannerHeight = bannerRef.current.offsetHeight;
+      root.style.setProperty('--banner-height', `${bannerHeight}px`);
+      root.style.setProperty('--screen-height', `calc(100vh - ${bannerHeight}px)`);
+    } else {
+      root.style.setProperty('--banner-height', '0px');
+      root.style.setProperty('--screen-height', '100vh');
+    }
+  }, [isVisible]);
 
   useEffect(() => {
     if (envTag !== 'test') {
@@ -43,9 +65,9 @@ export const EnvironmentBanner = () => {
     }
   }, []);
 
-  const hideBanner = () => {
+  const hideBanner = useCallback(() => {
     setIsVisible(false);
-  };
+  }, []);
 
   if (!isVisible) {
     return null;
@@ -53,34 +75,38 @@ export const EnvironmentBanner = () => {
 
   const isTest = envTag === 'test';
   const bannerColor = isTest ? 'bg-orange-400' : 'bg-yellow-400';
-  const bannerText = isTest ? 'TEST ENVIRONMENT' : 'STAGING ENVIRONMENT. PLEASE USE WITH CAUTION.';
+  const bannerText = t(`environmentBanner.${isTest ? 'test' : 'staging'}`);
 
   return (
     <div
+      ref={bannerRef}
       className={`fixed top-0 left-0 right-0 z-50 ${bannerColor} text-black font-semibold text-center py-2 text-sm flex items-center justify-center relative`}
     >
       <span>{bannerText}</span>
-      <button
-        type="button"
+      <Button
+        type="text"
         onClick={hideBanner}
-        className="absolute right-4 top-1/2 transform -translate-y-1/2 text-black hover:bg-black/10 rounded-full border-none p-1 transition-colors flex items-center"
+        className="absolute right-4 top-1/2 transform -translate-y-1/2 text-black hover:bg-black/10 rounded-full border-none p-1 transition-colors flex items-center hover:cursor-pointer"
         aria-label="Close banner"
-      >
-        <svg
-          className="w-4 h-4"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M6 18L18 6M6 6l12 12"
-          />
-        </svg>
-      </button>
+        icon={
+          <svg
+            className="w-4 h-4"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M6 18L18 6M6 6l12 12"
+            />
+          </svg>
+        }
+      />
     </div>
   );
 };
+
+export const EnvironmentBanner = memo(EnvironmentBannerComponent);

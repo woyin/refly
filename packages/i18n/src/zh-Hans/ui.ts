@@ -3946,6 +3946,10 @@ const translations = {
       },
     },
   },
+  environmentBanner: {
+    test: '当前为测试环境，功能可能不稳定。',
+    staging: '当前为预发布环境，请谨慎使用。',
+  },
 };
 
 export default translations;
