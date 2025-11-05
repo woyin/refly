@@ -370,10 +370,6 @@ const DocumentEditorHeader = memo(({ docId, nodeId, readonly }: DocumentEditorHe
     }
   }, []);
 
-  useEffect(() => {
-    console.log('document?.title', document?.title);
-  }, [document?.title]);
-
   return (
     <div className="w-full mx-0 mt-4 max-w-screen-lg">
       <Input
