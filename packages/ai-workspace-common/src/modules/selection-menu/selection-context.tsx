@@ -3,11 +3,7 @@ import { Button, message } from 'antd';
 import { SelectionBubble } from './selection-bubble';
 import { useTranslation } from 'react-i18next';
 import { useSelectionContext } from './use-selection-context';
-import {
-  IconMemo,
-  IconQuote,
-  IconResponse,
-} from '@refly-packages/ai-workspace-common/components/common/icon';
+import { IconMemo, IconResponse } from '@refly-packages/ai-workspace-common/components/common/icon';
 import { useCreateMemo } from '@refly-packages/ai-workspace-common/hooks/canvas/use-create-memo';
 import { IContextItem } from '@refly/common-types';
 import { useReactFlow } from '@xyflow/react';
@@ -106,13 +102,13 @@ export const SelectionContext = React.memo<SelectionContextProps>(
 
     const buttons = useMemo(
       () => [
-        {
-          className:
-            'w-full px-2 py-0 font-medium text-sm justify-start !text-[#0E9F77] hover:!text-[#0E9F77]/80',
-          icon: <IconQuote size={14} />,
-          label: t('knowledgeBase.context.addToContext'),
-          onClick: () => handleAddToContext(selectedText),
-        },
+        // {
+        //   className:
+        //     'w-full px-2 py-0 font-medium text-sm justify-start !text-[#0E9F77] hover:!text-[#0E9F77]/80',
+        //   icon: <IconQuote size={14} />,
+        //   label: t('knowledgeBase.context.addToContext'),
+        //   onClick: () => handleAddToContext(selectedText),
+        // },
         {
           className: 'w-full px-2 py-0 text-sm justify-start',
           icon: <IconMemo size={14} />,
