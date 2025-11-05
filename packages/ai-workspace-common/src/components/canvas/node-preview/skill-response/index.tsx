@@ -8,6 +8,7 @@ import { useActionPolling } from '@refly-packages/ai-workspace-common/hooks/canv
 import { useDeleteNode } from '@refly-packages/ai-workspace-common/hooks/canvas/use-delete-node';
 import { useInvokeAction } from '@refly-packages/ai-workspace-common/hooks/canvas/use-invoke-action';
 import { useFetchShareData } from '@refly-packages/ai-workspace-common/hooks/use-fetch-share-data';
+import { useFetchResources } from '@refly-packages/ai-workspace-common/hooks/use-fetch-resources';
 import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
 import { processContentPreview } from '@refly-packages/ai-workspace-common/utils/content';
 import {
@@ -279,6 +280,8 @@ const SkillResponseNodePreviewComponent = ({
 
   const outputStep = steps.find((step) => OUTPUT_STEP_NAMES.includes(step.name));
 
+  const { data: resources } = useFetchResources();
+
   return purePreview ? (
     !result && !loading ? (
       <div className="h-full w-full flex items-center justify-center">
@@ -336,6 +339,7 @@ const SkillResponseNodePreviewComponent = ({
             query={currentQuery}
             actionMeta={actionMeta}
             setEditMode={setEditMode}
+            resources={resources}
           />
         </div>
       }
