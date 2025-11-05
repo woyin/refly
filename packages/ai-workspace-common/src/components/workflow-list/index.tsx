@@ -132,7 +132,7 @@ const WorkflowList = memo(() => {
           const isShared = shareRecord?.shareId;
           return (
             <Tag color={isShared ? 'default' : 'default'} className="text-xs">
-              {isShared ? t('workflowList.shared') : t('workflowList.personal')}
+              {isShared ? t('workflowList.shared') : t('workflowList.private')}
             </Tag>
           );
         },

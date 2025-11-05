@@ -3829,7 +3829,7 @@ const translations = {
     noSearchResults: 'No search results',
     searchWorkflows: 'Search workflows',
     shared: 'Shared',
-    personal: 'Personal',
+    private: 'Private',
     share: 'Share',
     unshare: 'Unshare',
     shareSuccess: 'Workflow {{title}} shared successfully! Link copied to clipboard.',

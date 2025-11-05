@@ -3868,7 +3868,7 @@ const translations = {
     noSearchResults: '没有找到相关工作流',
     searchWorkflows: '搜索工作流',
     shared: '共享',
-    personal: '个人',
+    private: '私有',
     share: '分享',
     unshare: '取消分享',
     shareSuccess: '工作流 {{title}} 分享成功！链接已复制到剪贴板。',
