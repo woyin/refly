@@ -90,13 +90,14 @@ const CommissionSourceCell = React.memo(({ record }: { record: CreditRechargeRec
   );
 
   if (isLoading || !appDetail) {
-    return <span>{t('credit.recharge.source.commission')}</span>;
+    return <span>{t('subscription.subscriptionManagement.rechargeType.commission')}</span>;
   }
 
-  const appName = appDetail?.data?.title ?? t('credit.recharge.source.commission');
+  const appName =
+    appDetail?.data?.title ?? t('subscription.subscriptionManagement.rechargeType.commission');
   return (
     <span className="inline-block max-w-[200px] overflow-hidden text-ellipsis whitespace-nowrap align-bottom">
-      {t('credit.recharge.source.commissionPrefix')}
+      {t('subscription.subscriptionManagement.rechargeType.commissionPrefix')}
       {appDetail?.data?.shareId ? (
         <span
           className="cursor-pointer underline hover:text-blue-600 dark:hover:text-blue-400"
@@ -141,13 +142,14 @@ const CommissionUsageCell = React.memo(({ record }: { record: CreditUsageRecord 
   );
 
   if (isLoading || !appDetail) {
-    return <span>{t('credit.usage.type.commission')}</span>;
+    return <span>{t('subscription.subscriptionManagement.rechargeType.commission')}</span>;
   }
 
-  const appName = appDetail?.data?.title ?? t('credit.usage.type.commission');
+  const appName =
+    appDetail?.data?.title ?? t('subscription.subscriptionManagement.rechargeType.commission');
   return (
     <span className="inline-block max-w-[200px] overflow-hidden text-ellipsis whitespace-nowrap align-bottom">
-      {t('credit.usage.type.commissionPrefix')}
+      {t('subscription.subscriptionManagement.rechargeType.commissionPrefix')}
       {appDetail?.data?.shareId ? (
         <span
           className="cursor-pointer underline hover:text-blue-600 dark:hover:text-blue-400"
@@ -357,11 +359,11 @@ export const Subscription = () => {
         }
 
         const sourceMap: Record<string, string> = {
-          purchase: t('credit.recharge.source.purchase'),
-          gift: t('credit.recharge.source.gift'),
-          promotion: t('credit.recharge.source.promotion'),
-          refund: t('credit.recharge.source.refund'),
-          subscription: t('credit.recharge.source.subscription'),
+          purchase: t('subscription.subscriptionManagement.rechargeType.purchase'),
+          gift: t('subscription.subscriptionManagement.rechargeType.gift'),
+          promotion: t('subscription.subscriptionManagement.rechargeType.promotion'),
+          refund: t('subscription.subscriptionManagement.rechargeType.refund'),
+          subscription: t('subscription.subscriptionManagement.rechargeType.subscription'),
         };
         return sourceMap[source] || source;
       },
