@@ -47,7 +47,7 @@ import {
 import { PrismaService } from '../common/prisma.service';
 import { QUEUE_SKILL, pick, QUEUE_CHECK_STUCK_ACTIONS } from '../../utils';
 import { InvokeSkillJobData } from './skill.dto';
-import { documentPO2DTO, resourcePO2DTO } from '../knowledge/knowledge.dto';
+import { DocumentDetail, documentPO2DTO, resourcePO2DTO } from '../knowledge/knowledge.dto';
 import { CreditService } from '../credit/credit.service';
 import {
   ModelUsageQuotaExceeded,
@@ -926,11 +926,21 @@ export class SkillService implements OnModuleInit {
     if (context.documents?.length > 0) {
       const docIds = [...new Set(context.documents.map((item) => item.docId).filter((id) => id))];
       const limit = pLimit(5);
-      const docs = await Promise.all(
-        docIds.map((id) =>
-          limit(() => this.documentService.getDocumentDetail(user, { docId: id })),
-        ),
-      );
+      const docs: DocumentDetail[] = (
+        await Promise.all(
+          docIds.map((id) =>
+            limit(() =>
+              this.documentService.getDocumentDetail(user, { docId: id }).catch((error) => {
+                this.logger.error(
+                  `Failed to get document detail for docId ${id}: ${error?.message}`,
+                );
+                return null;
+              }),
+            ),
+          ),
+        )
+      )?.filter(Boolean) as DocumentDetail[];
+
       const docMap = new Map<string, Document>();
       for (const d of docs) {
         docMap.set(d.docId, documentPO2DTO(d));
