@@ -857,6 +857,7 @@ export class CreditService {
       return 0;
     }
 
+    // First try to find usages by version
     const usages = await this.prisma.creditUsage.findMany({
       where: {
         actionResultId: resultId,
@@ -864,9 +865,43 @@ export class CreditService {
       },
     });
 
-    return usages.reduce((sum, usage) => {
+    if (usages.length > 0) {
+      return usages.reduce((sum, usage) => {
+        return sum + Number(usage.amount);
+      }, 0);
+    }
+
+    // For backward compatibility with old data without version,
+    // query all usages for this actionResultId and divide by version count
+    const allUsages = await this.prisma.creditUsage.findMany({
+      where: {
+        actionResultId: resultId,
+      },
+    });
+
+    if (allUsages.length === 0) {
+      return 0;
+    }
+
+    const totalUsage = allUsages.reduce((sum, usage) => {
       return sum + Number(usage.amount);
     }, 0);
+
+    // Get the total number of versions for this resultId
+    const versionCount = await this.prisma.actionResult.count({
+      where: {
+        resultId,
+        uid: user.uid,
+      },
+    });
+
+    // If no versions found, return total usage as is
+    if (versionCount === 0) {
+      return totalUsage;
+    }
+
+    // Return total usage divided by version count (ceiled to ensure integer)
+    return Math.ceil(totalUsage / versionCount);
   }
 
   async countCanvasCreditUsage(user: User, canvasData: RawCanvasData): Promise<number> {
