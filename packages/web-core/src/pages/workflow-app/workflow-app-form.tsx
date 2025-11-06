@@ -15,6 +15,7 @@ import { ResourceUpload } from '@refly-packages/ai-workspace-common/components/c
 import { useFileUpload } from '@refly-packages/ai-workspace-common/components/canvas/workflow-variables';
 import { getFileType } from '@refly-packages/ai-workspace-common/components/canvas/workflow-variables/utils';
 import { calculateCreditCost } from '@refly-packages/ai-workspace-common/utils';
+import { Question } from 'refly-icons';
 
 const EmptyContent = () => {
   const { t } = useTranslation();
@@ -535,8 +536,23 @@ export const WorkflowAPPForm = ({
                 />
                 {/* Tools Dependency Form */}
                 {workflowApp?.canvasData && (
-                  <div className="mt-3 ">
+                  <div className="mt-3 flex items-center justify-between">
                     <ToolsDependencyChecker canvasData={workflowApp?.canvasData} />
+
+                    <Tooltip title={t('canvas.workflow.run.toolsGuide') || 'Tools Guide'}>
+                      <Button
+                        className="flex items-center justify-center h-7 w-7 rounded-2xl hover:bg-refly-tertiary-hover bg-transparent border-none shadow-none"
+                        type="text"
+                        size="small"
+                        icon={
+                          <Question
+                            size={16}
+                            color="var(--refly-text-2)"
+                            className="flex items-center"
+                          />
+                        }
+                      />
+                    </Tooltip>
                   </div>
                 )}
               </div>
