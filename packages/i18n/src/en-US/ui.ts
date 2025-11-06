@@ -1423,6 +1423,7 @@ const translations = {
         failed: 'Workflow execution failed',
         error: 'Error monitoring workflow execution',
         validationError: 'Please fill in all required fields before running the workflow',
+        toolsGuide: 'Click "Run" to experience, the green parts support editing input content',
         nodeStatus: {
           waiting: 'Waiting',
           executing: 'Running',

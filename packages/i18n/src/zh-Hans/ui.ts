@@ -1410,6 +1410,7 @@ const translations = {
         failed: 'Workflow 运行失败',
         error: 'Workflow 运行状态时出错',
         validationError: '请填写所有必填字段后再运行工作流',
+        toolsGuide: '请点击「运行」即可体验，绿色部分支持修改输入内容',
         nodeStatus: {
           waiting: '等待中',
           executing: '运行中',

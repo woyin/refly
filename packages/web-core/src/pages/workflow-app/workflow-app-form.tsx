@@ -559,7 +559,7 @@ export const WorkflowAPPForm = ({
 
                     <Tooltip title={t('canvas.workflow.run.toolsGuide') || 'Tools Guide'}>
                       <Button
-                        className="flex items-center justify-center h-7 w-7 rounded-2xl hover:bg-refly-tertiary-hover bg-transparent border-none shadow-none"
+                        className="flex items-center justify-center !h-7 !w-7 rounded-2xl hover:bg-refly-tertiary-hover bg-transparent border-none shadow-none"
                         type="text"
                         size="small"
                         icon={
@@ -583,13 +583,13 @@ export const WorkflowAPPForm = ({
                     src={workflowApp.canvasData.owner?.avatar || defaultAvatar}
                     className="flex-shrink-0"
                   />
-                  <span className="text-[11px] leading-[1.4545em] text-[rgba(28,31,35,0.35)]">
+                  <span className="text-[11px] leading-[1.4545em] text-[rgba(28,31,35,0.35)] dark:text-refly-text-3">
                     {workflowApp.canvasData.owner.nickname ||
                       workflowApp.canvasData.owner?.name ||
                       ''}
                   </span>
-                  <div className="w-[1px] h-[10px] bg-[#E7E7E7] rounded-[3px] flex-shrink-0" />
-                  <span className="text-[11px] leading-[1.4545em] text-[rgba(28,31,35,0.35)]">
+                  <div className="w-[1px] h-[10px] bg-[#E7E7E7] dark:bg-refly-Card-Border rounded-[3px] flex-shrink-0" />
+                  <span className="text-[11px] leading-[1.4545em] text-[rgba(28,31,35,0.35)] dark:text-refly-text-3">
                     {formatDate(workflowApp.canvasData?.owner?.createdAt)}
                   </span>
                 </div>
