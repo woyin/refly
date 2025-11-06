@@ -96,19 +96,19 @@ export class WorkflowAppService {
     });
 
     // Generate app template content
-    // let templateContent: string | null = null;
-    // try {
-    //   const templateResult = await this.variableExtractionService.generateAppPublishTemplate(
-    //     user,
-    //     canvasId,
-    //   );
-    //   templateContent = templateResult.templateContent;
-    //   this.logger.log(`Generated template content for workflow app: ${appId}`);
-    // } catch (error) {
-    //   this.logger.error(
-    //     `Failed to generate template content for workflow app ${appId}: ${error.stack}`,
-    //   );
-    // }
+    let templateContent: string | null = null;
+    try {
+      const templateResult = await this.variableExtractionService.generateAppPublishTemplate(
+        user,
+        canvasId,
+      );
+      templateContent = templateResult.templateContent;
+      this.logger.log(`Generated template content for workflow app: ${appId}`);
+    } catch (error) {
+      this.logger.error(
+        `Failed to generate template content for workflow app ${appId}: ${error.stack}`,
+      );
+    }
 
     if (existingWorkflowApp) {
       await this.prisma.workflowApp.update({
@@ -120,7 +120,7 @@ export class WorkflowAppService {
           description,
           storageKey,
           coverStorageKey: coverStorageKey as any,
-          templateContent: null,
+          templateContent,
           remixEnabled,
           resultNodeIds,
           updatedAt: new Date(),

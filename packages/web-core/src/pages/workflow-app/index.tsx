@@ -365,20 +365,18 @@ const WorkflowAppPage: React.FC = () => {
                     </div>
 
                     {/* Workflow Form */}
-                    <div className="mb-6 sm:mb-8 relative z-20">
-                      <WorkflowAPPForm
-                        workflowApp={workflowApp}
-                        workflowVariables={workflowVariables}
-                        onSubmitVariables={onSubmit}
-                        loading={isLoading}
-                        onCopyWorkflow={handleCopyWorkflow}
-                        onCopyShareLink={handleCopyShareLink}
-                        isRunning={isRunning}
-                        templateContent={workflowApp?.templateContent}
-                        executionCreditUsage={executionCreditUsage}
-                        className="max-h-[500px] sm:max-h-[600px] bg-[var(--refly-bg-float-z3)] dark:bg-[var(--refly-bg-content-z2)] border border-[var(--refly-Card-Border)] dark:border-[var(--refly-semi-color-border)] shadow-[0_2px_20px_4px_rgba(0,0,0,0.04)] dark:shadow-[0_2px_20px_4px_rgba(0,0,0,0.2)] px-4 py-3 rounded-2xl"
-                      />
-                    </div>
+                    <WorkflowAPPForm
+                      workflowApp={workflowApp}
+                      workflowVariables={workflowVariables}
+                      onSubmitVariables={onSubmit}
+                      loading={isLoading}
+                      onCopyWorkflow={handleCopyWorkflow}
+                      onCopyShareLink={handleCopyShareLink}
+                      isRunning={isRunning}
+                      templateContent={workflowApp?.templateContent}
+                      executionCreditUsage={executionCreditUsage}
+                      className="max-h-[500px] sm:max-h-[600px] bg-[var(--refly-bg-float-z3)] dark:bg-[var(--refly-bg-content-z2)] border border-[var(--refly-Card-Border)] dark:border-[var(--refly-semi-color-border)] shadow-[0_2px_20px_4px_rgba(0,0,0,0.04)] dark:shadow-[0_2px_20px_4px_rgba(0,0,0,0.2)] px-4 py-3 rounded-2xl"
+                    />
 
                     {logs.length > 0 && (
                       <>
