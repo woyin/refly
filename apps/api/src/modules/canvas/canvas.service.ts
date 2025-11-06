@@ -208,6 +208,7 @@ export class CanvasService {
         name: userPo?.name,
         nickname: userPo?.nickname,
         avatar: userPo?.avatar,
+        createdAt: canvas.createdAt.toJSON(),
       },
       minimapUrl: canvas.minimapStorageKey
         ? this.miscService.generateFileURL({ storageKey: canvas.minimapStorageKey })

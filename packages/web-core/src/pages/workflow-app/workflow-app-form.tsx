@@ -1,12 +1,13 @@
 import type { WorkflowVariable, WorkflowExecutionStatus } from '@refly/openapi-schema';
 import { useTranslation } from 'react-i18next';
-import { Button, Input, Select, Form, Typography, message, Tooltip } from 'antd';
+import { Button, Input, Select, Form, Typography, message, Tooltip, Avatar } from 'antd';
 import { IconShare } from '@refly-packages/ai-workspace-common/components/common/icon';
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import type { UploadFile } from 'antd/es/upload/interface';
 
 import cn from 'classnames';
 import EmptyImage from '@refly-packages/ai-workspace-common/assets/noResource.svg';
+import defaultAvatar from '@refly-packages/ai-workspace-common/assets/refly_default_avatar.png';
 import { useIsLogin } from '@refly-packages/ai-workspace-common/hooks/use-is-login';
 import { useNavigate } from 'react-router-dom';
 import { ToolsDependencyChecker } from '@refly-packages/ai-workspace-common/components/canvas/tools-dependency';
@@ -30,6 +31,23 @@ const EmptyContent = () => {
       </div>
     </div>
   );
+};
+
+// Format date to YYYY.MM.DD format
+const formatDate = (dateString: string | null | undefined): string => {
+  if (!dateString) {
+    return '';
+  }
+  const date = new Date(dateString);
+  if (Number.isNaN(date.getTime())) {
+    return '';
+  }
+
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+
+  return `${year}.${month}.${day}`;
 };
 
 const FormItemLabel = ({ name }: { name: string; required: boolean }) => {
@@ -557,7 +575,27 @@ export const WorkflowAPPForm = ({
                 )}
               </div>
 
-              <div className="p-3 sm:p-4 border-t border-refly-Card-Border rounded-b-lg">
+              {/* owner */}
+              {workflowApp?.canvasData?.owner && (
+                <div className="mt-2 flex items-center gap-1.5 cursor-pointer">
+                  <Avatar
+                    size={16}
+                    src={workflowApp.canvasData.owner?.avatar || defaultAvatar}
+                    className="flex-shrink-0"
+                  />
+                  <span className="text-[11px] leading-[1.4545em] text-[rgba(28,31,35,0.35)]">
+                    {workflowApp.canvasData.owner.nickname ||
+                      workflowApp.canvasData.owner?.name ||
+                      ''}
+                  </span>
+                  <div className="w-[1px] h-[10px] bg-[#E7E7E7] rounded-[3px] flex-shrink-0" />
+                  <span className="text-[11px] leading-[1.4545em] text-[rgba(28,31,35,0.35)]">
+                    {formatDate(workflowApp.canvasData?.owner?.createdAt)}
+                  </span>
+                </div>
+              )}
+
+              <div className="pt-4 border-t border-refly-Card-Border rounded-b-lg">
                 <div className="w-full flex flex-row justify-end items-center gap-3">
                   {/* Credit Info Block */}
                   {
