@@ -905,16 +905,28 @@ export class SkillService implements OnModuleInit {
         ...new Set(context.resources.map((item) => item.resourceId).filter((id) => id)),
       ];
       const limit = pLimit(5);
-      const resources = await Promise.all(
-        resourceIds.map((id) =>
-          limit(() =>
-            this.resourceService.getResourceDetail(user, { resourceId: id, genPublicUrl: true }),
+      const resources = (
+        await Promise.all(
+          resourceIds.map((id) =>
+            limit(() =>
+              this.resourceService
+                .getResourceDetail(user, { resourceId: id, genPublicUrl: true })
+                .catch((error) => {
+                  this.logger.error(
+                    `Failed to get resource detail for resourceId ${id}: ${error?.message}`,
+                  );
+                  return null;
+                }),
+            ),
           ),
-        ),
-      );
+        )
+      )?.filter(Boolean);
+
       const resourceMap = new Map<string, Resource>();
       for (const r of resources) {
-        resourceMap.set(r.resourceId, resourcePO2DTO(r));
+        if (r) {
+          resourceMap.set(r.resourceId, resourcePO2DTO(r));
+        }
       }
 
       for (const item of context.resources) {
@@ -957,11 +969,21 @@ export class SkillService implements OnModuleInit {
         ...new Set(context.codeArtifacts.map((item) => item.artifactId).filter((id) => id)),
       ];
       const limit = pLimit(5);
-      const artifacts = await Promise.all(
-        artifactIds.map((id) =>
-          limit(() => this.codeArtifactService.getCodeArtifactDetail(user, id)),
-        ),
-      );
+      const artifacts = (
+        await Promise.all(
+          artifactIds.map((id) =>
+            limit(() =>
+              this.codeArtifactService.getCodeArtifactDetail(user, id).catch((error) => {
+                this.logger.error(
+                  `Failed to get code artifact detail for artifactId ${id}: ${error?.message}`,
+                );
+                return null;
+              }),
+            ),
+          ),
+        )
+      )?.filter(Boolean);
+
       const artifactMap = new Map<string, CodeArtifact>();
       for (const a of artifacts) {
         artifactMap.set(a.artifactId, codeArtifactPO2DTO(a));
