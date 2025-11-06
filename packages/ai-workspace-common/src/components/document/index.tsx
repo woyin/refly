@@ -353,9 +353,11 @@ const DocumentEditorHeader = memo(({ docId, nodeId, readonly }: DocumentEditorHe
 
   useEffect(() => {
     if (provider?.status !== 'connected') return;
-
-    syncTitleToYDoc((node?.data?.title as string) ?? '');
-  }, [node?.data?.title, provider?.status]);
+    const timer = setTimeout(() => {
+      syncTitleToYDoc((node?.data?.title as string) ?? '');
+    }, 100);
+    return () => clearTimeout(timer);
+  }, [provider?.status]);
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
     // Skip custom handling when IME composition is in progress
