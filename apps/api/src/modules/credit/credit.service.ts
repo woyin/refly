@@ -413,6 +413,7 @@ export class CreditService {
       createdAt: Date;
       description?: string;
     },
+    dueAmount?: number,
   ): Promise<void> {
     // Lazy load daily gift recharge
     await this.lazyLoadDailyGiftCredits(uid);
@@ -469,6 +470,7 @@ export class CreditService {
           usageType: usageData.usageType,
           modelUsageDetails: usageData.modelUsageDetails,
           amount: creditCost,
+          dueAmount: dueAmount,
           createdAt: usageData.createdAt,
           description: usageData.description,
         },
@@ -607,6 +609,7 @@ export class CreditService {
 
     // Calculate total credit cost for all usages
     let totalCreditCost = 0;
+    let originalDueAmount = 0; // Track original due amount regardless of early bird status
     const modelUsageDetails: ModelUsageDetail[] = [];
 
     for (const step of creditUsageSteps) {
@@ -622,6 +625,9 @@ export class CreditService {
         const tokenUnits = Math.ceil(totalTokens / 5000);
         creditCost = tokenUnits * (creditBilling.unitCost || 0);
       }
+
+      // Track original due amount before early bird discount
+      originalDueAmount += creditCost;
 
       // Check if user is early bird and credit billing is free for early bird users
       if (isEarlyBirdUser && creditBilling?.isEarlyBirdFree) {
@@ -641,6 +647,9 @@ export class CreditService {
       });
     }
 
+    // Always record the original due amount, even for early bird users
+    const dueAmount = originalDueAmount > 0 ? originalDueAmount : totalCreditCost;
+
     // If no credit cost, just create usage record with details
     if (totalCreditCost <= 0) {
       await this.prisma.creditUsage.create({
@@ -650,6 +659,7 @@ export class CreditService {
           actionResultId: resultId,
           version,
           amount: 0,
+          dueAmount,
           modelUsageDetails: JSON.stringify(modelUsageDetails),
           createdAt: timestamp,
         },
@@ -658,13 +668,18 @@ export class CreditService {
     }
 
     // Use the extracted method to handle credit deduction with model usage details
-    await this.deductCreditsAndCreateUsage(uid, totalCreditCost, {
-      usageId: genCreditUsageId(),
-      actionResultId: resultId,
-      version,
-      modelUsageDetails: JSON.stringify(modelUsageDetails),
-      createdAt: timestamp,
-    });
+    await this.deductCreditsAndCreateUsage(
+      uid,
+      totalCreditCost,
+      {
+        usageId: genCreditUsageId(),
+        actionResultId: resultId,
+        version,
+        modelUsageDetails: JSON.stringify(modelUsageDetails),
+        createdAt: timestamp,
+      },
+      dueAmount,
+    );
   }
 
   async getCreditRecharge(
@@ -867,7 +882,8 @@ export class CreditService {
 
     if (usages.length > 0) {
       return usages.reduce((sum, usage) => {
-        return sum + Number(usage.amount);
+        const dueAmount = usage.dueAmount ? Number(usage.dueAmount) : 0;
+        return sum + (dueAmount > 0 ? dueAmount : Number(usage.amount));
       }, 0);
     }
 
@@ -884,7 +900,8 @@ export class CreditService {
     }
 
     const totalUsage = allUsages.reduce((sum, usage) => {
-      return sum + Number(usage.amount);
+      const dueAmount = usage.dueAmount ? Number(usage.dueAmount) : 0;
+      return sum + (dueAmount > 0 ? dueAmount : Number(usage.amount));
     }, 0);
 
     // Get the total number of versions for this resultId
