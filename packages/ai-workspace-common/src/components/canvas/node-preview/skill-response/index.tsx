@@ -6,11 +6,10 @@ import { locateToNodePreviewEmitter } from '@refly-packages/ai-workspace-common/
 import { useNodeData } from '@refly-packages/ai-workspace-common/hooks/canvas';
 import { useActionPolling } from '@refly-packages/ai-workspace-common/hooks/canvas/use-action-polling';
 import { useDeleteNode } from '@refly-packages/ai-workspace-common/hooks/canvas/use-delete-node';
+import { useFetchActionResult } from '@refly-packages/ai-workspace-common/hooks/canvas/use-fetch-action-result';
 import { useInvokeAction } from '@refly-packages/ai-workspace-common/hooks/canvas/use-invoke-action';
 import { useFetchShareData } from '@refly-packages/ai-workspace-common/hooks/use-fetch-share-data';
 import { useFetchResources } from '@refly-packages/ai-workspace-common/hooks/use-fetch-resources';
-import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
-import { processContentPreview } from '@refly-packages/ai-workspace-common/utils/content';
 import {
   CanvasNode,
   convertResultContextToItems,
@@ -18,14 +17,9 @@ import {
   ResponseNodeMeta,
 } from '@refly/canvas-common';
 import { ActionResult, GenericToolset } from '@refly/openapi-schema';
-import {
-  useActionResultStoreShallow,
-  useKnowledgeBaseStoreShallow,
-  useUserStore,
-} from '@refly/stores';
+import { useActionResultStoreShallow, useKnowledgeBaseStoreShallow } from '@refly/stores';
 import { cn } from '@refly/utils/cn';
 import { sortSteps } from '@refly/utils/step';
-import { useReactFlow } from '@xyflow/react';
 import { Button, Divider, Result, Skeleton } from 'antd';
 import { memo, useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -58,9 +52,9 @@ const SkillResponseNodePreviewComponent = ({
     sourceListDrawerVisible: state.sourceListDrawer.visible,
   }));
 
-  const { getNodes } = useReactFlow();
   const { setNodeData } = useNodeData();
   const { deleteNode } = useDeleteNode();
+  const { fetchActionResult, loading: fetchActionResultLoading } = useFetchActionResult();
 
   const { canvasId, readonly } = useCanvasContext();
   const { invokeAction } = useInvokeAction({ source: 'skill-response-node-preview' });
@@ -68,7 +62,6 @@ const SkillResponseNodePreviewComponent = ({
 
   const { t } = useTranslation();
   const [editMode, setEditMode] = useState(false);
-  const [loading, setLoading] = useState(!result);
 
   const nodeSelectedToolsets = node?.data?.metadata?.selectedToolsets;
   const [selectedToolsets, setSelectedToolsets] = useState<GenericToolset[]>(
@@ -76,7 +69,8 @@ const SkillResponseNodePreviewComponent = ({
   );
 
   const shareId = node.data?.metadata?.shareId;
-  const { data: shareData } = useFetchShareData(shareId);
+  const { data: shareData, loading: shareDataLoading } = useFetchShareData(shareId);
+  const loading = fetchActionResultLoading || shareDataLoading;
 
   const [statusText, setStatusText] = useState('');
 
@@ -87,48 +81,8 @@ const SkillResponseNodePreviewComponent = ({
   useEffect(() => {
     if (shareData && !result && shareData?.resultId === resultId) {
       updateActionResult(resultId, shareData);
-      setLoading(false);
     }
   }, [shareData, result, resultId, updateActionResult]);
-
-  const fetchActionResult = async (resultId: string, options?: { silent?: boolean }) => {
-    const silent = options?.silent ?? false;
-    const { isLogin } = useUserStore.getState();
-    if (!isLogin) {
-      return;
-    }
-
-    if (!silent) {
-      setLoading(true);
-    }
-    const { data, error } = await getClient().getActionResult({
-      query: { resultId },
-    });
-    if (!silent) {
-      setLoading(false);
-    }
-
-    if (error || !data?.success) {
-      return;
-    }
-
-    updateActionResult(resultId, data.data!);
-
-    const remoteResult = data.data;
-    const node = getNodes().find((node) => node.data?.entityId === resultId);
-    if (node && remoteResult) {
-      setNodeData(node.id, {
-        title: remoteResult.title,
-        contentPreview: processContentPreview(remoteResult.steps?.map((s) => s?.content || '')),
-        metadata: {
-          status: remoteResult?.status,
-          reasoningContent: processContentPreview(
-            remoteResult.steps?.map((s) => s?.reasoningContent || ''),
-          ),
-        },
-      });
-    }
-  };
 
   useEffect(() => {
     // Do not fetch action result if streaming
@@ -137,9 +91,7 @@ const SkillResponseNodePreviewComponent = ({
     }
     if (!!resultId && shareData?.resultId !== resultId) {
       // Always refresh in background to keep store up-to-date
-      fetchActionResult(resultId, { silent: !!result });
-    } else if (result) {
-      setLoading(false);
+      fetchActionResult(resultId, { silent: !!result, nodeToUpdate: node });
     }
   }, [resultId, shareId, isStreaming, shareData, node?.data?.metadata?.status]);
 

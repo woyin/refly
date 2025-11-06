@@ -73,6 +73,7 @@ import {
   getCodeArtifactDetail,
   getCollabToken,
   getComposioConnectionStatus,
+  getCopilotSessionDetail,
   getCreditBalance,
   getCreditRecharge,
   getCreditUsage,
@@ -100,6 +101,7 @@ import {
   listCanvasTemplateCategories,
   listCanvasTemplates,
   listCodeArtifacts,
+  listCopilotSessions,
   listDocuments,
   listLabelClasses,
   listLabelInstances,
@@ -549,6 +551,30 @@ export const UseGetPilotSessionDetailKeyFn = (
   clientOptions: Options<unknown, true>,
   queryKey?: Array<unknown>,
 ) => [useGetPilotSessionDetailKey, ...(queryKey ?? [clientOptions])];
+export type ListCopilotSessionsDefaultResponse = Awaited<
+  ReturnType<typeof listCopilotSessions>
+>['data'];
+export type ListCopilotSessionsQueryResult<
+  TData = ListCopilotSessionsDefaultResponse,
+  TError = unknown,
+> = UseQueryResult<TData, TError>;
+export const useListCopilotSessionsKey = 'ListCopilotSessions';
+export const UseListCopilotSessionsKeyFn = (
+  clientOptions: Options<unknown, true> = {},
+  queryKey?: Array<unknown>,
+) => [useListCopilotSessionsKey, ...(queryKey ?? [clientOptions])];
+export type GetCopilotSessionDetailDefaultResponse = Awaited<
+  ReturnType<typeof getCopilotSessionDetail>
+>['data'];
+export type GetCopilotSessionDetailQueryResult<
+  TData = GetCopilotSessionDetailDefaultResponse,
+  TError = unknown,
+> = UseQueryResult<TData, TError>;
+export const useGetCopilotSessionDetailKey = 'GetCopilotSessionDetail';
+export const UseGetCopilotSessionDetailKeyFn = (
+  clientOptions: Options<unknown, true>,
+  queryKey?: Array<unknown>,
+) => [useGetCopilotSessionDetailKey, ...(queryKey ?? [clientOptions])];
 export type GetWorkflowDetailDefaultResponse = Awaited<
   ReturnType<typeof getWorkflowDetail>
 >['data'];

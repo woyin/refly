@@ -16,7 +16,7 @@ const CanvasPage = () => {
   }, [canvasId]);
 
   return (
-    <div className="w-full h-full">
+    <div className="w-full h-full flex flex-col">
       {canvasId && canvasId !== 'empty' ? <Canvas canvasId={canvasId} /> : <FrontPage />}
     </div>
   );

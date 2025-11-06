@@ -1,8 +1,6 @@
 import { CheckSquare, Code, Heading1, ImageIcon, List, Text, TextQuote } from 'lucide-react';
 import { createSuggestionItems, Command, renderItems } from '../core/extensions';
 import { createUploadFn } from './image-upload';
-import Magic from './ui/icons/magic';
-import { editorEmitter } from '@refly/utils/event-emitter/editor';
 import { Editor, Range } from '@tiptap/core';
 import i18next from 'i18next';
 import { IconTable } from '@refly-packages/ai-workspace-common/components/common/icon';
@@ -42,19 +40,6 @@ export const configureSuggestionItems = (param: { entityId: string; entityType: 
   };
 
   return createSuggestionItems([
-    {
-      title: t('editor.command.askAi'),
-      description: t('editor.command.askAiDescription'),
-      searchTerms: ['ai', 'assistant'],
-      icon: <Magic className="w-5 h-5" />,
-      command: ({ editor, range }) => {
-        createBlockAfterCurrent(editor, range, () => {
-          setTimeout(() => {
-            editorEmitter.emit('activeAskAI', { value: true, docId: param.entityId });
-          }, 0);
-        });
-      },
-    },
     {
       title: t('editor.command.text'),
       description: t('editor.command.textDescription'),

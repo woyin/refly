@@ -70,7 +70,7 @@ export class CanvasService {
   ) {}
 
   async listCanvases(user: User, param: ListCanvasesData['query']): Promise<CanvasDetailModel[]> {
-    const { page = 1, pageSize = 10, projectId, order = 'updationDesc', keyword } = param;
+    const { page = 1, pageSize = 10, order = 'updationDesc', keyword } = param;
 
     // Build orderBy based on order parameter
     let orderBy: Prisma.CanvasOrderByWithRelationInput = { updatedAt: 'desc' as const };
@@ -96,7 +96,6 @@ export class CanvasService {
     const where: Prisma.CanvasWhereInput = {
       uid: user.uid,
       deletedAt: null,
-      projectId: projectId || null,
       visibility: true,
     };
 
@@ -172,12 +171,16 @@ export class CanvasService {
     };
   }
 
-  async getCanvasRawData(user: User, canvasId: string): Promise<RawCanvasData> {
+  async getCanvasRawData(
+    user: User,
+    canvasId: string,
+    options?: { checkOwnership?: boolean },
+  ): Promise<RawCanvasData> {
     const canvas = await this.prisma.canvas.findFirst({
       where: {
         canvasId,
-        uid: user.uid,
         deletedAt: null,
+        ...(options?.checkOwnership ? { uid: user.uid } : {}),
       },
     });
 
@@ -1058,7 +1061,7 @@ export class CanvasService {
 
   async exportCanvas(user: User, canvasId: string): Promise<string> {
     // Get the canvas raw data
-    const canvasData = await this.getCanvasRawData(user, canvasId);
+    const canvasData = await this.getCanvasRawData(user, canvasId, { checkOwnership: true });
 
     // Convert to JSON string
     const jsonData = JSON.stringify(canvasData, null, 2);
@@ -1098,7 +1101,7 @@ export class CanvasService {
    * @param canvasId - The target canvas ID
    * @returns Processed variables with updated resource information
    */
-  private async processResourceVariables(
+  async processResourceVariables(
     user: User,
     canvasId: string,
     variables: WorkflowVariable[],
@@ -1108,7 +1111,7 @@ export class CanvasService {
     const processedVariables = await Promise.all(
       variables.map(async (variable) => {
         const processedValues = await Promise.all(
-          variable.value.map(async (value) => {
+          (variable.value ?? []).map(async (value) => {
             if (value.type === 'resource' && value.resource) {
               return await this.processResourceValue(user, canvasId, value);
             }

@@ -9,8 +9,6 @@ import {
   createNodeEventName,
 } from '@refly-packages/ai-workspace-common/events/nodeActions';
 import { message } from 'antd';
-import { HoverCard } from '@refly-packages/ai-workspace-common/components/hover-card';
-import { useHoverCard } from '@refly-packages/ai-workspace-common/hooks/use-hover-card';
 import { useCreateMemo } from '@refly-packages/ai-workspace-common/hooks/canvas/use-create-memo';
 import { useReactFlow } from '@xyflow/react';
 import { useGetNodeContent } from '@refly-packages/ai-workspace-common/hooks/canvas/use-get-node-content';
@@ -46,7 +44,6 @@ export const CreateNodeMenu: FC<CreateNodeMenuProps> = memo(
     const nodeData = useMemo(() => node?.data, [node]);
     const { fetchNodeContent } = useGetNodeContent(node);
 
-    const { hoverCardEnabled } = useHoverCard();
     const { createMemo } = useCreateMemo();
     const [isCreatingDocument, setIsCreatingDocument] = useState(false);
     const [beforeDuplicatingDocument, setBeforeDuplicatingDocument] = useState(false);
@@ -131,11 +128,6 @@ export const CreateNodeMenu: FC<CreateNodeMenuProps> = memo(
       label: t('canvas.nodeActions.askAI'),
       onClick: handleAskAI,
       primary: true,
-      hoverContent: {
-        title: t('canvas.nodeActions.askAI'),
-        description: t('canvas.nodeActions.askAIDescription'),
-        videoUrl: 'https://static.refly.ai/onboarding/nodeAction/nodeAction-askAI.webm',
-      },
     };
 
     const createMemoItem = {
@@ -143,11 +135,6 @@ export const CreateNodeMenu: FC<CreateNodeMenuProps> = memo(
       icon: Note,
       label: t('canvas.nodeActions.createMemo'),
       onClick: handleCreateMemo,
-      hoverContent: {
-        title: t('canvas.nodeActions.createMemo'),
-        description: t('canvas.nodeActions.createMemoDescription'),
-        videoUrl: 'https://static.refly.ai/onboarding/nodeAction/nodeAction-createEmptyMemo.webm',
-      },
     };
 
     const createDocumentItem = {
@@ -156,11 +143,6 @@ export const CreateNodeMenu: FC<CreateNodeMenuProps> = memo(
       label: t('canvas.nodeStatus.createDocument'),
       onClick: handleCreateDocument,
       loading: isCreatingDocument,
-      hoverContent: {
-        title: t('canvas.nodeStatus.createDocument'),
-        description: t('canvas.toolbar.createDocumentDescription'),
-        videoUrl: 'https://static.refly.ai/onboarding/nodeAction/nodeAction-createDocument.webm',
-      },
     };
 
     const duplicateDocumentItem = {
@@ -169,11 +151,6 @@ export const CreateNodeMenu: FC<CreateNodeMenuProps> = memo(
       label: t('canvas.nodeActions.duplicateDocument'),
       loading: beforeDuplicatingDocument,
       onClick: handleDuplicateDocument,
-      hoverContent: {
-        title: t('canvas.nodeActions.duplicateDocument'),
-        description: t('canvas.nodeActions.duplicateDocumentDescription'),
-        videoUrl: 'https://static.refly.ai/onboarding/nodeAction/nodeAction-duplicateDocument.webm',
-      },
     };
 
     const duplicateMemoItem = {
@@ -257,22 +234,7 @@ export const CreateNodeMenu: FC<CreateNodeMenuProps> = memo(
             </Button>
           );
 
-          return (
-            <div key={item.key}>
-              {item.hoverContent && hoverCardEnabled ? (
-                <HoverCard
-                  title={item.hoverContent.title}
-                  description={item.hoverContent.description}
-                  videoUrl={item.hoverContent.videoUrl}
-                  placement="right"
-                >
-                  {button}
-                </HoverCard>
-              ) : (
-                button
-              )}
-            </div>
-          );
+          return <div key={item.key}>{button}</div>;
         })}
       </div>
     );

@@ -1,6 +1,16 @@
-import { Button, Popover, Input, Segmented, Dropdown, Badge, Typography, Tooltip } from 'antd';
+import {
+  Button,
+  Popover,
+  Input,
+  Segmented,
+  Dropdown,
+  Badge,
+  Typography,
+  Tooltip,
+  Divider,
+} from 'antd';
 import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
-import { Tools, Close, Mcp, Cancelled } from 'refly-icons';
+import { Close, Mcp, Cancelled } from 'refly-icons';
 import { useTranslation } from 'react-i18next';
 import {
   useListTools,
@@ -18,6 +28,7 @@ import { NodeIcon } from '@refly-packages/ai-workspace-common/components/canvas/
 import { extractToolsetsWithNodes } from '@refly/canvas-common';
 import { useOpenInstallTool } from '@refly-packages/ai-workspace-common/hooks/use-open-install-tool';
 import { useOpenInstallMcp } from '@refly-packages/ai-workspace-common/hooks/use-open-install-mcp';
+import { IoWarningOutline } from 'react-icons/io5';
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
 
 const isToolsetInstalled = (
@@ -26,7 +37,7 @@ const isToolsetInstalled = (
 ): boolean => {
   return installedToolsets.some((t) => {
     if (toolset.type === 'regular') {
-      return toolset.id === 'builtin' || t.toolset?.key === toolset.toolset?.key;
+      return toolset.builtin || t.toolset?.key === toolset.toolset?.key;
     } else if (toolset.type === 'mcp') {
       return t.name === toolset.name;
     }
@@ -376,16 +387,12 @@ const ToolsDependencyContent = React.memo(
                     >
                       {/* Tool Header */}
                       <div className="py-1 px-2 flex items-center justify-between gap-3">
-                        <ToolsetIcon
-                          toolset={toolset}
-                          isBuiltin={toolset.id === 'builtin'}
-                          config={{ builtinClassName: '!w-6 !h-6' }}
-                        />
+                        <ToolsetIcon toolset={toolset} config={{ builtinClassName: '!w-6 !h-6' }} />
 
                         <div className="flex-1 min-w-0 flex flex-col gap-0.5">
                           <div className="flex items-center gap-1">
                             <div className="min-w-0 max-w-full text-refly-text-0 text-sm font-semibold leading-5 truncate">
-                              {toolset.type === 'regular' && toolset.id === 'builtin'
+                              {toolset.type === 'regular' && toolset.builtin
                                 ? (toolset?.toolset?.definition?.labelDict?.[
                                     currentLanguage
                                   ] as string)
@@ -598,7 +605,6 @@ export const ToolsDependencyChecker = ({ canvasData }: { canvasData?: RawCanvasD
                 <ToolsetIcon
                   key={toolset.toolset.id}
                   toolset={toolset.toolset}
-                  isBuiltin={toolset.toolset.id === 'builtin'}
                   config={{
                     size: 14,
                     className:
@@ -836,21 +842,27 @@ export const ToolsDependency = ({ canvasId }: { canvasId: string }) => {
       }
       arrow={false}
     >
-      <Badge count={uninstalledCount} size="small" offset={[-2, 0]}>
-        <Button
-          type="text"
-          icon={
-            <Tools
-              size={20}
-              color={open ? 'var(--refly-primary-default)' : 'var(--refly-text-0)'}
-            />
-          }
-          className={cn(
-            '!p-0 h-[30px] w-[30px] flex items-center justify-center',
-            open && '!bg-gradient-tools-open',
-          )}
-        />
-      </Badge>
+      <div className="flex items-center">
+        <Badge count={uninstalledCount} size="small" offset={[-2, 0]}>
+          <Button
+            type="text"
+            icon={
+              <IoWarningOutline
+                size={16}
+                color="var(--refly-func-warning-default)"
+                className="flex items-center"
+              />
+            }
+            className={cn(
+              'p-2 flex items-center justify-center font-semibold',
+              open && '!bg-refly-fill-hover',
+            )}
+          >
+            {t('canvas.toolbar.tooltip.toolDependencies')}
+          </Button>
+        </Badge>
+        <Divider type="vertical" className="m-0 ml-2 h-5 bg-refly-Card-Border" />
+      </div>
     </Popover>
   );
 };

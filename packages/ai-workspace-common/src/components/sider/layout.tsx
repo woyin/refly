@@ -11,7 +11,6 @@ import cn from 'classnames';
 import { Logo } from '@refly-packages/ai-workspace-common/components/common/logo';
 import { useSubscriptionStoreShallow, useUserStoreShallow } from '@refly/stores';
 // components
-import { SearchQuickOpenBtn } from '@refly-packages/ai-workspace-common/components/search-quick-open-btn';
 import { useTranslation } from 'react-i18next';
 import { SiderMenuSettingList } from '../sider-menu-setting-list';
 import { SettingModal } from '@refly-packages/ai-workspace-common/components/settings';
@@ -20,7 +19,16 @@ import { StorageExceededModal } from '@refly-packages/ai-workspace-common/compon
 import { useHandleSiderData } from '@refly-packages/ai-workspace-common/hooks/use-handle-sider-data';
 import { SettingsModalActiveTab, useSiderStoreShallow } from '@refly/stores';
 import { useCreateCanvas } from '@refly-packages/ai-workspace-common/hooks/canvas/use-create-canvas';
-import { Account, File, Project, Flow, KnowledgeBase, Subscription, Contact } from 'refly-icons';
+import {
+  Account,
+  File,
+  Project,
+  Flow,
+  Subscription,
+  Contact,
+  SideRight,
+  SideLeft,
+} from 'refly-icons';
 import { ContactUsPopover } from '@refly-packages/ai-workspace-common/components/contact-us-popover';
 
 import { useKnowledgeBaseStoreShallow } from '@refly/stores';
@@ -29,7 +37,6 @@ import { CanvasTemplateModal } from '@refly-packages/ai-workspace-common/compone
 import { SiderLoggedOut } from './sider-logged-out';
 
 import './layout.scss';
-import { ProjectDirectory } from '../project/project-directory';
 import { GithubStar } from '@refly-packages/ai-workspace-common/components/common/github-star';
 import { useSubscriptionUsage } from '@refly-packages/ai-workspace-common/hooks/use-subscription-usage';
 
@@ -161,8 +168,10 @@ const SiderSectionHeader = ({
 
 export const SiderLogo = (props: {
   navigate?: (path: string) => void;
+  showCollapseButton?: boolean;
+  onCollapseClick?: () => void;
 }) => {
-  const { navigate } = props;
+  const { navigate, showCollapseButton = false, onCollapseClick } = props;
 
   return (
     <div className={cn('flex items-center mb-6 gap-2 justify-between')}>
@@ -170,6 +179,15 @@ export const SiderLogo = (props: {
         <Logo onClick={() => navigate?.('/')} />
         <GithubStar />
       </div>
+      {showCollapseButton && (
+        <Button
+          type="text"
+          size="small"
+          className="text-refly-text-0 hover:bg-refly-tertiary-hover"
+          icon={<SideLeft size={16} />}
+          onClick={onCollapseClick}
+        />
+      )}
     </div>
   );
 };
@@ -275,14 +293,20 @@ const SiderLoggedIn = (props: { source: 'sider' | 'popover' }) => {
     userProfile: state.userProfile,
   }));
 
-  const { collapse, setShowSettingModal, setShowLibraryModal, setSettingsModalActiveTab } =
-    useSiderStoreShallow((state) => ({
-      collapse: state.collapse,
-      setShowSettingModal: state.setShowSettingModal,
-      setShowLibraryModal: state.setShowLibraryModal,
-      showLibraryModal: state.showLibraryModal,
-      setSettingsModalActiveTab: state.setSettingsModalActiveTab,
-    }));
+  const {
+    collapse,
+    setCollapse,
+    setShowSettingModal,
+    setShowLibraryModal,
+    setSettingsModalActiveTab,
+  } = useSiderStoreShallow((state) => ({
+    collapse: state.collapse,
+    setCollapse: state.setCollapse,
+    setShowSettingModal: state.setShowSettingModal,
+    setShowLibraryModal: state.setShowLibraryModal,
+    showLibraryModal: state.showLibraryModal,
+    setSettingsModalActiveTab: state.setSettingsModalActiveTab,
+  }));
 
   useHandleSiderData(true);
 
@@ -335,12 +359,6 @@ const SiderLoggedIn = (props: { source: 'sider' | 'popover' }) => {
         title: t('loggedHomePage.siderMenu.appManager'),
         onActionClick: () => navigate('/app-manager'),
         key: 'appManager',
-      },
-      {
-        icon: <KnowledgeBase key="library" style={{ fontSize: 20 }} />,
-        title: t('loggedHomePage.siderMenu.library'),
-        onActionClick: () => setShowLibraryModal(true),
-        key: 'library',
       },
     ],
     [t, navigate, setShowLibraryModal],
@@ -416,9 +434,11 @@ const SiderLoggedIn = (props: { source: 'sider' | 'popover' }) => {
     >
       <div className="flex h-full flex-col gap-3 overflow-hidden p-4 pr-2 pt-6">
         <div className="flex flex-col gap-2 flex-1 overflow-hidden">
-          <SiderLogo navigate={(path) => navigate(path)} />
-
-          <SearchQuickOpenBtn className="mb-1" />
+          <SiderLogo
+            navigate={(path) => navigate(path)}
+            showCollapseButton={source === 'sider'}
+            onCollapseClick={() => setCollapse(true)}
+          />
 
           {/* Main menu items */}
           {menuItems.map((item, index) => (
@@ -476,13 +496,36 @@ const SiderLoggedIn = (props: { source: 'sider' | 'popover' }) => {
   );
 };
 
+// Floating expand button component for when sider is collapsed
+const FloatingExpandButton = React.memo(() => {
+  const { setCollapse } = useSiderStoreShallow((state) => ({
+    setCollapse: state.setCollapse,
+  }));
+
+  return (
+    <div className="fixed left-4 top-6 z-50">
+      <Button
+        type="text"
+        size="small"
+        className="bg-white dark:bg-gray-800 shadow-lg border border-refly-Card-Border text-refly-text-0 hover:bg-refly-tertiary-hover"
+        icon={<SideRight size={16} className="" />}
+        onClick={() => setCollapse(false)}
+      />
+    </div>
+  );
+});
+
 export const SiderLayout = (props: { source: 'sider' | 'popover' }) => {
   const { source = 'sider' } = props;
   const { isLogin } = useUserStoreShallow((state) => ({
     isLogin: state.isLogin,
   }));
-  const isProject = useMatch('/project/:projectId');
-  const projectId = location.pathname.split('/').pop();
+  const { collapse } = useSiderStoreShallow((state) => ({
+    collapse: state.collapse,
+  }));
+  const pathParams = useMatch('/canvas/:canvasId');
+  const isWorkflowDetail = pathParams?.params?.canvasId && pathParams?.params?.canvasId !== 'empty';
+
   const { showSettingModal, setShowSettingModal } = useSiderStoreShallow((state) => ({
     showSettingModal: state.showSettingModal,
     setShowSettingModal: state.setShowSettingModal,
@@ -494,15 +537,10 @@ export const SiderLayout = (props: { source: 'sider' | 'popover' }) => {
       <StorageExceededModal />
       <CanvasTemplateModal />
 
-      {isLogin ? (
-        isProject ? (
-          <ProjectDirectory projectId={projectId} source={source} />
-        ) : (
-          <SiderLoggedIn source={source} />
-        )
-      ) : (
-        <SiderLoggedOut source={source} />
-      )}
+      {/* Show floating expand button when sider is collapsed and user is logged in */}
+      {isLogin && source === 'sider' && collapse && !isWorkflowDetail && <FloatingExpandButton />}
+
+      {isLogin ? <SiderLoggedIn source={source} /> : <SiderLoggedOut source={source} />}
     </>
   );
 };

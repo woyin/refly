@@ -3,6 +3,7 @@ import {
   ActionLog,
   ActionMeta,
   ActionStatus,
+  AgentMode,
   Artifact,
   CanvasNodeType,
   CodeArtifactType,
@@ -96,6 +97,8 @@ export type SkillNodeMeta = {
   contextItems?: IContextItem[];
   tplConfig?: SkillTemplateConfig;
   runtimeConfig?: SkillRuntimeConfig;
+  agentMode?: AgentMode;
+  copilotSessionId?: string;
   sizeMode?: 'compact' | 'adaptive';
   style?: React.CSSProperties;
   originalWidth?: number;

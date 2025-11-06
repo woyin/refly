@@ -23,7 +23,6 @@ export const UsedToolsets = memo(({ toolsets }: { toolsets: GenericToolset[] }) 
           >
             <ToolsetIcon
               toolset={toolset}
-              isBuiltin={toolset.id === 'builtin'}
               config={{ size: 16, builtinClassName: 'rounded-full !w-4 !h-4' }}
             />
           </div>

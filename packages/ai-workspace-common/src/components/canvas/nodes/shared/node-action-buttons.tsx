@@ -9,17 +9,7 @@ import {
   IconDeleteFile,
   IconVariable,
 } from '@refly-packages/ai-workspace-common/components/common/icon';
-import {
-  AiChat,
-  Reload,
-  Copy,
-  Clone,
-  More,
-  Delete,
-  Download,
-  PlayOutline,
-  AddContext,
-} from 'refly-icons';
+import { AiChat, Reload, More, Delete, Download, PlayOutline, AddContext } from 'refly-icons';
 import cn from 'classnames';
 import { useReactFlow } from '@xyflow/react';
 import { copyToClipboard } from '@refly-packages/ai-workspace-common/utils';
@@ -266,13 +256,6 @@ export const NodeActionButtons: FC<NodeActionButtonsProps> = memo(
             disabled: isRunningAction || isRunningWorkflow,
           });
 
-          buttons.push({
-            key: 'cloneAskAI',
-            icon: Clone,
-            tooltip: t('canvas.nodeActions.cloneAskAI'),
-            onClick: handleCloneAskAI,
-            loading: cloneAskAIRunning,
-          });
           break;
 
         case 'skill':
@@ -310,26 +293,6 @@ export const NodeActionButtons: FC<NodeActionButtonsProps> = memo(
 
         case 'video':
           break;
-      }
-
-      // Add copy button for content nodes
-      if (
-        [
-          'skillResponse',
-          'mediaSkillResponse',
-          'document',
-          'resource',
-          'codeArtifact',
-          'memo',
-        ].includes(nodeType)
-      ) {
-        buttons.push({
-          key: 'copy',
-          icon: Copy,
-          tooltip: t('canvas.nodeActions.copy'),
-          onClick: handleCopy,
-          loading: copyRunning,
-        });
       }
 
       // Add delete button for all node types

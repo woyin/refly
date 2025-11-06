@@ -22,6 +22,7 @@ export enum IDPrefix {
   SKILL_JOB = 'sj-',
   PILOT_SESSION = 'ps-',
   PILOT_STEP = 'pst-',
+  COPILOT_SESSION = 'cps-',
   WORKFLOW_EXECUTION = 'we-',
   WORKFLOW_NODE_EXECUTION = 'wne-',
   PROVIDER = 'pr-',
@@ -70,6 +71,10 @@ export function genPilotSessionID(): string {
 
 export function genPilotStepID(): string {
   return IDPrefix.PILOT_STEP + createId();
+}
+
+export function genCopilotSessionID(): string {
+  return IDPrefix.COPILOT_SESSION + createId();
 }
 
 export function genVariableExtractionSessionID(): string {

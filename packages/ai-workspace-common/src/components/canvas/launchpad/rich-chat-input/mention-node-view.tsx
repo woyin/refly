@@ -44,7 +44,6 @@ function renderNodeIcon(source: string, variableType: string, nodeAttrs: any) {
     return (
       <ToolsetIcon
         toolset={nodeAttrs?.toolset}
-        isBuiltin={nodeAttrs?.toolset?.builtin}
         disableInventoryLookup
         config={TOOLSET_ICON_CONFIG}
       />

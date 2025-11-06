@@ -2,6 +2,8 @@ export * from './base';
 export * from './browser-use';
 export * from './browser-use';
 export * from './builtin';
+export * from './copilot';
+export * from './firecrawl';
 export * from './calculator';
 export * from './code-interpreter';
 export * from './fal-audio';

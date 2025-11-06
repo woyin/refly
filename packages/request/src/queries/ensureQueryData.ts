@@ -16,6 +16,7 @@ import {
   getCodeArtifactDetail,
   getCollabToken,
   getComposioConnectionStatus,
+  getCopilotSessionDetail,
   getCreditBalance,
   getCreditRecharge,
   getCreditUsage,
@@ -40,6 +41,7 @@ import {
   listCanvasTemplateCategories,
   listCanvasTemplates,
   listCodeArtifacts,
+  listCopilotSessions,
   listDocuments,
   listLabelClasses,
   listLabelInstances,
@@ -74,6 +76,7 @@ import {
   GetCanvasTransactionsData,
   GetCodeArtifactDetailData,
   GetComposioConnectionStatusData,
+  GetCopilotSessionDetailData,
   GetCreditRechargeData,
   GetCreditUsageByCanvasIdData,
   GetCreditUsageByExecutionIdData,
@@ -92,6 +95,7 @@ import {
   ListCanvasesData,
   ListCanvasTemplatesData,
   ListCodeArtifactsData,
+  ListCopilotSessionsData,
   ListDocumentsData,
   ListLabelClassesData,
   ListLabelInstancesData,
@@ -399,6 +403,22 @@ export const ensureUseGetPilotSessionDetailData = (
   queryClient.ensureQueryData({
     queryKey: Common.UseGetPilotSessionDetailKeyFn(clientOptions),
     queryFn: () => getPilotSessionDetail({ ...clientOptions }).then((response) => response.data),
+  });
+export const ensureUseListCopilotSessionsData = (
+  queryClient: QueryClient,
+  clientOptions: Options<ListCopilotSessionsData, true> = {},
+) =>
+  queryClient.ensureQueryData({
+    queryKey: Common.UseListCopilotSessionsKeyFn(clientOptions),
+    queryFn: () => listCopilotSessions({ ...clientOptions }).then((response) => response.data),
+  });
+export const ensureUseGetCopilotSessionDetailData = (
+  queryClient: QueryClient,
+  clientOptions: Options<GetCopilotSessionDetailData, true>,
+) =>
+  queryClient.ensureQueryData({
+    queryKey: Common.UseGetCopilotSessionDetailKeyFn(clientOptions),
+    queryFn: () => getCopilotSessionDetail({ ...clientOptions }).then((response) => response.data),
   });
 export const ensureUseGetWorkflowDetailData = (
   queryClient: QueryClient,

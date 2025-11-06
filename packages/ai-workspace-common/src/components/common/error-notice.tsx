@@ -1,9 +1,10 @@
 import React, { useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Button } from 'antd';
+import { Button, message } from 'antd';
 import { logEvent } from '@refly/telemetry-web';
 import { useSubscriptionStoreShallow } from '@refly/stores';
-import { Close, Refresh } from 'refly-icons';
+import { Close, Refresh, Copy } from 'refly-icons';
+import { ActionResult } from '@refly/openapi-schema';
 
 export type ErrorNoticeType =
   | 'creditInsufficient'
@@ -12,6 +13,8 @@ export type ErrorNoticeType =
   | 'multimodalFailure';
 
 interface BaseErrorNoticeProps {
+  /** Result data */
+  result: ActionResult;
   /** Type of error notice to determine the appropriate message and actions */
   errorType: ErrorNoticeType;
   /** Custom title text, if not provided will use default translation */
@@ -52,7 +55,14 @@ type ErrorNoticeProps = CreditInsufficientProps | ExecutionFailureProps;
  * specifications with proper styling and internationalization.
  */
 export const ErrorNotice: React.FC<ErrorNoticeProps> = React.memo((props) => {
-  const { errorType, title, description, trackingContext = 'error_notice', className = '' } = props;
+  const {
+    result,
+    errorType,
+    title,
+    description,
+    trackingContext = 'error_notice',
+    className = '',
+  } = props;
   const { t } = useTranslation();
   const { setSubscribeModalVisible } = useSubscriptionStoreShallow((state) => ({
     setSubscribeModalVisible: state.setSubscribeModalVisible,
@@ -108,6 +118,21 @@ export const ErrorNotice: React.FC<ErrorNoticeProps> = React.memo((props) => {
     [errorType, props, trackingContext],
   );
 
+  const handleCopyResultId = useCallback(
+    async (e?: React.MouseEvent) => {
+      e?.stopPropagation();
+
+      try {
+        await navigator.clipboard.writeText(result.resultId);
+        message.success(t('common.copySuccess', { defaultValue: 'Copied to clipboard' }));
+      } catch (error) {
+        console.error('Failed to copy result ID:', error);
+        message.error(t('common.copyFailed', { defaultValue: 'Failed to copy' }));
+      }
+    },
+    [result.resultId, t],
+  );
+
   const renderButton = () => {
     if (errorType === 'creditInsufficient') {
       const upgradeButtonText = 'upgradeButtonText' in props ? props.upgradeButtonText : undefined;
@@ -157,6 +182,15 @@ export const ErrorNotice: React.FC<ErrorNoticeProps> = React.memo((props) => {
         {/* Description */}
         <div className="text-sm font-normal text-[#1C1F23] dark:text-gray-200 leading-[1.429] pl-6">
           {displayDescription}
+        </div>
+
+        <div className="flex items-center gap-1 text-xs font-normal text-gray-500 dark:text-gray-100 leading-[1.429] pl-6 pt-1">
+          <span>{t('common.errorNotice.resultId', { resultId: result.resultId })}</span>
+          <Copy
+            size={14}
+            className="cursor-pointer text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+            onClick={handleCopyResultId}
+          />
         </div>
       </div>
 

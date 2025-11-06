@@ -1,4 +1,4 @@
-import { Divider, Modal, Button, Segmented, message } from 'antd';
+import { Modal, Button, Segmented, message } from 'antd';
 import {
   ImportResourceMenuItem,
   useCanvasResourcesPanelStoreShallow,
@@ -8,12 +8,12 @@ import {
 import { useTranslation } from 'react-i18next';
 
 import './index.scss';
-import { useEffect, memo, useMemo, useState, useCallback } from 'react';
+import { useEffect, memo, useMemo, useState } from 'react';
 import MultilingualSearch from '@refly-packages/ai-workspace-common/modules/multilingual-search';
 import { ImportFromWeblink } from './intergrations/import-from-weblink';
 import { ImportFromFile } from '@refly-packages/ai-workspace-common/components/import-resource/intergrations/import-from-file';
 import { ImportFromExtension } from './intergrations/import-from-extension';
-import { Close, Cuttools } from 'refly-icons';
+import { Close } from 'refly-icons';
 import WaitingList from './components/waiting-list';
 import { StorageLimit } from '@refly-packages/ai-workspace-common/components/import-resource/intergrations/storageLimit';
 import { useGetProjectCanvasId } from '@refly-packages/ai-workspace-common/hooks/use-get-project-canvasId';
@@ -53,9 +53,6 @@ export const ImportResourceModal = memo(() => {
     setActiveTab: state.setActiveTab,
   }));
   const [showSearchResults, setShowSearchResults] = useState(false);
-  const handleExtensionClick = useCallback(() => {
-    setExtensionModalVisible(true);
-  }, []);
 
   const [saveLoading, setSaveLoading] = useState(false);
   const { projectId, canvasId } = useGetProjectCanvasId();
@@ -239,16 +236,6 @@ export const ImportResourceModal = memo(() => {
               {t('resource.import.title')}
             </div>
             <div className="flex items-center justify-center gap-3">
-              <Button
-                type="text"
-                icon={<Cuttools size={16} color="var(--refly-text-0)" />}
-                onClick={handleExtensionClick}
-              >
-                <span className="text-refly-primary-default text-sm font-semibold leading-5">
-                  {t('resource.import.fromExtension')}
-                </span>
-              </Button>
-              <Divider type="vertical" className="m-0 h-6 bg-refly-Card-Border" />
               <Button
                 type="text"
                 icon={<Close size={24} color="var(--refly-text-0)" />}

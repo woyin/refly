@@ -74,6 +74,7 @@ import {
   getCodeArtifactDetail,
   getCollabToken,
   getComposioConnectionStatus,
+  getCopilotSessionDetail,
   getCreditBalance,
   getCreditRecharge,
   getCreditUsage,
@@ -101,6 +102,7 @@ import {
   listCanvasTemplateCategories,
   listCanvasTemplates,
   listCodeArtifacts,
+  listCopilotSessions,
   listDocuments,
   listLabelClasses,
   listLabelInstances,
@@ -298,6 +300,8 @@ import {
   GetCollabTokenError,
   GetComposioConnectionStatusData,
   GetComposioConnectionStatusError,
+  GetCopilotSessionDetailData,
+  GetCopilotSessionDetailError,
   GetCreditBalanceError,
   GetCreditRechargeData,
   GetCreditRechargeError,
@@ -346,6 +350,8 @@ import {
   ListCanvasTemplatesError,
   ListCodeArtifactsData,
   ListCodeArtifactsError,
+  ListCopilotSessionsData,
+  ListCopilotSessionsError,
   ListDocumentsData,
   ListDocumentsError,
   ListLabelClassesData,
@@ -1006,6 +1012,38 @@ export const useGetPilotSessionDetail = <
     queryKey: Common.UseGetPilotSessionDetailKeyFn(clientOptions, queryKey),
     queryFn: () =>
       getPilotSessionDetail({ ...clientOptions }).then(
+        (response) => response.data as TData,
+      ) as TData,
+    ...options,
+  });
+export const useListCopilotSessions = <
+  TData = Common.ListCopilotSessionsDefaultResponse,
+  TError = ListCopilotSessionsError,
+  TQueryKey extends Array<unknown> = unknown[],
+>(
+  clientOptions: Options<ListCopilotSessionsData, true> = {},
+  queryKey?: TQueryKey,
+  options?: Omit<UseQueryOptions<TData, TError>, 'queryKey' | 'queryFn'>,
+) =>
+  useQuery<TData, TError>({
+    queryKey: Common.UseListCopilotSessionsKeyFn(clientOptions, queryKey),
+    queryFn: () =>
+      listCopilotSessions({ ...clientOptions }).then((response) => response.data as TData) as TData,
+    ...options,
+  });
+export const useGetCopilotSessionDetail = <
+  TData = Common.GetCopilotSessionDetailDefaultResponse,
+  TError = GetCopilotSessionDetailError,
+  TQueryKey extends Array<unknown> = unknown[],
+>(
+  clientOptions: Options<GetCopilotSessionDetailData, true>,
+  queryKey?: TQueryKey,
+  options?: Omit<UseQueryOptions<TData, TError>, 'queryKey' | 'queryFn'>,
+) =>
+  useQuery<TData, TError>({
+    queryKey: Common.UseGetCopilotSessionDetailKeyFn(clientOptions, queryKey),
+    queryFn: () =>
+      getCopilotSessionDetail({ ...clientOptions }).then(
         (response) => response.data as TData,
       ) as TData,
     ...options,

@@ -1,16 +1,7 @@
 import { memo, useCallback, useState, useRef, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button, Tooltip, Typography, Input, InputRef, Dropdown, Menu, MenuProps } from 'antd';
-import {
-  Add,
-  ScreenFull,
-  ScreenDefault,
-  SideRight,
-  Download,
-  Doc,
-  KnowledgeBase,
-  Cuttools,
-} from 'refly-icons';
+import { Add, ScreenFull, ScreenDefault, SideRight, Download, Doc } from 'refly-icons';
 import {
   useActiveNode,
   useCanvasResourcesPanelStoreShallow,
@@ -58,12 +49,9 @@ export const CanvasResourcesHeader = memo(() => {
     return activeNode?.type === 'start';
   }, [activeNode?.type]);
 
-  const { setImportResourceModalVisible, setExtensionModalVisible } = useImportResourceStoreShallow(
-    (state) => ({
-      setImportResourceModalVisible: state.setImportResourceModalVisible,
-      setExtensionModalVisible: state.setExtensionModalVisible,
-    }),
-  );
+  const { setImportResourceModalVisible } = useImportResourceStoreShallow((state) => ({
+    setImportResourceModalVisible: state.setImportResourceModalVisible,
+  }));
   const updateNodeTitle = useUpdateNodeTitle();
   const [addFromKnowledgeBaseVisible, setAddFromKnowledgeBaseVisible] = useState(false);
   const { createSingleDocumentInCanvas } = useCreateDocument();
@@ -118,10 +106,6 @@ export const CanvasResourcesHeader = memo(() => {
     setAddFromKnowledgeBaseVisible(true);
   }, []);
 
-  const handleImportFromExtension = useCallback(() => {
-    setExtensionModalVisible(true);
-  }, [setExtensionModalVisible]);
-
   const moreMenuItems = useMemo(() => {
     return [
       {
@@ -138,22 +122,6 @@ export const CanvasResourcesHeader = memo(() => {
         icon: <Doc size={18} />,
         label: t('canvas.resourceLibrary.createDocument'),
         onClick: handleCreateDocument,
-      },
-
-      {
-        key: 'knowledge',
-        icon: <KnowledgeBase size={18} />,
-        label: t('canvas.resourceLibrary.importFromKnowledgeBase'),
-        onClick: handleImportFromKnowledgeBase,
-      },
-      {
-        type: 'divider',
-      },
-      {
-        key: 'extention',
-        icon: <Cuttools size={18} />,
-        label: t('canvas.resourceLibrary.importFromExtension'),
-        onClick: handleImportFromExtension,
       },
     ];
   }, [handleImportResource, handleCreateDocument, handleImportFromKnowledgeBase, t]);

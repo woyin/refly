@@ -6,7 +6,9 @@ import {
   AnyToolsetClass,
   BuiltinToolset,
   BuiltinToolsetDefinition,
+  builtinToolsetInventory,
   toolsetInventory,
+  GenerateWorkflow,
 } from '@refly/agent-tools';
 import { extractToolsetsWithNodes } from '@refly/canvas-common';
 import { ParamsError, ToolsetNotFoundError } from '@refly/errors';
@@ -21,12 +23,12 @@ import {
   UpsertToolsetRequest,
   User,
 } from '@refly/openapi-schema';
+import { genToolsetID, safeParseJSON, validateConfig } from '@refly/utils';
 import {
   convertMcpServersToClientConfig,
   MultiServerMCPClient,
   SkillEngine,
 } from '@refly/skill-template';
-import { genToolsetID, safeParseJSON, validateConfig } from '@refly/utils';
 import { Queue } from 'bullmq';
 import { McpServer as McpServerPO, Prisma, Toolset as ToolsetPO } from '../../generated/client';
 import { QUEUE_SYNC_TOOL_CREDIT_USAGE } from '../../utils/const';
@@ -84,19 +86,22 @@ export class ToolService {
       .sort((a, b) => a.key.localeCompare(b.key));
   }
 
-  async listRegularTools(user: User, param?: ListToolsData['query']): Promise<GenericToolset[]> {
-    const builtinToolset: GenericToolset = {
-      type: 'regular',
-      id: 'builtin',
-      name: 'Builtin',
+  listBuiltinTools(): GenericToolset[] {
+    return Object.values(builtinToolsetInventory).map((toolset) => ({
+      type: 'regular' as const,
+      id: toolset.definition.key,
+      name: (toolset.definition.labelDict?.en as string) ?? toolset.definition.key,
       builtin: true,
       toolset: {
         toolsetId: 'builtin',
-        key: 'builtin',
-        name: 'Builtin',
-        definition: BuiltinToolsetDefinition,
+        key: toolset.definition.key,
+        name: (toolset.definition.labelDict?.en as string) ?? toolset.definition.key,
+        definition: toolset.definition,
       },
-    };
+    }));
+  }
+
+  async listRegularTools(user: User, param?: ListToolsData['query']): Promise<GenericToolset[]> {
     const { isGlobal, enabled } = param ?? {};
 
     // Build where condition dynamically
@@ -113,7 +118,7 @@ export class ToolService {
     const toolsets = await this.prisma.toolset.findMany({
       where: whereCondition,
     });
-    return [builtinToolset, ...toolsets.map(toolsetPo2GenericToolset)];
+    return toolsets.map(toolsetPo2GenericToolset);
   }
 
   async listExternalOAuthToolsets(user: User): Promise<GenericToolset[]> {
@@ -128,6 +133,9 @@ export class ToolService {
         name: 'External',
         definition: {
           key: 'Authorize OAuth to start',
+          labelDict: {
+            en: 'External',
+          },
           descriptionDict: {
             en: 'Need to authorize OAuth in Tool Config',
           },
@@ -184,11 +192,12 @@ export class ToolService {
   }
 
   async listTools(user: User, param?: ListToolsData['query']): Promise<GenericToolset[]> {
+    const builtinTools = this.listBuiltinTools();
     const [regularTools, mcpTools] = await Promise.all([
       this.listRegularTools(user, param),
       this.listMcpTools(user, param),
     ]);
-    return [...regularTools, ...mcpTools];
+    return [...builtinTools, ...regularTools, ...mcpTools];
   }
 
   /**
@@ -432,10 +441,10 @@ export class ToolService {
     const mcpToolMap = new Map<string, string[]>();
 
     for (const selectedToolset of toolsets) {
-      const { type, id, selectedTools } = selectedToolset;
+      const { type, id, selectedTools, builtin } = selectedToolset;
 
       if (type === 'regular') {
-        if (id === 'builtin') {
+        if (builtin) {
           continue;
         }
         regularToolsetIds.push(id);
@@ -669,7 +678,7 @@ export class ToolService {
     user: User,
     toolset: GenericToolset,
   ): Promise<GenericToolset | null> {
-    const { name, toolset: toolsetInstance } = toolset;
+    const { name, toolset: toolsetInstance, builtin } = toolset;
 
     // For regular toolsets, we search by key (not ID since ID is user-specific)
     const key = toolsetInstance?.key || toolset.id;
@@ -680,7 +689,7 @@ export class ToolService {
     }
 
     // Builtin toolset does not need to be imported
-    if (key === 'builtin') {
+    if (builtin) {
       return null;
     }
 
@@ -813,12 +822,18 @@ export class ToolService {
     toolsets: GenericToolset[],
     engine: SkillEngine,
   ): Promise<StructuredToolInterface[]> {
+    const builtinKeys = toolsets.filter((t) => t.type === 'regular' && t.builtin).map((t) => t.id);
     let builtinTools: DynamicStructuredTool[] = [];
-    if (toolsets.find((t) => t.type === 'regular' && t.id === 'builtin')) {
-      builtinTools = this.instantiateBuiltinToolsets(user, engine);
+    if (builtinKeys.length > 0) {
+      builtinTools = this.instantiateBuiltinToolsets(user, engine, builtinKeys);
     }
 
-    const regularToolsets = toolsets.filter((t) => t.type === 'regular' && t.id !== 'builtin');
+    let copilotTools: DynamicStructuredTool[] = [];
+    if (toolsets.find((t) => t.type === 'regular' && t.id === 'copilot')) {
+      copilotTools = this.instantiateCopilotToolsets();
+    }
+
+    const regularToolsets = toolsets.filter((t) => t.type === 'regular' && !t.builtin);
     const mcpServers = toolsets.filter((t) => t.type === 'mcp');
 
     const [regularTools, mcpTools, oauthToolsets] = await Promise.all([
@@ -828,6 +843,7 @@ export class ToolService {
     ]);
     return [
       ...builtinTools,
+      ...copilotTools,
       ...(Array.isArray(regularTools) ? regularTools : []),
       ...(Array.isArray(mcpTools) ? mcpTools : []),
       ...(Array.isArray(oauthToolsets) ? oauthToolsets : []),
@@ -837,13 +853,18 @@ export class ToolService {
   /**
    * Instantiate builtin toolsets into structured tools.
    */
-  private instantiateBuiltinToolsets(user: User, engine: SkillEngine): DynamicStructuredTool[] {
+  private instantiateBuiltinToolsets(
+    user: User,
+    engine: SkillEngine,
+    keys: string[],
+  ): DynamicStructuredTool[] {
     const toolsetInstance = new BuiltinToolset({
       reflyService: engine.service,
       user,
     });
 
     return BuiltinToolsetDefinition.tools
+      ?.filter((tool) => keys.includes(tool.name))
       ?.map((tool) => toolsetInstance.getToolInstance(tool.name))
       .map(
         (tool) =>
@@ -862,6 +883,25 @@ export class ToolService {
       );
   }
 
+  private instantiateCopilotToolsets(): DynamicStructuredTool[] {
+    const toolsetInstance = new GenerateWorkflow();
+
+    return [
+      new DynamicStructuredTool({
+        name: 'copilot_generate_workflow',
+        description: toolsetInstance.description,
+        schema: toolsetInstance.schema,
+        func: toolsetInstance.invoke.bind(toolsetInstance),
+        metadata: {
+          name: toolsetInstance.name,
+          type: 'copilot',
+          toolsetKey: 'copilot',
+          toolsetName: 'Copilot',
+        },
+      }),
+    ];
+  }
+
   /**
    * Instantiate selected regular toolsets into structured tools.
    */
@@ -877,9 +917,17 @@ export class ToolService {
     const toolsetPOs = await this.prisma.toolset.findMany({
       where: {
         toolsetId: { in: toolsets.map((t) => t.id) },
-        OR: [{ uid: user.uid }, { isGlobal: true }],
         deletedAt: null,
-        authType: { not: 'oauth' },
+        OR: [
+          {
+            uid: user.uid,
+            OR: [{ authType: { not: 'oauth' } }, { authType: null }],
+          },
+          {
+            isGlobal: true,
+            OR: [{ authType: { not: 'oauth' } }, { authType: null }],
+          },
+        ],
       },
     });
 
