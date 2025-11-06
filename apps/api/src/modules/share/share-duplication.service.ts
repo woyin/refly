@@ -664,14 +664,14 @@ export class ShareDuplicationService {
 
         // Replace the context with the new entity ID
         if (node.data.metadata.contextItems) {
-          node.data.metadata.contextItems = JSON.parse(
+          node.data.metadata.contextItems = safeParseJSON(
             batchReplaceRegex(JSON.stringify(node.data.metadata.contextItems), replaceEntityMap),
           );
         }
 
         // Replace the structuredData with the new entity ID
         if (node.data.metadata.structuredData) {
-          node.data.metadata.structuredData = JSON.parse(
+          node.data.metadata.structuredData = safeParseJSON(
             batchReplaceRegex(JSON.stringify(node.data.metadata.structuredData), replaceEntityMap),
           );
         }
