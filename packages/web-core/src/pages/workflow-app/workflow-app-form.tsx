@@ -713,7 +713,7 @@ export const WorkflowAPPForm = ({
               </div>
             </>
           ) : (
-            <>
+            <div className={cn('w-full h-full gap-3 flex flex-col rounded-2xl', className)}>
               <div className="p-3 sm:p-4 flex-1 overflow-y-auto">
                 {/* Show loading state when loading */}
                 {workflowVariables.length > 0 ? (
@@ -846,7 +846,7 @@ export const WorkflowAPPForm = ({
                   {/* Share Icon Button */}
                   {onCopyShareLink && (
                     <Button
-                      className="flex items-center justify-center rounded-[12px] bg-[#F6F6F6] dark:bg-[#232323] border-[0.5px] border-solid border-[rgba(28,31,35,0.30)] text-[#1C1F23] dark:text-white hover:bg-[#eaeaea] shadow-none font-roboto h-10 w-10"
+                      className="flex items-center justify-center rounded-[12px] bg-[#F6F6F6] dark:bg-[#232323] border-[0.5px] border-solid border-[rgba(28,31,35,0.30)] text-[#1C1F23] dark:text-white hover:bg-[#eaeaea] shadow-none font-roboto h-10 !w-10"
                       type="default"
                       icon={<IconShare size={16} className="" />}
                       onClick={onCopyShareLink}
@@ -855,7 +855,7 @@ export const WorkflowAPPForm = ({
                   )}
                 </div>
               </div>
-            </>
+            </div>
           )}
         </>
       }
