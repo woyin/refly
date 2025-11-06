@@ -3808,6 +3808,8 @@ const translations = {
         embedding: '向量化',
         reranking: '重排序',
         other: '其他',
+        commissionPrefix: '模板使用：',
+        commission: '模板使用',
       },
       usageId: '使用ID',
       amount: '积分消耗',

@@ -3852,6 +3852,18 @@ const translations = {
         commissionPrefix: 'Template earnings: ',
       },
     },
+    usage: {
+      type: {
+        commission: 'Template usage',
+        commissionPrefix: 'Template usage: ',
+        model_call: 'Model call',
+        tool_call: 'Tool call',
+        media_generation: 'Media generation',
+        embedding: 'Embedding',
+        reranking: 'Reranking',
+        other: 'Other',
+      },
+    },
   },
   workflowList: {
     title: 'Workflow',

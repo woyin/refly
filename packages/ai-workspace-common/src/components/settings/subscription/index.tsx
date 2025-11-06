@@ -111,6 +111,57 @@ const CommissionSourceCell = React.memo(({ record }: { record: CreditRechargeRec
   );
 });
 
+// Component to handle commission usage display with app name
+const CommissionUsageCell = React.memo(({ record }: { record: CreditUsageRecord }) => {
+  const { t } = useTranslation('ui');
+  const navigate = useNavigate();
+  const { setShowSettingModal } = useSiderStoreShallow((state) => ({
+    setShowSettingModal: state.setShowSettingModal,
+  }));
+  const appId = extractAppIdFromCommissionDescription(record.description);
+
+  const { data: appDetail, isLoading } = useGetWorkflowAppDetail(
+    appId ? { query: { appId } } : null,
+    [appId],
+    { enabled: !!appId },
+  );
+
+  const handleAppNameClick = useCallback(
+    (e: React.MouseEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const shareId = appDetail?.data?.shareId;
+      if (shareId) {
+        // Close settings modal before navigation
+        setShowSettingModal(false);
+        navigate(`/app/${shareId}`);
+      }
+    },
+    [appDetail?.data?.shareId, navigate, setShowSettingModal],
+  );
+
+  if (isLoading || !appDetail) {
+    return <span>{t('credit.usage.type.commission')}</span>;
+  }
+
+  const appName = appDetail?.data?.title ?? t('credit.usage.type.commission');
+  return (
+    <span className="inline-block max-w-[200px] overflow-hidden text-ellipsis whitespace-nowrap align-bottom">
+      {t('credit.usage.type.commissionPrefix')}
+      {appDetail?.data?.shareId ? (
+        <span
+          className="cursor-pointer underline hover:text-blue-600 dark:hover:text-blue-400"
+          onClick={handleAppNameClick}
+        >
+          {appName}
+        </span>
+      ) : (
+        appName
+      )}
+    </span>
+  );
+});
+
 export const Subscription = () => {
   const { t } = useTranslation('ui');
   const { userProfile } = useUserStoreShallow((state) => ({
@@ -269,7 +320,10 @@ export const Subscription = () => {
       dataIndex: 'usageType',
       key: 'usageType',
       align: 'left',
-      render: (value: string) => {
+      render: (value: string, record: CreditUsageRecord) => {
+        if (value === 'commission') {
+          return <CommissionUsageCell record={record} />;
+        }
         const key = `subscription.subscriptionManagement.usageType.${value}`;
         return t(key);
       },
