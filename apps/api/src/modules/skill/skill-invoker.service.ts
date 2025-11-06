@@ -946,7 +946,7 @@ export class SkillInvokerService {
     const modelNames = new Set<string>();
     for (const step of steps) {
       if (step.tokenUsage) {
-        const tokenUsageArray = JSON.parse(step.tokenUsage);
+        const tokenUsageArray = safeParseJSON(step.tokenUsage);
         const tokenUsages = Array.isArray(tokenUsageArray) ? tokenUsageArray : [tokenUsageArray];
 
         for (const tokenUsage of tokenUsages) {
@@ -963,7 +963,7 @@ export class SkillInvokerService {
       const providerItems = await this.providerService.findProviderItemsByCategory(user, 'llm');
       for (const item of providerItems) {
         try {
-          const config = JSON.parse(item.config || '{}');
+          const config = safeParseJSON(item.config || '{}');
           if (config.modelId && modelNames.has(config.modelId)) {
             providerItemsMap.set(config.modelId, item);
           }
@@ -980,7 +980,7 @@ export class SkillInvokerService {
 
     for (const step of steps) {
       if (step.tokenUsage) {
-        const tokenUsageArray = JSON.parse(step.tokenUsage);
+        const tokenUsageArray = safeParseJSON(step.tokenUsage);
 
         // Handle both array and single object cases
         const tokenUsages = Array.isArray(tokenUsageArray) ? tokenUsageArray : [tokenUsageArray];
@@ -989,7 +989,7 @@ export class SkillInvokerService {
           const providerItem = providerItemsMap.get(String(tokenUsage.modelName));
 
           if (providerItem?.creditBilling) {
-            const creditBilling: CreditBilling = JSON.parse(providerItem.creditBilling);
+            const creditBilling: CreditBilling = safeParseJSON(providerItem.creditBilling);
 
             const usage: TokenUsageItem = {
               tier: providerItem?.tier,
