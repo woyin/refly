@@ -1091,13 +1091,13 @@ export const Canvas = (props: { canvasId: string; readonly?: boolean }) => {
   const { canvasId, readonly } = props;
   const setCurrentCanvasId = useCanvasStoreShallow((state) => state.setCurrentCanvasId);
 
-  const { sidePanelVisible, setSidePanelVisible, resetState, currentResource } =
-    useCanvasResourcesPanelStoreShallow((state) => ({
+  const { sidePanelVisible, setSidePanelVisible, resetState } = useCanvasResourcesPanelStoreShallow(
+    (state) => ({
       sidePanelVisible: state.sidePanelVisible,
       setSidePanelVisible: state.setSidePanelVisible,
       resetState: state.resetState,
-      currentResource: state.currentResource,
-    }));
+    }),
+  );
 
   const { canvasCopilotWidth, setCanvasCopilotWidth } = useCopilotStoreShallow((state) => ({
     canvasCopilotWidth: state.canvasCopilotWidth[canvasId] ?? 400,
@@ -1115,41 +1115,42 @@ export const Canvas = (props: { canvasId: string; readonly?: boolean }) => {
     [canvasId, setCanvasCopilotWidth, setCopilotWidth],
   );
 
-  const [resourcesPanelWidth, setResourcesPanelWidth] = useState(0);
-  const [resourcesPanelMaxWidth, setResourcesPanelMaxWidth] = useState(800);
-  const [resourcesPanelMinWidth, setResourcesPanelMinWidth] = useState(400);
-  const prevCurrentResourceRef = useRef(currentResource);
+  /** 文件库拖动代码暂时先注释 */
+  // const [resourcesPanelWidth, setResourcesPanelWidth] = useState(0);
+  // const [resourcesPanelMaxWidth, setResourcesPanelMaxWidth] = useState(800);
+  // const [resourcesPanelMinWidth, setResourcesPanelMinWidth] = useState(400);
+  // const prevCurrentResourceRef = useRef(currentResource);
 
-  useEffect(() => {
-    if (sidePanelVisible) {
-      const extraWidth = currentResource ? 400 : 0;
-      setResourcesPanelWidth(400 + extraWidth);
-    } else {
-      setResourcesPanelWidth(0);
-    }
-  }, [sidePanelVisible]);
+  // useEffect(() => {
+  //   if (sidePanelVisible) {
+  //     const extraWidth = currentResource ? 400 : 0;
+  //     setResourcesPanelWidth(400 + extraWidth);
+  //   } else {
+  //     setResourcesPanelWidth(0);
+  //   }
+  // }, [sidePanelVisible]);
 
-  useEffect(() => {
-    const prevResource = prevCurrentResourceRef.current;
-    const hasResource = !!currentResource;
-    const hadResource = !!prevResource;
+  // useEffect(() => {
+  //   const prevResource = prevCurrentResourceRef.current;
+  //   const hasResource = !!currentResource;
+  //   const hadResource = !!prevResource;
 
-    // From no resource to having resource
-    if (!hadResource && hasResource) {
-      setResourcesPanelWidth((prev) => prev + 400);
-      setResourcesPanelMaxWidth(1200);
-      setResourcesPanelMinWidth(700);
-    }
-    // From having resource to no resource
-    else if (hadResource && !hasResource) {
-      setResourcesPanelWidth(400);
-      setResourcesPanelMaxWidth(800);
-      setResourcesPanelMinWidth(400);
-    }
+  //   // From no resource to having resource
+  //   if (!hadResource && hasResource) {
+  //     setResourcesPanelWidth((prev) => prev + 400);
+  //     setResourcesPanelMaxWidth(1200);
+  //     setResourcesPanelMinWidth(700);
+  //   }
+  //   // From having resource to no resource
+  //   else if (hadResource && !hasResource) {
+  //     setResourcesPanelWidth(400);
+  //     setResourcesPanelMaxWidth(800);
+  //     setResourcesPanelMinWidth(400);
+  //   }
 
-    // Update ref for next comparison
-    prevCurrentResourceRef.current = currentResource;
-  }, [currentResource]);
+  //   // Update ref for next comparison
+  //   prevCurrentResourceRef.current = currentResource;
+  // }, [currentResource]);
 
   useEffect(() => {
     if (readonly || !isLogin) {
@@ -1184,19 +1185,15 @@ export const Canvas = (props: { canvasId: string; readonly?: boolean }) => {
   // Handle panel resize
   const handleRightPanelResize = useCallback(
     (sizes: number[]) => {
-      if (sizes.length < 3) {
+      if (sizes.length < 2) {
         return;
       }
 
       if (sizes[0] !== 0) {
         handleSetCopilotWidth(sizes[0]);
       }
-
-      if (sizes[2] !== 0) {
-        setResourcesPanelWidth(sizes[2]);
-      }
     },
-    [setResourcesPanelWidth, handleSetCopilotWidth],
+    [handleSetCopilotWidth],
   );
 
   // Calculate max width as 50% of parent container
@@ -1236,30 +1233,33 @@ export const Canvas = (props: { canvasId: string; readonly?: boolean }) => {
           <UploadNotification />
           <TopToolbar canvasId={canvasId} />
 
-          <Splitter
-            className="canvas-splitter w-full bg-refly-bg-content-z2 rounded-xl border-solid border-[1px] border-refly-Card-Border flex-grow overflow-hidden"
-            onResize={handleRightPanelResize}
-          >
-            <Splitter.Panel size={copilotWidth} min={400} max={maxPanelWidth}>
-              <Copilot copilotWidth={copilotWidth} setCopilotWidth={handleSetCopilotWidth} />
-            </Splitter.Panel>
-
-            <Splitter.Panel className="shadow-refly-m">
-              <Flow
-                canvasId={canvasId}
-                copilotWidth={copilotWidth}
-                setCopilotWidth={handleSetCopilotWidth}
-              />
-            </Splitter.Panel>
-
-            <Splitter.Panel
-              size={resourcesPanelWidth}
-              min={resourcesPanelMinWidth}
-              max={resourcesPanelMaxWidth}
+          <div className="flex gap-1 w-full h-full">
+            <Splitter
+              className="canvas-splitter bg-refly-bg-content-z2 rounded-xl border-solid border-[1px] border-refly-Card-Border flex-grow overflow-hidden"
+              onResize={handleRightPanelResize}
             >
-              <CanvasResources />
-            </Splitter.Panel>
-          </Splitter>
+              <Splitter.Panel size={copilotWidth} min={400} max={maxPanelWidth}>
+                <Copilot copilotWidth={copilotWidth} setCopilotWidth={handleSetCopilotWidth} />
+              </Splitter.Panel>
+
+              <Splitter.Panel className="shadow-refly-m">
+                <Flow
+                  canvasId={canvasId}
+                  copilotWidth={copilotWidth}
+                  setCopilotWidth={handleSetCopilotWidth}
+                />
+              </Splitter.Panel>
+
+              {/* <Splitter.Panel
+                size={resourcesPanelWidth}
+                min={resourcesPanelMinWidth}
+                max={resourcesPanelMaxWidth}
+              >
+                <CanvasResources />
+              </Splitter.Panel> */}
+            </Splitter>
+            {sidePanelVisible && <CanvasResources />}
+          </div>
           <CanvasResourcesWidescreenModal />
         </CanvasProvider>
       </ReactFlowProvider>

@@ -8,7 +8,6 @@ import { MyUploadList } from '../my-upload';
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
 import { useFetchResources } from '@refly-packages/ai-workspace-common/hooks/use-fetch-resources';
 import { CanvasNode } from '@refly/canvas-common';
-import cn from 'classnames';
 
 interface ResourceOverviewProps {
   currentResource: CanvasNode | null;
@@ -25,12 +24,12 @@ export const ResourceOverview = memo((props: ResourceOverviewProps) => {
   } = useFetchResources();
   const pollingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const { setSidePanelVisible, wideScreenVisible, setWideScreenVisible } =
-    useCanvasResourcesPanelStoreShallow((state) => ({
+  const { setSidePanelVisible, setWideScreenVisible } = useCanvasResourcesPanelStoreShallow(
+    (state) => ({
       setSidePanelVisible: state.setSidePanelVisible,
       setWideScreenVisible: state.setWideScreenVisible,
-      wideScreenVisible: state.wideScreenVisible,
-    }));
+    }),
+  );
 
   const startPolling = useCallback(() => {
     if (pollingIntervalRef.current) {
@@ -80,12 +79,7 @@ export const ResourceOverview = memo((props: ResourceOverviewProps) => {
   }, [setSidePanelVisible, setWideScreenVisible]);
 
   return (
-    <div
-      className={cn(
-        'h-full flex flex-col',
-        currentResource || wideScreenVisible ? 'w-[300px]' : 'w-full',
-      )}
-    >
+    <div className="w-[400px] h-full flex flex-col">
       <div className="h-[64px] px-3 py-4 flex gap-2 items-center justify-between border-solid border-[1px] border-x-0 border-t-0 border-refly-Card-Border">
         <div className="flex gap-2 items-center">
           <Tooltip title={t('canvas.toolbar.closeResourcesPanel')} arrow={false}>

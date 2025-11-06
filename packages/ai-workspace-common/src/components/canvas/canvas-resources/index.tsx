@@ -11,9 +11,10 @@ import { useReactFlow } from '@xyflow/react';
 
 interface CanvasResourcesProps {
   className?: string;
+  wideScreen?: boolean;
 }
 
-export const CanvasResources = memo(({ className }: CanvasResourcesProps) => {
+export const CanvasResources = memo(({ className, wideScreen }: CanvasResourcesProps) => {
   const { getNodes } = useReactFlow();
   const nodes = getNodes();
   const { currentResource, setCurrentResource } = useCanvasResourcesPanelStoreShallow((state) => ({
@@ -29,13 +30,18 @@ export const CanvasResources = memo(({ className }: CanvasResourcesProps) => {
   return (
     <div
       className={cn(
-        'w-full h-full overflow-hidden flex bg-refly-bg-content-z2 border-solid border-l-[1px] border-y-0 border-r-0 border-refly-Card-Border shadow-refly-m',
+        'h-full overflow-hidden flex flex-shrink-0 rounded-xl bg-refly-bg-content-z2 border-solid border-[1px] border-refly-Card-Border shadow-refly-m',
         className,
       )}
     >
       <ResourceOverview currentResource={currentResource} setCurrentResource={setCurrentResource} />
       {currentResource && (
-        <div className="h-full flex flex-col flex-1 min-w-0 border-solid border-l-[1px] border-y-0 border-r-0 border-refly-Card-Border">
+        <div
+          className={cn(
+            'h-full flex flex-col flex-1 min-w-0 border-solid border-l-[1px] border-y-0 border-r-0 border-refly-Card-Border',
+            !wideScreen ? 'w-[460px]' : '',
+          )}
+        >
           <CanvasResourcesHeader
             currentResource={currentResource}
             setCurrentResource={setCurrentResource}
@@ -80,7 +86,7 @@ export const CanvasResourcesWidescreenModal = memo(() => {
       destroyOnHidden
     >
       <div className="flex w-full h-[calc(100vh-56px)] rounded-xl overflow-hidden">
-        <CanvasResources />
+        <CanvasResources className="w-full" wideScreen />
       </div>
     </Modal>
   );
