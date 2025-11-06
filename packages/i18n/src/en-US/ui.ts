@@ -3570,6 +3570,16 @@ const translations = {
         reranking: 'Reranking',
         other: 'Other',
         commission: 'Template usage',
+        commissionPrefix: 'Template usage: ',
+      },
+      rechargeType: {
+        purchase: 'Purchase',
+        gift: 'Gift',
+        promotion: 'Promotion',
+        refund: 'Refund',
+        subscription: 'Subscription',
+        commission: 'Template earnings',
+        commissionPrefix: 'Template earnings: ',
       },
       depleted: 'Depleted',
       expired: 'Expired',
@@ -3839,19 +3849,6 @@ const translations = {
     pageId: 'Page ID',
     unknown: 'Unknown',
     refresh: 'Refresh Nodes',
-  },
-  credit: {
-    recharge: {
-      source: {
-        purchase: 'Purchase',
-        gift: 'Gift',
-        promotion: 'Promotion',
-        refund: 'Refund',
-        subscription: 'Subscription',
-        commission: 'Template commission',
-        commissionPrefix: 'Template earnings: ',
-      },
-    },
   },
   workflowList: {
     title: 'Workflow',
