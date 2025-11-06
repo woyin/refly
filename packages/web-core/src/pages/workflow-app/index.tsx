@@ -306,7 +306,7 @@ const WorkflowAppPage: React.FC = () => {
               background-color: var(--refly-bg-content-z2);
               margin: 0px;
               border-radius: 0px;
-              height: 100vh
+              height: var(--screen-height)
             }
             .dark .refly.ant-layout {
               background: var(--bg---refly-bg-body-z0, #0E0E0E);

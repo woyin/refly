@@ -3921,6 +3921,10 @@ const translations = {
       },
     },
   },
+  environmentBanner: {
+    test: 'TEST ENVIRONMENT. FEATURES MAY BE UNSTABLE.',
+    staging: 'STAGING ENVIRONMENT. PLEASE USE WITH CAUTION.',
+  },
 };
 
 export default translations;
