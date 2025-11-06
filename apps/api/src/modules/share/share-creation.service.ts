@@ -942,7 +942,7 @@ export class ShareCreationService {
         const shareId = relationShareMap.get(relation.relationId);
         const nodeData = relation.nodeData
           ? typeof relation.nodeData === 'string'
-            ? JSON.parse(relation.nodeData)
+            ? safeParseJSON(relation.nodeData)
             : relation.nodeData
           : {};
 
@@ -1076,7 +1076,7 @@ export class ShareCreationService {
       templateContent: workflowApp.templateContent,
       resultNodeIds: workflowApp.resultNodeIds,
       query: workflowApp.query,
-      variables: JSON.parse(workflowApp.variables || '[]'),
+      variables: safeParseJSON(workflowApp.variables || '[]'),
       canvasData: canvasDataWithId, // Use the extended canvas data with canvasId
       creditUsage,
       createdAt: workflowApp.createdAt,

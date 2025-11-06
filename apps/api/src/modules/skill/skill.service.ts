@@ -473,7 +473,7 @@ export class SkillService implements OnModuleInit {
     }
 
     const creditBilling: CreditBilling = providerItem?.creditBilling
-      ? JSON.parse(providerItem?.creditBilling)
+      ? safeParseJSON(providerItem?.creditBilling)
       : undefined;
 
     if (creditBilling) {
@@ -493,18 +493,18 @@ export class SkillService implements OnModuleInit {
     }
 
     const modelConfigMap = {
-      chat: JSON.parse(modelProviderMap.chat.config) as LLMModelConfig,
-      agent: JSON.parse(modelProviderMap.agent.config) as LLMModelConfig,
-      titleGeneration: JSON.parse(modelProviderMap.titleGeneration.config) as LLMModelConfig,
-      queryAnalysis: JSON.parse(modelProviderMap.queryAnalysis.config) as LLMModelConfig,
+      chat: safeParseJSON(modelProviderMap.chat.config) as LLMModelConfig,
+      agent: safeParseJSON(modelProviderMap.agent.config) as LLMModelConfig,
+      titleGeneration: safeParseJSON(modelProviderMap.titleGeneration.config) as LLMModelConfig,
+      queryAnalysis: safeParseJSON(modelProviderMap.queryAnalysis.config) as LLMModelConfig,
       image: modelProviderMap.image
-        ? (JSON.parse(modelProviderMap.image.config) as MediaGenerationModelConfig)
+        ? (safeParseJSON(modelProviderMap.image.config) as MediaGenerationModelConfig)
         : undefined,
       video: modelProviderMap.video
-        ? (JSON.parse(modelProviderMap.video.config) as MediaGenerationModelConfig)
+        ? (safeParseJSON(modelProviderMap.video.config) as MediaGenerationModelConfig)
         : undefined,
       audio: modelProviderMap.audio
-        ? (JSON.parse(modelProviderMap.audio.config) as MediaGenerationModelConfig)
+        ? (safeParseJSON(modelProviderMap.audio.config) as MediaGenerationModelConfig)
         : undefined,
     };
 
