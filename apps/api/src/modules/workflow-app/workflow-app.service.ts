@@ -244,7 +244,14 @@ export class WorkflowAppService {
 
     const { nodes = [], edges = [] } = canvasData;
 
-    const { replaceToolsetMap } = await this.toolService.importToolsetsFromNodes(user, nodes);
+    let replaceToolsetMap: Record<string, GenericToolset> = {};
+
+    // Only import toolsets for shared workflow apps that are not owned by the user
+    if (shareRecord.uid !== user.uid) {
+      const { replaceToolsetMap: newReplaceToolsetMap } =
+        await this.toolService.importToolsetsFromNodes(user, nodes);
+      replaceToolsetMap = newReplaceToolsetMap;
+    }
 
     // variables with old resource entity ids (need to be replaced)
     const oldVariables = variables || canvasData.variables || [];
