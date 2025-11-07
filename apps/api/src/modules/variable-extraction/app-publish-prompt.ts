@@ -98,11 +98,17 @@ The output language MUST be determined based on the following sections in priori
 - ❌ Wrong: Using Variables language to determine template language
 
 ### 2. Variable Integration (CRITICAL)
+
+**MANDATORY VARIABLE INCLUSION RULE (CRITICAL)**:
+- **ALL provided variables MUST appear in the output template.content as {{variable_name}} placeholders. NO EXCEPTIONS.**
+- **EVERY variable in the list above MUST be included, even if it seems unrelated to the workflow.**
+- **NO variables can be omitted under any circumstances.**
+
 **Strict Rule**: The number of {{variable_name}} placeholders in template.content MUST exactly match the variables count above.
 
 **ONE-TO-ONE MAPPING RULE (CRITICAL)**: Each variable must correspond to exactly ONE placeholder, and each placeholder must use a UNIQUE variable name. NO DUPLICATES allowed.
 
-${usedVariables?.length ? `**Required**: Your template.content must contain exactly ${usedVariables.length} {{variable_name}} placeholder(s), each using a DIFFERENT variable name from the list above.` : '**Required**: Your template.content must contain ZERO {{variable_name}} placeholders.'}
+${usedVariables?.length ? `**Required**: Your template.content must contain exactly ${usedVariables.length} {{variable_name}} placeholder(s), each using a DIFFERENT variable name from the list above. **EVERY variable in the list MUST be included, even if it seems unrelated to the workflow.**` : '**Required**: Your template.content must contain ZERO {{variable_name}} placeholders.'}
 
 **Mapping Rules**:
 - ✅ Correct: ${usedVariables?.length || 0} variables = ${usedVariables?.length || 0} UNIQUE placeholders (one-to-one mapping)
@@ -134,13 +140,19 @@ Transform technical descriptions into conversational, user-friendly language:
 - **NEVER use stiff transitional phrases** that create awkward interruptions
   * Chinese: Avoid "虽然...但是...", "即使...", "尽管..."
   * English: Avoid "Although...", "Even though...", "Despite..."
-- **Seamlessly integrate all variables** into a natural, flowing narrative
-- If a variable seems unrelated, either:
-  * Omit it gracefully (if truly irrelevant to the workflow)
-  * Find a natural way to incorporate it without forced transitions
+- **MANDATORY**: Seamlessly integrate ALL variables into a natural, flowing narrative
+- **CRITICAL RULE**: If a variable seems unrelated to the main workflow, you MUST find a natural way to connect it through language
+  * Use creative language bridges to connect seemingly unrelated variables
+  * Examples of language bridges:
+    - Chinese: "结合您提供的{{weather}}信息，我将为您生成{{topic}}相关内容"
+    - Chinese: "基于您的{{preference}}和{{weather}}条件，创建{{style}}风格的内容"
+    - English: "Incorporating your {{weather}} context, I'll create {{topic}} content with {{style}} approach"
+    - English: "Considering your {{preference}} and {{weather}} conditions, I'll generate {{topic}} content"
 - The template should sound like a native speaker explaining the workflow naturally
-- **AVOID** explanations that highlight irrelevance
-  * Examples to avoid: "Although you provided X, it won't be used..." or "Even though you filled in Y, this workflow doesn't use it..."
+- **NEVER omit variables** - every variable must appear in the template
+- **NEVER** explain that variables are irrelevant or won't be used
+  * ❌ Wrong: "Although you provided {{weather}}, it won't be used..."
+  * ✅ Correct: "I'll create {{topic}} content, considering the {{weather}} context you provided"
 
 **Clean Output Requirements (CRITICAL)**:
 - **NEVER include unnecessary punctuation** like Chinese quotation marks (""), English quotes (""), or other decorative symbols
@@ -154,19 +166,27 @@ Transform technical descriptions into conversational, user-friendly language:
 
 **BAD Examples (NEVER do this)**:
 ❌ Chinese: "我将为您生成一个以{{topic}}为主题的内容。虽然我知道你填写了{{weather}}，但本次生成与天气无关。"
-   (Problem: Mentions irrelevant variable with stiff transition)
+   (Problem: Mentions irrelevant variable with stiff transition, explains it won't be used)
 ❌ English: "I'll create {{content}} for you. Even though you provided {{unrelated_var}}, it won't be used in this workflow."
-   (Problem: Highlights irrelevance instead of omitting gracefully)
+   (Problem: Highlights irrelevance instead of connecting it naturally)
+❌ Chinese: "我将为您生成一个以{{topic}}为主题的{{style}}风格内容。"
+   (Problem: Missing {{weather}} variable - ALL variables must be included)
+❌ English: "I'll create {{topic}} content in {{style}} style."
+   (Problem: Missing {{weather}} variable - ALL variables must be included)
 
-**GOOD Examples (Natural flow with clear context)**:
+**GOOD Examples (Natural flow with ALL variables connected through language)**:
 ✅ Chinese: "我将为您生成一个以{{topic}}为主题的{{style}}风格内容，并按照{{format}}格式输出。"
    (All variables integrated naturally with clear context)
 ✅ English: "I'll help you create {{content_type}} content focused on {{topic}} with your preferred {{style}} approach."
    (Conversational tone with variable context)
-✅ Chinese: "我将为您生成一个{{骆驼}}风格的儿童绘本图片"
-   (Variable name provides clear style context)
-✅ English: "I'll generate a {{mecha}}-style children's book illustration showcasing mechanical aesthetics"
-   (Variable integrated with descriptive context)
+✅ Chinese: "结合您提供的{{weather}}信息，我将为您生成一个以{{topic}}为主题的{{style}}风格内容，并按照{{format}}格式输出。"
+   (All variables included, seemingly unrelated {{weather}} connected naturally through language bridge)
+✅ English: "I'll create {{topic}} content in {{style}} style, incorporating the {{weather}} context you provided, and output it in {{format}} format."
+   (All variables included, {{weather}} connected naturally without forced transitions)
+✅ Chinese: "基于您的{{preference}}偏好和{{weather}}条件，我将为您生成{{topic}}相关的{{style}}风格内容。"
+   (Creative language bridge connects all variables naturally)
+✅ English: "I'll generate {{topic}} content with {{style}} approach, considering your {{preference}} and the {{weather}} conditions you specified."
+   (All variables seamlessly integrated with natural language connections)
 
 ### 4. Variable Types (when variables exist)
 - **string**: {{topic}}, {{style}}, {{preference}}
@@ -201,15 +221,22 @@ Return valid JSON only:
 ✅ Correct: 0 variables = 0 placeholders
 
 ### Example 3: ERROR Case - Missing Placeholders (AVOID)
-**Input**: 2 variables provided (topic, style)
-**Output template.content**: "I'll create content for you."
-❌ Wrong: 2 variables but 0 placeholders in template
+**Input**: 3 variables provided (topic, style, weather)
+**Output template.content**: "I'll create {{topic}} content in {{style}} style."
+❌ Wrong: 3 variables but only 2 placeholders - missing {{weather}} variable
+✅ Correct: "I'll create {{topic}} content in {{style}} style, considering the {{weather}} context you provided."
+   (All 3 variables included, {{weather}} connected naturally through language bridge)
 
 ### Example 4: ERROR Case - Duplicate Variables (AVOID)
 **Input**: 3 variables provided (topic, style, format)
 **Output template.content**: "I'll create {{topic}} content in {{topic}} style with {{format}} format."
 ❌ Wrong: Variable "topic" appears twice - violates one-to-one mapping rule
 ✅ Correct: "I'll create {{topic}} content in {{style}} style with {{format}} format."
+
+### Example 5: Correct Case - Connecting Unrelated Variables (FOLLOW THIS)
+**Input**: 3 variables provided (topic, style, weather) - weather seems unrelated to content generation
+**Output template.content**: "I'll create {{topic}} content in {{style}} style, incorporating the {{weather}} context you provided."
+✅ Correct: All 3 variables included, seemingly unrelated {{weather}} connected naturally through language bridge
 
 ${APP_PUBLISH_EXAMPLES}
 
@@ -221,20 +248,25 @@ Before returning your response, verify:
   * Variables section language is IGNORED for language determination
   * Chinese content in primary sources → Chinese output
   * English content in primary sources → English output
-- [ ] template.content placeholder count = variables count (${usedVariables?.length || 0})
+- [ ] **MANDATORY VARIABLE INCLUSION**: template.content placeholder count = variables count (${usedVariables?.length || 0})
+  * **CRITICAL**: ALL ${usedVariables?.length || 0} variables MUST appear in template.content
+  * NO variables can be omitted, even if they seem unrelated
 - [ ] **ONE-TO-ONE MAPPING**: Each variable appears exactly ONCE in template.content (no duplicates)
 - [ ] **UNIQUE VARIABLES**: All placeholders use DIFFERENT variable names (no repeated variable names)
 - [ ] All variable names in placeholders match existing variable names exactly
 - [ ] **VARIABLE CONTEXT**: Each variable is referenced with clear context about its role
   * Good: "{{mecha}}-style image" or "{{topic}}-focused content"
   * Bad: just "{{mecha}} image" or "{{topic}} content"
+- [ ] **LANGUAGE BRIDGES**: All variables, including seemingly unrelated ones, are connected through natural language
+  * Use creative language bridges: "结合{{weather}}信息", "incorporating {{weather}} context", etc.
+  * Never omit variables or explain they're irrelevant
 - [ ] **CLEAN OUTPUT**: No unnecessary punctuation marks like "" or "" around variables or regular text
 - [ ] Template is conversational and user-friendly (sounds like natural speech)
 - [ ] **NATURAL FLOW**: No stiff transitional phrases
   * Chinese: No "虽然...但是...", "即使...", "尽管..."
   * English: No "Although...", "Even though...", "Despite..."
 - [ ] **NO IRRELEVANCE EXPLANATIONS**: Never mention that certain variables are irrelevant or won't be used
-- [ ] All variables are seamlessly integrated into a natural, flowing narrative
+- [ ] **ALL VARIABLES INTEGRATED**: All ${usedVariables?.length || 0} variables are seamlessly integrated into a natural, flowing narrative through language bridges
 - [ ] JSON is valid and complete
 
 ## Critical Reminder
@@ -246,7 +278,10 @@ Before returning your response, verify:
    - Determine language from: Workflow Info → Canvas Nodes → Workflow Context (priority order)
    - **CRITICAL**: IGNORE Variables section language when determining output language
    - Variables may be in different languages, but template language follows primary sources only
-2. **Exact Variable Count**: Contain exactly ${usedVariables?.length || 0} {{variable_name}} placeholder(s)
+2. **MANDATORY Variable Inclusion**: Contain exactly ${usedVariables?.length || 0} {{variable_name}} placeholder(s)
+   - **CRITICAL**: ALL ${usedVariables?.length || 0} variables MUST appear in template.content
+   - NO variables can be omitted, even if they seem unrelated
+   - Every variable in the provided list must be included
 3. **ONE-TO-ONE MAPPING**: Each variable appears exactly ONCE - NO DUPLICATES
 4. **UNIQUE VARIABLES**: All ${usedVariables?.length || 0} placeholders use DIFFERENT variable names
 5. **Variable Context**: Provide clear context for each variable
@@ -256,10 +291,13 @@ Before returning your response, verify:
    - No Chinese quotation marks: "" or ""
    - No decorative English quotes: "" (only use for actual quotations if needed)
    - No other decorative symbols
-7. **Natural Flow**: Sound natural and conversational
+7. **Natural Flow with Language Bridges**: Sound natural and conversational
    - NO stiff transitions (no "虽然...但是...", "Although...", etc.)
    - NO irrelevance explanations (never mention unused variables)
-8. **Seamless Integration**: All variables flow naturally in the narrative
+   - **CRITICAL**: If a variable seems unrelated, use creative language bridges to connect it naturally
+     * Examples: "结合{{weather}}信息", "incorporating {{weather}} context", "considering {{preference}}"
+8. **Seamless Integration**: ALL variables flow naturally in the narrative through language bridges
+   - Even seemingly unrelated variables must be connected through natural language
 9. **Self-Contained**: The template should be clear and complete on its own
 
 ### Quality Guidelines:
