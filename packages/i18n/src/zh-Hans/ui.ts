@@ -3468,6 +3468,7 @@ const translations = {
     noResultsAvailable: '暂无可用结果',
     noResultsSelected: '暂无选择结果',
     resultPreview: '产物预览',
+    notLoggedIn: '未登录',
     run: {
       completed: '模板运行成功',
       failed: '模板运行失败',

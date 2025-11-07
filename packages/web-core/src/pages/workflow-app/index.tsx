@@ -1,6 +1,6 @@
 import React, { memo, useCallback, useMemo, useState, useEffect } from 'react';
 import { useFetchShareData } from '@refly-packages/ai-workspace-common/hooks/use-fetch-share-data';
-import { message, notification, Skeleton } from 'antd';
+import { Avatar, message, notification, Skeleton, Tooltip } from 'antd';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { CanvasNodeType, WorkflowNodeExecution, WorkflowVariable } from '@refly/openapi-schema';
@@ -29,12 +29,17 @@ import { WorkflowAPPForm } from './workflow-app-form';
 
 // User Avatar component for header
 const UserAvatar = () => {
+  const { t } = useTranslation();
   const { userProfile } = useUserStoreShallow((state) => ({
     userProfile: state.userProfile,
   }));
 
   if (!userProfile?.uid) {
-    return null;
+    return (
+      <Tooltip title={t('workflowApp.notLoggedIn')}>
+        <Avatar size={36}>{t('workflowApp.notLoggedIn')}</Avatar>
+      </Tooltip>
+    );
   }
 
   return (

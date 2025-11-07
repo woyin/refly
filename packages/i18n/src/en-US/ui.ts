@@ -3734,6 +3734,7 @@ const translations = {
     noResultsAvailable: 'No results available',
     noResultsSelected: 'No results selected',
     resultPreview: 'Result Preview',
+    notLoggedIn: 'Not Logged In',
     run: {
       completed: 'Template run successfully',
       failed: 'Template run failed',
