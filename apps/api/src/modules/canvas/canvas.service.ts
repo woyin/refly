@@ -878,7 +878,7 @@ export class CanvasService {
         try {
           const contextData = result.context;
           if (contextData && typeof contextData === 'string') {
-            context = JSON.parse(contextData);
+            context = safeParseJSON(contextData);
           } else if (typeof contextData === 'object' && contextData !== null) {
             context = contextData;
           }
@@ -891,7 +891,7 @@ export class CanvasService {
         try {
           const historyData = result.history;
           if (historyData && typeof historyData === 'string') {
-            history = JSON.parse(historyData);
+            history = safeParseJSON(historyData);
           } else if (Array.isArray(historyData)) {
             history = historyData;
           }
@@ -1005,7 +1005,7 @@ export class CanvasService {
     let rawData: RawCanvasData;
     try {
       // Parse the uploaded file as RawCanvasData
-      rawData = JSON.parse(file.toString('utf-8'));
+      rawData = safeParseJSON(file.toString('utf-8'));
     } catch (error) {
       this.logger.warn(`Error importing canvas: ${error?.message}`);
       throw new ParamsError('Failed to parse canvas data');
@@ -1250,7 +1250,7 @@ export class CanvasService {
     });
     if (!canvas) return [];
     try {
-      const workflow = canvas.workflow ? JSON.parse(canvas.workflow) : undefined;
+      const workflow = canvas.workflow ? safeParseJSON(canvas.workflow) : undefined;
       return workflow?.variables ?? [];
     } catch {
       return [];
@@ -1275,7 +1275,7 @@ export class CanvasService {
     let workflowObj: { variables: WorkflowVariable[] } = { variables: [] };
     if (canvas?.workflow) {
       try {
-        workflowObj = JSON.parse(canvas.workflow) ?? {};
+        workflowObj = safeParseJSON(canvas.workflow) ?? {};
       } catch {}
     }
 

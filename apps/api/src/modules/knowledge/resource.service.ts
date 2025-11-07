@@ -35,7 +35,7 @@ import {
   pick,
   streamToBuffer,
 } from '../../utils';
-import { genResourceID, cleanMarkdownForIngest } from '@refly/utils';
+import { genResourceID, cleanMarkdownForIngest, safeParseJSON } from '@refly/utils';
 import { ResourcePrepareResult, FinalizeResourceParam } from './knowledge.dto';
 import { SimpleEventData } from '../event/event.dto';
 import { SubscriptionService } from '../subscription/subscription.service';
@@ -555,7 +555,7 @@ export class ResourceService {
     }
 
     const { resourceId, resourceType, rawFileKey, meta } = resource;
-    const { url, contentType } = JSON.parse(meta) as ResourceMeta;
+    const { url, contentType } = safeParseJSON(meta) as ResourceMeta;
 
     const parserFactory = new ParserFactory(this.config, this.providerService);
     const parserOptions: ParserOptions = { resourceId };
@@ -665,7 +665,7 @@ export class ResourceService {
     }
 
     const { resourceType, resourceId, meta, storageKey } = resource;
-    const { url, title } = JSON.parse(meta) as ResourceMeta;
+    const { url, title } = safeParseJSON(meta) as ResourceMeta;
     const updates: Prisma.ResourceUpdateInput = {
       indexStatus: 'finish',
     };
@@ -801,7 +801,7 @@ export class ResourceService {
 
     // Merge metadata with existing data if provided
     if (metadata || param.data) {
-      const existingMeta = JSON.parse(resource.meta || '{}');
+      const existingMeta = safeParseJSON(resource.meta || '{}');
       updates.meta = JSON.stringify({ ...existingMeta, ...metadata, ...param.data });
     }
 

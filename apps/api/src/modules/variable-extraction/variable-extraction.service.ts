@@ -526,8 +526,8 @@ export class VariableExtractionService {
         canvasId: record.canvasId,
         uid: record.uid,
         originalPrompt: record.originalPrompt,
-        extractedVariables: JSON.parse(record.extractedVariables) as WorkflowVariable[],
-        reusedVariables: JSON.parse(record.reusedVariables) as Array<{
+        extractedVariables: safeParseJSON(record.extractedVariables) as WorkflowVariable[],
+        reusedVariables: safeParseJSON(record.reusedVariables) as Array<{
           detectedText: string;
           reusedVariableName: string;
           confidence: number;
@@ -695,7 +695,7 @@ export class VariableExtractionService {
       const jsonText = jsonMatch[1] || jsonMatch[0];
       this.logger.debug(`Parsing JSON: ${jsonText.substring(0, 200)}...`);
 
-      const parsed = JSON.parse(jsonText) as LLMExtractionResponse;
+      const parsed = safeParseJSON(jsonText) as LLMExtractionResponse;
 
       // Validate response structure - support new analysis fields
       if (!parsed.variables || !Array.isArray(parsed.variables)) {
@@ -1010,7 +1010,7 @@ export class VariableExtractionService {
 
       for (const record of recentRecords) {
         try {
-          const variables = JSON.parse(record.extractedVariables) as WorkflowVariable[];
+          const variables = safeParseJSON(record.extractedVariables) as WorkflowVariable[];
           for (const variable of variables) {
             if (variable.description) {
               patterns.add(variable.description);
