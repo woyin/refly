@@ -1423,6 +1423,7 @@ const translations = {
         failed: 'Workflow execution failed',
         error: 'Error monitoring workflow execution',
         validationError: 'Please fill in all required fields before running the workflow',
+        toolsGuide: 'Click "Run" to experience, the green parts support editing input content',
         nodeStatus: {
           waiting: 'Waiting',
           executing: 'Running',
@@ -3733,6 +3734,7 @@ const translations = {
     noResultsAvailable: 'No results available',
     noResultsSelected: 'No results selected',
     resultPreview: 'Result Preview',
+    notLoggedIn: 'Not Logged In',
     run: {
       completed: 'Template run successfully',
       failed: 'Template run failed',

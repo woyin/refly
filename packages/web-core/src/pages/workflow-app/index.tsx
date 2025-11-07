@@ -1,6 +1,6 @@
 import React, { memo, useCallback, useMemo, useState, useEffect } from 'react';
 import { useFetchShareData } from '@refly-packages/ai-workspace-common/hooks/use-fetch-share-data';
-import { message, notification, Skeleton } from 'antd';
+import { Avatar, message, notification, Skeleton, Tooltip } from 'antd';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { CanvasNodeType, WorkflowNodeExecution, WorkflowVariable } from '@refly/openapi-schema';
@@ -29,12 +29,17 @@ import { WorkflowAPPForm } from './workflow-app-form';
 
 // User Avatar component for header
 const UserAvatar = () => {
+  const { t } = useTranslation();
   const { userProfile } = useUserStoreShallow((state) => ({
     userProfile: state.userProfile,
   }));
 
   if (!userProfile?.uid) {
-    return null;
+    return (
+      <Tooltip title={t('workflowApp.notLoggedIn')}>
+        <Avatar size={36}>{t('workflowApp.notLoggedIn')}</Avatar>
+      </Tooltip>
+    );
   }
 
   return (
@@ -325,7 +330,7 @@ const WorkflowAppPage: React.FC = () => {
                 ? {
                     backgroundImage: `url(${workflowApp.coverUrl})`,
                   }
-                : {}
+                : undefined
             }
           >
             {/* Gradient overlay - only shown when cover image exists */}
@@ -365,34 +370,24 @@ const WorkflowAppPage: React.FC = () => {
                     </div>
 
                     {/* Workflow Form */}
-                    <div className="mb-6 sm:mb-8 relative z-20">
-                      <WorkflowAPPForm
-                        workflowApp={workflowApp}
-                        workflowVariables={workflowVariables}
-                        onSubmitVariables={onSubmit}
-                        loading={isLoading}
-                        onCopyWorkflow={handleCopyWorkflow}
-                        onCopyShareLink={handleCopyShareLink}
-                        isRunning={isRunning}
-                        templateContent={workflowApp?.templateContent}
-                        executionCreditUsage={executionCreditUsage}
-                        className="max-h-[500px] sm:max-h-[600px] bg-[var(--refly-bg-float-z3)] dark:bg-[var(--refly-bg-content-z2)] border border-[var(--refly-Card-Border)] dark:border-[var(--refly-semi-color-border)] shadow-[0_2px_20px_4px_rgba(0,0,0,0.04)] dark:shadow-[0_2px_20px_4px_rgba(0,0,0,0.2)] px-4 py-3 rounded-2xl"
-                      />
-                    </div>
+                    <WorkflowAPPForm
+                      workflowApp={workflowApp}
+                      workflowVariables={workflowVariables}
+                      onSubmitVariables={onSubmit}
+                      loading={isLoading}
+                      onCopyWorkflow={handleCopyWorkflow}
+                      onCopyShareLink={handleCopyShareLink}
+                      isRunning={isRunning}
+                      templateContent={workflowApp?.templateContent}
+                      executionCreditUsage={executionCreditUsage}
+                      className="max-h-[500px] sm:max-h-[600px] bg-[var(--refly-bg-float-z3)] dark:bg-[var(--refly-bg-content-z2)] border border-[var(--refly-Card-Border)] dark:border-[var(--refly-semi-color-border)] shadow-[0_2px_20px_4px_rgba(0,0,0,0.04)] dark:shadow-[0_2px_20px_4px_rgba(0,0,0,0.2)] px-4 py-3 rounded-2xl"
+                    />
 
                     {logs.length > 0 && (
                       <>
                         {/* Tabs */}
                         {products.length > 0 && (
-                          <div
-                            className="text-center text-[var(--refly-text-0)] dark:text-[var(--refly-text-StaticWhite)] mb-[15px] mt-[40px]"
-                            style={{
-                              fontFamily: 'PingFang SC',
-                              fontWeight: 600,
-                              fontSize: '14px',
-                              lineHeight: '1.4285714285714286em',
-                            }}
-                          >
+                          <div className="text-center text-[var(--refly-text-0)] dark:text-[var(--refly-text-StaticWhite)] mb-[15px] mt-[40px] font-['PingFang_SC'] font-semibold text-[14px] leading-[1.4285714285714286em]">
                             {!!executionCreditUsage && executionCreditUsage > 0
                               ? t('workflowApp.productsGeneratedWithCost', {
                                   count: products.length,
@@ -418,30 +413,11 @@ const WorkflowAppPage: React.FC = () => {
               </div>
             </div>
 
-            <div
-              className="w-full max-w-[860px] mx-auto rounded-lg py-3 px-4 bg-[var(--refly-bg-content-z2)] dark:bg-[var(--bg---refly-bg-body-z0,#0E0E0E)]"
-              style={{
-                borderColor: 'var(--refly-Card-Border)',
-                marginTop: '50px',
-              }}
-            >
+            <div className="w-full max-w-[860px] mx-auto rounded-lg py-3 px-4 bg-[var(--refly-bg-content-z2)] dark:bg-[var(--bg---refly-bg-body-z0,#0E0E0E)] border border-[var(--refly-Card-Border)] mt-[10px]">
               {/* results grid */}
               {workflowApp?.resultNodeIds?.length > 0 && (
-                <div
-                  className="flex flex-col"
-                  style={{
-                    gap: '10px',
-                  }}
-                >
-                  <div
-                    className="text-center text-[var(--refly-text-0)] dark:text-[var(--refly-text-StaticWhite)]"
-                    style={{
-                      fontFamily: 'PingFang SC',
-                      fontWeight: 600,
-                      fontSize: '14px',
-                      lineHeight: '1.4285714285714286em',
-                    }}
-                  >
+                <div className="flex flex-col gap-[10px]">
+                  <div className="text-center text-[var(--refly-text-0)] dark:text-[var(--refly-text-StaticWhite)] font-['PingFang_SC'] font-semibold text-[14px] leading-[1.4285714285714286em]">
                     {t('workflowApp.resultPreview')}
                   </div>
                   <SelectedResultsGrid

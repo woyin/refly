@@ -1420,6 +1420,7 @@ const translations = {
         failed: 'Workflow 运行失败',
         error: 'Workflow 运行状态时出错',
         validationError: '请填写所有必填字段后再运行工作流',
+        toolsGuide: '请点击「运行」即可体验，绿色部分支持修改输入内容',
         nodeStatus: {
           waiting: '等待中',
           executing: '运行中',
@@ -3467,6 +3468,7 @@ const translations = {
     noResultsAvailable: '暂无可用结果',
     noResultsSelected: '暂无选择结果',
     resultPreview: '产物预览',
+    notLoggedIn: '未登录',
     run: {
       completed: '模板运行成功',
       failed: '模板运行失败',
