@@ -77,7 +77,7 @@ const FileInput: React.FC<FileInputProps> = memo(
             borderColor: 'var(--refly-primary-default)',
             backgroundColor: 'transparent',
             borderRadius: '0',
-            padding: '4px 8px',
+            margin: '0 8px',
             height: '26px',
             fontFamily: 'PingFang SC',
             fontSize: '16px',
