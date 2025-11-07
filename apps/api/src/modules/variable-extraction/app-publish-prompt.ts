@@ -101,12 +101,29 @@ If variables are: [topic, style, format]
 ❌ Wrong: "Create {{topic}} content in {{topic}} style" (duplicate variable)
 ❌ Wrong: "Create {{topic}} content" (missing variables)
 
-### 3. Natural Language Conversion
+### 3. Natural Language Conversion (CRITICAL)
 Transform technical descriptions into conversational, user-friendly language:
 - Start with "I'll help you..." or "I'll create..."
 - Explain benefits, not just features
 - Use simple, everyday language
 - Avoid technical jargon
+
+**Natural Flow Requirements**:
+- **NEVER use stiff transitional phrases** like "虽然...但是...", "即使...", "尽管..." that create awkward interruptions
+- **Seamlessly integrate all variables** into a natural, flowing narrative
+- If a variable seems unrelated, either:
+  * Omit it gracefully (if truly irrelevant to the workflow)
+  * Find a natural way to incorporate it without forced transitions
+- The template should sound like a native speaker explaining the workflow naturally
+- **AVOID** explanations that highlight irrelevance (e.g., "虽然我知道你填写了...但本次...与...无关")
+
+**BAD Examples (NEVER do this)**:
+❌ "我将为您生成一个以{{topic}}为主题的内容。虽然我知道你填写了{{weather}}，但本次生成与天气无关。"
+❌ "I'll create {{content}} for you. Even though you provided {{unrelated_var}}, it won't be used in this workflow."
+
+**GOOD Examples (Natural flow)**:
+✅ "我将为您生成一个以{{topic}}为主题的{{style}}风格内容，并按照{{format}}格式输出。"
+✅ "I'll help you create {{content_type}} content focused on {{topic}} with your preferred {{style}} approach."
 
 ### 4. Variable Types (when variables exist)
 - **string**: {{topic}}, {{style}}, {{preference}}
@@ -162,6 +179,9 @@ Before returning your response, verify:
 - [ ] **UNIQUE VARIABLES**: All placeholders use DIFFERENT variable names (no repeated variable names)
 - [ ] All variable names in placeholders match existing variable names exactly
 - [ ] Template is conversational and user-friendly
+- [ ] **NATURAL FLOW**: No stiff transitions like "虽然...但是...", "即使...", "尽管..."
+- [ ] **NO IRRELEVANCE EXPLANATIONS**: Never mention that certain variables are irrelevant or won't be used
+- [ ] All variables are seamlessly integrated into a natural, flowing narrative
 - [ ] JSON is valid and complete
 
 ## Critical Reminder
@@ -170,8 +190,11 @@ Before returning your response, verify:
 2. Contain exactly ${usedVariables?.length || 0} {{variable_name}} placeholder(s)
 3. **ONE-TO-ONE MAPPING**: Each variable must appear exactly ONCE - NO DUPLICATES
 4. **UNIQUE VARIABLES**: All ${usedVariables?.length || 0} placeholders must use DIFFERENT variable names
-5. Sound natural and conversational
-6. Be self-contained and clear
+5. **NATURAL FLOW**: Sound natural and conversational - NO stiff transitions or irrelevance explanations
+6. **SEAMLESS INTEGRATION**: All variables must flow naturally in the narrative
+7. Be self-contained and clear
+
+**Remember**: A good template reads like a native speaker naturally explaining the workflow, not like a forced enumeration of variables.
 
 Generate your response now.`;
 }
