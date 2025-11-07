@@ -8897,6 +8897,32 @@ export const GetWorkflowAppDetailResponseSchema = {
   ],
 } as const;
 
+export const GetWorkflowTitleAndShareIdResponseSchema = {
+  allOf: [
+    {
+      $ref: '#/components/schemas/BaseResponse',
+    },
+    {
+      type: 'object',
+      properties: {
+        data: {
+          type: 'object',
+          properties: {
+            title: {
+              type: 'string',
+              description: 'Workflow app title',
+            },
+            shareId: {
+              type: 'string',
+              description: 'Workflow app share ID',
+            },
+          },
+        },
+      },
+    },
+  ],
+} as const;
+
 export const ListWorkflowAppsResponseSchema = {
   allOf: [
     {

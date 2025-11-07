@@ -34,6 +34,7 @@ import {
   getSubscriptionUsage,
   getWorkflowAppDetail,
   getWorkflowDetail,
+  getWorkflowTitleAndShareId,
   getWorkflowVariables,
   listAccounts,
   listActions,
@@ -90,6 +91,7 @@ import {
   GetResourceDetailData,
   GetWorkflowAppDetailData,
   GetWorkflowDetailData,
+  GetWorkflowTitleAndShareIdData,
   GetWorkflowVariablesData,
   ListAccountsData,
   ListCanvasesData,
@@ -435,6 +437,15 @@ export const prefetchUseGetWorkflowAppDetail = (
   queryClient.prefetchQuery({
     queryKey: Common.UseGetWorkflowAppDetailKeyFn(clientOptions),
     queryFn: () => getWorkflowAppDetail({ ...clientOptions }).then((response) => response.data),
+  });
+export const prefetchUseGetWorkflowTitleAndShareId = (
+  queryClient: QueryClient,
+  clientOptions: Options<GetWorkflowTitleAndShareIdData, true>,
+) =>
+  queryClient.prefetchQuery({
+    queryKey: Common.UseGetWorkflowTitleAndShareIdKeyFn(clientOptions),
+    queryFn: () =>
+      getWorkflowTitleAndShareId({ ...clientOptions }).then((response) => response.data),
   });
 export const prefetchUseListWorkflowApps = (
   queryClient: QueryClient,

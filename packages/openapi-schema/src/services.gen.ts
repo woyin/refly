@@ -342,6 +342,9 @@ import type {
   GetWorkflowAppDetailData,
   GetWorkflowAppDetailError,
   GetWorkflowAppDetailResponse2,
+  GetWorkflowTitleAndShareIdData,
+  GetWorkflowTitleAndShareIdError,
+  GetWorkflowTitleAndShareIdResponse2,
   ExecuteWorkflowAppData,
   ExecuteWorkflowAppError,
   ExecuteWorkflowAppResponse2,
@@ -2291,6 +2294,23 @@ export const getWorkflowAppDetail = <ThrowOnError extends boolean = false>(
   >({
     ...options,
     url: '/workflow-app/detail',
+  });
+};
+
+/**
+ * Get workflow app title and share ID
+ * Get title and share ID for a workflow app
+ */
+export const getWorkflowTitleAndShareId = <ThrowOnError extends boolean = false>(
+  options: Options<GetWorkflowTitleAndShareIdData, ThrowOnError>,
+) => {
+  return (options?.client ?? client).get<
+    GetWorkflowTitleAndShareIdResponse2,
+    GetWorkflowTitleAndShareIdError,
+    ThrowOnError
+  >({
+    ...options,
+    url: '/workflow-app/title-and-share-id',
   });
 };
 

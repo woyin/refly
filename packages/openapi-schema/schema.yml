@@ -2797,6 +2797,27 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/GetWorkflowAppDetailResponse'
+  /workflow-app/title-and-share-id:
+    get:
+      tags:
+        - app
+      summary: Get workflow app title and share ID
+      description: Get title and share ID for a workflow app
+      operationId: getWorkflowTitleAndShareId
+      parameters:
+        - name: appId
+          in: query
+          description: Workflow app ID
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetWorkflowTitleAndShareIdResponse'
   /workflow-app/execute:
     post:
       tags:
@@ -10097,6 +10118,20 @@ components:
           properties:
             data:
               $ref: '#/components/schemas/WorkflowApp'
+    GetWorkflowTitleAndShareIdResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                title:
+                  type: string
+                  description: Workflow app title
+                shareId:
+                  type: string
+                  description: Workflow app share ID
     ListWorkflowAppsResponse:
       allOf:
         - $ref: '#/components/schemas/BaseResponse'

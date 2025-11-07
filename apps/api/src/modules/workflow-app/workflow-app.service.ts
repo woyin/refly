@@ -207,6 +207,16 @@ export class WorkflowAppService {
     return { ...workflowApp, owner: userPo };
   }
 
+  async getWorkflowTitleAndShareId(appId: string) {
+    const workflowApp = await this.prisma.workflowApp.findFirst({
+      where: { appId, deletedAt: null },
+    });
+    if (!workflowApp) {
+      throw new WorkflowAppNotFoundError();
+    }
+    return { title: workflowApp.title, shareId: workflowApp.shareId };
+  }
+
   async executeWorkflowApp(user: User, shareId: string, variables: WorkflowVariable[]) {
     const shareRecord = await this.prisma.shareRecord.findFirst({
       where: { shareId, deletedAt: null },

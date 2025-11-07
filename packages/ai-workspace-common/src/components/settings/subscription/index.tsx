@@ -16,7 +16,7 @@ import {
   useGetCreditBalance,
   useGetCreditUsage,
   useGetCreditRecharge,
-  useGetWorkflowAppDetail,
+  useGetWorkflowTitleAndShareId,
 } from '@refly-packages/ai-workspace-common/queries/queries';
 import { useSubscriptionUsage } from '@refly-packages/ai-workspace-common/hooks/use-subscription-usage';
 import { logEvent } from '@refly/telemetry-web';
@@ -69,7 +69,7 @@ const CommissionSourceCell = React.memo(({ record }: { record: CreditRechargeRec
   }));
   const appId = extractAppIdFromCommissionDescription(record.description);
 
-  const { data: appDetail, isLoading } = useGetWorkflowAppDetail(
+  const { data, isLoading } = useGetWorkflowTitleAndShareId(
     appId ? { query: { appId } } : null,
     [appId],
     { enabled: !!appId },
@@ -79,26 +79,26 @@ const CommissionSourceCell = React.memo(({ record }: { record: CreditRechargeRec
     (e: React.MouseEvent) => {
       e.preventDefault();
       e.stopPropagation();
-      const shareId = appDetail?.data?.shareId;
+      const shareId = data?.data?.shareId;
       if (shareId) {
         // Close settings modal before navigation
         setShowSettingModal(false);
         navigate(`/app/${shareId}`);
       }
     },
-    [appDetail?.data?.shareId, navigate, setShowSettingModal],
+    [data?.data?.shareId, navigate, setShowSettingModal],
   );
 
-  if (isLoading || !appDetail) {
+  if (isLoading || !data) {
     return <span>{t('subscription.subscriptionManagement.rechargeType.commission')}</span>;
   }
 
   const appName =
-    appDetail?.data?.title ?? t('subscription.subscriptionManagement.rechargeType.commission');
+    data?.data?.title ?? t('subscription.subscriptionManagement.rechargeType.commission');
   return (
     <span className="inline-block max-w-[200px] overflow-hidden text-ellipsis whitespace-nowrap align-bottom">
       {t('subscription.subscriptionManagement.rechargeType.commissionPrefix')}
-      {appDetail?.data?.shareId ? (
+      {data?.data?.shareId ? (
         <span
           className="cursor-pointer underline hover:text-blue-600 dark:hover:text-blue-400"
           onClick={handleAppNameClick}
@@ -121,7 +121,7 @@ const CommissionUsageCell = React.memo(({ record }: { record: CreditUsageRecord 
   }));
   const appId = extractAppIdFromCommissionDescription(record.description);
 
-  const { data: appDetail, isLoading } = useGetWorkflowAppDetail(
+  const { data, isLoading } = useGetWorkflowTitleAndShareId(
     appId ? { query: { appId } } : null,
     [appId],
     { enabled: !!appId },
@@ -131,26 +131,26 @@ const CommissionUsageCell = React.memo(({ record }: { record: CreditUsageRecord 
     (e: React.MouseEvent) => {
       e.preventDefault();
       e.stopPropagation();
-      const shareId = appDetail?.data?.shareId;
+      const shareId = data?.data?.shareId;
       if (shareId) {
         // Close settings modal before navigation
         setShowSettingModal(false);
         navigate(`/app/${shareId}`);
       }
     },
-    [appDetail?.data?.shareId, navigate, setShowSettingModal],
+    [data?.data?.shareId, navigate, setShowSettingModal],
   );
 
-  if (isLoading || !appDetail) {
+  if (isLoading || !data) {
     return <span>{t('subscription.subscriptionManagement.rechargeType.commission')}</span>;
   }
 
   const appName =
-    appDetail?.data?.title ?? t('subscription.subscriptionManagement.rechargeType.commission');
+    data?.data?.title ?? t('subscription.subscriptionManagement.rechargeType.commission');
   return (
     <span className="inline-block max-w-[200px] overflow-hidden text-ellipsis whitespace-nowrap align-bottom">
       {t('subscription.subscriptionManagement.rechargeType.commissionPrefix')}
-      {appDetail?.data?.shareId ? (
+      {data?.data?.shareId ? (
         <span
           className="cursor-pointer underline hover:text-blue-600 dark:hover:text-blue-400"
           onClick={handleAppNameClick}

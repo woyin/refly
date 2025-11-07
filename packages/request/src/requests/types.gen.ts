@@ -6270,6 +6270,19 @@ export type GetWorkflowAppDetailResponse = BaseResponse & {
   data?: WorkflowApp;
 };
 
+export type GetWorkflowTitleAndShareIdResponse = BaseResponse & {
+  data?: {
+    /**
+     * Workflow app title
+     */
+    title?: string;
+    /**
+     * Workflow app share ID
+     */
+    shareId?: string;
+  };
+};
+
 export type ListWorkflowAppsResponse = BaseResponse & {
   /**
    * List of workflow apps
@@ -7873,6 +7886,19 @@ export type GetWorkflowAppDetailData = {
 export type GetWorkflowAppDetailResponse2 = GetWorkflowAppDetailResponse;
 
 export type GetWorkflowAppDetailError = unknown;
+
+export type GetWorkflowTitleAndShareIdData = {
+  query: {
+    /**
+     * Workflow app ID
+     */
+    appId: string;
+  };
+};
+
+export type GetWorkflowTitleAndShareIdResponse2 = GetWorkflowTitleAndShareIdResponse;
+
+export type GetWorkflowTitleAndShareIdError = unknown;
 
 export type ExecuteWorkflowAppData = {
   body: ExecuteWorkflowAppRequest;
