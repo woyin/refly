@@ -21,6 +21,7 @@ import { ToolService } from '../tool/tool.service';
 import { VariableExtractionService } from '../variable-extraction/variable-extraction.service';
 import { ResponseNodeMeta } from '@refly/canvas-common';
 import { CreditService } from '../credit/credit.service';
+import { AppTemplateResult } from '../variable-extraction/variable-extraction.dto';
 
 /**
  * Structure of shared workflow app data
@@ -96,13 +97,12 @@ export class WorkflowAppService {
     });
 
     // Generate app template content
-    let templateContent: string | null = null;
+    let templateResult: AppTemplateResult | null = null;
     try {
-      const templateResult = await this.variableExtractionService.generateAppPublishTemplate(
+      templateResult = await this.variableExtractionService.generateAppPublishTemplate(
         user,
         canvasId,
       );
-      templateContent = templateResult.templateContent;
       this.logger.log(`Generated template content for workflow app: ${appId}`);
     } catch (error) {
       this.logger.error(
@@ -120,7 +120,7 @@ export class WorkflowAppService {
           description,
           storageKey,
           coverStorageKey: coverStorageKey as any,
-          templateContent,
+          templateContent: templateResult?.templateContent,
           remixEnabled,
           resultNodeIds,
           updatedAt: new Date(),

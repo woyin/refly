@@ -1317,6 +1317,9 @@ export class VariableExtractionService {
       const result: AppTemplateResult = {
         templateContent: parsedTemplate.content,
         variables: parsedTemplate.variables,
+        title: parsedTemplate.title,
+        description: parsedTemplate.description,
+        usageInstructions: parsedTemplate.usageInstructions,
         metadata: {
           extractedAt: Date.now(),
           variableCount: parsedTemplate.variables.length,
@@ -1324,15 +1327,8 @@ export class VariableExtractionService {
           canvasComplexity: this.getComplexityLevel(context.analysis.complexity),
           workflowType: context.analysis.workflowType,
           templateVersion: 1,
-          workflowTitle: parsedTemplate.title,
-          workflowDescription: parsedTemplate.description,
-          usageInstructions: parsedTemplate.usageInstructions,
         },
       };
-
-      this.logger.log(
-        `Successfully generated APP template for canvas ${canvasId}: ${result.metadata.variableCount} variables, complexity: ${result.metadata.canvasComplexity}`,
-      );
 
       return result;
     } catch (error) {
