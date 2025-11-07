@@ -282,7 +282,7 @@ const translations = {
     },
     dropImageHere: '拖放图片到这里',
     presetColors: '预设颜色',
-    duplicate: '复制',
+    duplicate: '副本',
     shareSuccess: '分享链接已复制到剪贴板!',
     shareError: '分享失败，请重试！',
     readonlyWarning: '只读模式',
