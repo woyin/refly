@@ -209,7 +209,7 @@ export class WorkflowAppService {
 
   async getWorkflowTitleAndShareId(appId: string) {
     const workflowApp = await this.prisma.workflowApp.findFirst({
-      where: { appId, deletedAt: null },
+      where: { appId },
     });
     if (!workflowApp) {
       throw new WorkflowAppNotFoundError();
