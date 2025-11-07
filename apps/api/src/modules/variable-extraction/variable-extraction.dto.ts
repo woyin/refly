@@ -49,6 +49,7 @@ export interface VariableReuse {
 // APP template generation result
 export interface AppTemplateResult {
   templateContent: string; // Template with placeholders
+  templateContentPlaceholders: string[]; // Placeholders in the template
   variables: WorkflowVariable[]; // Related variable list
   title?: string; // Workflow title for display
   description?: string; // Workflow description

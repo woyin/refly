@@ -99,10 +99,25 @@ export class WorkflowAppService {
     // Generate app template content
     let templateResult: AppTemplateResult | null = null;
     try {
-      templateResult = await this.variableExtractionService.generateAppPublishTemplate(
+      const _templateResult = await this.variableExtractionService.generateAppPublishTemplate(
         user,
         canvasId,
       );
+
+      this.logger.log(
+        `generateAppPublishTemplate result for workflow app: ${JSON.stringify(_templateResult)}`,
+      );
+
+      if (
+        _templateResult?.templateContent &&
+        _templateResult?.templateContentPlaceholders?.length === variables?.length &&
+        variables?.every((variable) =>
+          _templateResult?.templateContentPlaceholders?.includes(`{{${variable.name}}}`),
+        )
+      ) {
+        templateResult = _templateResult;
+      }
+
       this.logger.log(`Generated template content for workflow app: ${appId}`);
     } catch (error) {
       this.logger.error(

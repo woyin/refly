@@ -8,6 +8,7 @@ import { genVariableExtractionSessionID, safeParseJSON } from '@refly/utils';
 import { buildUnifiedPrompt } from './prompt';
 import { buildAppPublishPrompt } from './app-publish-prompt';
 import { genVariableID } from '@refly/utils';
+import { z } from 'zod';
 
 import {
   ExtractionContext,
@@ -59,6 +60,23 @@ interface LLMExtractionResponse {
   processedPrompt?: string;
   originalPrompt?: string;
 }
+
+/**
+ * Zod schema for APP template generation result
+ * Matches the JSON structure defined in app-publish-prompt.ts
+ */
+const AppTemplateResultSchema = z.object({
+  template: z.object({
+    title: z.string().describe('Clear, action-oriented workflow title'),
+    description: z.string().describe('Brief description of workflow purpose and benefits'),
+    content: z.string().describe('Natural language template with {{variable_name}} placeholders'),
+    usageInstructions: z
+      .string()
+      .optional()
+      .nullable()
+      .describe('How to use this template in 1-2 sentences'),
+  }),
+});
 
 @Injectable()
 export class VariableExtractionService {
@@ -1316,6 +1334,8 @@ export class VariableExtractionService {
       // 6. Build final result
       const result: AppTemplateResult = {
         templateContent: parsedTemplate.content,
+        templateContentPlaceholders:
+          templateResult?.template?.content.match(/\{\{[^}]+\}\}/g) || [],
         variables: parsedTemplate.variables,
         title: parsedTemplate.title,
         description: parsedTemplate.description,
@@ -1339,21 +1359,23 @@ export class VariableExtractionService {
 
   /**
    * Execute LLM template generation
+   * Returns structured output directly from withStructuredOutput
    */
   private async performLLMTemplateGeneration(
     prompt: string,
     _context: ExtractionContext,
     user: User,
-  ): Promise<string> {
+  ): Promise<z.infer<typeof AppTemplateResultSchema>> {
     try {
       const model = await this.prepareChatModel(user);
       this.logger.log('Executing LLM template generation');
 
-      const response = await model.invoke(prompt);
-      const responseText = response.content.toString();
+      const response = await model.withStructuredOutput(AppTemplateResultSchema).invoke(prompt);
 
-      this.logger.log(`LLM template generation completed, response length: ${responseText.length}`);
-      return responseText;
+      this.logger.log(
+        `LLM template generation completed, title: ${response.template?.title || 'N/A'}`,
+      );
+      return response;
     } catch (error) {
       this.logger.error(`LLM template generation failed: ${error.message}`);
       throw new Error(`LLM template generation failed: ${error.message}`);
@@ -1362,10 +1384,10 @@ export class VariableExtractionService {
 
   /**
    * Parse template generation result
-   * Updated to match the new simplified data structure
+   * Updated to work with structured output from withStructuredOutput
    */
   private parseTemplateResult(
-    responseText: string,
+    structuredResult: z.infer<typeof AppTemplateResultSchema>,
     context: ExtractionContext,
   ): {
     content: string;
@@ -1377,30 +1399,9 @@ export class VariableExtractionService {
     try {
       this.logger.log('Parsing template generation result');
 
-      // Try to extract JSON from response
-      const jsonMatch =
-        responseText.match(/```json\s*\n([\s\S]*?)\n\s*```/) ||
-        responseText.match(/```\s*\n([\s\S]*?)\n\s*```/) ||
-        responseText.match(/\{[\s\S]*\}/);
-
-      if (!jsonMatch) {
-        this.logger.warn('No JSON structure found in template response');
-        throw new Error('No JSON found in template response');
-      }
-
-      const jsonText = jsonMatch[1] || jsonMatch[0];
-      const parsed = safeParseJSON(jsonText) as {
-        template?: {
-          content: string;
-          title?: string;
-          description?: string;
-          usageInstructions?: string;
-        };
-      };
-
       // Validate required fields
-      if (!parsed.template?.content) {
-        throw new Error('Missing template content in response');
+      if (!structuredResult?.template) {
+        throw new Error('Missing template object in response');
       }
 
       // Use variables from context instead of parsing from response
@@ -1411,15 +1412,15 @@ export class VariableExtractionService {
       }));
 
       return {
-        content: parsed.template.content,
-        title: parsed.template.title || 'Workflow Template',
-        description: parsed.template.description || 'Generated workflow template',
-        usageInstructions: parsed.template.usageInstructions,
+        content: structuredResult?.template?.content,
+        title: structuredResult?.template?.title || 'Workflow Template',
+        description: structuredResult?.template?.description || 'Generated workflow template',
+        usageInstructions: structuredResult?.template?.usageInstructions,
         variables,
       };
     } catch (error) {
       this.logger.error(`Failed to parse template result: ${error.message}`);
-      this.logger.debug(`Raw response: ${responseText.substring(0, 500)}...`);
+      this.logger.debug(`Structured result: ${JSON.stringify(structuredResult)}`);
 
       // Return fallback template with proper VariableValue structure
       return {
