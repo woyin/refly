@@ -4708,6 +4708,10 @@ export const CreateShareRequestSchema = {
       type: 'string',
       description: 'Cover storage key',
     },
+    creditUsage: {
+      type: 'number',
+      description: 'Credit usage',
+    },
   },
 } as const;
 
@@ -6293,6 +6297,96 @@ export const getCreditBalanceResponseSchema = {
   ],
 } as const;
 
+export const GetCreditUsageByResultIdResponseSchema = {
+  allOf: [
+    {
+      $ref: '#/components/schemas/BaseResponse',
+    },
+    {
+      type: 'object',
+      properties: {
+        data: {
+          type: 'object',
+          description: 'Credit usage by result ID',
+          properties: {
+            total: {
+              type: 'number',
+              description: 'Total credit usage by result ID',
+            },
+            usages: {
+              type: 'array',
+              description: 'Credit usage list by result ID',
+              items: {
+                $ref: '#/components/schemas/CreditUsage',
+              },
+            },
+          },
+        },
+      },
+    },
+  ],
+} as const;
+
+export const GetCreditUsageByExecutionIdResponseSchema = {
+  allOf: [
+    {
+      $ref: '#/components/schemas/BaseResponse',
+    },
+    {
+      type: 'object',
+      properties: {
+        data: {
+          type: 'object',
+          description: 'Credit usage by execution ID',
+          properties: {
+            total: {
+              type: 'number',
+              description: 'Total credit usage by execution ID',
+            },
+            usages: {
+              type: 'array',
+              description: 'Credit usage list by execution ID',
+              items: {
+                $ref: '#/components/schemas/CreditUsage',
+              },
+            },
+          },
+        },
+      },
+    },
+  ],
+} as const;
+
+export const GetCreditUsageByCanvasIdResponseSchema = {
+  allOf: [
+    {
+      $ref: '#/components/schemas/BaseResponse',
+    },
+    {
+      type: 'object',
+      properties: {
+        data: {
+          type: 'object',
+          description: 'Credit usage by canvas ID',
+          properties: {
+            total: {
+              type: 'number',
+              description: 'Total credit usage by canvas ID',
+            },
+            usages: {
+              type: 'array',
+              description: 'Credit usage list by canvas ID',
+              items: {
+                $ref: '#/components/schemas/CreditUsage',
+              },
+            },
+          },
+        },
+      },
+    },
+  ],
+} as const;
+
 export const SubscriptionPlanSchema = {
   type: 'object',
   properties: {
@@ -7426,7 +7520,7 @@ export const CreditRechargeSchema = {
     source: {
       type: 'string',
       description: 'Recharge source type',
-      enum: ['subscription', 'purchase', 'gift', 'promotion', 'refund'],
+      enum: ['subscription', 'purchase', 'gift', 'promotion', 'refund', 'commission'],
       default: 'purchase',
     },
     description: {
@@ -7480,7 +7574,7 @@ export const CreditUsageSchema = {
     usageType: {
       type: 'string',
       description: 'Type of usage that consumed credits',
-      enum: ['model_call', 'media_generation', 'embedding', 'reranking', 'other'],
+      enum: ['model_call', 'media_generation', 'embedding', 'reranking', 'commission', 'other'],
       default: 'model_call',
     },
     actionResultId: {
@@ -8069,9 +8163,69 @@ export const UpsertToolsetResponseSchema = {
   ],
 } as const;
 
+export const InitiateComposioConnectionResponseSchema = {
+  type: 'object',
+  required: ['redirectUrl', 'connectionRequestId', 'app'],
+  properties: {
+    redirectUrl: {
+      type: 'string',
+      format: 'uri',
+      description: 'OAuth redirect URL provided by Composio.',
+    },
+    connectionRequestId: {
+      type: 'string',
+      description: 'Connection request identifier from Composio.',
+    },
+    app: {
+      type: 'string',
+      description: 'Composio app slug (e.g., gmail, slack).',
+    },
+  },
+} as const;
+
+export const ComposioConnectionStatusSchema = {
+  type: 'string',
+  description: 'Current status of the Composio connection.',
+  enum: ['active', 'revoked'],
+} as const;
+
+export const ComposioConnectionStatusResponseSchema = {
+  type: 'object',
+  required: ['status', 'integrationId'],
+  properties: {
+    status: {
+      $ref: '#/components/schemas/ComposioConnectionStatus',
+    },
+    connectedAccountId: {
+      type: 'string',
+      nullable: true,
+      description: 'Connected account identifier returned by Composio, if available.',
+    },
+    integrationId: {
+      type: 'string',
+      description: 'Composio integration identifier (app slug).',
+    },
+  },
+} as const;
+
+export const ComposioRevokeResponseSchema = {
+  type: 'object',
+  required: ['success', 'message'],
+  properties: {
+    success: {
+      type: 'boolean',
+      description: 'Whether the connection was revoked successfully.',
+    },
+    message: {
+      type: 'string',
+      description: 'Human-readable message describing the outcome.',
+    },
+  },
+} as const;
+
 export const GenericToolsetTypeSchema = {
   type: 'string',
-  enum: ['regular', 'mcp'],
+  enum: ['regular', 'mcp', 'external_oauth'],
 } as const;
 
 export const GenericToolsetSchema = {
@@ -8516,9 +8670,20 @@ export const CreateWorkflowAppRequestSchema = {
         $ref: '#/components/schemas/WorkflowVariable',
       },
     },
+    resultNodeIds: {
+      type: 'array',
+      description: 'Result node IDs',
+      items: {
+        type: 'string',
+      },
+    },
     coverStorageKey: {
       type: 'string',
       description: 'Cover image storage key',
+    },
+    remixEnabled: {
+      type: 'boolean',
+      description: 'Whether remix is enabled for this app',
     },
   },
 } as const;
@@ -8572,6 +8737,17 @@ export const WorkflowAppSchema = {
       items: {
         $ref: '#/components/schemas/WorkflowVariable',
       },
+    },
+    resultNodeIds: {
+      type: 'array',
+      description: 'Result node IDs',
+      items: {
+        type: 'string',
+      },
+    },
+    remixEnabled: {
+      type: 'boolean',
+      description: 'Whether remix is enabled for this app',
     },
     coverUrl: {
       type: 'string',

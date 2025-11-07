@@ -5,7 +5,6 @@ import { time } from '@refly-packages/ai-workspace-common/utils/time';
 import { LOCALE } from '@refly/common-types';
 import { useTranslation } from 'react-i18next';
 import { WiTime3 } from 'react-icons/wi';
-import { useNavigate } from 'react-router-dom';
 import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
 import { useState } from 'react';
 import defaultAvatar from '@refly-packages/ai-workspace-common/assets/refly_default_avatar.png';
@@ -13,7 +12,6 @@ import defaultAvatar from '@refly-packages/ai-workspace-common/assets/refly_defa
 export const AppCard = ({ data, onDelete }: { data: WorkflowApp; onDelete?: () => void }) => {
   const { i18n, t } = useTranslation();
   const language = i18n.languages?.[0];
-  const navigate = useNavigate();
   const [isDeleting, setIsDeleting] = useState(false);
 
   const handleUnpublish = async (e: React.MouseEvent) => {
@@ -36,7 +34,7 @@ export const AppCard = ({ data, onDelete }: { data: WorkflowApp; onDelete?: () =
   };
 
   const handleView = () => {
-    navigate(`/app/${data.shareId}`);
+    window.open(`/app/${data.shareId}`, '_blank');
   };
 
   const handleViewButtonClick = (e: React.MouseEvent) => {

@@ -4,7 +4,8 @@ import { PreviewContextManager } from './preview-context-manager';
 import { useMemo, memo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { processQueryWithMentions } from '@refly/utils/query-processor';
-import { useFetchResources } from '@refly-packages/ai-workspace-common/hooks/use-fetch-resources';
+
+import { Resource } from '@refly/openapi-schema';
 
 const { Paragraph } = Typography;
 
@@ -18,12 +19,12 @@ interface PreviewChatInputProps {
   };
   setEditMode: (mode: boolean) => void;
   readonly?: boolean;
+  resources?: Resource[];
 }
 
 const PreviewChatInputComponent = (props: PreviewChatInputProps) => {
-  const { enabled, contextItems, query, readonly, setEditMode } = props;
+  const { enabled, contextItems, query, readonly, setEditMode, resources } = props;
   const { t } = useTranslation();
-  const { data: resources } = useFetchResources();
 
   // Function to render query with @variableName format as components
   const renderQueryWithVariables = useMemo(() => {

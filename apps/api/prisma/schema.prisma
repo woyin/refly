@@ -803,6 +803,8 @@ model WorkflowApp {
   templateContent String?   @map("template_content")
   /// Whether remix is enabled for this app
   remixEnabled    Boolean   @default(false) @map("remix_enabled")
+  /// Result node IDs
+  resultNodeIds   String[]  @default([]) @map("result_node_ids")
   /// Create timestamp
   createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz()
   /// Update timestamp
@@ -1262,6 +1264,8 @@ model CreditUsage {
   uid               String   @map("uid")
   /// Used credits amount
   amount            Int      @map("amount")
+  /// Expected used credits amount
+  dueAmount         Int      @default(0) @map("due_amount")
   /// Provider item ID that consumed the credits
   providerItemId    String?  @map("provider_item_id")
   /// Model name used
@@ -1270,6 +1274,8 @@ model CreditUsage {
   usageType         String   @default("model_call") @map("usage_type")
   /// Related action result ID (if applicable)
   actionResultId    String?  @map("action_result_id")
+  /// Action result version
+  version           Int?     @map("version")
   /// Related pilot session ID (if applicable)
   pilotSessionId    String?  @map("pilot_session_id")
   /// Usage description
@@ -1524,6 +1530,33 @@ model Toolset {
 
   @@index([uid, isGlobal, deletedAt])
   @@map("toolsets")
+}
+
+model ComposioConnection {
+  /// Primary key
+  pk                 BigInt    @id @default(autoincrement())
+  /// User ID (Refly)
+  uid                String    @map("uid")
+  /// Integration ID (e.g., 'gmail', 'slack', 'github')
+  integrationId      String    @map("integration_id")
+  /// Connected Account ID (from Composio)
+  connectedAccountId String    @map("connected_account_id")
+  /// Connection status
+  status             String    @default("active") @map("status")
+  /// Integration metadata (JSON)
+  metadata           String?   @map("metadata")
+  /// Token expiration timestamp
+  expiresAt          DateTime? @map("expires_at") @db.Timestamptz()
+  /// Create timestamp
+  createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+  /// Update timestamp
+  updatedAt          DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz()
+  /// Soft delete timestamp
+  deletedAt          DateTime? @map("deleted_at") @db.Timestamptz()
+
+  @@unique([uid, integrationId])
+  @@index([status])
+  @@map("composio_connections")
 }
 
 model ToolCallResult {

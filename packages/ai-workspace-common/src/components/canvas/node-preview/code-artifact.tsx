@@ -22,9 +22,13 @@ import { useSetNodeDataByEntity } from '@refly-packages/ai-workspace-common/hook
 
 interface CodeArtifactNodePreviewProps {
   nodeId: string;
+  purePreview?: boolean;
 }
 
-const CodeArtifactNodePreviewComponent = ({ nodeId }: CodeArtifactNodePreviewProps) => {
+const CodeArtifactNodePreviewComponent = ({
+  nodeId,
+  purePreview = false,
+}: CodeArtifactNodePreviewProps) => {
   const { t } = useTranslation();
   const [isShowingCodeViewer, setIsShowingCodeViewer] = useState(true);
   const { addNode } = useAddNode();
@@ -278,6 +282,7 @@ const CodeArtifactNodePreviewComponent = ({ nodeId }: CodeArtifactNodePreviewPro
             canvasReadOnly={canvasReadOnly}
             type={currentType as CodeArtifactType}
             showActions={true}
+            purePreview={purePreview}
           />
         )}
       </CodeViewerLayout>

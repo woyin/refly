@@ -1,41 +1,47 @@
-import { Injectable, Logger, Optional } from '@nestjs/common';
-import { InjectQueue } from '@nestjs/bullmq';
-import { Queue } from 'bullmq';
-import { ConfigService } from '@nestjs/config';
 import { DynamicStructuredTool, type StructuredToolInterface } from '@langchain/core/tools';
-import { PrismaService } from '../common/prisma.service';
-import { EncryptionService } from '../common/encryption.service';
-import { Prisma, Toolset as ToolsetPO, McpServer as McpServerPO } from '../../generated/client';
+import { InjectQueue } from '@nestjs/bullmq';
+import { Injectable, Logger, Optional } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import {
+  AnyToolsetClass,
+  BuiltinToolset,
+  BuiltinToolsetDefinition,
+  toolsetInventory,
+} from '@refly/agent-tools';
+import { extractToolsetsWithNodes } from '@refly/canvas-common';
+import { ParamsError, ToolsetNotFoundError } from '@refly/errors';
+import {
+  CanvasNode,
   DeleteToolsetRequest,
   DynamicConfigItem,
   GenericToolset,
   ListToolsData,
-  ToolsetDefinition,
   ToolsetAuthType,
+  ToolsetDefinition,
   UpsertToolsetRequest,
   User,
-  CanvasNode,
 } from '@refly/openapi-schema';
-import { genToolsetID, safeParseJSON, validateConfig } from '@refly/utils';
-import {
-  BuiltinToolset,
-  BuiltinToolsetDefinition,
-  toolsetInventory,
-  AnyToolsetClass,
-} from '@refly/agent-tools';
-import { ParamsError, ToolsetNotFoundError } from '@refly/errors';
-import { mcpServerPo2GenericToolset, toolsetPo2GenericToolset } from './tool.dto';
-import { McpServerService } from '../mcp-server/mcp-server.service';
-import { mcpServerPO2DTO } from '../mcp-server/mcp-server.dto';
 import {
   convertMcpServersToClientConfig,
   MultiServerMCPClient,
   SkillEngine,
 } from '@refly/skill-template';
-import { extractToolsetsWithNodes } from '@refly/canvas-common';
+import { genToolsetID, safeParseJSON, validateConfig } from '@refly/utils';
+import { Queue } from 'bullmq';
+import { McpServer as McpServerPO, Prisma, Toolset as ToolsetPO } from '../../generated/client';
 import { QUEUE_SYNC_TOOL_CREDIT_USAGE } from '../../utils/const';
+import { EncryptionService } from '../common/encryption.service';
+import { PrismaService } from '../common/prisma.service';
+import { CreditService } from '../credit/credit.service';
 import { SyncToolCreditUsageJobData } from '../credit/credit.dto';
+import { mcpServerPO2DTO } from '../mcp-server/mcp-server.dto';
+import { McpServerService } from '../mcp-server/mcp-server.service';
+import { ComposioService } from './composio/composio.service';
+import {
+  mcpServerPo2GenericToolset,
+  toolsetPo2GenericOAuthToolset,
+  toolsetPo2GenericToolset,
+} from './tool.dto';
 
 @Injectable()
 export class ToolService {
@@ -46,6 +52,8 @@ export class ToolService {
     private readonly encryptionService: EncryptionService,
     private readonly configService: ConfigService,
     private readonly mcpServerService: McpServerService,
+    private readonly composioService: ComposioService,
+    private readonly creditService: CreditService,
     @Optional()
     @InjectQueue(QUEUE_SYNC_TOOL_CREDIT_USAGE)
     private readonly toolCreditUsageQueue?: Queue<SyncToolCreditUsageJobData>,
@@ -108,6 +116,64 @@ export class ToolService {
     return [builtinToolset, ...toolsets.map(toolsetPo2GenericToolset)];
   }
 
+  async listExternalOAuthToolsets(user: User): Promise<GenericToolset[]> {
+    const externalToolset: GenericToolset = {
+      type: 'external_oauth',
+      id: 'external',
+      name: 'External OAuth',
+      builtin: false,
+      toolset: {
+        toolsetId: 'external',
+        key: 'external',
+        name: 'External',
+        definition: {
+          key: 'Authorize OAuth to start',
+          descriptionDict: {
+            en: 'Need to authorize OAuth in Tool Config',
+          },
+          tools: [],
+        },
+      },
+    };
+
+    const activeConnections =
+      (await this.prisma.composioConnection.findMany({
+        where: {
+          uid: user.uid,
+          status: 'active',
+          deletedAt: null,
+        },
+        select: {
+          integrationId: true,
+        },
+      })) ?? [];
+
+    const integrationIds = activeConnections
+      .map((conn) => conn.integrationId)
+      .filter((integrationId): integrationId is string => Boolean(integrationId));
+
+    if (integrationIds.length === 0) {
+      return [externalToolset];
+    }
+
+    const integrationKeys = integrationIds.map((integrationId) => `composio_${integrationId}`);
+
+    const oauthTools = await this.prisma.toolset.findMany({
+      where: {
+        uid: user.uid,
+        key: { in: integrationKeys },
+        authType: 'oauth',
+        enabled: true,
+        uninstalled: false,
+        deletedAt: null,
+      },
+    });
+
+    const oauthToolsets = oauthTools.map(toolsetPo2GenericOAuthToolset);
+
+    return [externalToolset, ...oauthToolsets];
+  }
+
   async listMcpTools(user: User, param?: ListToolsData['query']): Promise<GenericToolset[]> {
     const { isGlobal, enabled } = param ?? {};
     const servers = await this.mcpServerService.listMcpServers(user, {
@@ -128,44 +194,20 @@ export class ToolService {
   /**
    * Assemble OAuth authData from config and account table
    */
-  private async assembleOAuthAuthData(
-    user: User,
-    provider: string,
-  ): Promise<Record<string, unknown>> {
-    // Get clientId and clientSecret from config
-    const clientId = this.configService.get(`auth.${provider}.clientId`);
-    const clientSecret = this.configService.get(`auth.${provider}.clientSecret`);
-    const consumerKey = this.configService.get(`auth.${provider}.consumerKey`);
-    const consumerSecret = this.configService.get(`auth.${provider}.consumerSecret`);
-
-    if (!clientId || !clientSecret) {
-      throw new ParamsError(`OAuth config not found for provider: ${provider}`);
-    }
-
-    // Get refreshToken and accessToken from account table
-    const account = await this.prisma.account.findFirst({
+  private async verifyOAuthConn(user: User, appSlug: string): Promise<Record<string, unknown>> {
+    const connection = await this.prisma.composioConnection.findFirst({
       where: {
         uid: user.uid,
-        provider,
-        type: 'oauth',
-      },
-      orderBy: {
-        createdAt: 'desc',
+        integrationId: appSlug,
+        deletedAt: null,
       },
     });
 
-    if (!account) {
-      throw new ParamsError(`OAuth account not found for provider: ${provider}`);
+    if (connection) {
+      const metadata = connection.metadata ? safeParseJSON(connection.metadata) : undefined;
+      return metadata;
     }
-
-    return {
-      clientId,
-      clientSecret,
-      consumerKey,
-      consumerSecret,
-      refreshToken: account.refreshToken,
-      accessToken: account.accessToken,
-    };
+    throw new ParamsError(`Composio connection not found for appSlug: ${appSlug}`);
   }
 
   async createToolset(user: User, param: UpsertToolsetRequest): Promise<ToolsetPO> {
@@ -196,10 +238,7 @@ export class ToolService {
 
       // Handle OAuth type: assemble authData from config and account table
       if (authType === ('oauth' as ToolsetAuthType)) {
-        if (!param.provider) {
-          throw new ParamsError(`provider is required for oauth type toolset ${key}`);
-        }
-        finalAuthData = await this.assembleOAuthAuthData(user, param.provider);
+        finalAuthData = await this.verifyOAuthConn(user, param.key);
       } else {
         // For non-OAuth types, authData is required from request
         if (!authData) {
@@ -207,7 +246,6 @@ export class ToolService {
         }
         finalAuthData = authData;
       }
-
       // Validate authData against toolset schema (skip for OAuth type)
       if (authType !== ('oauth' as ToolsetAuthType)) {
         this.validateAuthData(finalAuthData, toolsetDefinition, authType);
@@ -242,6 +280,9 @@ export class ToolService {
       },
     });
 
+    // Set default creditBilling for OAuth toolsets
+    const creditBilling = authType === ('oauth' as ToolsetAuthType) ? '3' : null;
+
     // If there is any uninstalled toolset with the same key, update it to installed
     if (uninstalledToolset) {
       this.logger.log(
@@ -255,6 +296,7 @@ export class ToolService {
           authType,
           authData: encryptedAuthData,
           config: config ? JSON.stringify(config) : null,
+          creditBilling,
           uid: user.uid,
         },
       });
@@ -269,6 +311,7 @@ export class ToolService {
         authType,
         authData: encryptedAuthData,
         config: config ? JSON.stringify(config) : null,
+        creditBilling,
         uid: user.uid,
       },
     });
@@ -319,10 +362,7 @@ export class ToolService {
       // Handle OAuth type: assemble authData from config and account table
       const authType = param.authType ?? toolset.authType;
       if (authType === ('oauth' as ToolsetAuthType)) {
-        if (!param.provider) {
-          throw new ParamsError('provider is required for oauth type toolset update');
-        }
-        finalAuthData = await this.assembleOAuthAuthData(user, param.provider);
+        finalAuthData = await this.verifyOAuthConn(user, param.key);
       }
 
       // Validate authData against toolset schema (skip for OAuth type)
@@ -591,6 +631,8 @@ export class ToolService {
         importedToolset = await this.importRegularToolset(user, toolset);
       } else if (toolset.type === 'mcp') {
         importedToolset = await this.importMcpToolset(user, toolset);
+      } else if (toolset.type === 'external_oauth') {
+        importedToolset = await this.importOAuthToolset(user, toolset);
       } else {
         this.logger.warn(`Unknown toolset type: ${toolset.type}, skipping`);
       }
@@ -721,6 +763,38 @@ export class ToolService {
     };
   }
 
+  private async importOAuthToolset(
+    user: User,
+    toolset: GenericToolset,
+  ): Promise<GenericToolset | null> {
+    const integrationId = toolset.toolset?.key;
+    const activeConnection = await this.prisma.composioConnection.findFirst({
+      where: {
+        uid: user.uid,
+        integrationId,
+        status: 'active',
+        deletedAt: null,
+      },
+    });
+
+    if (!activeConnection) {
+      return null;
+    }
+
+    const existingToolset = await this.prisma.toolset.findFirst({
+      where: {
+        uid: user.uid,
+        key: integrationId,
+        authType: 'oauth',
+        deletedAt: null,
+      },
+    });
+    if (!existingToolset) {
+      return null;
+    }
+    return toolsetPo2GenericOAuthToolset(existingToolset);
+  }
+
   /**
    * Validate config against the toolset's config schema
    */
@@ -747,15 +821,16 @@ export class ToolService {
     const regularToolsets = toolsets.filter((t) => t.type === 'regular' && t.id !== 'builtin');
     const mcpServers = toolsets.filter((t) => t.type === 'mcp');
 
-    const [regularTools, mcpTools] = await Promise.all([
+    const [regularTools, mcpTools, oauthToolsets] = await Promise.all([
       this.instantiateRegularToolsets(user, regularToolsets, engine),
       this.instantiateMcpServers(user, mcpServers),
+      this.instantiateOAuthToolsets(user, toolsets),
     ]);
-
     return [
       ...builtinTools,
       ...(Array.isArray(regularTools) ? regularTools : []),
       ...(Array.isArray(mcpTools) ? mcpTools : []),
+      ...(Array.isArray(oauthToolsets) ? oauthToolsets : []),
     ];
   }
 
@@ -802,8 +877,17 @@ export class ToolService {
     const toolsetPOs = await this.prisma.toolset.findMany({
       where: {
         toolsetId: { in: toolsets.map((t) => t.id) },
-        OR: [{ uid: user.uid }, { isGlobal: true }],
         deletedAt: null,
+        OR: [
+          {
+            uid: user.uid,
+            OR: [{ authType: { not: 'oauth' } }, { authType: null }],
+          },
+          {
+            isGlobal: true,
+            OR: [{ authType: { not: 'oauth' } }, { authType: null }],
+          },
+        ],
       },
     });
 
@@ -833,27 +917,23 @@ export class ToolService {
               name: `${toolset.definition.key}_${tool.name}`,
               description: tool.description,
               schema: tool.schema,
-              func: async (input) => {
+              func: async (input, _config) => {
                 const result = await tool.invoke(input);
                 const isGlobal = t?.isGlobal ?? false;
                 const creditCost = (result as any)?.creditCost ?? 0;
-                if (
-                  isGlobal &&
-                  result?.status !== 'error' &&
-                  creditCost > 0 &&
-                  this.toolCreditUsageQueue
-                ) {
+                const resultId = (_config as any)?.metadata?.resultId as string;
+                const version = (_config as any)?.metadata?.version as number;
+                if (isGlobal && result?.status !== 'error' && creditCost > 0) {
                   const jobData: SyncToolCreditUsageJobData = {
                     uid: user.uid,
                     creditCost,
                     timestamp: new Date(),
                     toolsetName: t?.name ?? (toolset.definition.labelDict?.en as string) ?? t?.key,
                     toolName: tool.name,
+                    resultId,
+                    version,
                   };
-                  await this.toolCreditUsageQueue.add(
-                    `tool_credit_usage:${user.uid}:${toolset.definition.key}:${tool.name}`,
-                    jobData,
-                  );
+                  await this.creditService.syncToolCreditUsage(jobData);
                 }
                 return result;
               },
@@ -936,5 +1016,12 @@ export class ToolService {
       }
       return [];
     }
+  }
+
+  private async instantiateOAuthToolsets(
+    user: User,
+    toolsets: GenericToolset[],
+  ): Promise<StructuredToolInterface[]> {
+    return this.composioService.instantiateOAuthToolsets(user, toolsets);
   }
 }

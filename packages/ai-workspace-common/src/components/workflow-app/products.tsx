@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { useMemo, useState, useCallback, useEffect } from 'react';
+import { useMemo, useState, useCallback, useEffect, useRef } from 'react';
 
 import { CanvasNodeData, WorkflowNodeExecution } from '@refly/openapi-schema';
 import { Empty, Modal } from 'antd';
@@ -10,6 +10,8 @@ import { safeParseJSON } from '@refly/utils/parse';
 
 export const WorkflowAppProducts = ({ products }: { products: WorkflowNodeExecution[] }) => {
   const { t } = useTranslation();
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [itemsPerRow, setItemsPerRow] = useState<number>(2);
 
   // State for fullscreen modal
   const [fullscreenNode, setFullscreenNode] = useState<NodeRelation | null>(null);
@@ -92,32 +94,72 @@ export const WorkflowAppProducts = ({ products }: { products: WorkflowNodeExecut
     return () => window.removeEventListener('keydown', handleEscapeKey);
   }, [wideMode.isActive, handleCloseWideMode]);
 
+  // Calculate items per row based on container width
+  useEffect(() => {
+    if (containerRef.current) {
+      const calculateItemsPerRow = () => {
+        const containerWidth = containerRef.current?.offsetWidth ?? 0;
+        const gap = 16; // gap-4 = 16px
+        // Assume minimum item width is approximately half of container for 2-column layout
+        // Use a threshold to determine when to switch to 1 column
+        // If container can fit 2 items with gap: 2 * minWidth + gap
+        const minItemWidthForTwo = 300; // Minimum width for each item in 2-column layout
+
+        if (containerWidth >= 2 * minItemWidthForTwo + gap) {
+          setItemsPerRow(2);
+        } else {
+          setItemsPerRow(1);
+        }
+      };
+
+      // Initial calculation
+      calculateItemsPerRow();
+
+      // Use ResizeObserver to watch for container size changes
+      const resizeObserver = new ResizeObserver(() => {
+        calculateItemsPerRow();
+      });
+
+      resizeObserver.observe(containerRef.current);
+
+      return () => {
+        resizeObserver.disconnect();
+      };
+    }
+  }, []);
+
   return (
-    <div className="w-full h-full flex flex-col gap-2">
+    <div ref={containerRef} className="w-full h-full">
       {products?.length === 0 ? (
         <div className="w-full h-full flex items-center justify-center">
           <Empty description={t('workflowApp.emptyLogs')} image={Empty.PRESENTED_IMAGE_SIMPLE} />
         </div>
       ) : (
-        <>
-          {transformedNodes?.map((node, index) => (
-            <div
-              key={node.relationId || `content-${index}`}
-              id={`content-block-${index}`}
-              className={`transition-all duration-300 h-[400px] rounded-lg bg-white dark:bg-gray-900 ${'shadow-refly-m hover:shadow-lg dark:hover:shadow-gray-600'}`}
-            >
-              <NodeRenderer
-                node={node}
-                key={node.relationId}
-                isFocused={true} // Allow interaction with the content
-                fromProducts={true}
-                onWideMode={handleWideMode}
-              />
-            </div>
-          ))}
+        <div className={`grid gap-4 ${itemsPerRow === 2 ? 'grid-cols-2' : 'grid-cols-1'}`}>
+          {transformedNodes?.map((node, index) => {
+            const isLastItem = index === (transformedNodes?.length ?? 0) - 1;
+            const isOddLastItem = isLastItem && (transformedNodes?.length ?? 0) % 2 === 1;
+            const shouldSpanFullRow = itemsPerRow === 2 && isOddLastItem;
 
-          {/* <EndMessage /> */}
-        </>
+            return (
+              <div
+                key={node.relationId || `content-${index}`}
+                id={`content-block-${index}`}
+                className={`transition-all duration-300 h-[248px] overflow-hidden bg-white dark:bg-gray-900 rounded-xl border border-green-600 shadow-[0_2px_20px_4px_rgba(0,0,0,0.04)] ${
+                  shouldSpanFullRow ? 'col-span-2' : ''
+                }`}
+              >
+                <NodeRenderer
+                  node={node}
+                  key={node.relationId}
+                  isFocused={true} // Allow interaction with the content
+                  fromProducts={true}
+                  onWideMode={handleWideMode}
+                />
+              </div>
+            );
+          })}
+        </div>
       )}
 
       {/* Fullscreen Modal */}
@@ -127,7 +169,8 @@ export const WorkflowAppProducts = ({ products }: { products: WorkflowNodeExecut
         closable={false}
         onCancel={handleCloseFullscreen}
         width="100%"
-        style={{ top: 0, padding: 0, maxWidth: '100vw' }}
+        className="fullscreen-modal top-0 p-0 max-w-screen"
+        wrapClassName="fullscreen-modal-wrap"
         styles={{
           body: {
             height: '100vh',
@@ -138,8 +181,6 @@ export const WorkflowAppProducts = ({ products }: { products: WorkflowNodeExecut
             background: 'rgba(0, 0, 0, 0.85)',
           },
         }}
-        className="fullscreen-modal"
-        wrapClassName="fullscreen-modal-wrap"
       >
         <div className="bg-black h-full w-full flex flex-col">
           {fullscreenNode && (
@@ -162,7 +203,7 @@ export const WorkflowAppProducts = ({ products }: { products: WorkflowNodeExecut
           footer={null}
           onCancel={handleCloseWideMode}
           width="85%"
-          style={{ top: 20 }}
+          className="wide-mode-modal top-5"
           styles={{
             body: {
               maxHeight: 'calc(100vh - 100px)',
@@ -173,7 +214,6 @@ export const WorkflowAppProducts = ({ products }: { products: WorkflowNodeExecut
               background: 'rgba(0, 0, 0, 0.65)',
             },
           }}
-          className="wide-mode-modal"
           closeIcon={<CloseCircleOutlined className="text-gray-500 hover:text-red-500" />}
         >
           <div className="bg-white h-full w-full flex flex-col rounded-lg overflow-hidden dark:bg-gray-900">

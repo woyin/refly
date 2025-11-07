@@ -1,4 +1,4 @@
-import { useEffect, useCallback, useMemo, memo, useState, useRef } from 'react';
+import { useEffect, useCallback, useMemo, memo, useState } from 'react';
 import { time } from '@refly-packages/ai-workspace-common/utils/time';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from '@refly-packages/ai-workspace-common/utils/router';
@@ -19,6 +19,7 @@ import { useCreateCanvas } from '@refly-packages/ai-workspace-common/hooks/canva
 import { ListOrder, ShareRecord, ShareUser } from '@refly/openapi-schema';
 import { UsedToolsets } from '@refly-packages/ai-workspace-common/components/workflow-list/used-toolsets';
 import defaultAvatar from '@refly-packages/ai-workspace-common/assets/refly_default_avatar.png';
+import { useDebouncedCallback } from 'use-debounce';
 
 const WorkflowList = memo(() => {
   const { t, i18n } = useTranslation();
@@ -26,7 +27,6 @@ const WorkflowList = memo(() => {
   const language = i18n.languages?.[0];
   const [searchValue, setSearchValue] = useState('');
   const [debouncedSearchValue, setDebouncedSearchValue] = useState('');
-  const debounceTimeoutRef = useRef<NodeJS.Timeout>();
 
   const [orderType, setOrderType] = useState<ListOrder>('updationDesc');
 
@@ -47,21 +47,13 @@ const WorkflowList = memo(() => {
     dependencies: [orderType, debouncedSearchValue],
   });
 
+  const debouncedSetSearchValue = useDebouncedCallback((value: string) => {
+    setDebouncedSearchValue(value);
+  }, 300);
+
   // Debounce search value changes
   useEffect(() => {
-    if (debounceTimeoutRef.current) {
-      clearTimeout(debounceTimeoutRef.current);
-    }
-
-    debounceTimeoutRef.current = setTimeout(() => {
-      setDebouncedSearchValue(searchValue);
-    }, 300); // 300ms debounce delay
-
-    return () => {
-      if (debounceTimeoutRef.current) {
-        clearTimeout(debounceTimeoutRef.current);
-      }
-    };
+    debouncedSetSearchValue(searchValue);
   }, [searchValue]);
 
   const handleOrderType = useCallback(() => {

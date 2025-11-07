@@ -15,9 +15,13 @@ import {
   getCanvasTransactions,
   getCodeArtifactDetail,
   getCollabToken,
+  getComposioConnectionStatus,
   getCreditBalance,
   getCreditRecharge,
   getCreditUsage,
+  getCreditUsageByCanvasId,
+  getCreditUsageByExecutionId,
+  getCreditUsageByResultId,
   getDocumentDetail,
   getPageByCanvasId,
   getPageDetail,
@@ -69,7 +73,11 @@ import {
   GetCanvasStateData,
   GetCanvasTransactionsData,
   GetCodeArtifactDetailData,
+  GetComposioConnectionStatusData,
   GetCreditRechargeData,
+  GetCreditUsageByCanvasIdData,
+  GetCreditUsageByExecutionIdData,
+  GetCreditUsageByResultIdData,
   GetCreditUsageData,
   GetDocumentDetailData,
   GetPageByCanvasIdData,
@@ -456,6 +464,31 @@ export const ensureUseGetCreditBalanceData = (
     queryKey: Common.UseGetCreditBalanceKeyFn(clientOptions),
     queryFn: () => getCreditBalance({ ...clientOptions }).then((response) => response.data),
   });
+export const ensureUseGetCreditUsageByResultIdData = (
+  queryClient: QueryClient,
+  clientOptions: Options<GetCreditUsageByResultIdData, true>,
+) =>
+  queryClient.ensureQueryData({
+    queryKey: Common.UseGetCreditUsageByResultIdKeyFn(clientOptions),
+    queryFn: () => getCreditUsageByResultId({ ...clientOptions }).then((response) => response.data),
+  });
+export const ensureUseGetCreditUsageByExecutionIdData = (
+  queryClient: QueryClient,
+  clientOptions: Options<GetCreditUsageByExecutionIdData, true>,
+) =>
+  queryClient.ensureQueryData({
+    queryKey: Common.UseGetCreditUsageByExecutionIdKeyFn(clientOptions),
+    queryFn: () =>
+      getCreditUsageByExecutionId({ ...clientOptions }).then((response) => response.data),
+  });
+export const ensureUseGetCreditUsageByCanvasIdData = (
+  queryClient: QueryClient,
+  clientOptions: Options<GetCreditUsageByCanvasIdData, true>,
+) =>
+  queryClient.ensureQueryData({
+    queryKey: Common.UseGetCreditUsageByCanvasIdKeyFn(clientOptions),
+    queryFn: () => getCreditUsageByCanvasId({ ...clientOptions }).then((response) => response.data),
+  });
 export const ensureUseGetSubscriptionPlansData = (
   queryClient: QueryClient,
   clientOptions: Options<unknown, true> = {},
@@ -527,6 +560,15 @@ export const ensureUseListToolsetsData = (
   queryClient.ensureQueryData({
     queryKey: Common.UseListToolsetsKeyFn(clientOptions),
     queryFn: () => listToolsets({ ...clientOptions }).then((response) => response.data),
+  });
+export const ensureUseGetComposioConnectionStatusData = (
+  queryClient: QueryClient,
+  clientOptions: Options<GetComposioConnectionStatusData, true>,
+) =>
+  queryClient.ensureQueryData({
+    queryKey: Common.UseGetComposioConnectionStatusKeyFn(clientOptions),
+    queryFn: () =>
+      getComposioConnectionStatus({ ...clientOptions }).then((response) => response.data),
   });
 export const ensureUseServeStaticData = (
   queryClient: QueryClient,

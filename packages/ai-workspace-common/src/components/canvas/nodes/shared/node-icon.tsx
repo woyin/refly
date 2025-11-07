@@ -105,7 +105,7 @@ export const NodeIcon: NamedExoticComponent<NodeIconProps> = memo(
     className,
     iconColor = 'white',
     iconSize,
-    small = false,
+    small = true,
     filled = true,
     url,
     resourceType,

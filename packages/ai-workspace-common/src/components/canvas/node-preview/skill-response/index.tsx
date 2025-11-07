@@ -8,6 +8,7 @@ import { useActionPolling } from '@refly-packages/ai-workspace-common/hooks/canv
 import { useDeleteNode } from '@refly-packages/ai-workspace-common/hooks/canvas/use-delete-node';
 import { useInvokeAction } from '@refly-packages/ai-workspace-common/hooks/canvas/use-invoke-action';
 import { useFetchShareData } from '@refly-packages/ai-workspace-common/hooks/use-fetch-share-data';
+import { useFetchResources } from '@refly-packages/ai-workspace-common/hooks/use-fetch-resources';
 import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
 import { processContentPreview } from '@refly-packages/ai-workspace-common/utils/content';
 import {
@@ -37,12 +38,17 @@ import { PreviewChatInput } from './preview-chat-input';
 interface SkillResponseNodePreviewProps {
   node: CanvasNode<ResponseNodeMeta>;
   resultId: string;
+  purePreview?: boolean;
 }
 
 const OUTPUT_STEP_NAMES = ['answerQuestion', 'generateDocument', 'generateCodeArtifact'];
 const EMPTY_TOOLSET: GenericToolset = { id: 'empty', type: 'regular', name: 'empty' };
 
-const SkillResponseNodePreviewComponent = ({ node, resultId }: SkillResponseNodePreviewProps) => {
+const SkillResponseNodePreviewComponent = ({
+  node,
+  resultId,
+  purePreview,
+}: SkillResponseNodePreviewProps) => {
   const { result, isStreaming, updateActionResult } = useActionResultStoreShallow((state) => ({
     result: state.resultMap[resultId],
     isStreaming: !!state.streamResults[resultId],
@@ -79,7 +85,7 @@ const SkillResponseNodePreviewComponent = ({ node, resultId }: SkillResponseNode
   }, [nodeSelectedToolsets]);
 
   useEffect(() => {
-    if (shareData && !result && shareData.resultId === resultId) {
+    if (shareData && !result && shareData?.resultId === resultId) {
       updateActionResult(resultId, shareData);
       setLoading(false);
     }
@@ -129,13 +135,13 @@ const SkillResponseNodePreviewComponent = ({ node, resultId }: SkillResponseNode
     if (isStreaming) {
       return;
     }
-    if (!shareId) {
+    if (!!resultId && shareData?.resultId !== resultId) {
       // Always refresh in background to keep store up-to-date
       fetchActionResult(resultId, { silent: !!result });
     } else if (result) {
       setLoading(false);
     }
-  }, [resultId, shareId, isStreaming]);
+  }, [resultId, shareId, isStreaming, shareData, node?.data?.metadata?.status]);
 
   const scrollToBottom = useCallback(
     (event: { resultId: string; payload: ActionResult }) => {
@@ -274,7 +280,26 @@ const SkillResponseNodePreviewComponent = ({ node, resultId }: SkillResponseNode
 
   const outputStep = steps.find((step) => OUTPUT_STEP_NAMES.includes(step.name));
 
-  return (
+  const { data: resources } = useFetchResources();
+
+  return purePreview ? (
+    !result && !loading ? (
+      <div className="h-full w-full flex items-center justify-center">
+        <Result
+          status="404"
+          subTitle={t('canvas.skillResponse.resultNotFound')}
+          extra={<Button onClick={handleDelete}>{t('canvas.nodeActions.delete')}</Button>}
+        />
+      </div>
+    ) : (
+      <ActionStepCard
+        result={result}
+        step={outputStep}
+        status={result?.status}
+        query={currentQuery ?? title ?? ''}
+      />
+    )
+  ) : (
     <div
       className="flex flex-col gap-4 h-full w-full max-w-[1024px] mx-auto overflow-hidden"
       onClick={() => {
@@ -283,38 +308,41 @@ const SkillResponseNodePreviewComponent = ({ node, resultId }: SkillResponseNode
         }
       }}
     >
-      <div className="px-4 pt-4">
-        <EditChatInput
-          enabled={editMode}
-          resultId={resultId}
-          version={version}
-          contextItems={contextItems}
-          query={currentQuery}
-          actionMeta={actionMeta}
-          modelInfo={
-            modelInfo ?? {
-              name: '',
-              label: '',
-              provider: '',
-              contextLimit: 0,
-              maxOutput: 0,
+      {
+        <div className="px-4 pt-4">
+          <EditChatInput
+            enabled={editMode}
+            resultId={resultId}
+            version={version}
+            contextItems={contextItems}
+            query={currentQuery}
+            actionMeta={actionMeta}
+            modelInfo={
+              modelInfo ?? {
+                name: '',
+                label: '',
+                provider: '',
+                contextLimit: 0,
+                maxOutput: 0,
+              }
             }
-          }
-          setEditMode={setEditMode}
-          runtimeConfig={runtimeConfig}
-          onQueryChange={setCurrentQuery}
-          selectedToolsets={selectedToolsets}
-          setSelectedToolsets={setSelectedToolsets}
-        />
-        <PreviewChatInput
-          enabled={!editMode}
-          readonly={readonly}
-          contextItems={contextItems}
-          query={currentQuery}
-          actionMeta={actionMeta}
-          setEditMode={setEditMode}
-        />
-      </div>
+            setEditMode={setEditMode}
+            runtimeConfig={runtimeConfig}
+            onQueryChange={setCurrentQuery}
+            selectedToolsets={selectedToolsets}
+            setSelectedToolsets={setSelectedToolsets}
+          />
+          <PreviewChatInput
+            enabled={!editMode}
+            readonly={readonly}
+            contextItems={contextItems}
+            query={currentQuery}
+            actionMeta={actionMeta}
+            setEditMode={setEditMode}
+            resources={resources}
+          />
+        </div>
+      }
 
       <div className="flex-1 min-h-0 overflow-y-auto px-4">
         {!result && !loading ? (
@@ -367,7 +395,14 @@ const SkillResponseNodePreviewComponent = ({ node, resultId }: SkillResponseNode
       </div>
 
       {outputStep && result?.status === 'finish' && (
-        <ActionContainer result={result} step={outputStep} nodeId={node.id} />
+        <ActionContainer
+          result={result}
+          step={outputStep}
+          nodeId={node.id}
+          initSelectedToolsets={
+            nodeSelectedToolsets?.length > 0 ? nodeSelectedToolsets : [EMPTY_TOOLSET]
+          }
+        />
       )}
 
       {knowledgeBaseStore?.sourceListDrawerVisible ? (

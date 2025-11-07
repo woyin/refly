@@ -79,9 +79,9 @@ export const NodeBlockHeader: React.FC<NodeBlockHeaderProps> = memo(
     }
 
     return (
-      <div className="flex justify-between items-center py-2 px-4 border-b border-[#EAECF0] relative">
+      <div className="flex justify-between items-center py-4 px-3 rounded-lg relative">
         {/* Left: Icon and Title */}
-        <div className="flex items-center gap-2 flex-grow overflow-hidden">
+        <div className="flex items-center gap-2 flex-grow overflow-hidden h-5">
           <div className="flex-grow overflow-hidden">
             <NodeHeader
               source="preview"
@@ -95,7 +95,7 @@ export const NodeBlockHeader: React.FC<NodeBlockHeaderProps> = memo(
         </div>
 
         {/* Right: Action Buttons */}
-        <div className="flex items-center gap-1 flex-shrink-0">
+        <div className="flex items-center gap-1 flex-shrink-0 h-5">
           {rightActions}
           {onWideMode && (
             <Button

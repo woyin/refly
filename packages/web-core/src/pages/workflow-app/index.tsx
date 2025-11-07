@@ -1,6 +1,6 @@
 import React, { memo, useCallback, useMemo, useState, useEffect } from 'react';
 import { useFetchShareData } from '@refly-packages/ai-workspace-common/hooks/use-fetch-share-data';
-import { message, Segmented, notification, Skeleton } from 'antd';
+import { message, notification, Skeleton } from 'antd';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { CanvasNodeType, WorkflowNodeExecution, WorkflowVariable } from '@refly/openapi-schema';
@@ -8,7 +8,6 @@ import { GithubStar } from '@refly-packages/ai-workspace-common/components/commo
 import { Logo } from '@refly-packages/ai-workspace-common/components/common/logo';
 import { WorkflowAppProducts } from '@refly-packages/ai-workspace-common/components/workflow-app/products';
 import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
-import { WorkflowRunForm } from '@refly-packages/ai-workspace-common/components/canvas/workflow-run/workflow-run-form';
 import { useWorkflowExecutionPolling } from '@refly-packages/ai-workspace-common/hooks/use-workflow-execution-polling';
 import { ReactFlowProvider } from '@refly-packages/ai-workspace-common/components/canvas';
 import SettingModal from '@refly-packages/ai-workspace-common/components/settings';
@@ -25,6 +24,8 @@ import { Helmet } from 'react-helmet';
 import FooterSection from '@refly-packages/ai-workspace-common/components/workflow-app/FooterSection';
 import WhyChooseRefly from './WhyChooseRefly';
 import { SettingItem } from '@refly-packages/ai-workspace-common/components/sider/layout';
+import { SelectedResultsGrid } from '@refly-packages/ai-workspace-common/components/workflow-app/selected-results-grid';
+import { WorkflowAPPForm } from './workflow-app-form';
 
 // User Avatar component for header
 const UserAvatar = () => {
@@ -52,6 +53,7 @@ const WorkflowAppPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<string>('runLogs');
   const [finalNodeExecutions, setFinalNodeExecutions] = useState<any[]>([]);
   const [isRunning, setIsRunning] = useState(false);
+  const [executionCreditUsage, setExecutionCreditUsage] = useState<number | null>(null);
 
   // Settings modal state
   const { showSettingModal, setShowSettingModal } = useSiderStoreShallow((state) => ({
@@ -71,7 +73,12 @@ const WorkflowAppPage: React.FC = () => {
   const { refetchUsage } = useSubscriptionUsage();
 
   // Use shareId to directly access static JSON file
-  const { data: workflowApp, loading: isLoading } = useFetchShareData(shareId);
+  const { data: workflowApp, loading: isLoading } = useFetchShareData(shareId, {
+    cache: 'no-store',
+    headers: {
+      'Cache-Control': 'no-store',
+    },
+  });
 
   // Track enter_template_page event when page loads
   useEffect(() => {
@@ -89,13 +96,14 @@ const WorkflowAppPage: React.FC = () => {
     enabled: true,
     interval: 1000,
 
-    onComplete: (status, data) => {
+    onComplete: async (status, data) => {
       // Save final nodeExecutions before clearing executionId
       if (data?.data?.nodeExecutions) {
         setFinalNodeExecutions(data.data.nodeExecutions);
       }
 
       // Clear executionId when workflow completes or fails
+      const currentExecutionId = executionId;
       setExecutionId(null);
 
       // Reset running state when workflow completes
@@ -104,6 +112,22 @@ const WorkflowAppPage: React.FC = () => {
 
       // Refresh credit balance after workflow completion
       refetchUsage();
+
+      // Fetch execution credit usage if workflow completed successfully
+      if (status === 'finish' && currentExecutionId) {
+        try {
+          const response = await getClient().getCreditUsageByExecutionId({
+            query: {
+              executionId: currentExecutionId,
+            },
+          });
+          if (response?.data?.data?.total) {
+            setExecutionCreditUsage(response.data.data.total);
+          }
+        } catch (error) {
+          console.error('Failed to fetch execution credit usage:', error);
+        }
+      }
 
       if (status === 'finish') {
         notification.success({
@@ -153,13 +177,15 @@ const WorkflowAppPage: React.FC = () => {
 
   const products = useMemo(() => {
     return nodeExecutions
-      .filter((nodeExecution: WorkflowNodeExecution) =>
-        ['document', 'codeArtifact', 'image', 'video', 'audio'].includes(
-          nodeExecution.nodeType as CanvasNodeType,
-        ),
+      .filter(
+        (nodeExecution: WorkflowNodeExecution) =>
+          ['document', 'codeArtifact', 'image', 'video', 'audio', 'skillResponse'].includes(
+            nodeExecution.nodeType as CanvasNodeType,
+          ) &&
+          (workflowApp?.resultNodeIds?.includes(nodeExecution.nodeId) ?? false),
       )
       .filter((nodeExecution: WorkflowNodeExecution) => nodeExecution.status === 'finish');
-  }, [nodeExecutions]);
+  }, [nodeExecutions, workflowApp?.resultNodeIds]);
 
   useEffect(() => {
     products.length > 0 && setActiveTab('products');
@@ -271,32 +297,19 @@ const WorkflowAppPage: React.FC = () => {
     }
   }, [t, shareId]);
 
-  const segmentedOptions = useMemo(() => {
-    return [
-      // {
-      //   label: t('workflowApp.runLogs'),
-      //   value: 'runLogs',
-      // },
-      {
-        label: t('workflowApp.products'),
-        value: 'products',
-      },
-    ];
-  }, [t]);
-
   return (
     <ReactFlowProvider>
       <CanvasProvider readonly={true} canvasId={workflowApp?.canvasData?.canvasId ?? ''}>
         <style>
           {`
-            .refly.ant-layout {
+          .refly.ant-layout {
               background-color: var(--refly-bg-content-z2);
               margin: 0px;
               border-radius: 0px;
               height: 100vh
             }
             .dark .refly.ant-layout {
-              background-color: var(--refly-bg-content-z2);
+              background: var(--bg---refly-bg-body-z0, #0E0E0E);
             }
           `}
         </style>
@@ -305,7 +318,7 @@ const WorkflowAppPage: React.FC = () => {
             className={`relative flex flex-col shrink-0 h-[300px] ${
               workflowApp?.coverUrl
                 ? 'bg-cover bg-center bg-no-repeat'
-                : 'bg-[var(--refly-bg-content-z2)]'
+                : 'bg-[var(--refly-bg-content-z2)] dark:bg-[var(--bg---refly-bg-body-z0,#0E0E0E)]'
             }`}
             style={
               workflowApp?.coverUrl
@@ -317,15 +330,13 @@ const WorkflowAppPage: React.FC = () => {
           >
             {/* Gradient overlay - only shown when cover image exists */}
             {workflowApp?.coverUrl && (
-              <div className="absolute inset-0 bg-gradient-to-b from-white/30 to-white dark:from-black/30 dark:to-black backdrop-blur-[20px] pointer-events-none" />
+              <div className="absolute inset-0 bg-gradient-to-b from-white/30 to-white dark:from-[rgba(25,25,25,0.25)] dark:to-[#0E0E0E] backdrop-blur-[20px] pointer-events-none" />
             )}
-
             <Helmet>
               <title>{workflowApp?.title ?? ''}</title>
             </Helmet>
-
             {/* Header - Fixed at top with full transparency */}
-            <div className=" top-0 left-0 right-0 z-50 border-b border-white/20 dark:border-[var(--refly-semi-color-border)] h-[64px]">
+            <div className="fixed top-0 left-0 right-0 z-50 border-b border-white/20 dark:border-[var(--refly-semi-color-border)] h-[64px]">
               <div className="relative mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="flex items-center justify-between h-16">
                   <div className="flex items-center gap-3">
@@ -336,7 +347,6 @@ const WorkflowAppPage: React.FC = () => {
                 </div>
               </div>
             </div>
-
             {/* Main Content - flex-1 to take remaining space with top padding for fixed header */}
             <div className="flex-1 pt-16 relative z-10">
               <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
@@ -356,7 +366,7 @@ const WorkflowAppPage: React.FC = () => {
 
                     {/* Workflow Form */}
                     <div className="mb-6 sm:mb-8 relative z-20">
-                      <WorkflowRunForm
+                      <WorkflowAPPForm
                         workflowApp={workflowApp}
                         workflowVariables={workflowVariables}
                         onSubmitVariables={onSubmit}
@@ -365,6 +375,7 @@ const WorkflowAppPage: React.FC = () => {
                         onCopyShareLink={handleCopyShareLink}
                         isRunning={isRunning}
                         templateContent={workflowApp?.templateContent}
+                        executionCreditUsage={executionCreditUsage}
                         className="max-h-[500px] sm:max-h-[600px] bg-[var(--refly-bg-float-z3)] dark:bg-[var(--refly-bg-content-z2)] border border-[var(--refly-Card-Border)] dark:border-[var(--refly-semi-color-border)] shadow-[0_2px_20px_4px_rgba(0,0,0,0.04)] dark:shadow-[0_2px_20px_4px_rgba(0,0,0,0.2)] px-4 py-3 rounded-2xl"
                       />
                     </div>
@@ -373,19 +384,26 @@ const WorkflowAppPage: React.FC = () => {
                       <>
                         {/* Tabs */}
                         {products.length > 0 && (
-                          <div className="mb-4 sm:mb-6 flex justify-center relative z-20">
-                            <Segmented
-                              className="max-w-sm sm:max-w-md mx-auto"
-                              shape="round"
-                              options={segmentedOptions}
-                              value={activeTab}
-                              onChange={(value) => setActiveTab(value)}
-                            />
+                          <div
+                            className="text-center text-[var(--refly-text-0)] dark:text-[var(--refly-text-StaticWhite)] mb-[15px] mt-[40px]"
+                            style={{
+                              fontFamily: 'PingFang SC',
+                              fontWeight: 600,
+                              fontSize: '14px',
+                              lineHeight: '1.4285714285714286em',
+                            }}
+                          >
+                            {!!executionCreditUsage && executionCreditUsage > 0
+                              ? t('workflowApp.productsGeneratedWithCost', {
+                                  count: products.length,
+                                  executionCost: executionCreditUsage ?? 0,
+                                })
+                              : t('workflowApp.productsGenerated', { count: products.length })}
                           </div>
                         )}
 
                         {/* Content Area */}
-                        <div className="bg-[var(--refly-bg-float-z3)] dark:bg-[var(--refly-bg-content-z2)] rounded-lg border border-[var(--refly-Card-Border)] dark:border-[var(--refly-semi-color-border)] relative z-20">
+                        <div className="bg-[var(--refly-bg-float-z3)] rounded-lg border border-[var(--refly-Card-Border)] dark:bg-[var(--bg---refly-bg-body-z0,#0E0E0E)] relative z-20">
                           {activeTab === 'products' ? (
                             <WorkflowAppProducts products={products || []} />
                           ) : activeTab ===
@@ -400,9 +418,44 @@ const WorkflowAppPage: React.FC = () => {
               </div>
             </div>
 
+            <div
+              className="w-full max-w-[860px] mx-auto rounded-lg py-3 px-4 bg-[var(--refly-bg-content-z2)] dark:bg-[var(--bg---refly-bg-body-z0,#0E0E0E)]"
+              style={{
+                borderColor: 'var(--refly-Card-Border)',
+                marginTop: '50px',
+              }}
+            >
+              {/* results grid */}
+              {workflowApp?.resultNodeIds?.length > 0 && (
+                <div
+                  className="flex flex-col"
+                  style={{
+                    gap: '10px',
+                  }}
+                >
+                  <div
+                    className="text-center text-[var(--refly-text-0)] dark:text-[var(--refly-text-StaticWhite)]"
+                    style={{
+                      fontFamily: 'PingFang SC',
+                      fontWeight: 600,
+                      fontSize: '14px',
+                      lineHeight: '1.4285714285714286em',
+                    }}
+                  >
+                    {t('workflowApp.resultPreview')}
+                  </div>
+                  <SelectedResultsGrid
+                    fillRow
+                    bordered
+                    selectedResults={workflowApp?.resultNodeIds ?? []}
+                    options={workflowApp?.canvasData?.nodes || []}
+                  />
+                </div>
+              )}
+            </div>
+
             {/* Why Choose Refly Section */}
             <WhyChooseRefly />
-
             {/* Footer Section - always at bottom */}
             <FooterSection />
           </div>

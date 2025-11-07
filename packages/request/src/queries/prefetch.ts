@@ -15,9 +15,13 @@ import {
   getCanvasTransactions,
   getCodeArtifactDetail,
   getCollabToken,
+  getComposioConnectionStatus,
   getCreditBalance,
   getCreditRecharge,
   getCreditUsage,
+  getCreditUsageByCanvasId,
+  getCreditUsageByExecutionId,
+  getCreditUsageByResultId,
   getDocumentDetail,
   getPageByCanvasId,
   getPageDetail,
@@ -69,7 +73,11 @@ import {
   GetCanvasStateData,
   GetCanvasTransactionsData,
   GetCodeArtifactDetailData,
+  GetComposioConnectionStatusData,
   GetCreditRechargeData,
+  GetCreditUsageByCanvasIdData,
+  GetCreditUsageByExecutionIdData,
+  GetCreditUsageByResultIdData,
   GetCreditUsageData,
   GetDocumentDetailData,
   GetPageByCanvasIdData,
@@ -456,6 +464,31 @@ export const prefetchUseGetCreditBalance = (
     queryKey: Common.UseGetCreditBalanceKeyFn(clientOptions),
     queryFn: () => getCreditBalance({ ...clientOptions }).then((response) => response.data),
   });
+export const prefetchUseGetCreditUsageByResultId = (
+  queryClient: QueryClient,
+  clientOptions: Options<GetCreditUsageByResultIdData, true>,
+) =>
+  queryClient.prefetchQuery({
+    queryKey: Common.UseGetCreditUsageByResultIdKeyFn(clientOptions),
+    queryFn: () => getCreditUsageByResultId({ ...clientOptions }).then((response) => response.data),
+  });
+export const prefetchUseGetCreditUsageByExecutionId = (
+  queryClient: QueryClient,
+  clientOptions: Options<GetCreditUsageByExecutionIdData, true>,
+) =>
+  queryClient.prefetchQuery({
+    queryKey: Common.UseGetCreditUsageByExecutionIdKeyFn(clientOptions),
+    queryFn: () =>
+      getCreditUsageByExecutionId({ ...clientOptions }).then((response) => response.data),
+  });
+export const prefetchUseGetCreditUsageByCanvasId = (
+  queryClient: QueryClient,
+  clientOptions: Options<GetCreditUsageByCanvasIdData, true>,
+) =>
+  queryClient.prefetchQuery({
+    queryKey: Common.UseGetCreditUsageByCanvasIdKeyFn(clientOptions),
+    queryFn: () => getCreditUsageByCanvasId({ ...clientOptions }).then((response) => response.data),
+  });
 export const prefetchUseGetSubscriptionPlans = (
   queryClient: QueryClient,
   clientOptions: Options<unknown, true> = {},
@@ -527,6 +560,15 @@ export const prefetchUseListToolsets = (
   queryClient.prefetchQuery({
     queryKey: Common.UseListToolsetsKeyFn(clientOptions),
     queryFn: () => listToolsets({ ...clientOptions }).then((response) => response.data),
+  });
+export const prefetchUseGetComposioConnectionStatus = (
+  queryClient: QueryClient,
+  clientOptions: Options<GetComposioConnectionStatusData, true>,
+) =>
+  queryClient.prefetchQuery({
+    queryKey: Common.UseGetComposioConnectionStatusKeyFn(clientOptions),
+    queryFn: () =>
+      getComposioConnectionStatus({ ...clientOptions }).then((response) => response.data),
   });
 export const prefetchUseServeStatic = (
   queryClient: QueryClient,

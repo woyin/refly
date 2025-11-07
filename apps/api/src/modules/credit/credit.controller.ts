@@ -7,8 +7,12 @@ import {
   GetCreditRechargeResponse,
   GetCreditUsageResponse,
   GetCreditBalanceResponse,
+  GetCreditUsageByResultIdResponse,
+  GetCreditUsageByExecutionIdResponse,
+  GetCreditUsageByCanvasIdResponse,
 } from '@refly/openapi-schema';
 import { buildSuccessResponse } from '../../utils';
+import { ConfigService } from '@nestjs/config';
 
 // Define pagination DTO
 class PaginationDto {
@@ -18,7 +22,10 @@ class PaginationDto {
 
 @Controller('v1/credit')
 export class CreditController {
-  constructor(private readonly creditService: CreditService) {}
+  constructor(
+    private readonly creditService: CreditService,
+    private readonly configService: ConfigService,
+  ) {}
 
   @UseGuards(JwtAuthGuard)
   @Get('/recharge')
@@ -49,5 +56,45 @@ export class CreditController {
   async getCreditBalance(@LoginedUser() user: User): Promise<GetCreditBalanceResponse> {
     const balance = await this.creditService.getCreditBalance(user);
     return buildSuccessResponse(balance);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('/result')
+  async getCreditUsageByResultId(
+    @LoginedUser() user: User,
+    @Query() query: { resultId: string },
+  ): Promise<GetCreditUsageByResultIdResponse> {
+    const { resultId } = query;
+    const total = await this.creditService.countResultCreditUsage(user, resultId);
+    return buildSuccessResponse({ total });
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('/execution')
+  async getCreditUsageByExecutionId(
+    @LoginedUser() user: User,
+    @Query() query: { executionId: string },
+  ): Promise<GetCreditUsageByExecutionIdResponse> {
+    const { executionId } = query;
+    const total = await this.creditService.countExecutionCreditUsageByExecutionId(
+      user,
+      executionId,
+    );
+    return buildSuccessResponse({
+      total: Math.ceil(total * this.configService.get('credit.executionCreditMarkup')),
+    });
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('/canvas')
+  async getCreditUsageByCanvasId(
+    @LoginedUser() user: User,
+    @Query() query: { canvasId: string },
+  ): Promise<GetCreditUsageByCanvasIdResponse> {
+    const { canvasId } = query;
+    const total = await this.creditService.countCanvasCreditUsageByCanvasId(user, canvasId);
+    return buildSuccessResponse({
+      total: Math.ceil(total * this.configService.get('credit.canvasCreditCommissionRate')),
+    });
   }
 }

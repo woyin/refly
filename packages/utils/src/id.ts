@@ -253,6 +253,14 @@ export const genDailyCreditRechargeId = (uid: string, t: Date) => {
   return `${IDPrefix.CREDIT_RECHARGE}daily-${uid}-${getYYYYMMDD(t)}`;
 };
 
+export const genCommissionCreditRechargeId = (executionId: string) => {
+  return `${IDPrefix.CREDIT_RECHARGE}commission-${executionId}`;
+};
+
+export const genCommissionCreditUsageId = (executionId: string) => {
+  return `${IDPrefix.CREDIT_USAGE}commission-${executionId}`;
+};
+
 export const genCreditUsageId = () => {
   const timestamp = Date.now();
   return `${IDPrefix.CREDIT_USAGE}${timestamp}-${createId()}`;

@@ -5,15 +5,25 @@ import { Play, Copy } from 'refly-icons';
 import { IconShare } from '@refly-packages/ai-workspace-common/components/common/icon';
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import type { UploadFile } from 'antd/es/upload/interface';
-import { useFileUpload } from '../workflow-variables';
-import { ResourceUpload } from './resource-upload';
+
 import cn from 'classnames';
 import EmptyImage from '@refly-packages/ai-workspace-common/assets/noResource.svg';
 import { useIsLogin } from '@refly-packages/ai-workspace-common/hooks/use-is-login';
 import { useNavigate } from 'react-router-dom';
-import { getFileType } from '../workflow-variables/utils';
 import { ToolsDependencyChecker } from '@refly-packages/ai-workspace-common/components/canvas/tools-dependency';
 import { MixedTextEditor } from '@refly-packages/ai-workspace-common/components/workflow-app/mixed-text-editor';
+import { ResourceUpload } from '@refly-packages/ai-workspace-common/components/canvas/workflow-run/resource-upload';
+import { useFileUpload } from '@refly-packages/ai-workspace-common/components/canvas/workflow-variables';
+import { getFileType } from '@refly-packages/ai-workspace-common/components/canvas/workflow-variables/utils';
+
+const RequiredTagText = () => {
+  const { t } = useTranslation();
+  return (
+    <div className="flex-shrink-0 text-[10px] text-refly-text-2 leading-[16px] px-1 border-[1px] border-solid border-refly-Card-Border rounded-[4px]">
+      {t('canvas.workflow.variables.required') || 'Required'}
+    </div>
+  );
+};
 
 const EmptyContent = () => {
   const { t } = useTranslation();
@@ -21,16 +31,19 @@ const EmptyContent = () => {
     <div className="w-full h-full flex flex-col items-center justify-center">
       <img src={EmptyImage} alt="no variables" className="w-[120px] h-[120px] -mb-4" />
       <div className="text-sm text-refly-text-2 leading-5">
-        {t('canvas.workflow.run.emptyTitle')}
+        {t('canvas.workflow.run.emptyTitle', 'No variables defined')}
       </div>
       <div className="text-sm text-refly-text-2 leading-5">
-        {t('canvas.workflow.run.emptyDescription')}
+        {t(
+          'canvas.workflow.run.emptyDescription',
+          ' the workflow will be executed once if continued.',
+        )}
       </div>
     </div>
   );
 };
 
-const FormItemLabel = ({ name }: { name: string; required: boolean }) => {
+const FormItemLabel = ({ name, required }: { name: string; required: boolean }) => {
   return (
     <div className="flex items-center gap-2 min-w-0">
       <Typography.Paragraph
@@ -39,6 +52,8 @@ const FormItemLabel = ({ name }: { name: string; required: boolean }) => {
       >
         {name}
       </Typography.Paragraph>
+
+      {required && <RequiredTagText />}
     </div>
   );
 };
@@ -74,7 +89,7 @@ export const WorkflowRunForm = ({
   workflowApp,
 }: WorkflowRunFormProps) => {
   const { t } = useTranslation();
-  const { getLoginStatus } = useIsLogin();
+  const { isLoggedRef } = useIsLogin();
   const navigate = useNavigate();
 
   const [internalIsRunning, setInternalIsRunning] = useState(false);
@@ -298,7 +313,7 @@ export const WorkflowRunForm = ({
     }
 
     // Check if user is logged in
-    if (!getLoginStatus()) {
+    if (!isLoggedRef.current) {
       // Redirect to login with return URL
       const returnUrl = encodeURIComponent(window.location.pathname + window.location.search);
       navigate(`/?autoLogin=true&returnUrl=${returnUrl}`);
@@ -331,7 +346,12 @@ export const WorkflowRunForm = ({
 
         if (hasInvalidValues) {
           // Show validation error message
-          message.warning(t('canvas.workflow.run.validationError'));
+          message.warning(
+            t(
+              'canvas.workflow.run.validationError',
+              'Please fill in all required fields before running the workflow',
+            ),
+          );
           return;
         }
 
@@ -567,10 +587,10 @@ export const WorkflowRunForm = ({
           )}
 
           <div className="p-3 sm:p-4 border-t border-refly-Card-Border bg-refly-bg-control-z0 rounded-b-lg">
-            <div className="flex flex-wrap gap-2">
+            <div className="flex gap-2">
               <Button
                 className={cn(
-                  'flex-1 h-9 sm:h-10 text-sm sm:text-base min-w-0',
+                  'flex-1 h-9 sm:h-10 text-sm sm:text-base',
                   (!isFormValid || isPolling) &&
                     'bg-refly-bg-control-z1 hover:!bg-refly-tertiary-hover !text-refly-text-3 font-semibold',
                 )}
@@ -580,34 +600,30 @@ export const WorkflowRunForm = ({
                 loading={loading || isRunning || isPolling}
                 disabled={loading || isRunning || isPolling}
               >
-                {isPolling ? t('canvas.workflow.run.executing') : t('canvas.workflow.run.run')}
+                {isPolling
+                  ? t('canvas.workflow.run.executing') || 'Executing...'
+                  : t('canvas.workflow.run.run') || 'Run'}
               </Button>
 
               {onCopyWorkflow && workflowApp?.remixEnabled && (
                 <Button
-                  className="h-9 sm:h-10 px-2 sm:px-4"
+                  className="h-9 sm:h-10 text-sm sm:text-base"
                   type="default"
                   icon={<Copy size={14} className="sm:w-4 sm:h-4" />}
                   onClick={onCopyWorkflow}
-                  title={t('canvas.workflow.run.copyWorkflow') || 'Copy Workflow'}
                 >
-                  <span className="hidden sm:inline">
-                    {t('canvas.workflow.run.copyWorkflow') || 'Copy Workflow'}
-                  </span>
+                  {t('canvas.workflow.run.copyWorkflow') || 'Copy Workflow'}
                 </Button>
               )}
 
               {onCopyShareLink && (
                 <Button
-                  className="h-9 sm:h-10 px-2 sm:px-4"
+                  className="h-9 sm:h-10 text-sm sm:text-base"
                   type="default"
                   icon={<IconShare size={14} className="sm:w-4 sm:h-4" />}
                   onClick={onCopyShareLink}
-                  title={t('canvas.workflow.run.copyShareLink') || 'Copy Share Link'}
                 >
-                  <span className="hidden sm:inline">
-                    {t('canvas.workflow.run.copyShareLink') || 'Copy Share Link'}
-                  </span>
+                  {t('canvas.workflow.run.copyShareLink') || 'Copy Share Link'}
                 </Button>
               )}
             </div>
