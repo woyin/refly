@@ -652,12 +652,12 @@ export const WorkflowAPPForm = ({
                       'h-10 flex items-center justify-center',
                       'w-[120px] sm:w-[200px] min-w-[109px]',
                       'px-4 sm:px-[46px] gap-2',
-                      'text-white font-roboto font-semibold text-[16px] leading-[1.25em]',
+                      'text-white dark:text-[var(--text-icon-refly-text-flip,#1C1F23)] font-roboto font-semibold text-[16px] leading-[1.25em]',
                       'border-none shadow-none rounded-[12px]',
                       'transition-colors duration-150 ease-in-out',
                       isFormValid && !isRunButtonDisabled
-                        ? 'bg-[#1C1F23] hover:!bg-[rgba(28,31,35,0.90)]'
-                        : 'bg-refly-bg-control-z1 hover:!bg-refly-tertiary-hover',
+                        ? 'bg-[#1C1F23] hover:!bg-[rgba(28,31,35,0.90)] dark:bg-[var(--bg---refly-bg-dark,#ECECEC)] dark:hover:!bg-[var(--bg---refly-bg-dark,#ECECEC)]'
+                        : 'bg-refly-bg-control-z1 hover:!bg-refly-tertiary-hover dark:bg-[var(--bg---refly-bg-dark,#ECECEC)] dark:hover:!bg-[var(--bg---refly-bg-dark,#ECECEC)]',
                     )}
                     type="primary"
                     onClick={handleRun}
@@ -678,11 +678,10 @@ export const WorkflowAPPForm = ({
                         >
                           <path
                             d="M1.80059 9.00078H15M15 9.00078L10.8 13.2008M15 9.00078L10.8 4.80078"
-                            stroke="white"
-                            stroke-opacity="0.5"
-                            stroke-width="1.5"
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
+                            strokeWidth="1.5"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            className="stroke-white stroke-opacity-50 dark:stroke-[var(--text-icon-refly-text-flip,#1C1F23)] dark:stroke-opacity-100"
                           />
                         </svg>
                       )}
@@ -796,12 +795,12 @@ export const WorkflowAPPForm = ({
                       'h-10 flex items-center justify-center',
                       'w-[120px] sm:w-[200px] min-w-[109px]',
                       'px-4 sm:px-[46px] gap-2',
-                      'text-white font-roboto font-semibold text-[16px] leading-[1.25em]',
+                      'text-white dark:text-[var(--text-icon-refly-text-flip,#1C1F23)] font-roboto font-semibold text-[16px] leading-[1.25em]',
                       'border-none shadow-none rounded-[12px]',
                       'transition-colors duration-150 ease-in-out',
                       isFormValid && !isRunButtonDisabled
-                        ? 'bg-[#1C1F23] hover:!bg-[rgba(28,31,35,0.90)]'
-                        : 'bg-refly-bg-control-z1 hover:!bg-refly-tertiary-hover',
+                        ? 'bg-[#1C1F23] hover:!bg-[rgba(28,31,35,0.90)] dark:bg-[var(--bg---refly-bg-dark,#ECECEC)] dark:hover:!bg-[var(--bg---refly-bg-dark,#ECECEC)]'
+                        : 'bg-refly-bg-control-z1 hover:!bg-refly-tertiary-hover dark:bg-[var(--bg---refly-bg-dark,#ECECEC)] dark:hover:!bg-[var(--bg---refly-bg-dark,#ECECEC)]',
                     )}
                     type="primary"
                     onClick={handleRun}
@@ -822,11 +821,10 @@ export const WorkflowAPPForm = ({
                         >
                           <path
                             d="M1.80059 9.00078H15M15 9.00078L10.8 13.2008M15 9.00078L10.8 4.80078"
-                            stroke="white"
-                            stroke-opacity="0.5"
-                            stroke-width="1.5"
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
+                            strokeWidth="1.5"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            className="stroke-white stroke-opacity-50 dark:stroke-[var(--text-icon-refly-text-flip,#1C1F23)] dark:stroke-opacity-100"
                           />
                         </svg>
                       )}

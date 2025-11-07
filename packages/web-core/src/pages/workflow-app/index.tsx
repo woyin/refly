@@ -325,7 +325,7 @@ const WorkflowAppPage: React.FC = () => {
                 ? {
                     backgroundImage: `url(${workflowApp.coverUrl})`,
                   }
-                : {}
+                : undefined
             }
           >
             {/* Gradient overlay - only shown when cover image exists */}
@@ -382,15 +382,7 @@ const WorkflowAppPage: React.FC = () => {
                       <>
                         {/* Tabs */}
                         {products.length > 0 && (
-                          <div
-                            className="text-center text-[var(--refly-text-0)] dark:text-[var(--refly-text-StaticWhite)] mb-[15px] mt-[40px]"
-                            style={{
-                              fontFamily: 'PingFang SC',
-                              fontWeight: 600,
-                              fontSize: '14px',
-                              lineHeight: '1.4285714285714286em',
-                            }}
-                          >
+                          <div className="text-center text-[var(--refly-text-0)] dark:text-[var(--refly-text-StaticWhite)] mb-[15px] mt-[40px] font-['PingFang_SC'] font-semibold text-[14px] leading-[1.4285714285714286em]">
                             {!!executionCreditUsage && executionCreditUsage > 0
                               ? t('workflowApp.productsGeneratedWithCost', {
                                   count: products.length,
@@ -416,30 +408,11 @@ const WorkflowAppPage: React.FC = () => {
               </div>
             </div>
 
-            <div
-              className="w-full max-w-[860px] mx-auto rounded-lg py-3 px-4 bg-[var(--refly-bg-content-z2)] dark:bg-[var(--bg---refly-bg-body-z0,#0E0E0E)]"
-              style={{
-                borderColor: 'var(--refly-Card-Border)',
-                marginTop: '50px',
-              }}
-            >
+            <div className="w-full max-w-[860px] mx-auto rounded-lg py-3 px-4 bg-[var(--refly-bg-content-z2)] dark:bg-[var(--bg---refly-bg-body-z0,#0E0E0E)] border border-[var(--refly-Card-Border)] mt-[10px]">
               {/* results grid */}
               {workflowApp?.resultNodeIds?.length > 0 && (
-                <div
-                  className="flex flex-col"
-                  style={{
-                    gap: '10px',
-                  }}
-                >
-                  <div
-                    className="text-center text-[var(--refly-text-0)] dark:text-[var(--refly-text-StaticWhite)]"
-                    style={{
-                      fontFamily: 'PingFang SC',
-                      fontWeight: 600,
-                      fontSize: '14px',
-                      lineHeight: '1.4285714285714286em',
-                    }}
-                  >
+                <div className="flex flex-col gap-[10px]">
+                  <div className="text-center text-[var(--refly-text-0)] dark:text-[var(--refly-text-StaticWhite)] font-['PingFang_SC'] font-semibold text-[14px] leading-[1.4285714285714286em]">
                     {t('workflowApp.resultPreview')}
                   </div>
                   <SelectedResultsGrid
