@@ -4,7 +4,7 @@ import { PrismaService } from '../common/prisma.service';
 import { CanvasService } from '../canvas/canvas.service';
 import { CanvasSyncService } from '../canvas-sync/canvas-sync.service';
 import { ProviderService } from '../provider/provider.service';
-import { genVariableExtractionSessionID } from '@refly/utils';
+import { genVariableExtractionSessionID, safeParseJSON } from '@refly/utils';
 import { buildUnifiedPrompt } from './prompt';
 import { buildAppPublishPrompt } from './app-publish-prompt';
 import { genVariableID } from '@refly/utils';
@@ -1326,8 +1326,7 @@ export class VariableExtractionService {
           templateVersion: 1,
           workflowTitle: parsedTemplate.title,
           workflowDescription: parsedTemplate.description,
-          estimatedExecutionTime: parsedTemplate.estimatedExecutionTime,
-          skillTags: parsedTemplate.skillTags,
+          usageInstructions: parsedTemplate.usageInstructions,
         },
       };
 
@@ -1367,6 +1366,7 @@ export class VariableExtractionService {
 
   /**
    * Parse template generation result
+   * Updated to match the new simplified data structure
    */
   private parseTemplateResult(
     responseText: string,
@@ -1375,9 +1375,8 @@ export class VariableExtractionService {
     content: string;
     title: string;
     description: string;
+    usageInstructions?: string;
     variables: WorkflowVariable[];
-    estimatedExecutionTime: string;
-    skillTags: string[];
   } {
     try {
       this.logger.log('Parsing template generation result');
@@ -1394,24 +1393,12 @@ export class VariableExtractionService {
       }
 
       const jsonText = jsonMatch[1] || jsonMatch[0];
-      const parsed = JSON.parse(jsonText) as {
+      const parsed = safeParseJSON(jsonText) as {
         template?: {
           content: string;
           title?: string;
           description?: string;
-        };
-        variables?: Array<{
-          variableId?: string;
-          name?: string;
-          value?: VariableValue[];
-          description?: string;
-          variableType?: string;
-        }>;
-        analysis?: {
-          estimatedExecutionTime?: string;
-        };
-        metadata?: {
-          skillTags?: string[];
+          usageInstructions?: string;
         };
       };
 
@@ -1420,54 +1407,19 @@ export class VariableExtractionService {
         throw new Error('Missing template content in response');
       }
 
-      if (!parsed.variables || !Array.isArray(parsed.variables)) {
-        throw new Error('Missing or invalid variables array in response');
-      }
-
-      // Process variables to ensure compatibility with new structure
-      const processedVariables = parsed.variables.map(
-        (v: {
-          variableId?: string;
-          name?: string;
-          value?: VariableValue[];
-          description?: string;
-          variableType?: string;
-        }) => {
-          // Convert to proper VariableValue structure
-          let value: VariableValue[];
-          if (v.value && Array.isArray(v.value)) {
-            if (v.value.length > 0 && typeof v.value[0] === 'object' && 'type' in v.value[0]) {
-              // Already in VariableValue format
-              value = v.value as VariableValue[];
-            } else {
-              // Convert from string array to VariableValue array
-              value = (v.value as unknown as string[]).map((text) => ({
-                type: 'text' as const,
-                text: text || '',
-              }));
-            }
-          } else {
-            value = [{ type: 'text' as const, text: '' }];
-          }
-
-          return {
-            variableId: genVariableID(),
-            name: v.name || `var_${Math.random().toString(36).substr(2, 9)}`,
-            value,
-            description: v.description || `Variable ${v.name}`,
-            variableType: (v.variableType as 'string' | 'resource' | 'option') || 'string',
-          };
-        },
-      );
+      // Use variables from context instead of parsing from response
+      // Variables are already filtered and validated in the context
+      const variables = context.variables.map((v) => ({
+        ...v,
+        value: v.value || [{ type: 'text' as const, text: '' }],
+      }));
 
       return {
         content: parsed.template.content,
         title: parsed.template.title || 'Workflow Template',
         description: parsed.template.description || 'Generated workflow template',
-        variables: processedVariables,
-        estimatedExecutionTime: parsed.analysis?.estimatedExecutionTime || '5-10 minutes',
-        skillTags: parsed.metadata?.skillTags ||
-          context.analysis.primarySkills || ['Content Generation'],
+        usageInstructions: parsed.template.usageInstructions,
+        variables,
       };
     } catch (error) {
       this.logger.error(`Failed to parse template result: ${error.message}`);
@@ -1478,12 +1430,11 @@ export class VariableExtractionService {
         content: 'I will help you with your workflow. Please provide the necessary information.',
         title: 'Workflow Template',
         description: 'Generated workflow template',
+        usageInstructions: undefined,
         variables: context.variables.map((v) => ({
           ...v,
           value: v.value || [{ type: 'text' as const, text: '' }],
         })),
-        estimatedExecutionTime: '5-10 minutes',
-        skillTags: context.analysis.primarySkills || ['Content Generation'],
       };
     }
   }

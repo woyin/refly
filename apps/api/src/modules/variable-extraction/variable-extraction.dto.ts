@@ -59,8 +59,7 @@ export interface AppTemplateResult {
     templateVersion?: number; // Template version number (supports template iteration)
     workflowTitle?: string; // Workflow title for display
     workflowDescription?: string; // Workflow description
-    estimatedExecutionTime?: string; // Estimated execution time
-    skillTags?: string[]; // Skill tags for categorization
+    usageInstructions?: string; // Instructions on how to use the template
   };
 }
 
