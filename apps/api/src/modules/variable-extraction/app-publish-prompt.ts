@@ -108,22 +108,50 @@ Transform technical descriptions into conversational, user-friendly language:
 - Use simple, everyday language
 - Avoid technical jargon
 
+**Variable Context Integration (CRITICAL)**:
+- **Variable names carry important meaning** - treat them as descriptive information, not just placeholders
+- When referencing variables, provide clear context about their role
+- Example: Instead of "generate {{mecha}}" → use "generate {{mecha}}-style" or "generate content with {{mecha}} theme"
+- Make it crystal clear what each variable represents in the workflow
+- Help users understand what value they should provide for each variable
+
 **Natural Flow Requirements**:
-- **NEVER use stiff transitional phrases** like "虽然...但是...", "即使...", "尽管..." that create awkward interruptions
+- **NEVER use stiff transitional phrases** that create awkward interruptions
+  * Chinese: Avoid "虽然...但是...", "即使...", "尽管..."
+  * English: Avoid "Although...", "Even though...", "Despite..."
 - **Seamlessly integrate all variables** into a natural, flowing narrative
 - If a variable seems unrelated, either:
   * Omit it gracefully (if truly irrelevant to the workflow)
   * Find a natural way to incorporate it without forced transitions
 - The template should sound like a native speaker explaining the workflow naturally
-- **AVOID** explanations that highlight irrelevance (e.g., "虽然我知道你填写了...但本次...与...无关")
+- **AVOID** explanations that highlight irrelevance
+  * Examples to avoid: "Although you provided X, it won't be used..." or "Even though you filled in Y, this workflow doesn't use it..."
+
+**Clean Output Requirements (CRITICAL)**:
+- **NEVER include unnecessary punctuation** like Chinese quotation marks (""), English quotes (""), or other decorative symbols
+- Keep the text clean and professional
+- Use natural language without artificial formatting symbols
+- Examples:
+  * ❌ BAD (Chinese): "最终生成一个"机甲"的图片" (has decorative quotes)
+  * ✅ GOOD (Chinese): "最终生成一个机甲风格的图片" (clean, clear)
+  * ❌ BAD (English): Create a "special" {{style}} image (has decorative quotes)
+  * ✅ GOOD (English): Create a {{style}}-style image (clean, clear)
 
 **BAD Examples (NEVER do this)**:
-❌ "我将为您生成一个以{{topic}}为主题的内容。虽然我知道你填写了{{weather}}，但本次生成与天气无关。"
-❌ "I'll create {{content}} for you. Even though you provided {{unrelated_var}}, it won't be used in this workflow."
+❌ Chinese: "我将为您生成一个以{{topic}}为主题的内容。虽然我知道你填写了{{weather}}，但本次生成与天气无关。"
+   (Problem: Mentions irrelevant variable with stiff transition)
+❌ English: "I'll create {{content}} for you. Even though you provided {{unrelated_var}}, it won't be used in this workflow."
+   (Problem: Highlights irrelevance instead of omitting gracefully)
 
-**GOOD Examples (Natural flow)**:
-✅ "我将为您生成一个以{{topic}}为主题的{{style}}风格内容，并按照{{format}}格式输出。"
-✅ "I'll help you create {{content_type}} content focused on {{topic}} with your preferred {{style}} approach."
+**GOOD Examples (Natural flow with clear context)**:
+✅ Chinese: "我将为您生成一个以{{topic}}为主题的{{style}}风格内容，并按照{{format}}格式输出。"
+   (All variables integrated naturally with clear context)
+✅ English: "I'll help you create {{content_type}} content focused on {{topic}} with your preferred {{style}} approach."
+   (Conversational tone with variable context)
+✅ Chinese: "我将为您生成一个{{骆驼}}风格的儿童绘本图片"
+   (Variable name provides clear style context)
+✅ English: "I'll generate a {{mecha}}-style children's book illustration showcasing mechanical aesthetics"
+   (Variable integrated with descriptive context)
 
 ### 4. Variable Types (when variables exist)
 - **string**: {{topic}}, {{style}}, {{preference}}
@@ -173,28 +201,55 @@ ${APP_PUBLISH_EXAMPLES}
 ## Validation Checklist
 
 Before returning your response, verify:
-- [ ] Language matches Canvas Nodes language
+- [ ] Language matches Canvas Nodes language (Chinese nodes → Chinese output, English nodes → English output)
 - [ ] template.content placeholder count = variables count (${usedVariables?.length || 0})
 - [ ] **ONE-TO-ONE MAPPING**: Each variable appears exactly ONCE in template.content (no duplicates)
 - [ ] **UNIQUE VARIABLES**: All placeholders use DIFFERENT variable names (no repeated variable names)
 - [ ] All variable names in placeholders match existing variable names exactly
-- [ ] Template is conversational and user-friendly
-- [ ] **NATURAL FLOW**: No stiff transitions like "虽然...但是...", "即使...", "尽管..."
+- [ ] **VARIABLE CONTEXT**: Each variable is referenced with clear context about its role
+  * Good: "{{mecha}}-style image" or "{{topic}}-focused content"
+  * Bad: just "{{mecha}} image" or "{{topic}} content"
+- [ ] **CLEAN OUTPUT**: No unnecessary punctuation marks like "" or "" around variables or regular text
+- [ ] Template is conversational and user-friendly (sounds like natural speech)
+- [ ] **NATURAL FLOW**: No stiff transitional phrases
+  * Chinese: No "虽然...但是...", "即使...", "尽管..."
+  * English: No "Although...", "Even though...", "Despite..."
 - [ ] **NO IRRELEVANCE EXPLANATIONS**: Never mention that certain variables are irrelevant or won't be used
 - [ ] All variables are seamlessly integrated into a natural, flowing narrative
 - [ ] JSON is valid and complete
 
 ## Critical Reminder
-**The template.content field is the MOST IMPORTANT output.** It must:
-1. Use the same language as Canvas Nodes
-2. Contain exactly ${usedVariables?.length || 0} {{variable_name}} placeholder(s)
-3. **ONE-TO-ONE MAPPING**: Each variable must appear exactly ONCE - NO DUPLICATES
-4. **UNIQUE VARIABLES**: All ${usedVariables?.length || 0} placeholders must use DIFFERENT variable names
-5. **NATURAL FLOW**: Sound natural and conversational - NO stiff transitions or irrelevance explanations
-6. **SEAMLESS INTEGRATION**: All variables must flow naturally in the narrative
-7. Be self-contained and clear
 
-**Remember**: A good template reads like a native speaker naturally explaining the workflow, not like a forced enumeration of variables.
+**The template.content field is the MOST IMPORTANT output.** It must satisfy ALL of the following requirements:
+
+### Mandatory Requirements (Must ALL be met):
+1. **Language Consistency**: Match the language used in Canvas Nodes exactly
+2. **Exact Variable Count**: Contain exactly ${usedVariables?.length || 0} {{variable_name}} placeholder(s)
+3. **ONE-TO-ONE MAPPING**: Each variable appears exactly ONCE - NO DUPLICATES
+4. **UNIQUE VARIABLES**: All ${usedVariables?.length || 0} placeholders use DIFFERENT variable names
+5. **Variable Context**: Provide clear context for each variable
+   - Good: "{{mecha}}-style image", "{{topic}}-focused content"
+   - Bad: "{{mecha}} image", "{{topic}} content"
+6. **Clean Output**: NEVER use unnecessary punctuation
+   - No Chinese quotation marks: "" or ""
+   - No decorative English quotes: "" (only use for actual quotations if needed)
+   - No other decorative symbols
+7. **Natural Flow**: Sound natural and conversational
+   - NO stiff transitions (no "虽然...但是...", "Although...", etc.)
+   - NO irrelevance explanations (never mention unused variables)
+8. **Seamless Integration**: All variables flow naturally in the narrative
+9. **Self-Contained**: The template should be clear and complete on its own
+
+### Quality Guidelines:
+- **Native Speaker Test**: Template should sound like a native speaker naturally explaining the workflow, not like a forced enumeration of variables
+- **Meaningful Names**: Variable names carry semantic meaning - use them to help users understand what information they need to provide
+- **Professional Tone**: Maintain a helpful, friendly, yet professional tone
+- **User-Centric**: Focus on what the user will get, not just what the workflow does
+
+### Output Format:
+- Return ONLY valid JSON
+- No additional text before or after the JSON
+- Ensure all JSON syntax is correct
 
 Generate your response now.`;
 }
