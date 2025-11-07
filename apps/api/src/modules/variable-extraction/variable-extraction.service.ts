@@ -1424,9 +1424,9 @@ export class VariableExtractionService {
 
       // Return fallback template with proper VariableValue structure
       return {
-        content: 'I will help you with your workflow. Please provide the necessary information.',
-        title: 'Workflow Template',
-        description: 'Generated workflow template',
+        content: '',
+        title: '',
+        description: '',
         usageInstructions: undefined,
         variables: context.variables.map((v) => ({
           ...v,
