@@ -77,10 +77,25 @@ ${historicalContext ? `### Historical Learning Context\n${historicalContext}` : 
 ## Core Requirements
 
 ### 1. Language Consistency (CRITICAL)
-**Rule**: All output must match the language used in Canvas Nodes and Prompts.
-- Chinese nodes → Chinese template
-- English nodes → English template
-- Mixed language → Follow primary language
+
+**Language Determination Rule (CRITICAL)**:
+The output language MUST be determined based on the following sections in priority order:
+1. **Workflow Information** (Title and Description) - PRIMARY source
+2. **Canvas Nodes and Prompts** - PRIMARY source
+3. **Workflow Context** - SECONDARY source
+
+**IMPORTANT**: Variables section language should be IGNORED when determining output language. Variable names and descriptions may be in different languages, but this does NOT affect the template language.
+
+**Language Mapping Rules**:
+- If Workflow Information, Canvas Nodes, or Workflow Context are in Chinese → Generate Chinese template
+- If Workflow Information, Canvas Nodes, or Workflow Context are in English → Generate English template
+- If mixed languages exist → Follow the primary language (the language used in most of the content)
+- **DO NOT** use Variables section language as a reference for template language
+
+**Examples**:
+- ✅ Correct: Workflow Info in Chinese, Variables in English → Generate Chinese template
+- ✅ Correct: Canvas Nodes in English, Variables in Chinese → Generate English template
+- ❌ Wrong: Using Variables language to determine template language
 
 ### 2. Variable Integration (CRITICAL)
 **Strict Rule**: The number of {{variable_name}} placeholders in template.content MUST exactly match the variables count above.
@@ -201,7 +216,11 @@ ${APP_PUBLISH_EXAMPLES}
 ## Validation Checklist
 
 Before returning your response, verify:
-- [ ] Language matches Canvas Nodes language (Chinese nodes → Chinese output, English nodes → English output)
+- [ ] **LANGUAGE DETERMINATION**: Language matches Workflow Information, Canvas Nodes, or Workflow Context (NOT Variables)
+  * Language determined from: Workflow Info → Canvas Nodes → Workflow Context (in priority order)
+  * Variables section language is IGNORED for language determination
+  * Chinese content in primary sources → Chinese output
+  * English content in primary sources → English output
 - [ ] template.content placeholder count = variables count (${usedVariables?.length || 0})
 - [ ] **ONE-TO-ONE MAPPING**: Each variable appears exactly ONCE in template.content (no duplicates)
 - [ ] **UNIQUE VARIABLES**: All placeholders use DIFFERENT variable names (no repeated variable names)
@@ -223,7 +242,10 @@ Before returning your response, verify:
 **The template.content field is the MOST IMPORTANT output.** It must satisfy ALL of the following requirements:
 
 ### Mandatory Requirements (Must ALL be met):
-1. **Language Consistency**: Match the language used in Canvas Nodes exactly
+1. **Language Consistency**: Match the language from Workflow Information, Canvas Nodes, or Workflow Context
+   - Determine language from: Workflow Info → Canvas Nodes → Workflow Context (priority order)
+   - **CRITICAL**: IGNORE Variables section language when determining output language
+   - Variables may be in different languages, but template language follows primary sources only
 2. **Exact Variable Count**: Contain exactly ${usedVariables?.length || 0} {{variable_name}} placeholder(s)
 3. **ONE-TO-ONE MAPPING**: Each variable appears exactly ONCE - NO DUPLICATES
 4. **UNIQUE VARIABLES**: All ${usedVariables?.length || 0} placeholders use DIFFERENT variable names
