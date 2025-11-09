@@ -318,6 +318,9 @@ const WorkflowAppPage: React.FC = () => {
             }
           `}
         </style>
+        <Helmet>
+          <title>{workflowApp?.title ?? ''}</title>
+        </Helmet>
 
         <div className="bg-[var(--refly-bg-content-z2)]">
           <div
@@ -338,19 +341,17 @@ const WorkflowAppPage: React.FC = () => {
             {workflowApp?.coverUrl && (
               <div className="absolute inset-0 bg-gradient-to-b from-white/30 to-white dark:from-[rgba(25,25,25,0.25)] dark:to-[#0E0E0E] backdrop-blur-[20px] pointer-events-none" />
             )}
-            <Helmet>
-              <title>{workflowApp?.title ?? ''}</title>
-            </Helmet>
-            {/* Header - Fixed at top with full transparency */}
-            <div className="fixed top-0 left-0 right-0 z-50 border-b border-white/20 dark:border-[var(--refly-semi-color-border)] h-[64px]">
-              <div className="relative mx-auto px-4 sm:px-6 lg:px-8">
-                <div className="flex items-center justify-between h-16">
-                  <div className="flex items-center gap-3">
-                    <Logo onClick={() => navigate?.('/')} />
-                    <GithubStar />
-                  </div>
-                  <UserAvatar />
+          </div>
+
+          {/* Header - Fixed at top with full transparency */}
+          <div className="fixed top-0 left-0 right-0 z-50 border-b border-white/20 dark:border-[var(--refly-semi-color-border)] h-[64px]">
+            <div className="relative mx-auto px-4 sm:px-6 lg:px-8">
+              <div className="flex items-center justify-between h-16">
+                <div className="flex items-center gap-3">
+                  <Logo onClick={() => navigate?.('/')} />
+                  <GithubStar />
                 </div>
+                <UserAvatar />
               </div>
             </div>
           </div>

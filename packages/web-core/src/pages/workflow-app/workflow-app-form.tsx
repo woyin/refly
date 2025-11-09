@@ -590,7 +590,7 @@ export const WorkflowAPPForm = ({
                   </span>
                   <div className="w-[1px] h-[10px] bg-[#E7E7E7] dark:bg-refly-Card-Border rounded-[3px] flex-shrink-0" />
                   <span className="text-[11px] leading-[1.4545em] text-[rgba(28,31,35,0.35)] dark:text-refly-text-3">
-                    {formatDate(workflowApp.canvasData?.owner?.updatedAt)}
+                    {formatDate(workflowApp?.updatedAt)}
                   </span>
                 </div>
               )}
