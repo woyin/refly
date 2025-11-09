@@ -158,7 +158,7 @@ const findToolsetById = (toolsets: GenericToolset[], id: string) => {
 
 export const CopilotWorkflowPlan = memo(({ data }: CopilotWorkflowPlanProps) => {
   const { t } = useTranslation();
-  const { tasks = [], variables = [] } = data;
+  const { tasks = [], variables = [] } = data ?? {};
   const { data: toolsData } = useListTools({ query: { enabled: true } });
 
   return (

@@ -3013,6 +3013,10 @@ const translations = {
         copySourceCode: '复制源代码',
         createArtifact: '创建图表组件',
       },
+      workflow: {
+        generating: '生成工作流中...',
+        invalidData: '无效的工作流数据',
+      },
     },
     artifact: {
       webRender: '网页渲染',
