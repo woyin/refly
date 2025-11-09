@@ -3055,6 +3055,10 @@ const translations = {
         copySourceCode: 'Copy source code',
         createArtifact: 'Create diagram artifact',
       },
+      workflow: {
+        generating: 'Generating workflow...',
+        invalidData: 'Invalid workflow data',
+      },
     },
   },
   copilot: {
