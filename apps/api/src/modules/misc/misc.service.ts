@@ -476,6 +476,7 @@ export class MiscService implements OnModuleInit {
       existingFile = await this.prisma.staticFile.findFirst({
         where: {
           storageKey: param.storageKey,
+          uid: user.uid,
           deletedAt: null,
         },
       });
@@ -741,14 +742,10 @@ export class MiscService implements OnModuleInit {
   ): Promise<{ data: Buffer; contentType: string }> {
     const file = await this.prisma.staticFile.findFirst({
       select: { uid: true, visibility: true, entityId: true, entityType: true, contentType: true },
-      where: { storageKey, deletedAt: null },
+      where: { storageKey, uid: user.uid, deletedAt: null },
     });
 
     if (!file) {
-      throw new NotFoundException();
-    }
-
-    if (!isDesktop() && file.uid !== user.uid) {
       throw new NotFoundException();
     }
 
@@ -813,6 +810,7 @@ export class MiscService implements OnModuleInit {
       where: {
         uid: user.uid,
         storageKey: { in: storageKeys },
+        deletedAt: null,
       },
     });
 

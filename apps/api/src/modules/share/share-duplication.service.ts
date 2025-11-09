@@ -228,8 +228,6 @@ export class ShareDuplicationService {
     // Generate or use pre-generated resource ID
     const newResourceId = options?.targetId ?? genResourceID();
 
-    const newStorageKey = `resource/${newResourceId}.txt`;
-
     const resourceDetail: Resource | undefined = safeParseJSON(
       (
         await this.miscService.downloadFile({
@@ -247,6 +245,26 @@ export class ShareDuplicationService {
     const targetCanvasId = canvasId || resourceDetail.canvasId;
     const extraData: ShareExtraData = safeParseJSON(record.extraData);
 
+    let newStorageKey: string | undefined;
+    if (resourceDetail.storageKey) {
+      const targetFile = await this.miscService.duplicateFile(user, {
+        sourceFile: { storageKey: resourceDetail.storageKey, visibility: 'private' },
+        targetEntityId: newResourceId,
+        targetEntityType: 'resource',
+      });
+      newStorageKey = targetFile.storageKey;
+    }
+
+    let finalRawFileKey: string | undefined;
+    if (resourceDetail.rawFileKey) {
+      const targetFile = await this.miscService.duplicateFile(user, {
+        sourceFile: { storageKey: resourceDetail.rawFileKey, visibility: 'private' },
+        targetEntityId: newResourceId,
+        targetEntityType: 'resource',
+      });
+      finalRawFileKey = targetFile.storageKey;
+    }
+
     const newResource = await this.prisma.resource.create({
       data: {
         ...pick(resourceDetail, [
@@ -255,13 +273,13 @@ export class ShareDuplicationService {
           'contentPreview',
           'indexStatus',
           'indexError',
-          'rawFileKey',
         ]),
         meta: JSON.stringify(resourceDetail.data),
         indexError: JSON.stringify(resourceDetail.indexError),
         resourceId: newResourceId,
         uid: user.uid,
         storageKey: newStorageKey,
+        rawFileKey: finalRawFileKey,
         projectId,
         canvasId: targetCanvasId,
       },
