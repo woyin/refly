@@ -31,6 +31,7 @@ import { EnvironmentBanner } from './EnvironmentBanner';
 import { useGetMediaModel } from '@refly-packages/ai-workspace-common/hooks/use-get-media-model';
 import { useHandleUrlParamsCallback } from '@refly-packages/ai-workspace-common/hooks/use-handle-url-params-callback';
 import { useRouteCollapse } from '@refly-packages/ai-workspace-common/hooks/use-route-collapse';
+import cn from 'classnames';
 
 const Content = Layout.Content;
 
@@ -92,6 +93,8 @@ export const AppLayout = (props: AppLayoutProps) => {
 
   const routeLogin = useMatch('/');
   const isPricing = useMatch('/pricing');
+  const isWorkflowEmpty = useMatch('/canvas/:canvasId')?.params?.canvasId === 'empty';
+  const isWorkflow = !!useMatch('/canvas/:canvasId') && !isWorkflowEmpty;
 
   if (!isPublicAccessPage && !isPricing && !isDesktop()) {
     if (!userStore.isCheckingLoginStatus === undefined || userStore.isCheckingLoginStatus) {
@@ -116,7 +119,10 @@ export const AppLayout = (props: AppLayoutProps) => {
       >
         {showSider ? <SiderLayout source="sider" /> : null}
         <Layout
-          className="content-layout bg-transparent flex-grow overflow-y-auto overflow-x-hidden m-2 rounded-xl shadow-refly-m min-w-0 min-h-0 overscroll-contain"
+          className={cn(
+            'content-layout bg-transparent flex-grow overflow-y-auto overflow-x-hidden m-2 rounded-xl min-w-0 min-h-0 overscroll-contain',
+            isWorkflow ? '' : 'shadow-refly-m',
+          )}
           style={{ height: 'calc(var(--screen-height) - 16px)' }}
         >
           <Content>{props.children}</Content>
