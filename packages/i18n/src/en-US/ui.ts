@@ -1163,7 +1163,6 @@ const translations = {
       video: 'Video',
       audio: 'Audio',
       start: 'User Input',
-      startNode: 'Start Node',
       documentSelection: 'Document Selection',
       resourceSelection: 'Resource Selection',
       skillResponseSelection: 'Skill Response Selection',
