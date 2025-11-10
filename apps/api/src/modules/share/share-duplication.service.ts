@@ -228,6 +228,8 @@ export class ShareDuplicationService {
     // Generate or use pre-generated resource ID
     const newResourceId = options?.targetId ?? genResourceID();
 
+    const newStorageKey = `resource/${newResourceId}.txt`;
+
     const resourceDetail: Resource | undefined = safeParseJSON(
       (
         await this.miscService.downloadFile({
@@ -244,16 +246,6 @@ export class ShareDuplicationService {
 
     const targetCanvasId = canvasId || resourceDetail.canvasId;
     const extraData: ShareExtraData = safeParseJSON(record.extraData);
-
-    let newStorageKey: string | undefined;
-    if (resourceDetail.storageKey) {
-      const targetFile = await this.miscService.duplicateFile(user, {
-        sourceFile: { storageKey: resourceDetail.storageKey, visibility: 'private' },
-        targetEntityId: newResourceId,
-        targetEntityType: 'resource',
-      });
-      newStorageKey = targetFile.storageKey;
-    }
 
     let finalRawFileKey: string | undefined;
     if (resourceDetail.rawFileKey) {
@@ -769,6 +761,23 @@ export class ShareDuplicationService {
       newCanvasId,
     );
 
+    // Replace resource variables with new entity ids
+    const updatedVariables = canvasData.variables?.map((variable) => {
+      if (variable.variableType !== 'resource') {
+        return variable;
+      }
+      return {
+        ...variable,
+        value: (variable.value ?? []).map((value) => ({
+          ...value,
+          resource: {
+            ...value.resource,
+            entityId: replaceEntityMap[value.resource?.entityId ?? ''],
+          },
+        })),
+      };
+    });
+
     // Convert toolsets
     const { replaceToolsetMap } = await this.toolService.importToolsetsFromNodes(user, nodes);
     this.logger.log(`Replace toolsets map: ${JSON.stringify(replaceToolsetMap)}`);
@@ -805,6 +814,11 @@ export class ShareDuplicationService {
     // Parallelize canvas state update and duplicate record creation
     await Promise.all([
       this.canvasSyncService.saveState(newCanvasId, state),
+      updatedVariables &&
+        this.canvasService.updateWorkflowVariables(user, {
+          canvasId: newCanvasId,
+          variables: updatedVariables,
+        }),
       this.prisma.duplicateRecord.create({
         data: {
           sourceId: record.entityId,
