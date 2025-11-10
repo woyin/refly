@@ -30,7 +30,7 @@ export const ContactUsPopover: React.FC<ContactUsPopoverProps> = ({ children, op
   };
 
   const handleNotionDocumentClick = () => {
-    window.open('notion.so/reflydoc/Contact-us-28dd62ce607180318ae6c944e2db6abf', '_blank');
+    window.open('https://notion.so/reflydoc/Contact-us-28dd62ce607180318ae6c944e2db6abf', '_blank');
   };
 
   const handleTwitterClick = () => {
