@@ -1,6 +1,7 @@
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
 import { memo, useMemo, useState, useCallback, useEffect } from 'react';
 import { Divider, Button, Popconfirm, message } from 'antd';
+import { useQueryClient } from '@tanstack/react-query';
 import { Add, Edit, Delete, Image, Doc2, Video, Audio } from 'refly-icons';
 import { BiText } from 'react-icons/bi';
 import type { WorkflowVariable } from '@refly/openapi-schema';
@@ -48,9 +49,26 @@ const VariableItem = memo(
     const { t } = useTranslation();
     const [isPopconfirmOpen, setIsPopconfirmOpen] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
+    const queryClient = useQueryClient();
+
+    // Keep refetchWorkflowVariables in scope to avoid lint error
+    void refetchWorkflowVariables;
 
     const handleDeleteVariable = async (variable: WorkflowVariable) => {
       const newVariables = totalVariables.filter((v) => v.variableId !== variable.variableId);
+
+      // Optimistic update: immediately update local cache
+      queryClient.setQueryData(
+        ['GetWorkflowVariables', { query: { canvasId } }],
+        (oldData: any) => {
+          if (!oldData) return oldData;
+          return {
+            ...oldData,
+            data: newVariables,
+          };
+        },
+      );
+
       try {
         setIsDeleting(true);
         const { data } = await getClient().updateWorkflowVariables({
@@ -63,10 +81,34 @@ const VariableItem = memo(
           message.success(
             t('canvas.workflow.variables.deleteSuccess') || 'Variable deleted successfully',
           );
-          refetchWorkflowVariables();
+        } else {
+          // Rollback optimistic update on failure
+          queryClient.setQueryData(
+            ['GetWorkflowVariables', { query: { canvasId } }],
+            (oldData: any) => {
+              if (!oldData) return oldData;
+              return {
+                ...oldData,
+                data: totalVariables,
+              };
+            },
+          );
+          message.error(t('canvas.workflow.variables.deleteError') || 'Failed to delete variable');
         }
       } catch (error) {
+        // Rollback optimistic update on error
+        queryClient.setQueryData(
+          ['GetWorkflowVariables', { query: { canvasId } }],
+          (oldData: any) => {
+            if (!oldData) return oldData;
+            return {
+              ...oldData,
+              data: totalVariables,
+            };
+          },
+        );
         console.error('Failed to delete variable:', error);
+        message.error(t('canvas.workflow.variables.deleteError') || 'Failed to delete variable');
       } finally {
         setIsDeleting(false);
       }
