@@ -478,6 +478,10 @@ export class ShareCreationService {
     resource.content = await this.miscService.processContentImages(resource.content ?? '');
     resource.contentPreview = resource.content.slice(0, 500);
 
+    if (resource.rawFileKey) {
+      resource.publicURL = await this.miscService.publishFile(resource.rawFileKey);
+    }
+
     const { storageKey } = await this.miscService.uploadBuffer(user, {
       fpath: 'resource.json',
       buf: Buffer.from(JSON.stringify(resource)),
