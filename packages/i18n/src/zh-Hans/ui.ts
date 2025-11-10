@@ -659,6 +659,8 @@ const translations = {
         joinGroup: '加入用户交流群',
         scanToJoinWechatGroup: '扫码加入微信交流群',
         discordGroup: 'Discord 交流群',
+        notionDocument: 'Notion 文档',
+        viewNotionDocument: '查看文档',
         joinDiscordGroup: '加入交流群',
         followReflyUpdates: '关注 Refly 动态',
         reflyTwitterAccount: 'Refly官方账号',

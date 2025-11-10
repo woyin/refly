@@ -18,6 +18,7 @@ export enum SettingsModalActiveTab {
 interface SiderState {
   // state
   collapse: boolean;
+  isManualCollapse: boolean;
   showSiderDrawer: boolean;
   canvasList: SiderData[];
   projectsList: SiderData[];
@@ -29,6 +30,7 @@ interface SiderState {
 
   // method
   setCollapse: (val: boolean) => void;
+  setIsManualCollapse: (val: boolean) => void;
   setShowSiderDrawer: (val: boolean) => void;
   setCanvasList: (val: SiderData[]) => void;
   setProjectsList: (val: SiderData[]) => void;
@@ -43,6 +45,7 @@ interface SiderState {
 export const useSiderStore = create<SiderState>()(
   devtools((set) => ({
     collapse: false,
+    isManualCollapse: false,
     showSiderDrawer: false,
     canvasList: [],
     projectsList: [],
@@ -53,6 +56,7 @@ export const useSiderStore = create<SiderState>()(
     settingsModalActiveTab: null,
 
     setCollapse: (val: boolean) => set({ collapse: val }),
+    setIsManualCollapse: (val: boolean) => set({ isManualCollapse: val }),
     setShowSiderDrawer: (val: boolean) => set({ showSiderDrawer: val }),
     setCanvasList: (val: SiderData[]) => set({ canvasList: val }),
     setProjectsList: (val: SiderData[]) => set({ projectsList: val }),

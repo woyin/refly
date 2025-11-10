@@ -8,11 +8,17 @@ import { useSiderStoreShallow } from '@refly/stores';
  */
 export const useRouteCollapse = () => {
   const location = useLocation();
-  const { setCollapse } = useSiderStoreShallow((state) => ({
+  const { collapse, isManualCollapse, setCollapse } = useSiderStoreShallow((state) => ({
+    collapse: state.collapse,
+    isManualCollapse: state.isManualCollapse,
     setCollapse: state.setCollapse,
   }));
 
   useEffect(() => {
+    if (isManualCollapse) {
+      return;
+    }
+
     const currentPath = location.pathname;
 
     // Routes that should have sidebar expanded (collapse = false)
@@ -35,6 +41,9 @@ export const useRouteCollapse = () => {
     // Set collapse state based on route
     // If shouldExpand is true, set collapse to false (expanded)
     // If shouldExpand is false, set collapse to true (collapsed)
-    setCollapse(!shouldExpand);
-  }, [location.pathname, setCollapse]);
+    const nextCollapse = !shouldExpand;
+    if (collapse !== nextCollapse) {
+      setCollapse(nextCollapse);
+    }
+  }, [collapse, isManualCollapse, location.pathname, setCollapse]);
 };
