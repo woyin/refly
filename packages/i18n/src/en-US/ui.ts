@@ -977,7 +977,7 @@ const translations = {
       failed: 'Failed to delete',
       deleteConfirmForDocument: 'Are you sure you want to delete this document?',
       deleteConfirmForCanvas:
-        'Canvas {{canvas}} will be permanently deleted. Do you want to continue?',
+        'Workflow {{canvas}} and all files within it will be permanently deleted. Do you want to continue?',
       deleteConfirmForProject: 'Are you sure you want to delete this project?',
       deleteConfirmForResource: 'Are you sure you want to delete this resource?',
       deleteConfirmForResourceProject: 'Are you sure to remove this resource from the project?',
@@ -1423,6 +1423,7 @@ const translations = {
         failed: 'Workflow execution failed',
         error: 'Error monitoring workflow execution',
         validationError: 'Please fill in all required fields before running the workflow',
+        toolsGuide: 'Click "Run" to experience, the green parts support editing input content',
         nodeStatus: {
           waiting: 'Waiting',
           executing: 'Running',
@@ -3055,6 +3056,10 @@ const translations = {
         copySourceCode: 'Copy source code',
         createArtifact: 'Create diagram artifact',
       },
+      workflow: {
+        generating: 'Generating workflow...',
+        invalidData: 'Invalid workflow data',
+      },
     },
   },
   copilot: {
@@ -3733,6 +3738,7 @@ const translations = {
     noResultsAvailable: 'No results available',
     noResultsSelected: 'No results selected',
     resultPreview: 'Result Preview',
+    notLoggedIn: 'Not Logged In',
     run: {
       completed: 'Template run successfully',
       failed: 'Template run failed',

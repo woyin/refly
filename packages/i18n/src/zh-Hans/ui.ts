@@ -282,7 +282,7 @@ const translations = {
     },
     dropImageHere: '拖放图片到这里',
     presetColors: '预设颜色',
-    duplicate: '复制',
+    duplicate: '副本',
     shareSuccess: '分享链接已复制到剪贴板!',
     shareError: '分享失败，请重试！',
     readonlyWarning: '只读模式',
@@ -984,7 +984,7 @@ const translations = {
       unbindSuccessful: '移除成功！',
       failed: '删除失败！',
       deleteConfirmForDocument: '确定删除该文档吗？',
-      deleteConfirmForCanvas: '画布 {{canvas}} 将被永久删除，是否继续？',
+      deleteConfirmForCanvas: '工作流 {{canvas}} 及其中的所有文件将被永久删除，是否继续？',
       deleteConfirmForProject: '确定删除该项目吗？',
       deleteConfirmForResource: '确定删除该资源吗？',
       deleteConfirmForResourceProject: '确认要从项目移除吗?',
@@ -1420,6 +1420,7 @@ const translations = {
         failed: 'Workflow 运行失败',
         error: 'Workflow 运行状态时出错',
         validationError: '请填写所有必填字段后再运行工作流',
+        toolsGuide: '请点击「运行」即可体验，绿色部分支持修改输入内容',
         nodeStatus: {
           waiting: '等待中',
           executing: '运行中',
@@ -3012,6 +3013,10 @@ const translations = {
         copySourceCode: '复制源代码',
         createArtifact: '创建图表组件',
       },
+      workflow: {
+        generating: '生成工作流中...',
+        invalidData: '无效的工作流数据',
+      },
     },
     artifact: {
       webRender: '网页渲染',
@@ -3467,6 +3472,7 @@ const translations = {
     noResultsAvailable: '暂无可用结果',
     noResultsSelected: '暂无选择结果',
     resultPreview: '产物预览',
+    notLoggedIn: '未登录',
     run: {
       completed: '模板运行成功',
       failed: '模板运行失败',
