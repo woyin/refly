@@ -977,7 +977,7 @@ const translations = {
       failed: 'Failed to delete',
       deleteConfirmForDocument: 'Are you sure you want to delete this document?',
       deleteConfirmForCanvas:
-        'Canvas {{canvas}} will be permanently deleted. Do you want to continue?',
+        'Workflow {{canvas}} will be permanently deleted. And the published template cannot be updated (the published template can still be run). Are you sure to delete it?',
       deleteConfirmForProject: 'Are you sure you want to delete this project?',
       deleteConfirmForResource: 'Are you sure you want to delete this resource?',
       deleteConfirmForResourceProject: 'Are you sure to remove this resource from the project?',
@@ -1305,7 +1305,7 @@ const translations = {
       exitFullscreen: 'Exit Fullscreen',
       completeTutorial: 'Complete Tutorial',
       deleteCanvasConfirm: 'Confirm to delete canvas {{title}} permanently?',
-      deleteCanvasFile: 'Delete resources and documents in the canvas',
+      deleteCanvasFile: 'Delete resources and documents in the workflow',
       hideTemplates: 'Hide Templates',
       showTemplates: 'Show Templates',
       exportImage: 'Export Image',
@@ -1438,7 +1438,7 @@ const translations = {
     },
     action: {
       nodeAlreadyExists: 'The {{type}} with the same entity already exists',
-      deleteSuccess: 'Canvas deleted successfully',
+      deleteSuccess: 'Workflow deleted successfully',
       duplicateSuccess: 'Canvas duplicated successfully',
       nodeLimitReached:
         'Canvas has reached the maximum limit of {{max}} nodes. Please remove some nodes before adding new ones.',

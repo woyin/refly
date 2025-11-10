@@ -984,7 +984,8 @@ const translations = {
       unbindSuccessful: '移除成功！',
       failed: '删除失败！',
       deleteConfirmForDocument: '确定删除该文档吗？',
-      deleteConfirmForCanvas: '画布 {{canvas}} 将被永久删除，是否继续？',
+      deleteConfirmForCanvas:
+        '工作流 {{canvas}} 将被永久删除，且无法再更新已发布的模板（已发布的模板依旧可运行），是否确认删除？',
       deleteConfirmForProject: '确定删除该项目吗？',
       deleteConfirmForResource: '确定删除该资源吗？',
       deleteConfirmForResourceProject: '确认要从项目移除吗?',
@@ -1305,7 +1306,7 @@ const translations = {
       enterFullscreen: '进入全屏',
       exitFullscreen: '退出全屏',
       completeTutorial: '完成教程',
-      deleteCanvasFile: '同时删除画布中的资源和文档',
+      deleteCanvasFile: '同时删除工作流中的资源和文档',
       hideTemplates: '隐藏模板',
       showTemplates: '显示模板',
       exportImage: '导出图片',
@@ -1435,7 +1436,7 @@ const translations = {
     },
     action: {
       nodeAlreadyExists: '该{{type}}已存在于当前画布中',
-      deleteSuccess: '删除画布成功',
+      deleteSuccess: '工作流已删除',
       duplicateSuccess: '复制画布成功',
       nodeLimitReached: '画布已达到最大节点数限制 ({{max}})，请删除一些节点后再添加新节点。',
       approachingNodeLimit: '画布节点数量接近上限 ({{current}}/{{max}})，建议移除不必要的节点。',
