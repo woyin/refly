@@ -421,7 +421,7 @@ const WorkflowAppPage: React.FC = () => {
             {/* results grid */}
             {workflowApp?.resultNodeIds?.length > 0 && (
               <div className="flex flex-col gap-[10px]">
-                <div className="text-center text-[var(--refly-text-0)] dark:text-[var(--refly-text-StaticWhite)] font-['PingFang_SC'] font-semibold text-[14px] leading-[1.4285714285714286em]">
+                <div className="text-center z-10 text-[var(--refly-text-0)] dark:text-[var(--refly-text-StaticWhite)] font-['PingFang_SC'] font-semibold text-[14px] leading-[1.4285714285714286em]">
                   {t('workflowApp.resultPreview')}
                 </div>
                 <SelectedResultsGrid
