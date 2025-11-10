@@ -5367,6 +5367,14 @@ export type CreditRecharge = {
    */
   description?: string;
   /**
+   * Related share ID (if applicable)
+   */
+  shareId?: string;
+  /**
+   * Related share title (if applicable)
+   */
+  title?: string;
+  /**
    * Expiration timestamp (30 days from creation)
    */
   expiresAt: string;
@@ -5429,6 +5437,14 @@ export type CreditUsage = {
    * Model usage details for skill execution (JSON array of model usage)
    */
   modelUsageDetails?: string;
+  /**
+   * Related share ID (if applicable)
+   */
+  shareId?: string;
+  /**
+   * Related share title (if applicable)
+   */
+  title?: string;
   /**
    * Usage record creation timestamp
    */
@@ -6268,19 +6284,6 @@ export type CreateWorkflowAppResponse = BaseResponse & {
 
 export type GetWorkflowAppDetailResponse = BaseResponse & {
   data?: WorkflowApp;
-};
-
-export type GetWorkflowTitleAndShareIdResponse = BaseResponse & {
-  data?: {
-    /**
-     * Workflow app title
-     */
-    title?: string;
-    /**
-     * Workflow app share ID
-     */
-    shareId?: string;
-  };
 };
 
 export type ListWorkflowAppsResponse = BaseResponse & {
@@ -7886,19 +7889,6 @@ export type GetWorkflowAppDetailData = {
 export type GetWorkflowAppDetailResponse2 = GetWorkflowAppDetailResponse;
 
 export type GetWorkflowAppDetailError = unknown;
-
-export type GetWorkflowTitleAndShareIdData = {
-  query: {
-    /**
-     * Workflow app ID
-     */
-    appId: string;
-  };
-};
-
-export type GetWorkflowTitleAndShareIdResponse2 = GetWorkflowTitleAndShareIdResponse;
-
-export type GetWorkflowTitleAndShareIdError = unknown;
 
 export type ExecuteWorkflowAppData = {
   body: ExecuteWorkflowAppRequest;

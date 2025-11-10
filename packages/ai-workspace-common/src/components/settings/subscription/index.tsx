@@ -16,7 +16,6 @@ import {
   useGetCreditBalance,
   useGetCreditUsage,
   useGetCreditRecharge,
-  useGetWorkflowTitleAndShareId,
 } from '@refly-packages/ai-workspace-common/queries/queries';
 import { useSubscriptionUsage } from '@refly-packages/ai-workspace-common/hooks/use-subscription-usage';
 import { logEvent } from '@refly/telemetry-web';
@@ -31,6 +30,8 @@ interface CreditUsageRecord {
   description?: string;
   createdAt: string;
   amount: number;
+  title?: string;
+  shareId?: string;
 }
 
 interface CreditRechargeRecord {
@@ -42,6 +43,8 @@ interface CreditRechargeRecord {
   amount: number;
   balance: number;
   enabled: boolean;
+  title?: string;
+  shareId?: string;
 }
 
 // Define pagination interface
@@ -52,14 +55,6 @@ interface PaginationState {
 
 const filesPlanMap = { free: 100, starter: 200, maker: 500 };
 
-// Function to extract appId from commission description
-const extractAppIdFromCommissionDescription = (description?: string): string | null => {
-  if (!description) return null;
-  // Description format: "Commission credit for sharing execution {executionId} from app {appId}"
-  const match = description.match(/from app ([\w-]+)$/);
-  return match ? match[1] : null;
-};
-
 // Component to handle commission source display with app name
 const CommissionSourceCell = React.memo(({ record }: { record: CreditRechargeRecord }) => {
   const { t } = useTranslation('ui');
@@ -67,38 +62,26 @@ const CommissionSourceCell = React.memo(({ record }: { record: CreditRechargeRec
   const { setShowSettingModal } = useSiderStoreShallow((state) => ({
     setShowSettingModal: state.setShowSettingModal,
   }));
-  const appId = extractAppIdFromCommissionDescription(record.description);
-
-  const { data, isLoading } = useGetWorkflowTitleAndShareId(
-    appId ? { query: { appId } } : null,
-    [appId],
-    { enabled: !!appId },
-  );
 
   const handleAppNameClick = useCallback(
     (e: React.MouseEvent) => {
       e.preventDefault();
       e.stopPropagation();
-      const shareId = data?.data?.shareId;
-      if (shareId) {
+      if (record.shareId) {
         // Close settings modal before navigation
         setShowSettingModal(false);
-        navigate(`/app/${shareId}`);
+        navigate(`/app/${record.shareId}`);
       }
     },
-    [data?.data?.shareId, navigate, setShowSettingModal],
+    [record.shareId, navigate, setShowSettingModal],
   );
 
-  if (isLoading || !data) {
-    return <span>{t('subscription.subscriptionManagement.rechargeType.commission')}</span>;
-  }
+  const appName = record.title ?? t('subscription.subscriptionManagement.rechargeType.commission');
 
-  const appName =
-    data?.data?.title ?? t('subscription.subscriptionManagement.rechargeType.commission');
   return (
     <span className="inline-block max-w-[200px] overflow-hidden text-ellipsis whitespace-nowrap align-bottom">
       {t('subscription.subscriptionManagement.rechargeType.commissionPrefix')}
-      {data?.data?.shareId ? (
+      {record.shareId ? (
         <span
           className="cursor-pointer underline hover:text-blue-600 dark:hover:text-blue-400"
           onClick={handleAppNameClick}
@@ -119,38 +102,26 @@ const CommissionUsageCell = React.memo(({ record }: { record: CreditUsageRecord 
   const { setShowSettingModal } = useSiderStoreShallow((state) => ({
     setShowSettingModal: state.setShowSettingModal,
   }));
-  const appId = extractAppIdFromCommissionDescription(record.description);
-
-  const { data, isLoading } = useGetWorkflowTitleAndShareId(
-    appId ? { query: { appId } } : null,
-    [appId],
-    { enabled: !!appId },
-  );
 
   const handleAppNameClick = useCallback(
     (e: React.MouseEvent) => {
       e.preventDefault();
       e.stopPropagation();
-      const shareId = data?.data?.shareId;
-      if (shareId) {
+      if (record.shareId) {
         // Close settings modal before navigation
         setShowSettingModal(false);
-        navigate(`/app/${shareId}`);
+        navigate(`/app/${record.shareId}`);
       }
     },
-    [data?.data?.shareId, navigate, setShowSettingModal],
+    [record.shareId, navigate, setShowSettingModal],
   );
 
-  if (isLoading || !data) {
-    return <span>{t('subscription.subscriptionManagement.rechargeType.commission')}</span>;
-  }
+  const appName = record.title ?? t('subscription.subscriptionManagement.rechargeType.commission');
 
-  const appName =
-    data?.data?.title ?? t('subscription.subscriptionManagement.rechargeType.commission');
   return (
     <span className="inline-block max-w-[200px] overflow-hidden text-ellipsis whitespace-nowrap align-bottom">
       {t('subscription.subscriptionManagement.rechargeType.commissionPrefix')}
-      {data?.data?.shareId ? (
+      {record.shareId ? (
         <span
           className="cursor-pointer underline hover:text-blue-600 dark:hover:text-blue-400"
           onClick={handleAppNameClick}

@@ -92,7 +92,6 @@ import {
   getSubscriptionUsage,
   getWorkflowAppDetail,
   getWorkflowDetail,
-  getWorkflowTitleAndShareId,
   getWorkflowVariables,
   importCanvas,
   initializeWorkflow,
@@ -333,8 +332,6 @@ import {
   GetWorkflowAppDetailError,
   GetWorkflowDetailData,
   GetWorkflowDetailError,
-  GetWorkflowTitleAndShareIdData,
-  GetWorkflowTitleAndShareIdError,
   GetWorkflowVariablesData,
   GetWorkflowVariablesError,
   ImportCanvasData,
@@ -1079,23 +1076,6 @@ export const useGetWorkflowAppDetail = <
     queryKey: Common.UseGetWorkflowAppDetailKeyFn(clientOptions, queryKey),
     queryFn: () =>
       getWorkflowAppDetail({ ...clientOptions }).then(
-        (response) => response.data as TData,
-      ) as TData,
-    ...options,
-  });
-export const useGetWorkflowTitleAndShareId = <
-  TData = Common.GetWorkflowTitleAndShareIdDefaultResponse,
-  TError = GetWorkflowTitleAndShareIdError,
-  TQueryKey extends Array<unknown> = unknown[],
->(
-  clientOptions: Options<GetWorkflowTitleAndShareIdData, true>,
-  queryKey?: TQueryKey,
-  options?: Omit<UseQueryOptions<TData, TError>, 'queryKey' | 'queryFn'>,
-) =>
-  useQuery<TData, TError>({
-    queryKey: Common.UseGetWorkflowTitleAndShareIdKeyFn(clientOptions, queryKey),
-    queryFn: () =>
-      getWorkflowTitleAndShareId({ ...clientOptions }).then(
         (response) => response.data as TData,
       ) as TData,
     ...options,

@@ -2797,27 +2797,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/GetWorkflowAppDetailResponse'
-  /workflow-app/title-and-share-id:
-    get:
-      tags:
-        - app
-      summary: Get workflow app title and share ID
-      description: Get title and share ID for a workflow app
-      operationId: getWorkflowTitleAndShareId
-      parameters:
-        - name: appId
-          in: query
-          description: Workflow app ID
-          required: true
-          schema:
-            type: string
-      responses:
-        '200':
-          description: successful operation
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/GetWorkflowTitleAndShareIdResponse'
   /workflow-app/execute:
     post:
       tags:
@@ -9190,6 +9169,12 @@ components:
         description:
           type: string
           description: Optional description for this recharge
+        shareId:
+          type: string
+          description: Related share ID (if applicable)
+        title:
+          type: string
+          description: Related share title (if applicable)
         expiresAt:
           type: string
           format: date-time
@@ -9252,6 +9237,12 @@ components:
         modelUsageDetails:
           type: string
           description: Model usage details for skill execution (JSON array of model usage)
+        shareId:
+          type: string
+          description: Related share ID (if applicable)
+        title:
+          type: string
+          description: Related share title (if applicable)
         createdAt:
           type: string
           format: date-time
@@ -10118,20 +10109,6 @@ components:
           properties:
             data:
               $ref: '#/components/schemas/WorkflowApp'
-    GetWorkflowTitleAndShareIdResponse:
-      allOf:
-        - $ref: '#/components/schemas/BaseResponse'
-        - type: object
-          properties:
-            data:
-              type: object
-              properties:
-                title:
-                  type: string
-                  description: Workflow app title
-                shareId:
-                  type: string
-                  description: Workflow app share ID
     ListWorkflowAppsResponse:
       allOf:
         - $ref: '#/components/schemas/BaseResponse'

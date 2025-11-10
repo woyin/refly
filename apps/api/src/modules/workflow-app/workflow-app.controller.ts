@@ -22,7 +22,6 @@ import {
   ListOrder,
   BaseResponse,
   DeleteWorkflowAppRequest,
-  GetWorkflowTitleAndShareIdResponse,
 } from '@refly/openapi-schema';
 import { buildSuccessResponse } from '../../utils';
 import { workflowAppPO2DTO } from './workflow-app.dto';
@@ -49,15 +48,6 @@ export class WorkflowAppController {
   ): Promise<GetWorkflowAppDetailResponse> {
     const workflowApp = await this.workflowAppService.getWorkflowAppDetail(user, appId);
     return buildSuccessResponse(workflowAppPO2DTO(workflowApp));
-  }
-
-  @UseGuards(JwtAuthGuard)
-  @Get('title-and-share-id')
-  async getWorkflowTitleAndShareId(
-    @Query('appId') appId: string,
-  ): Promise<GetWorkflowTitleAndShareIdResponse> {
-    const { title, shareId } = await this.workflowAppService.getWorkflowTitleAndShareId(appId);
-    return buildSuccessResponse({ title, shareId });
   }
 
   @UseGuards(JwtAuthGuard)

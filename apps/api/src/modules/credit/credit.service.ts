@@ -22,7 +22,7 @@ import {
 import { CreditBalance } from './credit.dto';
 import { CanvasSyncService } from '../canvas-sync/canvas-sync.service';
 import { ConfigService } from '@nestjs/config';
-
+import { WorkflowAppNotFoundError } from '@refly/errors';
 @Injectable()
 export class CreditService {
   private readonly logger = new Logger(CreditService.name);
@@ -211,6 +211,51 @@ export class CreditService {
       createdAt: now,
       description: `Commission credit for sharing execution ${executionId} from app ${appId}`,
     });
+  }
+
+  /**
+   * Extract workflow app data from description
+   * Returns title and shareId if description contains appId pattern
+   */
+  private async extractWorkflowAppData(
+    description?: string,
+  ): Promise<{ title?: string; shareId?: string }> {
+    if (!description) {
+      return {};
+    }
+
+    // Extract appId from description if it matches the pattern
+    const appIdMatch = description.match(/from app ([\w-]+)$/);
+    if (!appIdMatch) {
+      return {};
+    }
+
+    const appId = appIdMatch[1];
+    try {
+      const workflowData = await this.getWorkflowTitleAndShareId(appId);
+      return {
+        title: workflowData.title,
+        shareId: workflowData.shareId,
+      };
+    } catch (error) {
+      // If workflow app not found or any other error, just return empty object
+      this.logger.warn(`Failed to get workflow data for appId ${appId}: ${error.message}`);
+      return {};
+    }
+  }
+
+  async getWorkflowTitleAndShareId(appId: string) {
+    const workflowApp = await this.prisma.workflowApp.findFirst({
+      where: { appId },
+    });
+    if (!workflowApp) {
+      throw new WorkflowAppNotFoundError();
+    }
+
+    // If the workflow app is deleted, don't return shareId
+    const shareId = workflowApp.deletedAt ? undefined : workflowApp.shareId;
+
+    return { title: workflowApp.title, shareId };
   }
 
   /**
@@ -722,15 +767,22 @@ export class CreditService {
       take: pageSize,
     });
 
-    const data = records.map((record) => ({
-      ...record,
-      amount: Number(record.amount), // Convert BigInt to number
-      balance: Number(record.balance), // Convert BigInt to number
-      source: record.source as 'purchase' | 'gift' | 'promotion' | 'refund',
-      expiresAt: record.expiresAt.toISOString(),
-      createdAt: record.createdAt.toISOString(),
-      updatedAt: record.updatedAt.toISOString(),
-    }));
+    const data = await Promise.all(
+      records.map(async (record) => {
+        const workflowData = await this.extractWorkflowAppData(record.description);
+
+        return {
+          ...record,
+          amount: Number(record.amount), // Convert BigInt to number
+          balance: Number(record.balance), // Convert BigInt to number
+          source: record.source as 'purchase' | 'gift' | 'promotion' | 'refund',
+          expiresAt: record.expiresAt.toISOString(),
+          createdAt: record.createdAt.toISOString(),
+          updatedAt: record.updatedAt.toISOString(),
+          ...workflowData,
+        };
+      }),
+    );
 
     return {
       data,
@@ -778,17 +830,24 @@ export class CreditService {
       take: pageSize,
     });
 
-    const data = records.map((record) => ({
-      ...record,
-      amount: Number(record.amount), // Convert BigInt to number
-      usageType: record.usageType as
-        | 'model_call'
-        | 'media_generation'
-        | 'embedding'
-        | 'reranking'
-        | 'other',
-      createdAt: record.createdAt.toISOString(),
-    }));
+    const data = await Promise.all(
+      records.map(async (record) => {
+        const workflowData = await this.extractWorkflowAppData(record.description);
+
+        return {
+          ...record,
+          amount: Number(record.amount), // Convert BigInt to number
+          usageType: record.usageType as
+            | 'model_call'
+            | 'media_generation'
+            | 'embedding'
+            | 'reranking'
+            | 'other',
+          createdAt: record.createdAt.toISOString(),
+          ...workflowData,
+        };
+      }),
+    );
 
     return {
       data,

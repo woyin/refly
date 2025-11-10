@@ -91,7 +91,6 @@ import {
   getSubscriptionUsage,
   getWorkflowAppDetail,
   getWorkflowDetail,
-  getWorkflowTitleAndShareId,
   getWorkflowVariables,
   importCanvas,
   initializeWorkflow,
@@ -600,18 +599,6 @@ export const UseGetWorkflowAppDetailKeyFn = (
   clientOptions: Options<unknown, true>,
   queryKey?: Array<unknown>,
 ) => [useGetWorkflowAppDetailKey, ...(queryKey ?? [clientOptions])];
-export type GetWorkflowTitleAndShareIdDefaultResponse = Awaited<
-  ReturnType<typeof getWorkflowTitleAndShareId>
->['data'];
-export type GetWorkflowTitleAndShareIdQueryResult<
-  TData = GetWorkflowTitleAndShareIdDefaultResponse,
-  TError = unknown,
-> = UseQueryResult<TData, TError>;
-export const useGetWorkflowTitleAndShareIdKey = 'GetWorkflowTitleAndShareId';
-export const UseGetWorkflowTitleAndShareIdKeyFn = (
-  clientOptions: Options<unknown, true>,
-  queryKey?: Array<unknown>,
-) => [useGetWorkflowTitleAndShareIdKey, ...(queryKey ?? [clientOptions])];
 export type ListWorkflowAppsDefaultResponse = Awaited<ReturnType<typeof listWorkflowApps>>['data'];
 export type ListWorkflowAppsQueryResult<
   TData = ListWorkflowAppsDefaultResponse,

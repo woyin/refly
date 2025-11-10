@@ -34,7 +34,6 @@ import {
   getSubscriptionUsage,
   getWorkflowAppDetail,
   getWorkflowDetail,
-  getWorkflowTitleAndShareId,
   getWorkflowVariables,
   listAccounts,
   listActions,
@@ -91,7 +90,6 @@ import {
   GetResourceDetailData,
   GetWorkflowAppDetailData,
   GetWorkflowDetailData,
-  GetWorkflowTitleAndShareIdData,
   GetWorkflowVariablesData,
   ListAccountsData,
   ListCanvasesData,
@@ -437,15 +435,6 @@ export const ensureUseGetWorkflowAppDetailData = (
   queryClient.ensureQueryData({
     queryKey: Common.UseGetWorkflowAppDetailKeyFn(clientOptions),
     queryFn: () => getWorkflowAppDetail({ ...clientOptions }).then((response) => response.data),
-  });
-export const ensureUseGetWorkflowTitleAndShareIdData = (
-  queryClient: QueryClient,
-  clientOptions: Options<GetWorkflowTitleAndShareIdData, true>,
-) =>
-  queryClient.ensureQueryData({
-    queryKey: Common.UseGetWorkflowTitleAndShareIdKeyFn(clientOptions),
-    queryFn: () =>
-      getWorkflowTitleAndShareId({ ...clientOptions }).then((response) => response.data),
   });
 export const ensureUseListWorkflowAppsData = (
   queryClient: QueryClient,

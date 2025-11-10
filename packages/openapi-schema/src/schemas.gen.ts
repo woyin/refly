@@ -7611,6 +7611,14 @@ export const CreditRechargeSchema = {
       type: 'string',
       description: 'Optional description for this recharge',
     },
+    shareId: {
+      type: 'string',
+      description: 'Related share ID (if applicable)',
+    },
+    title: {
+      type: 'string',
+      description: 'Related share title (if applicable)',
+    },
     expiresAt: {
       type: 'string',
       format: 'date-time',
@@ -7676,6 +7684,14 @@ export const CreditUsageSchema = {
     modelUsageDetails: {
       type: 'string',
       description: 'Model usage details for skill execution (JSON array of model usage)',
+    },
+    shareId: {
+      type: 'string',
+      description: 'Related share ID (if applicable)',
+    },
+    title: {
+      type: 'string',
+      description: 'Related share title (if applicable)',
     },
     createdAt: {
       type: 'string',
@@ -8891,32 +8907,6 @@ export const GetWorkflowAppDetailResponseSchema = {
       properties: {
         data: {
           $ref: '#/components/schemas/WorkflowApp',
-        },
-      },
-    },
-  ],
-} as const;
-
-export const GetWorkflowTitleAndShareIdResponseSchema = {
-  allOf: [
-    {
-      $ref: '#/components/schemas/BaseResponse',
-    },
-    {
-      type: 'object',
-      properties: {
-        data: {
-          type: 'object',
-          properties: {
-            title: {
-              type: 'string',
-              description: 'Workflow app title',
-            },
-            shareId: {
-              type: 'string',
-              description: 'Workflow app share ID',
-            },
-          },
         },
       },
     },
