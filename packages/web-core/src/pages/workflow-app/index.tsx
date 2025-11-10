@@ -184,10 +184,11 @@ const WorkflowAppPage: React.FC = () => {
     return nodeExecutions
       .filter(
         (nodeExecution: WorkflowNodeExecution) =>
-          ['document', 'codeArtifact', 'image', 'video', 'audio', 'skillResponse'].includes(
+          ['document', 'codeArtifact', 'image', 'video', 'audio'].includes(
             nodeExecution.nodeType as CanvasNodeType,
-          ) &&
-          (workflowApp?.resultNodeIds?.includes(nodeExecution.nodeId) ?? false),
+          ) ||
+          (['skillResponse'].includes(nodeExecution.nodeType as CanvasNodeType) &&
+            (workflowApp?.resultNodeIds?.includes(nodeExecution.nodeId) ?? false)),
       )
       .filter((nodeExecution: WorkflowNodeExecution) => nodeExecution.status === 'finish');
   }, [nodeExecutions, workflowApp?.resultNodeIds]);
@@ -318,9 +319,13 @@ const WorkflowAppPage: React.FC = () => {
             }
           `}
         </style>
+        <Helmet>
+          <title>{workflowApp?.title ?? ''}</title>
+        </Helmet>
+
         <div className="bg-[var(--refly-bg-content-z2)]">
           <div
-            className={`relative flex flex-col shrink-0 h-[300px] ${
+            className={`fixed top-0 left-0 right-0  flex flex-col shrink-0 h-[300px] ${
               workflowApp?.coverUrl
                 ? 'bg-cover bg-center bg-no-repeat'
                 : 'bg-[var(--refly-bg-content-z2)] dark:bg-[var(--bg---refly-bg-body-z0,#0E0E0E)]'
@@ -337,104 +342,102 @@ const WorkflowAppPage: React.FC = () => {
             {workflowApp?.coverUrl && (
               <div className="absolute inset-0 bg-gradient-to-b from-white/30 to-white dark:from-[rgba(25,25,25,0.25)] dark:to-[#0E0E0E] backdrop-blur-[20px] pointer-events-none" />
             )}
-            <Helmet>
-              <title>{workflowApp?.title ?? ''}</title>
-            </Helmet>
-            {/* Header - Fixed at top with full transparency */}
-            <div className="fixed top-[var(--banner-height)] left-0 right-0 z-50 border-b border-white/20 dark:border-[var(--refly-semi-color-border)] h-[64px]">
-              <div className="relative mx-auto px-4 sm:px-6 lg:px-8">
-                <div className="flex items-center justify-between h-16">
-                  <div className="flex items-center gap-3">
-                    <Logo onClick={() => navigate?.('/')} />
-                    <GithubStar />
-                  </div>
-                  <UserAvatar />
+          </div>
+
+          {/* Header - Fixed at top with full transparency */}
+          <div className="fixed top-0 left-0 right-0 z-50 border-b border-white/20 dark:border-[var(--refly-semi-color-border)] h-[64px]">
+            <div className="relative mx-auto px-4 sm:px-6 lg:px-8">
+              <div className="flex items-center justify-between h-16">
+                <div className="flex items-center gap-3">
+                  <Logo onClick={() => navigate?.('/')} />
+                  <GithubStar />
                 </div>
+                <UserAvatar />
               </div>
             </div>
-            {/* Main Content - flex-1 to take remaining space with top padding for fixed header */}
-            <div className="flex-1 pt-16 relative z-10">
-              <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
-                {isLoading ? (
-                  <LoadingContent />
-                ) : (
-                  <>
-                    {/* Hero Section */}
-                    <div className="text-center mb-6 sm:mb-8">
-                      <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-[var(--refly-text-0)] dark:text-[var(--refly-text-StaticWhite)] drop-shadow-sm">
-                        {workflowApp?.title ?? ''}
-                      </h1>
-                      <p className="mt-3 sm:mt-4 text-base sm:text-lg text-[var(--refly-text-1)] dark:text-[var(--refly-text-2)] max-w-2xl mx-auto drop-shadow-sm">
-                        {workflowApp?.description ?? ''}
-                      </p>
-                    </div>
-
-                    {/* Workflow Form */}
-                    <WorkflowAPPForm
-                      workflowApp={workflowApp}
-                      workflowVariables={workflowVariables}
-                      onSubmitVariables={onSubmit}
-                      loading={isLoading}
-                      onCopyWorkflow={handleCopyWorkflow}
-                      onCopyShareLink={handleCopyShareLink}
-                      isRunning={isRunning}
-                      templateContent={workflowApp?.templateContent}
-                      executionCreditUsage={executionCreditUsage}
-                      className="max-h-[500px] sm:max-h-[600px] bg-[var(--refly-bg-float-z3)] dark:bg-[var(--refly-bg-content-z2)] border border-[var(--refly-Card-Border)] dark:border-[var(--refly-semi-color-border)] shadow-[0_2px_20px_4px_rgba(0,0,0,0.04)] dark:shadow-[0_2px_20px_4px_rgba(0,0,0,0.2)] px-4 py-3 rounded-2xl"
-                    />
-
-                    {logs.length > 0 && (
-                      <>
-                        {/* Tabs */}
-                        {products.length > 0 && (
-                          <div className="text-center text-[var(--refly-text-0)] dark:text-[var(--refly-text-StaticWhite)] mb-[15px] mt-[40px] font-['PingFang_SC'] font-semibold text-[14px] leading-[1.4285714285714286em]">
-                            {!!executionCreditUsage && executionCreditUsage > 0
-                              ? t('workflowApp.productsGeneratedWithCost', {
-                                  count: products.length,
-                                  executionCost: executionCreditUsage ?? 0,
-                                })
-                              : t('workflowApp.productsGenerated', { count: products.length })}
-                          </div>
-                        )}
-
-                        {/* Content Area */}
-                        <div className="bg-[var(--refly-bg-float-z3)] rounded-lg border border-[var(--refly-Card-Border)] dark:bg-[var(--bg---refly-bg-body-z0,#0E0E0E)] relative z-20">
-                          {activeTab === 'products' ? (
-                            <WorkflowAppProducts products={products || []} />
-                          ) : activeTab ===
-                            'runLogs' ? // <WorkflowAppRunLogs nodeExecutions={logs || []} />
-
-                          null : null}
-                        </div>
-                      </>
-                    )}
-                  </>
-                )}
-              </div>
-            </div>
-
-            <div className="w-full max-w-[860px] mx-auto rounded-lg py-3 px-4 bg-[var(--refly-bg-content-z2)] dark:bg-[var(--bg---refly-bg-body-z0,#0E0E0E)] border border-[var(--refly-Card-Border)] mt-[10px]">
-              {/* results grid */}
-              {workflowApp?.resultNodeIds?.length > 0 && (
-                <div className="flex flex-col gap-[10px]">
-                  <div className="text-center text-[var(--refly-text-0)] dark:text-[var(--refly-text-StaticWhite)] font-['PingFang_SC'] font-semibold text-[14px] leading-[1.4285714285714286em]">
-                    {t('workflowApp.resultPreview')}
+          </div>
+          {/* Main Content - flex-1 to take remaining space with top padding for fixed header */}
+          <div className="flex-1 pt-16 relative z-10">
+            <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+              {isLoading ? (
+                <LoadingContent />
+              ) : (
+                <>
+                  {/* Hero Section */}
+                  <div className="text-center mb-6 sm:mb-8">
+                    <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-[var(--refly-text-0)] dark:text-[var(--refly-text-StaticWhite)] drop-shadow-sm">
+                      {workflowApp?.title ?? ''}
+                    </h1>
+                    <p className="mt-3 sm:mt-4 text-base sm:text-lg text-[var(--refly-text-1)] dark:text-[var(--refly-text-2)] max-w-2xl mx-auto drop-shadow-sm">
+                      {workflowApp?.description ?? ''}
+                    </p>
                   </div>
-                  <SelectedResultsGrid
-                    fillRow
-                    bordered
-                    selectedResults={workflowApp?.resultNodeIds ?? []}
-                    options={workflowApp?.canvasData?.nodes || []}
+
+                  {/* Workflow Form */}
+                  <WorkflowAPPForm
+                    workflowApp={workflowApp}
+                    workflowVariables={workflowVariables}
+                    onSubmitVariables={onSubmit}
+                    loading={isLoading}
+                    onCopyWorkflow={handleCopyWorkflow}
+                    onCopyShareLink={handleCopyShareLink}
+                    isRunning={isRunning}
+                    templateContent={workflowApp?.templateContent}
+                    executionCreditUsage={executionCreditUsage}
+                    className="max-h-[500px] sm:max-h-[600px] bg-[var(--refly-bg-float-z3)] dark:bg-[var(--refly-bg-content-z2)] border border-[var(--refly-Card-Border)] dark:border-[var(--refly-semi-color-border)] shadow-[0_2px_20px_4px_rgba(0,0,0,0.04)] dark:shadow-[0_2px_20px_4px_rgba(0,0,0,0.2)] px-4 py-3 rounded-2xl"
                   />
-                </div>
+
+                  {logs.length > 0 && (
+                    <>
+                      {/* Tabs */}
+                      {products.length > 0 && (
+                        <div className="text-center text-[var(--refly-text-0)] dark:text-[var(--refly-text-StaticWhite)] mb-[15px] mt-[40px] font-['PingFang_SC'] font-semibold text-[14px] leading-[1.4285714285714286em]">
+                          {!!executionCreditUsage && executionCreditUsage > 0
+                            ? t('workflowApp.productsGeneratedWithCost', {
+                                count: products.length,
+                                executionCost: executionCreditUsage ?? 0,
+                              })
+                            : t('workflowApp.productsGenerated', { count: products.length })}
+                        </div>
+                      )}
+
+                      {/* Content Area */}
+                      <div className="bg-[var(--refly-bg-float-z3)] rounded-lg border border-[var(--refly-Card-Border)] dark:bg-[var(--bg---refly-bg-body-z0,#0E0E0E)] relative z-20">
+                        {activeTab === 'products' ? (
+                          <WorkflowAppProducts products={products || []} />
+                        ) : activeTab ===
+                          'runLogs' ? // <WorkflowAppRunLogs nodeExecutions={logs || []} />
+
+                        null : null}
+                      </div>
+                    </>
+                  )}
+                </>
               )}
             </div>
-
-            {/* Why Choose Refly Section */}
-            <WhyChooseRefly />
-            {/* Footer Section - always at bottom */}
-            <FooterSection />
           </div>
+
+          <div className="w-full max-w-[860px] mx-auto rounded-lg py-3 px-4 bg-[var(--refly-bg-content-z2)] dark:bg-[var(--bg---refly-bg-body-z0,#0E0E0E)] border border-[var(--refly-Card-Border)] mt-[10px]">
+            {/* results grid */}
+            {workflowApp?.resultNodeIds?.length > 0 && (
+              <div className="flex flex-col gap-[10px]">
+                <div className="text-center text-[var(--refly-text-0)] dark:text-[var(--refly-text-StaticWhite)] font-['PingFang_SC'] font-semibold text-[14px] leading-[1.4285714285714286em]">
+                  {t('workflowApp.resultPreview')}
+                </div>
+                <SelectedResultsGrid
+                  fillRow
+                  bordered
+                  selectedResults={workflowApp?.resultNodeIds ?? []}
+                  options={workflowApp?.canvasData?.nodes || []}
+                />
+              </div>
+            )}
+          </div>
+
+          {/* Why Choose Refly Section */}
+          <WhyChooseRefly />
+          {/* Footer Section - always at bottom */}
+          <FooterSection />
 
           {/* Settings Modal */}
           <SettingModal visible={showSettingModal} setVisible={setShowSettingModal} />
