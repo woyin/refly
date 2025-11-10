@@ -16,7 +16,7 @@ import EmptyImage from '@refly-packages/ai-workspace-common/assets/noResource.sv
 import './index.scss';
 import { WorkflowActionDropdown } from '@refly-packages/ai-workspace-common/components/workflow-list/workflowActionDropdown';
 import { useCreateCanvas } from '@refly-packages/ai-workspace-common/hooks/canvas/use-create-canvas';
-import { ListOrder, ShareRecord, ShareUser } from '@refly/openapi-schema';
+import { ListOrder, ShareUser } from '@refly/openapi-schema';
 import { UsedToolsets } from '@refly-packages/ai-workspace-common/components/workflow-list/used-toolsets';
 import defaultAvatar from '@refly-packages/ai-workspace-common/assets/refly_default_avatar.png';
 import { useDebouncedCallback } from 'use-debounce';
@@ -114,40 +114,30 @@ const WorkflowList = memo(() => {
         key: 'title',
         width: 336,
         fixed: 'left' as const,
-        render: (text: string, _record: Canvas) => (
-          <Typography.Text
-            className="text-base text-refly-text-0 cursor-pointer hover:text-refly-text-1"
-            ellipsis={{ tooltip: true }}
-          >
-            {text || t('common.untitled')}
-          </Typography.Text>
-        ),
-      },
-      {
-        title: t('workflowList.tableTitle.status'),
-        dataIndex: 'shareRecord',
-        key: 'shareRecord',
-        width: 140,
-        render: (shareRecord: ShareRecord) => {
-          const isShared = shareRecord?.shareId;
+        render: (text: string, record: Canvas) => {
+          const isShared = record?.shareRecord?.shareId;
+          const isPublished = record?.workflowApp?.shareId;
           return (
-            <Tag color={isShared ? 'default' : 'default'} className="text-xs">
-              {isShared ? t('workflowList.shared') : t('workflowList.private')}
-            </Tag>
-          );
-        },
-      },
-      {
-        title: t('workflowList.tableTitle.publishStatus'),
-        dataIndex: 'workflowApp',
-        key: 'publishStatus',
-        width: 120,
-        render: (workflowApp: any) => {
-          const isPublished = workflowApp?.shareId;
-          return (
-            <Tag color={isPublished ? 'success' : 'default'} className="text-xs">
-              {isPublished ? t('workflowList.published') : t('workflowList.unpublished')}
-            </Tag>
+            <div className="flex items-center gap-2">
+              <Typography.Text
+                className="text-base text-refly-text-0 cursor-pointer hover:text-refly-text-1"
+                ellipsis={{ tooltip: true }}
+              >
+                {text || t('common.untitled')}
+              </Typography.Text>
+              <div className="flex items-center gap-1 flex-shrink-0">
+                {isShared && (
+                  <Tag color="default" className="text-xs">
+                    {t('workflowList.shared')}
+                  </Tag>
+                )}
+                {isPublished && (
+                  <Tag color="success" className="text-xs">
+                    {t('workflowList.published')}
+                  </Tag>
+                )}
+              </div>
+            </div>
           );
         },
       },
