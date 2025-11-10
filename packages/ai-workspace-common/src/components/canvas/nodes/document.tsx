@@ -7,6 +7,8 @@ import { getNodeCommonStyles } from './shared/styles';
 import { useTranslation } from 'react-i18next';
 import { useAddToContext } from '@refly-packages/ai-workspace-common/hooks/canvas/use-add-to-context';
 import { useDeleteNode } from '@refly-packages/ai-workspace-common/hooks/canvas/use-delete-node';
+import { time } from '@refly-packages/ai-workspace-common/utils/time';
+import { LOCALE } from '@refly/common-types';
 import { nodeActionEmitter } from '@refly-packages/ai-workspace-common/events/nodeActions';
 import {
   createNodeEventName,
@@ -48,7 +50,8 @@ export const DocumentNode = memo(
     const { readonly, canvasId } = useCanvasContext();
     const [isHovered, setIsHovered] = useState(false);
     const { edges } = useCanvasData();
-    const { t } = useTranslation();
+    const { t, i18n } = useTranslation();
+    const language = i18n.languages?.[0];
     const updateNodeTitle = useUpdateNodeTitle();
     const { setNodeStyle } = useNodeData();
 
@@ -297,6 +300,11 @@ export const DocumentNode = memo(
             canEdit={!readonly}
             updateTitle={updateTitle}
           />
+          <div className="flex justify-end items-center flex-shrink-0 mt-1 text-[10px] text-gray-400 z-20">
+            {time(data.createdAt, language as LOCALE)
+              ?.utc()
+              ?.fromNow()}
+          </div>
         </div>
       </div>
     );
