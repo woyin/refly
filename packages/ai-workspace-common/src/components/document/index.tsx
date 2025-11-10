@@ -356,7 +356,10 @@ const DocumentEditorHeader = memo(({ docId, nodeId, readonly }: DocumentEditorHe
     const timer = setTimeout(() => {
       syncTitleToYDoc((node?.data?.title as string) ?? '');
     }, 100);
-    return () => clearTimeout(timer);
+    return () => {
+      clearTimeout(timer);
+      syncTitleToYDoc((node?.data?.title as string) ?? '');
+    };
   }, [provider?.status]);
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {

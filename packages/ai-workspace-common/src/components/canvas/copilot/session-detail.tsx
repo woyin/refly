@@ -101,7 +101,7 @@ const CopilotMessage = memo(({ result, isFinal }: CopilotMessageProps) => {
   }, [status, resultId, fetchActionResult]);
 
   const { canvasId, forceSyncState, workflow } = useCanvasContext();
-  const { initializeWorkflow } = workflow;
+  const { initializeWorkflow, isInitializing, isPolling } = workflow;
   const [isLoading, setIsLoading] = useState(false);
   const { t } = useTranslation();
   const [modal, contextHolder] = Modal.useModal();
@@ -205,7 +205,12 @@ const CopilotMessage = memo(({ result, isFinal }: CopilotMessageProps) => {
       )}
       {workflowPlan && status === 'finish' && (
         <div className="mt-1">
-          <Button type="primary" onClick={handleApproveAndRun} loading={isLoading}>
+          <Button
+            type="primary"
+            onClick={handleApproveAndRun}
+            loading={isLoading || isInitializing || isPolling}
+            disabled={isLoading || isInitializing || isPolling}
+          >
             {t('copilot.sessionDetail.approveAndRun')}
           </Button>
         </div>
