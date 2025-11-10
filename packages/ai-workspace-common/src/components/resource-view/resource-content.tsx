@@ -45,7 +45,7 @@ export const ResourceContent = memo(
 
     const renderMediaContent = () => {
       const resourceType = resourceDetail.resourceType;
-      const url = resourceDetail.downloadURL;
+      const url = resourceDetail.publicURL ?? resourceDetail.downloadURL;
 
       if (resourceType === 'image') {
         if (!url) {
