@@ -3896,6 +3896,8 @@ const translations = {
     searchWorkflows: '搜索工作流',
     shared: '共享',
     private: '私有',
+    published: '已发布',
+    unpublished: '未发布',
     share: '分享',
     unshare: '取消分享',
     shareSuccess: '工作流 {{title}} 分享成功！链接已复制到剪贴板。',
@@ -3906,6 +3908,7 @@ const translations = {
     tableTitle: {
       workflowName: '标题',
       status: '状态',
+      publishStatus: '发布状态',
       tools: '工具',
       owner: '创建人',
       lastModified: '更新时间',

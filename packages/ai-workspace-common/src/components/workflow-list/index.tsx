@@ -138,6 +138,20 @@ const WorkflowList = memo(() => {
         },
       },
       {
+        title: t('workflowList.tableTitle.publishStatus'),
+        dataIndex: 'workflowApp',
+        key: 'publishStatus',
+        width: 120,
+        render: (workflowApp: any) => {
+          const isPublished = workflowApp?.shareId;
+          return (
+            <Tag color={isPublished ? 'success' : 'default'} className="text-xs">
+              {isPublished ? t('workflowList.published') : t('workflowList.unpublished')}
+            </Tag>
+          );
+        },
+      },
+      {
         title: t('workflowList.tableTitle.tools'),
         dataIndex: 'usedToolsets',
         key: 'usedToolsets',

@@ -3865,6 +3865,8 @@ const translations = {
     searchWorkflows: 'Search workflows',
     shared: 'Shared',
     private: 'Private',
+    published: 'Published',
+    unpublished: 'Unpublished',
     share: 'Share',
     unshare: 'Unshare',
     shareSuccess: 'Workflow {{title}} shared successfully! Link copied to clipboard.',
@@ -3875,6 +3877,7 @@ const translations = {
     tableTitle: {
       workflowName: 'Title',
       status: 'Status',
+      publishStatus: 'Publish Status',
       tools: 'Tools',
       owner: 'Owner',
       lastModified: 'Last Modified',
