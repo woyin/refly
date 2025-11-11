@@ -512,7 +512,7 @@ const SiderLoggedIn = (props: { source: 'sider' | 'popover' }) => {
     if (isHidden) {
       return 0;
     }
-    return isCollapsed ? 64 : 248;
+    return isCollapsed ? 48 : 248;
   }, [isCollapsed, isHidden, source]);
 
   return (
@@ -529,7 +529,7 @@ const SiderLoggedIn = (props: { source: 'sider' | 'popover' }) => {
         overflow: isHidden ? 'hidden' : undefined,
       }}
     >
-      <div className="flex h-full flex-col gap-3 overflow-hidden p-4 pr-2 pt-6">
+      <div className="flex h-full flex-col gap-3 overflow-hidden p-2 pr-0 pt-6">
         <div className="flex flex-col gap-2 flex-1 overflow-hidden">
           <SiderLogo
             navigate={(path) => navigate(path)}
