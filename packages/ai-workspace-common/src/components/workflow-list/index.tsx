@@ -72,11 +72,6 @@ const WorkflowList = memo(() => {
     [dataList, setDataList],
   );
 
-  const afterShare = useCallback(() => {
-    // Refresh the data list to update share status
-    reload();
-  }, [reload]);
-
   const handleCreateWorkflow = useCallback(() => {
     debouncedCreateCanvas();
   }, [debouncedCreateCanvas]);
@@ -220,7 +215,6 @@ const WorkflowList = memo(() => {
                 workflow={record}
                 onDeleteSuccess={afterDelete}
                 onRenameSuccess={reload}
-                onShareSuccess={afterShare}
               >
                 <Button type="text" size="small" className="!text-refly-primary-default">
                   {t('common.more')}
