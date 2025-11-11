@@ -5371,6 +5371,14 @@ export type CreditRecharge = {
    */
   description?: string;
   /**
+   * Related app ID (if applicable)
+   */
+  appId?: string;
+  /**
+   * Extra data for this recharge (JSON)
+   */
+  extraData?: CreditRechargeExtraData;
+  /**
    * Related share ID (if applicable)
    */
   shareId?: string;
@@ -5442,6 +5450,14 @@ export type CreditUsage = {
    */
   modelUsageDetails?: string;
   /**
+   * Related app ID (if applicable)
+   */
+  appId?: string;
+  /**
+   * Extra data for this usage (JSON)
+   */
+  extraData?: CreditUsageExtraData;
+  /**
    * Related share ID (if applicable)
    */
   shareId?: string;
@@ -5465,6 +5481,74 @@ export type usageType =
   | 'reranking'
   | 'commission'
   | 'other';
+
+/**
+ * Extra data for credit recharge
+ */
+export type CreditRechargeExtraData = {
+  /**
+   * Related app ID
+   */
+  appId?: string;
+  /**
+   * Related execution ID
+   */
+  executionId?: string;
+  /**
+   * Related share ID
+   */
+  shareId?: string;
+  /**
+   * Related share title
+   */
+  title?: string;
+  /**
+   * Commission rate
+   */
+  commissionRate?: number;
+};
+
+/**
+ * Extra data for credit usage
+ */
+export type CreditUsageExtraData = {
+  /**
+   * Related app ID (if applicable)
+   */
+  appId?: string;
+  /**
+   * Related execution ID
+   */
+  executionId?: string;
+  /**
+   * Related share ID
+   */
+  shareId?: string;
+  /**
+   * Related share title
+   */
+  title?: string;
+  /**
+   * Commission rate
+   */
+  commissionRate?: number;
+  /**
+   * Related toolset key
+   */
+  toolsetKey?: string;
+  /**
+   * Related toolset name
+   */
+  toolsetName?: string;
+  /**
+   * Related tool key
+   */
+  toolKey?: string;
+  /**
+   * Related tool name
+   */
+  toolName?: string;
+};
 
 export type ListProvidersResponse = BaseResponse & {
   data?: Array<Provider>;

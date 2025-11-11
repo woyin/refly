@@ -4,7 +4,6 @@ import { Button, Table, Segmented } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { Spin } from '@refly-packages/ai-workspace-common/components/common/spin';
 import { useTranslation } from 'react-i18next';
-import { useNavigate } from 'react-router-dom';
 import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
 
 import {
@@ -58,7 +57,6 @@ const filesPlanMap = { free: 100, starter: 200, maker: 500 };
 // Component to handle commission source display with app name
 const CommissionSourceCell = React.memo(({ record }: { record: CreditRechargeRecord }) => {
   const { t } = useTranslation('ui');
-  const navigate = useNavigate();
   const { setShowSettingModal } = useSiderStoreShallow((state) => ({
     setShowSettingModal: state.setShowSettingModal,
   }));
@@ -70,10 +68,10 @@ const CommissionSourceCell = React.memo(({ record }: { record: CreditRechargeRec
       if (record.shareId) {
         // Close settings modal before navigation
         setShowSettingModal(false);
-        navigate(`/app/${record.shareId}`);
+        window.open(`/app/${record.shareId}`, '_blank');
       }
     },
-    [record.shareId, navigate, setShowSettingModal],
+    [record.shareId, setShowSettingModal],
   );
 
   const appName = record.title ?? t('subscription.subscriptionManagement.rechargeType.commission');
@@ -98,7 +96,6 @@ const CommissionSourceCell = React.memo(({ record }: { record: CreditRechargeRec
 // Component to handle commission usage display with app name
 const CommissionUsageCell = React.memo(({ record }: { record: CreditUsageRecord }) => {
   const { t } = useTranslation('ui');
-  const navigate = useNavigate();
   const { setShowSettingModal } = useSiderStoreShallow((state) => ({
     setShowSettingModal: state.setShowSettingModal,
   }));
@@ -110,10 +107,10 @@ const CommissionUsageCell = React.memo(({ record }: { record: CreditUsageRecord 
       if (record.shareId) {
         // Close settings modal before navigation
         setShowSettingModal(false);
-        navigate(`/app/${record.shareId}`);
+        window.open(`/app/${record.shareId}`, '_blank');
       }
     },
-    [record.shareId, navigate, setShowSettingModal],
+    [record.shareId, setShowSettingModal],
   );
 
   const appName = record.title ?? t('subscription.subscriptionManagement.rechargeType.commission');
