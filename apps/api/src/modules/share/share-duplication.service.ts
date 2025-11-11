@@ -228,8 +228,6 @@ export class ShareDuplicationService {
     // Generate or use pre-generated resource ID
     const newResourceId = options?.targetId ?? genResourceID();
 
-    const newStorageKey = `resource/${newResourceId}.txt`;
-
     const resourceDetail: Resource | undefined = safeParseJSON(
       (
         await this.miscService.downloadFile({
@@ -246,6 +244,11 @@ export class ShareDuplicationService {
 
     const targetCanvasId = canvasId || resourceDetail.canvasId;
     const extraData: ShareExtraData = safeParseJSON(record.extraData);
+
+    let newStorageKey: string | undefined;
+    if (resourceDetail.storageKey) {
+      newStorageKey = `resource/${newResourceId}.txt`;
+    }
 
     let finalRawFileKey: string | undefined;
     if (resourceDetail.rawFileKey) {
@@ -278,14 +281,6 @@ export class ShareDuplicationService {
     });
 
     const jobs: Promise<any>[] = [
-      this.miscService.uploadBuffer(user, {
-        fpath: 'document.txt',
-        buf: Buffer.from(resourceDetail.content ?? ''),
-        entityId: newResourceId,
-        entityType: 'resource',
-        visibility: 'private',
-        storageKey: newStorageKey,
-      }),
       this.fts.upsertDocument(user, 'resource', {
         id: newResourceId,
         ...pick(newResource, ['title', 'uid']),
@@ -294,6 +289,19 @@ export class ShareDuplicationService {
         updatedAt: newResource.updatedAt.toJSON(),
       }),
     ];
+
+    if (newStorageKey) {
+      jobs.push(
+        this.miscService.uploadBuffer(user, {
+          fpath: 'document.txt',
+          buf: Buffer.from(resourceDetail.content ?? ''),
+          entityId: newResourceId,
+          entityType: 'resource',
+          visibility: 'private',
+          storageKey: newStorageKey,
+        }),
+      );
+    }
 
     if (extraData?.vectorStorageKey) {
       jobs.push(
