@@ -196,4 +196,16 @@ export default () => ({
   composio: {
     apiKey: process.env.COMPOSIO_API_KEY,
   },
+
+  audio: {
+    fish: {
+      apiKey: process.env.FISH_AUDIO_API_KEY,
+    },
+  },
+
+  video: {
+    heygen: {
+      apiKey: process.env.HEYGEN_API_KEY,
+    },
+  },
 });
