@@ -20,6 +20,7 @@ import { ListOrder, ShareUser } from '@refly/openapi-schema';
 import { UsedToolsets } from '@refly-packages/ai-workspace-common/components/workflow-list/used-toolsets';
 import defaultAvatar from '@refly-packages/ai-workspace-common/assets/refly_default_avatar.png';
 import { useDebouncedCallback } from 'use-debounce';
+import { useSiderStoreShallow } from '@refly/stores';
 
 const WorkflowList = memo(() => {
   const { t, i18n } = useTranslation();
@@ -31,6 +32,10 @@ const WorkflowList = memo(() => {
   const [orderType, setOrderType] = useState<ListOrder>('updationDesc');
 
   const { debouncedCreateCanvas, isCreating: createCanvasLoading } = useCreateCanvas({});
+
+  const { setIsManualCollapse } = useSiderStoreShallow((state) => ({
+    setIsManualCollapse: state.setIsManualCollapse,
+  }));
 
   const { setDataList, loadMore, reload, dataList, hasMore, isRequesting } = useFetchDataList({
     fetchData: async (queryPayload) => {
@@ -82,9 +87,10 @@ const WorkflowList = memo(() => {
 
   const handleEdit = useCallback(
     (canvas: Canvas) => {
+      setIsManualCollapse(false);
       navigate(`/canvas/${canvas.canvasId}`);
     },
-    [navigate],
+    [navigate, setIsManualCollapse],
   );
 
   // Auto scroll loading effect

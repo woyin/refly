@@ -365,14 +365,14 @@ const SiderLoggedIn = (props: { source: 'sider' | 'popover' }) => {
   }));
 
   const {
-    collapse,
+    collapseState,
     setCollapse,
     setShowSettingModal,
     setShowLibraryModal,
     setSettingsModalActiveTab,
     setIsManualCollapse,
   } = useSiderStoreShallow((state) => ({
-    collapse: state.collapse,
+    collapseState: state.collapseState,
     setCollapse: state.setCollapse,
     setShowSettingModal: state.setShowSettingModal,
     setShowLibraryModal: state.setShowLibraryModal,
@@ -503,9 +503,21 @@ const SiderLoggedIn = (props: { source: 'sider' | 'popover' }) => {
     updateLibraryModalActiveKey,
   ]);
 
+  const isCollapsed = useMemo(() => collapseState !== 'expanded', [collapseState]);
+  const isHidden = useMemo(() => collapseState === 'hidden', [collapseState]);
+  const siderWidth = useMemo(() => {
+    if (source !== 'sider') {
+      return 248;
+    }
+    if (isHidden) {
+      return 0;
+    }
+    return isCollapsed ? 64 : 248;
+  }, [isCollapsed, isHidden, source]);
+
   return (
     <Sider
-      width={source === 'sider' ? (collapse ? 64 : 248) : 248}
+      width={siderWidth}
       className={cn(
         'bg-transparent',
         source === 'sider'
@@ -514,6 +526,7 @@ const SiderLoggedIn = (props: { source: 'sider' | 'popover' }) => {
       )}
       style={{
         height: source === 'sider' ? 'var(--screen-height)' : 'calc(var(--screen-height) - 16px)',
+        overflow: isHidden ? 'hidden' : undefined,
       }}
     >
       <div className="flex h-full flex-col gap-3 overflow-hidden p-4 pr-2 pt-6">
@@ -522,7 +535,7 @@ const SiderLoggedIn = (props: { source: 'sider' | 'popover' }) => {
             navigate={(path) => navigate(path)}
             showCollapseButton={source === 'sider'}
             onCollapseClick={handleCollapseToggle}
-            collapsed={collapse}
+            collapsed={isCollapsed}
           />
 
           {/* Main menu items */}
@@ -533,7 +546,7 @@ const SiderLoggedIn = (props: { source: 'sider' | 'popover' }) => {
               title={item.title}
               onActionClick={item.onActionClick}
               isActive={item.key === getActiveKey()} // First item (home) is active when on /canvas/empty
-              collapsed={collapse}
+              collapsed={isCollapsed}
             />
           ))}
 
@@ -553,7 +566,7 @@ const SiderLoggedIn = (props: { source: 'sider' | 'popover' }) => {
                     title={item.title}
                     onActionClick={item.onActionClick}
                     isActive={openContactUs}
-                    collapsed={collapse}
+                    collapsed={isCollapsed}
                   />
                 </ContactUsPopover>
               );
@@ -565,7 +578,7 @@ const SiderLoggedIn = (props: { source: 'sider' | 'popover' }) => {
                 title={item.title}
                 onActionClick={item.onActionClick}
                 isActive={item.key === getActiveKey()}
-                collapsed={collapse}
+                collapsed={isCollapsed}
               />
             );
           })}
@@ -579,7 +592,7 @@ const SiderLoggedIn = (props: { source: 'sider' | 'popover' }) => {
             )}
             data-cy="settings-menu-item"
           >
-            <SettingItem collapsed={collapse} />
+            <SettingItem collapsed={isCollapsed} />
           </div>
         )}
       </div>
