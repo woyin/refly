@@ -325,7 +325,7 @@ const WorkflowAppPage: React.FC = () => {
 
         <div className="bg-[var(--refly-bg-content-z2)]">
           <div
-            className={`fixed top-0 left-0 right-0  flex flex-col shrink-0 h-[300px] ${
+            className={`fixed top-[var(--banner-height)] left-0 right-0  flex flex-col shrink-0 h-[300px] ${
               workflowApp?.coverUrl
                 ? 'bg-cover bg-center bg-no-repeat'
                 : 'bg-[var(--refly-bg-content-z2)] dark:bg-[var(--bg---refly-bg-body-z0,#0E0E0E)]'
