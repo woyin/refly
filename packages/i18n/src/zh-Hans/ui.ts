@@ -987,7 +987,7 @@ const translations = {
       failed: '删除失败！',
       deleteConfirmForDocument: '确定删除该文档吗？',
       deleteConfirmForCanvas:
-        '工作流 {{canvas}} 将被永久删除，且无法再更新已发布的模板（已发布的模板依旧可运行），是否确认删除？',
+        '工作流 {{canvas}} 将被永久删除，且无法再更新已发布的模板(已发布的模板依旧可运行)，是否确认删除？',
       deleteConfirmForProject: '确定删除该项目吗？',
       deleteConfirmForResource: '确定删除该资源吗？',
       deleteConfirmForResourceProject: '确认要从项目移除吗?',
