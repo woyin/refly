@@ -304,22 +304,24 @@ export const SettingItem = React.memo(
 
     if (collapsed) {
       return (
-        <div className="group w-full flex items-center justify-between">
-          <div className="flex items-center gap-2 min-w-0 flex-1">
-            <div className="flex-shrink-0 flex items-center">
-              <UserAvatar showName={false} userProfile={userProfile} avatarAlign="left" />
-            </div>
-            <div className="opacity-0 w-0 overflow-hidden">
-              <SubscriptionInfo
-                creditBalance={creditBalance}
-                userProfile={userProfile}
-                onCreditClick={handleCreditClick}
-                onSubscriptionClick={handleSubscriptionClick}
-                t={t}
-              />
+        <SiderMenuSettingList creditBalance={creditBalance}>
+          <div className="group w-full flex items-center justify-between">
+            <div className="flex items-center gap-2 min-w-0 flex-1">
+              <div className="flex-shrink-0 flex items-center">
+                <UserAvatar showName={false} userProfile={userProfile} avatarAlign="left" />
+              </div>
+              <div className="opacity-0 w-0 overflow-hidden">
+                <SubscriptionInfo
+                  creditBalance={creditBalance}
+                  userProfile={userProfile}
+                  onCreditClick={handleCreditClick}
+                  onSubscriptionClick={handleSubscriptionClick}
+                  t={t}
+                />
+              </div>
             </div>
           </div>
-        </div>
+        </SiderMenuSettingList>
       );
     }
 
