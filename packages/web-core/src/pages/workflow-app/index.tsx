@@ -325,7 +325,7 @@ const WorkflowAppPage: React.FC = () => {
 
         <div className="bg-[var(--refly-bg-content-z2)]">
           <div
-            className={`fixed top-0 left-0 right-0  flex flex-col shrink-0 h-[300px] ${
+            className={`fixed top-[var(--banner-height)] left-0 right-0  flex flex-col shrink-0 h-[300px] ${
               workflowApp?.coverUrl
                 ? 'bg-cover bg-center bg-no-repeat'
                 : 'bg-[var(--refly-bg-content-z2)] dark:bg-[var(--bg---refly-bg-body-z0,#0E0E0E)]'
@@ -421,7 +421,7 @@ const WorkflowAppPage: React.FC = () => {
             {/* results grid */}
             {workflowApp?.resultNodeIds?.length > 0 && (
               <div className="flex flex-col gap-[10px]">
-                <div className="text-center text-[var(--refly-text-0)] dark:text-[var(--refly-text-StaticWhite)] font-['PingFang_SC'] font-semibold text-[14px] leading-[1.4285714285714286em]">
+                <div className="text-center z-10 text-[var(--refly-text-0)] dark:text-[var(--refly-text-StaticWhite)] font-['PingFang_SC'] font-semibold text-[14px] leading-[1.4285714285714286em]">
                   {t('workflowApp.resultPreview')}
                 </div>
                 <SelectedResultsGrid
