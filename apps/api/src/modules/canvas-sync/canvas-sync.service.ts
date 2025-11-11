@@ -247,7 +247,7 @@ export class CanvasSyncService {
     try {
       const cached = await this.redis.get(cacheKey);
       if (cached) {
-        return JSON.parse(cached);
+        return safeParseJSON(cached);
       }
     } catch (err) {
       // Cache read failure should not block fallback path
@@ -264,7 +264,7 @@ export class CanvasSyncService {
           throw new Error('Canvas state not found');
         }
         const stateStr = await streamToString(stream);
-        const parsed: CanvasState = JSON.parse(stateStr);
+        const parsed: CanvasState = safeParseJSON(stateStr);
         // Populate cache best-effort
         try {
           await this.redis.setex(sfKey, this.STATE_CACHE_TTL_SECONDS, stateStr);
@@ -499,11 +499,6 @@ export class CanvasSyncService {
     const releaseLock = await this.lockState(canvasId);
     const { nodes, edges } = await this.getCanvasData(user, { canvasId });
 
-    this.logger.log(
-      `[addNodeToCanvas] add node to canvas ${canvasId}, node: ${JSON.stringify(node)}, ` +
-        `connectTo: ${JSON.stringify(connectTo)}, options: ${JSON.stringify(options)}, ` +
-        `existing nodes: ${nodes.length}, existing edges: ${edges.length}`,
-    );
     const { newNode, newEdges } = prepareAddNode({
       node,
       nodes,
@@ -561,7 +556,7 @@ export class CanvasSyncService {
       orderBy: { version: 'desc' },
     });
 
-    this.addNodeToCanvas(user, parentResult.targetId, node, connectTo, options);
+    await this.addNodeToCanvas(user, parentResult.targetId, node, connectTo, options);
   }
 
   async createCanvasVersion(

@@ -8,7 +8,6 @@ import './index.scss';
 import { useCallback, useState } from 'react';
 import { WorkflowVariable } from '@refly/openapi-schema';
 import { logEvent } from '@refly/telemetry-web';
-import { useInitializeWorkflow } from '@refly-packages/ai-workspace-common/hooks/use-initialize-workflow';
 
 export const WorkflowRun = () => {
   const { t } = useTranslation();
@@ -20,10 +19,17 @@ export const WorkflowRun = () => {
   );
 
   const { workflow, canvasId } = useCanvasContext();
-  const { workflowVariables, workflowVariablesLoading, refetchWorkflowVariables } = workflow;
-
-  const { initializeWorkflow, loading, executionId, workflowStatus, isPolling, pollingError } =
-    useInitializeWorkflow(canvasId);
+  const {
+    workflowVariables,
+    workflowVariablesLoading,
+    refetchWorkflowVariables,
+    initializeWorkflow,
+    isInitializing: loading,
+    executionId,
+    workflowStatus,
+    isPolling,
+    pollingError,
+  } = workflow;
 
   const [isRunning, setIsRunning] = useState(false);
 
@@ -68,7 +74,7 @@ export const WorkflowRun = () => {
   );
 
   return (
-    <div className="flex flex-col w-full h-[calc(100vh-16px)] bg-refly-bg-content-z2 rounded-xl border-solid border border-refly-Card-Border shadow-refly-m">
+    <div className="flex flex-col w-full h-full bg-refly-bg-content-z2 border-solid border-l-[1px] border-y-0 border-r-0 border-refly-Card-Border shadow-refly-m">
       <div className="w-full h-[65px] flex gap-2 items-center justify-between p-3 border-solid border-refly-Card-Border border-[1px] border-x-0 border-t-0">
         <div className="flex items-center gap-1 min-w-0 flex-1">
           <Tooltip title={t('canvas.toolbar.closeResourcesPanel')} arrow={false}>

@@ -11,8 +11,9 @@ import { buildFinalRequestMessages, SkillPromptModule } from '../scheduler/utils
 
 // prompts
 import * as commonQnA from '../scheduler/module/commonQnA';
-import { buildSystemPrompt } from '../mcp/core/prompt';
-import { ITool, ToolInputSchema } from '../mcp/core/prompt';
+import { ITool, ToolInputSchema } from '../tool';
+import { buildSystemPrompt } from '../prompts/node-agent';
+import { buildWorkflowCopilotPrompt } from '../prompts/copilot-agent';
 import { zodToJsonSchema } from 'zod-to-json-schema';
 
 import { AIMessage, ToolMessage } from '@langchain/core/messages';
@@ -119,13 +120,11 @@ export class Agent extends BaseSkill {
   };
 
   private async initializeAgentComponents(
-    user: User,
+    _user: User,
     config?: SkillRunnableConfig,
   ): Promise<AgentComponents> {
-    const userId = user?.uid ?? user?.email ?? JSON.stringify(user);
     const { selectedTools = [] } = config?.configurable ?? {};
 
-    this.engine.logger.log(`Initializing new agent components for user ${userId}`);
     let actualToolNodeInstance: ToolNode<typeof MessagesAnnotation.State> | null = null;
     let availableToolsForNode: StructuredToolInterface[] = [];
 
@@ -161,17 +160,6 @@ export class Agent extends BaseSkill {
       try {
         // Use llmForGraph, which is the (potentially tool-bound) LLM instance for the graph
         const response = await llmForGraph.invoke(nodeState.messages);
-
-        this.engine.logger.log('LLM response received:', {
-          hasToolCalls: !!response.tool_calls,
-          toolCallsCount: response.tool_calls?.length || 0,
-          toolCalls: response.tool_calls,
-          content:
-            typeof response.content === 'string'
-              ? response.content.substring(0, 100)
-              : 'Non-string content',
-        });
-
         return { messages: [response] };
       } catch (error) {
         this.engine.logger.error(`LLM node execution failed: ${error.stack}`);
@@ -323,7 +311,6 @@ export class Agent extends BaseSkill {
       toolsAvailable: selectedTools.length > 0,
     };
 
-    this.engine.logger.log(`Agent components initialized and cached for user ${userId}`);
     return components;
   }
 
@@ -332,7 +319,7 @@ export class Agent extends BaseSkill {
     config: SkillRunnableConfig,
   ): Promise<Partial<GraphState>> => {
     const { currentSkill, user } = config.configurable;
-    const { locale = 'auto' } = config.configurable;
+    const { locale = 'auto', mode = 'node_agent' } = config.configurable;
 
     const project = config.configurable?.project as
       | { projectId: string; customInstructions?: string }
@@ -343,13 +330,18 @@ export class Agent extends BaseSkill {
       user,
       config,
     );
+    const iTools = convertToTools(tools);
 
     const module: SkillPromptModule = {
-      buildSystemPrompt: toolsAvailable
-        ? () => {
-            return buildSystemPrompt(convertToTools(tools), locale);
-          }
-        : commonQnA.buildCommonQnASystemPrompt,
+      buildSystemPrompt:
+        mode === 'copilot_agent'
+          ? () =>
+              buildWorkflowCopilotPrompt({
+                installedToolsets: config.configurable.installedToolsets ?? [],
+              })
+          : toolsAvailable
+            ? () => buildSystemPrompt(iTools, locale)
+            : commonQnA.buildCommonQnASystemPrompt,
       buildContextUserPrompt: commonQnA.buildCommonQnAContextUserPrompt,
       buildUserPrompt: commonQnA.buildCommonQnAUserPrompt,
     };
@@ -363,53 +355,31 @@ export class Agent extends BaseSkill {
 
     config.metadata.step = { name: 'answerQuestion' };
 
-    try {
-      this.engine.logger.log('Starting agent execution with messages:', requestMessages.length);
-
-      const result = await compiledLangGraphApp.invoke(
-        { messages: requestMessages },
-        {
-          ...config,
-          recursionLimit: 20,
-          metadata: {
-            ...config.metadata,
-            ...currentSkill,
-            toolsAvailable,
-            toolCount: tools?.length || 0,
-          },
+    const result = await compiledLangGraphApp.invoke(
+      { messages: requestMessages },
+      {
+        ...config,
+        recursionLimit: 20,
+        metadata: {
+          ...config.metadata,
+          ...currentSkill,
+          toolsAvailable,
+          toolCount: tools?.length || 0,
         },
-      );
+      },
+    );
 
-      this.engine.logger.log('Agent execution completed:', {
+    this.engine.logger.log(
+      `Agent execution completed: ${JSON.stringify({
         messagesCount: result.messages?.length || 0,
         toolCallCount:
           result.messages?.filter((msg) => (msg as AIMessage).tool_calls?.length > 0).length || 0,
         toolsAvailable,
         toolCount: tools?.length || 0,
-      });
+      })}`,
+    );
 
-      return { messages: result.messages };
-    } catch (error) {
-      this.engine.logger.error(`Agent execution failed: ${error.stack}`);
-
-      const errorMessage = new AIMessage(`
-I encountered technical difficulties while processing your request. Here's what happened:
-
-**Error Details**: ${error.message}
-
-**Next Steps**:
-1. Try rephrasing your request in simpler terms
-2. Break down complex tasks into smaller steps
-3. Try again - this might be a temporary issue
-4. Provide more context about what you're trying to achieve
-
-I'll do my best to help you find a solution!
-      `);
-
-      return { messages: [errorMessage] };
-    } finally {
-      this.engine.logger.log('Agent execution finished.');
-    }
+    return { messages: result.messages };
   };
 
   toRunnable() {

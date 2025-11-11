@@ -31,6 +31,7 @@ const translations = {
       willAutoRenew: '将自动续订',
       viewBilling: '查看账单',
       changePlan: '变更套餐',
+      viewPricing: '查看定价',
       upgradePlan: '升级套餐',
       availableCredits: '剩余可用积分',
       remainingCredits: '剩余积分',
@@ -57,6 +58,16 @@ const translations = {
         reranking: '重排序',
         other: '其他',
         commission: '模板使用',
+        commissionPrefix: '模板使用：',
+      },
+      rechargeType: {
+        purchase: '购买',
+        gift: '赠送',
+        promotion: '促销',
+        refund: '退款',
+        subscription: '订阅',
+        commission: '模板收益',
+        commissionPrefix: '模板收益：',
       },
       depleted: '已用尽',
       expired: '已失效',
@@ -90,7 +101,7 @@ const translations = {
       description: {
         '5k_tokens': '每 5k token 消耗 {{cost}} 积分',
         product: '每个产物消耗 {{cost}} 积分',
-        canvasTotal: '工作流预计消耗 {{cost}} 积分',
+        canvasTotal: 'AI 输出不稳定，积分仅为预估情况，需按实际执行结果',
       },
     },
     plans: {
@@ -266,9 +277,12 @@ const translations = {
         allFailed: '所有图片上传失败',
       },
     },
+    errorNotice: {
+      resultId: '请求 ID: {{resultId}}',
+    },
     dropImageHere: '拖放图片到这里',
     presetColors: '预设颜色',
-    duplicate: '复制',
+    duplicate: '副本',
     shareSuccess: '分享链接已复制到剪贴板!',
     shareError: '分享失败，请重试！',
     readonlyWarning: '只读模式',
@@ -354,7 +368,7 @@ const translations = {
   },
   editor: {
     placeholder: {
-      default: "按空格键激活 AI，按 '/' 键激活命令",
+      default: "按 '/' 键激活命令",
       title: '请输入标题',
     },
     aiSelector: {
@@ -970,7 +984,7 @@ const translations = {
       unbindSuccessful: '移除成功！',
       failed: '删除失败！',
       deleteConfirmForDocument: '确定删除该文档吗？',
-      deleteConfirmForCanvas: '画布 {{canvas}} 将被永久删除，是否继续？',
+      deleteConfirmForCanvas: '工作流 {{canvas}} 及其中的所有文件将被永久删除，是否继续？',
       deleteConfirmForProject: '确定删除该项目吗？',
       deleteConfirmForResource: '确定删除该资源吗？',
       deleteConfirmForResourceProject: '确认要从项目移除吗?',
@@ -1015,7 +1029,7 @@ const translations = {
     canvas: {
       editor: {
         placeholder: {
-          default: "按空格键或 ++ 激活 AI，按 '/' 键激活命令",
+          default: "按 '/' 键激活命令",
           heading: '标题 {{level}}',
         },
         toolbar: {
@@ -1154,7 +1168,7 @@ const translations = {
       mediaSkillResponse: '媒体技能响应',
       video: '视频',
       audio: '音频',
-      start: '用户输入',
+      start: '输入项',
       documentSelection: '文档选中内容',
       resourceSelection: '资源选中内容',
       skillResponseSelection: '技能响应选中内容',
@@ -1266,7 +1280,7 @@ const translations = {
       tooltip: {
         undo: '撤销',
         redo: '重做',
-        initializeWorkflow: '运行调试',
+        initializeWorkflow: '调试',
         initializeWorkflowInNewCanvas: '初始化工作流到新画布',
         zoom: '缩放百分比',
         zoomReset: '重置',
@@ -1276,6 +1290,9 @@ const translations = {
         layout: '自动布局',
         mode: '交互模式',
         help: '帮助与文档',
+        resourceLibrary: '资源库',
+        toolDependencies: '依赖',
+        duplicateWorkflow: '复制工作流',
       },
       openDocs: '帮助文档',
       openTour: '功能亮点',
@@ -1392,7 +1409,7 @@ const translations = {
         run: '运行',
         executing: '运行中',
         remix: '再创作',
-        copyWorkflow: 'Remix 工作流',
+        copyWorkflow: '再创作工作流',
         copyShareLink: '复制分享链接',
         shareLinkCopied: '分享链接已复制到剪贴板',
         shareLinkCopyFailed: '复制分享链接失败',
@@ -1402,6 +1419,7 @@ const translations = {
         failed: 'Workflow 运行失败',
         error: 'Workflow 运行状态时出错',
         validationError: '请填写所有必填字段后再运行工作流',
+        toolsGuide: '请点击「运行」即可体验，绿色部分支持修改输入内容',
         nodeStatus: {
           waiting: '等待中',
           executing: '运行中',
@@ -2994,6 +3012,10 @@ const translations = {
         copySourceCode: '复制源代码',
         createArtifact: '创建图表组件',
       },
+      workflow: {
+        generating: '生成工作流中...',
+        invalidData: '无效的工作流数据',
+      },
     },
     artifact: {
       webRender: '网页渲染',
@@ -3035,12 +3057,30 @@ const translations = {
     },
   },
   copilot: {
-    quickActions: '快捷操作',
-    selectedSkillHeader: {
-      title: '和 {{name}} 聊聊',
+    title: '工作流助手',
+    placeholder: '描述你想生成的工作流...',
+    header: {
+      history: '历史会话',
+      newConversation: '新建会话',
+      close: '关闭',
     },
-    tokenUsageTotal: '{{count}} tokens',
-    greeting: '嗨，{{name}}',
+    greeting: {
+      title: '工作流Copilot为你服务',
+      youCanTry: '您可以试试询问以下问题',
+      query1: '帮我追踪并分析巴菲特本季度的美股持仓变动。',
+      query2: '帮我抓取今天的 Product Hunt Top 10，生成总结文档和产品播客，并把链接发到我的邮箱。',
+      query3: '帮我生成一组新海诚风格、讲述“从小到大”成长故事的序列动画场景。',
+    },
+    sessionDetail: {
+      thinking: '思考中',
+      approveAndRun: '采纳并运行',
+      confirmClearCanvas: {
+        title: '确认清空画布',
+        content: '运行此工作流将清空当前画布的所有内容。是否继续？',
+        confirm: '继续',
+        cancel: '取消',
+      },
+    },
     addContext: '添加上下文',
     moreSettings: '更多设置',
     baseContextCard: {
@@ -3390,9 +3430,9 @@ const translations = {
     createSuccess: '模板创建成功, 请在模板库中查看',
     preview: '体验',
     use: '制作同款',
-    duplicateCanvas: 'Remix 工作流',
-    canvasTitle: '工作流名称',
-    duplicateCanvasTitlePlaceholder: '请输入新画布名称',
+    duplicateCanvas: '再创作',
+    canvasTitle: '名称',
+    duplicateCanvasTitlePlaceholder: '请输入名称',
     moreTemplates: '更多模版',
     searchPlaceholder: '请输入关键词搜索模板',
     noRelatedTemplates: '暂无相关模板',
@@ -3431,10 +3471,11 @@ const translations = {
     noResultsAvailable: '暂无可用结果',
     noResultsSelected: '暂无选择结果',
     resultPreview: '产物预览',
+    notLoggedIn: '未登录',
     run: {
-      completed: 'App 运行成功',
-      failed: 'App 运行失败',
-      error: '运行失败',
+      completed: '模板运行成功',
+      failed: '模板运行失败',
+      error: '模板运行失败',
       loginRequired: '请登录以运行此工作流',
       loginRequiredCopy: '请登录以复制此工作流',
       workflowStarted: '工作流已启动',
@@ -3712,14 +3753,6 @@ const translations = {
       reload: '重新加载数据',
       totalRecords: '条',
       reloadData: '刷新数据',
-      source: {
-        purchase: '购买',
-        gift: '赠送',
-        promotion: '促销',
-        refund: '退款',
-        subscription: '订阅',
-        commission: '模板收益',
-      },
       status: {
         unused: '未使用',
         partial: '部分使用',
@@ -3775,13 +3808,6 @@ const translations = {
       refresh: '刷新数据',
       points: '积分',
       times: '次',
-      type: {
-        model_call: '模型调用',
-        media_generation: '媒体生成',
-        embedding: '向量化',
-        reranking: '重排序',
-        other: '其他',
-      },
       usageId: '使用ID',
       amount: '积分消耗',
       usageType: '使用类型',
@@ -3868,7 +3894,7 @@ const translations = {
     noSearchResults: '没有找到相关工作流',
     searchWorkflows: '搜索工作流',
     shared: '共享',
-    personal: '个人',
+    private: '私有',
     share: '分享',
     unshare: '取消分享',
     shareSuccess: '工作流 {{title}} 分享成功！链接已复制到剪贴板。',
@@ -3924,6 +3950,10 @@ const translations = {
         description: '',
       },
     },
+  },
+  environmentBanner: {
+    test: '当前为测试环境，功能可能不稳定。',
+    staging: '当前为预发布环境，请谨慎使用。',
   },
 };
 

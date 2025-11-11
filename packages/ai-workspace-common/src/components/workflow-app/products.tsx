@@ -136,27 +136,29 @@ export const WorkflowAppProducts = ({ products }: { products: WorkflowNodeExecut
         </div>
       ) : (
         <div className={`grid gap-4 ${itemsPerRow === 2 ? 'grid-cols-2' : 'grid-cols-1'}`}>
-          {transformedNodes?.map((node, index) => (
-            <div
-              key={node.relationId || `content-${index}`}
-              id={`content-block-${index}`}
-              className="transition-all duration-300 h-[248px] overflow-hidden dark:bg-gray-900"
-              style={{
-                borderRadius: '12px',
-                border: '1px solid #0E9F77',
-                background: 'var(--fill---refly-fill-StaticWhite, #FFF)',
-                boxShadow: '0 2px 20px 4px rgba(0, 0, 0, 0.04)',
-              }}
-            >
-              <NodeRenderer
-                node={node}
-                key={node.relationId}
-                isFocused={true} // Allow interaction with the content
-                fromProducts={true}
-                onWideMode={handleWideMode}
-              />
-            </div>
-          ))}
+          {transformedNodes?.map((node, index) => {
+            const isLastItem = index === (transformedNodes?.length ?? 0) - 1;
+            const isOddLastItem = isLastItem && (transformedNodes?.length ?? 0) % 2 === 1;
+            const shouldSpanFullRow = itemsPerRow === 2 && isOddLastItem;
+
+            return (
+              <div
+                key={node.relationId || `content-${index}`}
+                id={`content-block-${index}`}
+                className={`transition-all duration-300 h-[248px] overflow-hidden bg-white dark:bg-gray-900 rounded-xl border border-green-600 shadow-[0_2px_20px_4px_rgba(0,0,0,0.04)] ${
+                  shouldSpanFullRow ? 'col-span-2' : ''
+                }`}
+              >
+                <NodeRenderer
+                  node={node}
+                  key={node.relationId}
+                  isFocused={true} // Allow interaction with the content
+                  fromProducts={true}
+                  onWideMode={handleWideMode}
+                />
+              </div>
+            );
+          })}
         </div>
       )}
 
@@ -167,10 +169,11 @@ export const WorkflowAppProducts = ({ products }: { products: WorkflowNodeExecut
         closable={false}
         onCancel={handleCloseFullscreen}
         width="100%"
-        style={{ top: 0, padding: 0, maxWidth: '100vw' }}
+        className="fullscreen-modal top-0 p-0 max-w-screen"
+        wrapClassName="fullscreen-modal-wrap"
         styles={{
           body: {
-            height: '100vh',
+            height: 'var(--screen-height)',
             padding: 0,
             overflow: 'hidden',
           },
@@ -178,8 +181,6 @@ export const WorkflowAppProducts = ({ products }: { products: WorkflowNodeExecut
             background: 'rgba(0, 0, 0, 0.85)',
           },
         }}
-        className="fullscreen-modal"
-        wrapClassName="fullscreen-modal-wrap"
       >
         <div className="bg-black h-full w-full flex flex-col">
           {fullscreenNode && (
@@ -202,10 +203,10 @@ export const WorkflowAppProducts = ({ products }: { products: WorkflowNodeExecut
           footer={null}
           onCancel={handleCloseWideMode}
           width="85%"
-          style={{ top: 20 }}
+          className="wide-mode-modal top-5"
           styles={{
             body: {
-              maxHeight: 'calc(100vh - 100px)',
+              maxHeight: 'calc(var(--screen-height) - 100px)',
               padding: 0,
               overflow: 'hidden',
             },
@@ -213,14 +214,13 @@ export const WorkflowAppProducts = ({ products }: { products: WorkflowNodeExecut
               background: 'rgba(0, 0, 0, 0.65)',
             },
           }}
-          className="wide-mode-modal"
           closeIcon={<CloseCircleOutlined className="text-gray-500 hover:text-red-500" />}
         >
           <div className="bg-white h-full w-full flex flex-col rounded-lg overflow-hidden dark:bg-gray-900">
             {/* Wide mode content */}
             <div className="flex-1 overflow-auto">
               {wideMode.nodeId && transformedNodes.find((n) => n.nodeId === wideMode.nodeId) ? (
-                <div className="h-[calc(100vh-160px)]">
+                <div style={{ height: 'calc(var(--screen-height) - 160px)' }}>
                   <NodeRenderer
                     node={transformedNodes.find((n) => n.nodeId === wideMode.nodeId)!}
                     isFullscreen={false}

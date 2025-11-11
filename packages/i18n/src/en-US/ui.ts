@@ -91,9 +91,12 @@ const translations = {
         allFailed: 'All images failed to upload',
       },
     },
+    errorNotice: {
+      resultId: 'Request ID: {{resultId}}',
+    },
     dropImageHere: 'Drop image here',
     presetColors: 'Preset Colors',
-    duplicate: 'Duplicate',
+    duplicate: 'copy',
     shareSuccess: 'Share link copied to clipboard!',
     shareError: 'Share failed, please try again!',
     readonlyWarning: 'Read-Only Mode',
@@ -974,7 +977,7 @@ const translations = {
       failed: 'Failed to delete',
       deleteConfirmForDocument: 'Are you sure you want to delete this document?',
       deleteConfirmForCanvas:
-        'Canvas {{canvas}} will be permanently deleted. Do you want to continue?',
+        'Workflow {{canvas}} and all files within it will be permanently deleted. Do you want to continue?',
       deleteConfirmForProject: 'Are you sure you want to delete this project?',
       deleteConfirmForResource: 'Are you sure you want to delete this resource?',
       deleteConfirmForResourceProject: 'Are you sure to remove this resource from the project?',
@@ -1286,6 +1289,9 @@ const translations = {
         layout: 'Auto Layout',
         mode: 'Interaction Mode',
         help: 'Help & Documentation',
+        resourceLibrary: 'Resource Library',
+        toolDependencies: 'Tool Dependencies',
+        duplicateWorkflow: 'Duplicate Workflow',
       },
       openDocs: 'Documentation',
       openTour: 'Feature Highlights',
@@ -1416,6 +1422,7 @@ const translations = {
         failed: 'Workflow execution failed',
         error: 'Error monitoring workflow execution',
         validationError: 'Please fill in all required fields before running the workflow',
+        toolsGuide: 'Click "Run" to experience, the green parts support editing input content',
         nodeStatus: {
           waiting: 'Waiting',
           executing: 'Running',
@@ -3048,15 +3055,41 @@ const translations = {
         copySourceCode: 'Copy source code',
         createArtifact: 'Create diagram artifact',
       },
+      workflow: {
+        generating: 'Generating workflow...',
+        invalidData: 'Invalid workflow data',
+      },
     },
   },
   copilot: {
-    quickActions: 'Quick Actions',
-    selectedSkillHeader: {
-      title: 'Chat with {{name}}',
+    title: 'Workflow Assistant',
+    placeholder: 'Describe the workflow you want to generate...',
+    header: {
+      history: 'Chat History',
+      newConversation: 'New Chat',
+      close: 'Close',
     },
-    tokenUsageTotal: '{{count}} tokens',
-    greeting: 'Hello, {{name}}',
+    greeting: {
+      title: 'Workflow Copilot is here to help you',
+      youCanTry: 'You can try asking the following questions',
+      query1:
+        "Help me track and analyze Warren Buffett's U.S. stock portfolio changes this quarter.",
+      query2:
+        '‍Help me fetch the Product Hunt Top 10 today, generate a summary document and product podcast, and send the links to my email.',
+      query3:
+        'Help me generate a sequence of animation scenes in the style of Makoto Shinkai, telling the story of "growing up" from childhood to adulthood.',
+    },
+    sessionDetail: {
+      thinking: 'Thinking',
+      approveAndRun: 'Approve and Run',
+      confirmClearCanvas: {
+        title: 'Confirm Clear Canvas',
+        content:
+          'Running this workflow will clear all current canvas content. Do you want to continue?',
+        confirm: 'Continue',
+        cancel: 'Cancel',
+      },
+    },
     addContext: 'Add Context',
     moreSettings: 'More Settings',
     baseContextCard: {
@@ -3432,7 +3465,8 @@ const translations = {
       description: {
         '5k_tokens': '{{cost}} credit(s) per 5k tokens',
         product: '{{cost}} credit(s) per product',
-        canvasTotal: 'Workflow estimated cost: {{cost}} credit(s)',
+        canvasTotal:
+          'AI output is unstable, credits are only estimated and subject to actual execution results',
       },
     },
     plans: {
@@ -3513,6 +3547,7 @@ const translations = {
       willAutoRenew: 'will auto-renew',
       viewBilling: 'View Billing',
       changePlan: 'Change Plan',
+      viewPricing: 'View Pricing',
       upgradePlan: 'Upgrade Plan',
       availableCredits: 'Available Credits',
       remainingCredits: 'Credits',
@@ -3539,6 +3574,16 @@ const translations = {
         reranking: 'Reranking',
         other: 'Other',
         commission: 'Template usage',
+        commissionPrefix: 'Template usage: ',
+      },
+      rechargeType: {
+        purchase: 'Purchase',
+        gift: 'Gift',
+        promotion: 'Promotion',
+        refund: 'Refund',
+        subscription: 'Subscription',
+        commission: 'Template earnings',
+        commissionPrefix: 'Template earnings: ',
       },
       depleted: 'Depleted',
       expired: 'Expired',
@@ -3650,9 +3695,9 @@ const translations = {
     createSuccess: 'Template created successfully, please view in template library',
     preview: 'Try it',
     use: 'Remix',
-    duplicateCanvas: 'Remix Workflow',
-    canvasTitle: 'Workflow Name',
-    duplicateCanvasTitlePlaceholder: 'Please enter canvas name',
+    duplicateCanvas: 'Remix',
+    canvasTitle: 'Name',
+    duplicateCanvasTitlePlaceholder: 'Please enter name',
     moreTemplates: 'More Templates',
     searchPlaceholder: 'Please enter keyword to search template',
     noRelatedTemplates: 'No related templates',
@@ -3692,10 +3737,11 @@ const translations = {
     noResultsAvailable: 'No results available',
     noResultsSelected: 'No results selected',
     resultPreview: 'Result Preview',
+    notLoggedIn: 'Not Logged In',
     run: {
-      completed: 'App run successfully',
-      failed: 'App run failed',
-      error: 'Run failed',
+      completed: 'Template run successfully',
+      failed: 'Template run failed',
+      error: 'Template run failed',
       loginRequired: 'Please login to run this workflow',
       loginRequiredCopy: 'Please login to copy this workflow',
       workflowStarted: 'Workflow started',
@@ -3809,18 +3855,6 @@ const translations = {
     unknown: 'Unknown',
     refresh: 'Refresh Nodes',
   },
-  credit: {
-    recharge: {
-      source: {
-        purchase: 'Purchase',
-        gift: 'Gift',
-        promotion: 'Promotion',
-        refund: 'Refund',
-        subscription: 'Subscription',
-        commission: 'Template commission',
-      },
-    },
-  },
   workflowList: {
     title: 'Workflow',
     createWorkflow: 'Create Workflow',
@@ -3829,7 +3863,7 @@ const translations = {
     noSearchResults: 'No search results',
     searchWorkflows: 'Search workflows',
     shared: 'Shared',
-    personal: 'Personal',
+    private: 'Private',
     share: 'Share',
     unshare: 'Unshare',
     shareSuccess: 'Workflow {{title}} shared successfully! Link copied to clipboard.',
@@ -3888,6 +3922,10 @@ const translations = {
         description: '',
       },
     },
+  },
+  environmentBanner: {
+    test: 'TEST ENVIRONMENT. FEATURES MAY BE UNSTABLE.',
+    staging: 'STAGING ENVIRONMENT. PLEASE USE WITH CAUTION.',
   },
 };
 

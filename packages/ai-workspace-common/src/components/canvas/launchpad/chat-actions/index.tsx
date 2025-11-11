@@ -34,7 +34,7 @@ interface ChatActionsProps {
   className?: string;
   form?: FormInstance;
   handleSendMessage: () => void;
-  handleAbort: () => void;
+  handleAbort?: () => void;
   customActions?: CustomAction[];
   onUploadImage: (file: File) => Promise<void>;
   contextItems: IContextItem[];
@@ -42,87 +42,95 @@ interface ChatActionsProps {
   selectedToolsets?: GenericToolset[];
   setSelectedToolsets?: (toolsets: GenericToolset[]) => void;
   enableChatModeSelector?: boolean;
+  showLeftActions?: boolean;
 }
 
-export const ChatActions = memo(
-  (props: ChatActionsProps) => {
-    const {
-      query,
-      model,
-      setModel,
-      resultId,
-      handleSendMessage,
-      customActions,
-      className,
-      onUploadImage,
-      handleAbort,
-      contextItems,
-      isExecuting = false,
-      selectedToolsets,
-      setSelectedToolsets,
-      enableChatModeSelector = false,
-    } = props;
-    const { t } = useTranslation();
-    const { readonly } = useCanvasContext();
-    const { chatMode, setChatMode } = useChatStoreShallow((state) => ({
-      chatMode: state.chatMode,
-      setChatMode: state.setChatMode,
-    }));
-    const { result } = useActionResultStoreShallow((state) => ({
-      result: resultId ? state.resultMap[resultId] : undefined,
-    }));
+export const ChatActions = memo((props: ChatActionsProps) => {
+  const {
+    query,
+    model,
+    setModel,
+    resultId,
+    handleSendMessage,
+    customActions,
+    className,
+    onUploadImage,
+    handleAbort,
+    contextItems,
+    isExecuting = false,
+    selectedToolsets,
+    setSelectedToolsets,
+    enableChatModeSelector = false,
+    showLeftActions = true,
+  } = props;
+  const { t } = useTranslation();
+  const { readonly } = useCanvasContext();
+  const { chatMode, setChatMode } = useChatStoreShallow((state) => ({
+    chatMode: state.chatMode,
+    setChatMode: state.setChatMode,
+  }));
+  const { result } = useActionResultStoreShallow((state) => ({
+    result: resultId ? state.resultMap[resultId] : undefined,
+  }));
 
-    const handleSendClick = useCallback(() => {
-      // Check if knowledge base is used (resource or document types)
-      const usedKnowledgeBase =
-        contextItems?.some((item) => item?.type === 'resource' || item?.type === 'document') ??
-        false;
+  const handleSendClick = useCallback(() => {
+    // Check if knowledge base is used (resource or document types)
+    const usedKnowledgeBase =
+      contextItems?.some((item) => item?.type === 'resource' || item?.type === 'document') ?? false;
 
-      const usedTools = selectedToolsets?.length > 0;
+    const usedTools = selectedToolsets?.length > 0;
 
-      logEvent('canvas::node_execute', Date.now(), {
-        node_type: 'askAI',
-        model_name: model?.name ?? '',
-        used_knowledge_base: usedKnowledgeBase,
-        used_tools: usedTools,
-      });
-      handleSendMessage();
-    }, [contextItems, model, handleSendMessage, selectedToolsets]);
+    logEvent('canvas::node_execute', Date.now(), {
+      node_type: 'askAI',
+      model_name: model?.name ?? '',
+      used_knowledge_base: usedKnowledgeBase,
+      used_tools: usedTools,
+    });
+    handleSendMessage();
+  }, [contextItems, model, handleSendMessage, selectedToolsets]);
 
-    const handleAbortClick = useCallback(() => {
-      handleAbort();
-    }, [handleAbort]);
+  const handleAbortClick = useCallback(() => {
+    handleAbort?.();
+  }, [handleAbort]);
 
-    // hooks
-    const isWeb = getRuntime() === 'web';
+  // hooks
+  const isWeb = getRuntime() === 'web';
 
-    const userStore = useUserStoreShallow((state) => ({
-      isLogin: state.isLogin,
-    }));
+  const userStore = useUserStoreShallow((state) => ({
+    isLogin: state.isLogin,
+  }));
 
-    const canSendEmptyMessage = useMemo(() => {
-      const hasQuery = query?.trim();
-      const hasContextItems = contextItems?.length > 0;
-      return hasQuery || hasContextItems;
-    }, [query, contextItems]);
+  const canSendEmptyMessage = useMemo(() => {
+    const hasQuery = query?.trim();
+    const hasContextItems = contextItems?.length > 0;
+    return hasQuery || hasContextItems;
+  }, [query, contextItems]);
 
-    const canSendMessage = useMemo(() => {
-      if (!result) {
-        return !userStore.isLogin || canSendEmptyMessage;
-      }
-
-      // Only allow sending message if the result is not waiting or executing
-      return result.status !== 'waiting' && result.status !== 'executing' && canSendEmptyMessage;
-    }, [userStore.isLogin, canSendEmptyMessage, result]);
-
-    const containerRef = useRef<HTMLDivElement>(null);
-
-    if (readonly) {
-      return null;
+  const canSendMessage = useMemo(() => {
+    if (!result) {
+      return !userStore.isLogin || canSendEmptyMessage;
     }
 
-    return (
-      <div className={cn('flex justify-between items-center', className)} ref={containerRef}>
+    // Only allow sending message if the result is not waiting or executing
+    return result.status !== 'waiting' && result.status !== 'executing' && canSendEmptyMessage;
+  }, [userStore.isLogin, canSendEmptyMessage, result]);
+
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  if (readonly) {
+    return null;
+  }
+
+  return (
+    <div
+      className={cn(
+        'flex items-center',
+        showLeftActions ? 'justify-between' : 'justify-end',
+        className,
+      )}
+      ref={containerRef}
+    >
+      {showLeftActions && (
         <div className="flex items-center gap-1">
           {enableChatModeSelector && (
             <ChatModeSelector chatMode={chatMode} setChatMode={setChatMode} />
@@ -164,56 +172,41 @@ export const ChatActions = memo(
             </>
           )}
         </div>
-        <div className="flex flex-row items-center gap-2">
-          {customActions?.map((action, index) => (
-            <Tooltip title={action.title} key={index}>
-              <Button
-                type="text"
-                size="small"
-                icon={action.icon}
-                onClick={action.onClick}
-                className="h-7 w-7 flex items-center justify-center"
-              />
-            </Tooltip>
-          ))}
-
-          {!isWeb ? null : isExecuting ? (
+      )}
+      <div className="flex flex-row items-center gap-2">
+        {customActions?.map((action, index) => (
+          <Tooltip title={action.title} key={index}>
             <Button
+              type="text"
               size="small"
-              type="primary"
-              className="flex-shrink-0 flex items-center justify-center !w-9 !h-9 rounded-full border-none"
-              onClick={handleAbortClick}
-              icon={<Stop size={20} color="white" />}
+              icon={action.icon}
+              onClick={action.onClick}
+              className="h-7 w-7 flex items-center justify-center"
             />
-          ) : (
-            <Button
-              type="primary"
-              disabled={!canSendMessage}
-              className="flex-shrink-0 flex items-center justify-center !w-9 !h-9 rounded-full border-none"
-              onClick={handleSendClick}
-              icon={<Send size={20} color="white" />}
-            />
-          )}
-        </div>
+          </Tooltip>
+        ))}
+
+        {!isWeb ? null : isExecuting ? (
+          <Button
+            size="small"
+            type="primary"
+            disabled={!handleAbort}
+            className="flex-shrink-0 flex items-center justify-center !w-9 !h-9 rounded-full border-none"
+            onClick={handleAbortClick}
+            icon={<Stop size={20} color="white" />}
+          />
+        ) : (
+          <Button
+            type="primary"
+            disabled={!canSendMessage}
+            className="flex-shrink-0 flex items-center justify-center !w-9 !h-9 rounded-full border-none"
+            onClick={handleSendClick}
+            icon={<Send size={20} color="white" />}
+          />
+        )}
       </div>
-    );
-  },
-  (prevProps, nextProps) => {
-    return (
-      prevProps.handleSendMessage === nextProps.handleSendMessage &&
-      prevProps.handleAbort === nextProps.handleAbort &&
-      prevProps.contextItems === nextProps.contextItems &&
-      prevProps.query === nextProps.query &&
-      prevProps.runtimeConfig === nextProps.runtimeConfig &&
-      prevProps.setRuntimeConfig === nextProps.setRuntimeConfig &&
-      prevProps.onUploadImage === nextProps.onUploadImage &&
-      prevProps.model === nextProps.model &&
-      prevProps.customActions === nextProps.customActions &&
-      prevProps.isExecuting === nextProps.isExecuting &&
-      prevProps.selectedToolsets === nextProps.selectedToolsets &&
-      prevProps.setSelectedToolsets === nextProps.setSelectedToolsets
-    );
-  },
-);
+    </div>
+  );
+});
 
 ChatActions.displayName = 'ChatActions';

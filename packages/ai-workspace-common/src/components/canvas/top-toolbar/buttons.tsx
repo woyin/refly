@@ -1,10 +1,8 @@
-import { useCallback, memo, useMemo } from 'react';
-import { Button, Tooltip, Dropdown, Divider } from 'antd';
-import { useTranslation } from 'react-i18next';
+import { memo, useMemo } from 'react';
+import { Button, Tooltip, Dropdown } from 'antd';
 import { TFunction } from 'i18next';
 import { IconSlideshow } from '@refly-packages/ai-workspace-common/components/common/icon';
-import { Download, Touchpad, Mouse, ArrowDown, Resource, More } from 'refly-icons';
-import { useCanvasResourcesPanelStoreShallow } from '@refly/stores';
+import { Download, Touchpad, Mouse, ArrowDown, More } from 'refly-icons';
 
 export type Mode = 'mouse' | 'touchpad';
 
@@ -173,46 +171,3 @@ const MoreMenu = memo(
   },
 );
 MoreMenu.displayName = 'MoreMenu';
-
-export const ToolbarButtons = memo(
-  (_: {
-    canvasTitle: string;
-    mode: 'mouse' | 'touchpad';
-    changeMode: (mode: 'mouse' | 'touchpad') => void;
-  }) => {
-    const { t } = useTranslation();
-
-    const { sidePanelVisible, setSidePanelVisible, showWorkflowRun, setShowWorkflowRun } =
-      useCanvasResourcesPanelStoreShallow((state) => ({
-        sidePanelVisible: state.sidePanelVisible,
-        setSidePanelVisible: state.setSidePanelVisible,
-        showWorkflowRun: state.showWorkflowRun,
-        setShowWorkflowRun: state.setShowWorkflowRun,
-      }));
-
-    const handleResourcesPanelOpen = useCallback(() => {
-      setSidePanelVisible(true);
-      setShowWorkflowRun(false);
-    }, [setSidePanelVisible, setShowWorkflowRun]);
-
-    return (
-      <>
-        <div className="flex items-center">
-          {(!sidePanelVisible || showWorkflowRun) && (
-            <>
-              <Divider type="vertical" className="h-5 bg-refly-Card-Border" />
-
-              <Tooltip title={t('canvas.toolbar.openResourcesPanel')} arrow={false}>
-                <Button
-                  type="text"
-                  icon={<Resource size={18} />}
-                  onClick={handleResourcesPanelOpen}
-                />
-              </Tooltip>
-            </>
-          )}
-        </div>
-      </>
-    );
-  },
-);

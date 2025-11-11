@@ -15,9 +15,7 @@ interface UseNodePreviewControlOptions {
 }
 
 interface NodePreviewControl {
-  clickToPreview: boolean;
   nodePreviews: CanvasNode[];
-  toggleClickToPreview: () => void;
   previewNode: (node: CanvasNode) => void;
   closeNodePreview: (node: CanvasNode) => void;
   closeNodePreviewByEntityId: (entityId: string) => void;
@@ -33,23 +31,14 @@ export const useNodePreviewControl = ({
 }: UseNodePreviewControlOptions): NodePreviewControl => {
   const { getNodes } = useReactFlow();
   const { setSelectedNode } = useNodeSelection();
-  const {
-    clickToPreview,
-    setClickToPreview,
-    addNodePreview,
-    setNodePreview,
-    removeNodePreview,
-    nodePreviews,
-    canvasInitialized,
-  } = useCanvasStoreShallow((state) => ({
-    clickToPreview: state.clickToPreview,
-    setClickToPreview: state.setClickToPreview,
-    addNodePreview: state.addNodePreview,
-    setNodePreview: state.setNodePreview,
-    removeNodePreview: state.removeNodePreview,
-    nodePreviews: state.config[canvasId]?.nodePreviews || [],
-    canvasInitialized: state.canvasInitialized[canvasId],
-  }));
+  const { addNodePreview, setNodePreview, removeNodePreview, nodePreviews, canvasInitialized } =
+    useCanvasStoreShallow((state) => ({
+      addNodePreview: state.addNodePreview,
+      setNodePreview: state.setNodePreview,
+      removeNodePreview: state.removeNodePreview,
+      nodePreviews: state.config[canvasId]?.nodePreviews || [],
+      canvasInitialized: state.canvasInitialized[canvasId],
+    }));
   const { setActiveNode } = useActiveNode(canvasId);
   const { setSidePanelVisible, setShowWorkflowRun } = useCanvasResourcesPanelStoreShallow(
     (state) => ({
@@ -73,13 +62,6 @@ export const useNodePreviewControl = ({
       }
     }, 1000);
   }, [canvasId, canvasInitialized, nodePreviews, removeNodePreview]);
-
-  /**
-   * Toggle click-to-preview functionality
-   */
-  const toggleClickToPreview = useCallback(() => {
-    setClickToPreview(!clickToPreview);
-  }, [clickToPreview, setClickToPreview]);
 
   /**
    * Pin a node for preview
@@ -156,9 +138,6 @@ export const useNodePreviewControl = ({
    */
   const handleNodePreview = useCallback(
     (node: CanvasNode) => {
-      if (!clickToPreview) {
-        return false;
-      }
       addNodePreview(canvasId, node);
       setActiveNode(node);
       setSidePanelVisible(true);
@@ -169,7 +148,6 @@ export const useNodePreviewControl = ({
     },
     [
       canvasId,
-      clickToPreview,
       addNodePreview,
       setSelectedNode,
       setActiveNode,
@@ -180,11 +158,7 @@ export const useNodePreviewControl = ({
 
   return {
     // State
-    clickToPreview,
     nodePreviews,
-
-    // Actions
-    toggleClickToPreview,
     previewNode,
     closeNodePreview,
     closeNodePreviewByEntityId,

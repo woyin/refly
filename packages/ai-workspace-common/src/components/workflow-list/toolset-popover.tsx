@@ -46,11 +46,9 @@ export const ToolsetPopover = memo(
                 : toolset?.toolset?.definition?.descriptionDict?.[currentLanguage];
 
             const labelName =
-              toolset?.type === 'regular' && toolset?.id === 'builtin'
+              toolset?.type === 'regular' && toolset?.builtin
                 ? (toolset?.toolset?.definition?.labelDict?.[currentLanguage] as string)
                 : toolset.name;
-
-            const isBuiltin = toolset.id === 'builtin';
 
             return (
               <div
@@ -63,7 +61,6 @@ export const ToolsetPopover = memo(
                 <div className="bg-refly-tertiary-default rounded-lg p-1">
                   <ToolsetIcon
                     toolset={toolset}
-                    isBuiltin={isBuiltin}
                     config={{
                       size: 32,
                       builtinClassName: '!w-8 !h-8',

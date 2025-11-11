@@ -880,6 +880,11 @@ export const ShareUserSchema = {
       type: 'string',
       description: 'User nickname',
     },
+    createdAt: {
+      type: 'string',
+      format: 'date-time',
+      description: 'User creation time',
+    },
     avatar: {
       type: 'string',
       description: 'User avatar',
@@ -5490,6 +5495,11 @@ export const ActionTypeSchema = {
   enum: ['skill', 'tool', 'media'],
 } as const;
 
+export const AgentModeSchema = {
+  type: 'string',
+  enum: ['copilot_agent', 'node_agent'],
+} as const;
+
 export const InvokeSkillRequestSchema = {
   type: 'object',
   properties: {
@@ -5574,6 +5584,15 @@ export const InvokeSkillRequestSchema = {
       items: {
         $ref: '#/components/schemas/GenericToolset',
       },
+    },
+    mode: {
+      description: 'Agent mode',
+      $ref: '#/components/schemas/AgentMode',
+      default: 'node_agent',
+    },
+    copilotSessionId: {
+      type: 'string',
+      description: 'Copilot session ID',
     },
     workflowExecutionId: {
       type: 'string',
@@ -6547,6 +6566,76 @@ export const GetPilotSessionDetailResponseSchema = {
         data: {
           description: 'Pilot session detail',
           $ref: '#/components/schemas/PilotSession',
+        },
+      },
+    },
+  ],
+} as const;
+
+export const CopilotSessionSchema = {
+  type: 'object',
+  properties: {
+    sessionId: {
+      type: 'string',
+      description: 'Copilot session ID',
+    },
+    title: {
+      type: 'string',
+      description: 'Copilot session title',
+    },
+    canvasId: {
+      type: 'string',
+      description: 'Copilot session canvas ID',
+    },
+    createdAt: {
+      type: 'string',
+      description: 'Copilot session created at',
+    },
+    updatedAt: {
+      type: 'string',
+      description: 'Copilot session updated at',
+    },
+    results: {
+      type: 'array',
+      description: 'Copilot session results (only returned in detail API)',
+      items: {
+        $ref: '#/components/schemas/ActionResult',
+      },
+    },
+  },
+} as const;
+
+export const ListCopilotSessionsResponseSchema = {
+  allOf: [
+    {
+      $ref: '#/components/schemas/BaseResponse',
+    },
+    {
+      type: 'object',
+      properties: {
+        data: {
+          type: 'array',
+          description: 'Copilot session list',
+          items: {
+            $ref: '#/components/schemas/CopilotSession',
+          },
+        },
+      },
+    },
+  ],
+} as const;
+
+export const GetCopilotSessionDetailResponseSchema = {
+  allOf: [
+    {
+      $ref: '#/components/schemas/BaseResponse',
+    },
+    {
+      type: 'object',
+      properties: {
+        data: {
+          description: 'Copilot session detail',
+          $ref: '#/components/schemas/CopilotSession',
         },
       },
     },
@@ -8018,7 +8107,7 @@ export const CreditRechargeSchema = {
     source: {
       type: 'string',
       description: 'Recharge source type',
-      enum: ['subscription', 'purchase', 'gift', 'promotion', 'refund'],
+      enum: ['subscription', 'purchase', 'gift', 'promotion', 'refund', 'commission'],
       default: 'purchase',
     },
     description: {
@@ -8072,7 +8161,7 @@ export const CreditUsageSchema = {
     usageType: {
       type: 'string',
       description: 'Type of usage that consumed credits',
-      enum: ['model_call', 'media_generation', 'embedding', 'reranking', 'other'],
+      enum: ['model_call', 'media_generation', 'embedding', 'reranking', 'commission', 'other'],
       default: 'model_call',
     },
     actionResultId: {
@@ -8456,7 +8545,7 @@ export const AuthPatternSchema = {
 
 export const ToolsetDefinitionSchema = {
   type: 'object',
-  required: ['key', 'descriptionDict', 'tools'],
+  required: ['key', 'labelDict', 'descriptionDict'],
   properties: {
     key: {
       type: 'string',
@@ -8979,10 +9068,25 @@ export const InitializeWorkflowRequestSchema = {
       description: 'Canvas ID to initialize workflow for',
       example: 'canvas-123',
     },
-    newCanvasId: {
+    sourceCanvasId: {
       type: 'string',
-      description: 'New canvas ID',
+      description: 'Source canvas ID',
       example: 'canvas-456',
+    },
+    sourceCanvasData: {
+      description: 'Source canvas data',
+      $ref: '#/components/schemas/RawCanvasData',
+    },
+    createNewCanvas: {
+      description: 'Whether to create a new canvas',
+      type: 'boolean',
+      default: false,
+    },
+    nodeBehavior: {
+      description: 'Node behavior when executing workflow',
+      type: 'string',
+      enum: ['create', 'update'],
+      default: 'update',
     },
     variables: {
       type: 'array',

@@ -25,9 +25,15 @@ export class WorkflowController {
     const executionId = await this.workflowService.initializeWorkflowExecution(
       user,
       request.canvasId,
-      request.newCanvasId ?? request.canvasId,
       request.variables,
-      { startNodes: request.startNodes, checkCanvasOwnership: true },
+      {
+        sourceCanvasId: request.sourceCanvasId,
+        sourceCanvasData: request.sourceCanvasData,
+        createNewCanvas: request.createNewCanvas,
+        nodeBehavior: request.nodeBehavior,
+        startNodes: request.startNodes,
+        checkCanvasOwnership: true,
+      },
     );
 
     return buildSuccessResponse({ workflowExecutionId: executionId });

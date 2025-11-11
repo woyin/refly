@@ -303,7 +303,7 @@ const DefaultPreview = memo(
     }, []);
 
     return (
-      <div className="w-full h-full relative" onClick={handleClick}>
+      <div className="w-full h-full relative overflow-y-auto" onClick={handleClick}>
         <PreviewComponent node={node} purePreview={true} />
       </div>
     );
@@ -376,7 +376,7 @@ export const ResultItemPreview = memo(
           style={{ top: 20 }}
           styles={{
             body: {
-              maxHeight: 'calc(100vh - 100px)',
+              maxHeight: 'calc(var(--screen-height) - 100px)',
               padding: 0,
               overflow: 'hidden',
             },
@@ -390,7 +390,7 @@ export const ResultItemPreview = memo(
           <div className="bg-white h-full w-full flex flex-col rounded-lg overflow-hidden dark:bg-gray-900">
             <div className="flex-1 overflow-auto">
               {/* 只使用主 node 的结构，避免 CanvasNodeData 非法属性 */}
-              <div className="h-[calc(100vh-160px)]">
+              <div style={{ height: 'calc(var(--screen-height) - 160px)' }}>
                 <NodeRenderer
                   node={{
                     relationId: node.id || 'unknown',
@@ -420,7 +420,7 @@ export const ResultItemPreview = memo(
           {isHovered && !inModal && (
             <div
               onClick={handleWideModeOpen}
-              className="absolute z-10 flex items-center justify-center transition-opacity duration-200 cursor-pointer"
+              className="absolute z-50 flex items-center justify-center transition-opacity duration-200 cursor-pointer"
               style={{
                 right: '14px',
                 bottom: '14px',

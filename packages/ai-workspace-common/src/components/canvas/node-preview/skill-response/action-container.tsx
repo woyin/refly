@@ -1,4 +1,4 @@
-import { useMemo, useCallback, memo } from 'react';
+import { useMemo, useCallback, memo, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button, message, Tooltip } from 'antd';
 import { ModelIcon } from '@lobehub/icons';
@@ -13,6 +13,8 @@ import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/ca
 import { FollowingActions } from '../sharedComponents/following-actions';
 import { IContextItem } from '@refly/common-types';
 import { useFetchProviderItems } from '@refly-packages/ai-workspace-common/hooks/use-fetch-provider-items';
+import { useGetCreditUsageByResultId } from '@refly-packages/ai-workspace-common/queries';
+import { useSetNodeDataByEntity } from '@refly-packages/ai-workspace-common/hooks/canvas/use-set-node-data-by-entity';
 
 interface ActionContainerProps {
   step: ActionStep;
@@ -32,6 +34,7 @@ const ActionContainerComponent = ({
   const { t } = useTranslation();
   const { debouncedCreateDocument, isCreating } = useCreateDocument();
   const { readonly } = useCanvasContext();
+  const setNodeDataByEntity = useSetNodeDataByEntity();
   const { hasEditorSelection, activeDocumentId } = useDocumentStoreShallow((state) => ({
     hasEditorSelection: state.hasEditorSelection,
     activeDocumentId: state.activeDocumentId,
@@ -98,6 +101,19 @@ const ActionContainerComponent = ({
     enabled: true,
   });
 
+  // Query credit usage when skill is completed
+  const { data: creditUsage } = useGetCreditUsageByResultId(
+    {
+      query: {
+        resultId: result?.resultId ?? '',
+      },
+    },
+    undefined,
+    {
+      enabled: !isPending && !!result?.resultId,
+    },
+  );
+
   const tokenUsage = step?.tokenUsage?.[0];
 
   const providerItem = useMemo(() => {
@@ -144,6 +160,23 @@ const ActionContainerComponent = ({
     }
     return null;
   }, [providerItem]);
+
+  // Update node metadata with credit cost when credit usage is available
+  useEffect(() => {
+    if (creditUsage?.data?.total && result?.resultId && !isPending) {
+      setNodeDataByEntity(
+        {
+          type: 'skillResponse',
+          entityId: result.resultId,
+        },
+        {
+          metadata: {
+            creditCost: creditUsage.data.total,
+          },
+        },
+      );
+    }
+  }, [creditUsage?.data?.total, result?.resultId, isPending, setNodeDataByEntity]);
 
   if (isPending) {
     return null;

@@ -850,7 +850,7 @@ export const SkillResponseNode = memo(
               {status === 'failed' && (
                 <div
                   className={cn(
-                    'flex items-center justify-center gap-1 mt-1 hover:bg-gray-50 rounded-md p-2 dark:hover:bg-gray-900',
+                    'flex items-center justify-center gap-1 hover:bg-gray-50 rounded-md p-2 dark:hover:bg-gray-900',
                     readonly ? 'cursor-not-allowed' : 'cursor-pointer',
                   )}
                   onClick={() => handleRerun()}

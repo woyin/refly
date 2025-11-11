@@ -11,22 +11,17 @@ import { Logger } from '@nestjs/common';
 import { PrismaService } from '../common/prisma.service';
 import { CanvasService } from '../canvas/canvas.service';
 import { MiscService } from '../misc/misc.service';
-import {
-  genCanvasID,
-  genWorkflowAppID,
-  replaceResourceMentionsInQuery,
-  safeParseJSON,
-} from '@refly/utils';
+import { genCanvasID, genWorkflowAppID, replaceResourceMentionsInQuery } from '@refly/utils';
 import { WorkflowService } from '../workflow/workflow.service';
 import { Injectable } from '@nestjs/common';
 import { ShareCommonService } from '../share/share-common.service';
 import { ShareCreationService } from '../share/share-creation.service';
 import { ShareNotFoundError, WorkflowAppNotFoundError } from '@refly/errors';
 import { ToolService } from '../tool/tool.service';
-import { CanvasSyncService } from '../canvas-sync/canvas-sync.service';
 import { VariableExtractionService } from '../variable-extraction/variable-extraction.service';
-import { initEmptyCanvasState, ResponseNodeMeta } from '@refly/canvas-common';
+import { ResponseNodeMeta } from '@refly/canvas-common';
 import { CreditService } from '../credit/credit.service';
+import { AppTemplateResult } from '../variable-extraction/variable-extraction.dto';
 
 /**
  * Structure of shared workflow app data
@@ -54,7 +49,6 @@ export class WorkflowAppService {
     private readonly shareCommonService: ShareCommonService,
     private readonly shareCreationService: ShareCreationService,
     private readonly toolService: ToolService,
-    private readonly canvasSyncService: CanvasSyncService,
     private readonly variableExtractionService: VariableExtractionService,
     private readonly creditService: CreditService,
   ) {}
@@ -103,19 +97,33 @@ export class WorkflowAppService {
     });
 
     // Generate app template content
-    // let templateContent: string | null = null;
-    // try {
-    //   const templateResult = await this.variableExtractionService.generateAppPublishTemplate(
-    //     user,
-    //     canvasId,
-    //   );
-    //   templateContent = templateResult.templateContent;
-    //   this.logger.log(`Generated template content for workflow app: ${appId}`);
-    // } catch (error) {
-    //   this.logger.error(
-    //     `Failed to generate template content for workflow app ${appId}: ${error.stack}`,
-    //   );
-    // }
+    let templateResult: AppTemplateResult | null = null;
+    try {
+      const _templateResult = await this.variableExtractionService.generateAppPublishTemplate(
+        user,
+        canvasId,
+      );
+
+      this.logger.log(
+        `generateAppPublishTemplate result for workflow app: ${JSON.stringify(_templateResult)}`,
+      );
+
+      if (
+        _templateResult?.templateContent &&
+        _templateResult?.templateContentPlaceholders?.length === variables?.length &&
+        variables?.every((variable) =>
+          _templateResult?.templateContentPlaceholders?.includes(`{{${variable.name}}}`),
+        )
+      ) {
+        templateResult = _templateResult;
+      }
+
+      this.logger.log(`Generated template content for workflow app: ${appId}`);
+    } catch (error) {
+      this.logger.error(
+        `Failed to generate template content for workflow app ${appId}: ${error.stack}`,
+      );
+    }
 
     if (existingWorkflowApp) {
       await this.prisma.workflowApp.update({
@@ -127,7 +135,7 @@ export class WorkflowAppService {
           description,
           storageKey,
           coverStorageKey: coverStorageKey as any,
-          templateContent: null,
+          templateContent: templateResult?.templateContent,
           remixEnabled,
           resultNodeIds,
           updatedAt: new Date(),
@@ -227,6 +235,10 @@ export class WorkflowAppService {
       where: { shareId, deletedAt: null },
     });
 
+    if (!workflowApp) {
+      throw new WorkflowAppNotFoundError();
+    }
+
     this.logger.log(`Executing workflow app via shareId: ${shareId} for user: ${user.uid}`);
 
     const shareDataRaw = await this.shareCommonService.getSharedData(shareRecord.storageKey);
@@ -247,30 +259,28 @@ export class WorkflowAppService {
 
     const { nodes = [], edges = [] } = canvasData;
 
-    const { replaceToolsetMap } = await this.toolService.importToolsetsFromNodes(user, nodes);
+    let replaceToolsetMap: Record<string, GenericToolset> = {};
+
+    // Only import toolsets for shared workflow apps that are not owned by the user
+    if (shareRecord.uid !== user.uid) {
+      const { replaceToolsetMap: newReplaceToolsetMap } =
+        await this.toolService.importToolsetsFromNodes(user, nodes);
+      replaceToolsetMap = newReplaceToolsetMap;
+    }
 
     // variables with old resource entity ids (need to be replaced)
     const oldVariables = variables || canvasData.variables || [];
 
-    // variables without resource entity ids (to be generated in createCanvasWithState)
+    // variables without resource entity ids (to be generated in the new canvas)
     const processedOldVariables = await this.processVariablesForResource(user, oldVariables);
 
     const tempCanvasId = genCanvasID();
-    const state = initEmptyCanvasState();
 
-    const updatedCanvas = await this.canvasService.createCanvasWithState(
+    const finalVariables = await this.canvasService.processResourceVariables(
       user,
-      {
-        canvasId: tempCanvasId,
-        title: `${canvasData.title} (Execution)`,
-        variables: processedOldVariables,
-        visibility: false,
-      },
-      state,
+      tempCanvasId,
+      processedOldVariables,
     );
-
-    // variables with new resource entity ids
-    const finalVariables = safeParseJSON(updatedCanvas.workflow)?.variables ?? [];
 
     // Resource entity id map from old resource entity ids to new resource entity ids
     const entityIdMap = this.buildEntityIdMap(oldVariables, finalVariables);
@@ -324,18 +334,25 @@ export class WorkflowAppService {
       return node;
     });
 
-    state.nodes = updatedNodes;
-    state.edges = edges;
-    await this.canvasSyncService.saveState(tempCanvasId, state);
+    const sourceCanvasData: RawCanvasData = {
+      title: canvasData.title,
+      variables: finalVariables,
+      nodes: updatedNodes,
+      edges,
+    };
 
     const newCanvasId = genCanvasID();
 
     const executionId = await this.workflowService.initializeWorkflowExecution(
       user,
-      tempCanvasId,
       newCanvasId,
       finalVariables,
-      { appId: workflowApp?.appId },
+      {
+        appId: workflowApp.appId,
+        sourceCanvasData,
+        createNewCanvas: true,
+        nodeBehavior: 'create',
+      },
     );
 
     this.logger.log(`Started workflow execution: ${executionId} for shareId: ${shareId}`);

@@ -132,7 +132,7 @@ const WorkflowList = memo(() => {
           const isShared = shareRecord?.shareId;
           return (
             <Tag color={isShared ? 'default' : 'default'} className="text-xs">
-              {isShared ? t('workflowList.shared') : t('workflowList.personal')}
+              {isShared ? t('workflowList.shared') : t('workflowList.private')}
             </Tag>
           );
         },
@@ -284,7 +284,7 @@ const WorkflowList = memo(() => {
               dataSource={dataList}
               rowKey="canvasId"
               pagination={false}
-              scroll={{ y: 'calc(100vh - 190px)' }}
+              scroll={{ y: 'calc(var(--screen-height) - 190px)' }}
               className="workflow-table flex-1"
               size="middle"
               onRow={(record: Canvas) => ({

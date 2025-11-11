@@ -497,6 +497,8 @@ export const useInvokeAction = (params?: { source?: string }) => {
         runtimeConfig = {},
         projectId,
         selectedToolsets = [],
+        agentMode = 'node_agent',
+        copilotSessionId,
       } = payload;
 
       const originalQuery = payload.structuredData?.query as string;
@@ -562,6 +564,8 @@ export const useInvokeAction = (params?: { source?: string }) => {
         tplConfig,
         runtimeConfig,
         projectId,
+        mode: agentMode,
+        copilotSessionId,
       };
 
       const initialResult: ActionResult = {
@@ -571,6 +575,7 @@ export const useInvokeAction = (params?: { source?: string }) => {
         actionMeta: selectedSkill,
         modelInfo,
         title: query,
+        input: param.input,
         targetId: target?.entityId,
         targetType: target?.entityType,
         context,

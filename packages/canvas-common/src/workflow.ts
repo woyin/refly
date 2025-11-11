@@ -136,15 +136,15 @@ export const prepareNodeExecutions = (params: {
   canvasData: CanvasData;
   variables: WorkflowVariable[];
   startNodes?: string[];
-  isNewCanvas?: boolean;
+  nodeBehavior?: 'create' | 'update';
 }): { nodeExecutions: WorkflowNode[]; startNodes: string[] } => {
-  const { canvasData, variables, isNewCanvas = false } = params;
+  const { canvasData, variables, nodeBehavior = 'update' } = params;
   const { nodes, edges } = canvasData;
 
   let newNodes: CanvasNode[] = nodes;
   let newEdges: CanvasEdge[] = edges;
 
-  if (isNewCanvas) {
+  if (nodeBehavior === 'create') {
     const mirroredCanvas = mirrorCanvasData(canvasData, {
       nodeProcessor: (node) => {
         // Always clear content preview
@@ -201,9 +201,10 @@ export const prepareNodeExecutions = (params: {
   const { nodeMap, parentMap, childMap } = buildNodeRelationships(newNodes, newEdges);
 
   // If new canvas mode, ignore provided start nodes
-  const startNodes = isNewCanvas
-    ? []
-    : (params.startNodes?.map((sid) => nodeMap.get(sid)?.id ?? sid) ?? []);
+  const startNodes =
+    nodeBehavior === 'create'
+      ? []
+      : (params.startNodes?.map((sid) => nodeMap.get(sid)?.id ?? sid) ?? []);
   if (startNodes.length === 0) {
     for (const [nodeId, parents] of parentMap) {
       if (parents.length === 0) {

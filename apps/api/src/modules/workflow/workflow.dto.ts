@@ -17,12 +17,14 @@ export interface RunWorkflowJobData {
   user: JobUser;
   executionId: string;
   nodeId: string;
+  nodeBehavior?: 'create' | 'update';
 }
 
 export interface PollWorkflowJobData {
   user: JobUser;
   executionId: string;
   delayMs?: number;
+  nodeBehavior?: 'create' | 'update';
 }
 
 export interface InitializeWorkflowResponse {

@@ -35,11 +35,8 @@ export interface CanvasState {
   showLaunchpad: boolean;
   operatingNodeId: string | null;
   showEdges: boolean;
-  clickToPreview: boolean;
   nodeSizeMode: 'compact' | 'adaptive';
-  autoLayout: boolean;
   showTemplates: boolean;
-  showLinearThread: boolean;
   showSlideshow: boolean;
   linearThreadMessages: (LinearThreadMessage & CacheInfo)[];
   tplConfig: Record<string, any> | null;
@@ -64,11 +61,8 @@ export interface CanvasState {
   setShowLaunchpad: (show: boolean) => void;
   setOperatingNodeId: (nodeId: string | null) => void;
   setShowEdges: (show: boolean) => void;
-  setClickToPreview: (enabled: boolean) => void;
   setNodeSizeMode: (mode: 'compact' | 'adaptive') => void;
-  setAutoLayout: (enabled: boolean) => void;
   setShowTemplates: (show: boolean) => void;
-  setShowLinearThread: (show: boolean) => void;
   setShowSlideshow: (show: boolean) => void;
   addLinearThreadMessage: (message: Omit<LinearThreadMessage, 'timestamp'>) => void;
   removeLinearThreadMessage: (id: string) => void;
@@ -100,11 +94,8 @@ const defaultCanvasState = () => ({
   showLaunchpad: true,
   operatingNodeId: null,
   showEdges: true,
-  clickToPreview: true,
   nodeSizeMode: 'compact' as const,
-  autoLayout: false,
   showTemplates: true,
-  showLinearThread: false,
   showSlideshow: false,
   linearThreadMessages: [],
   tplConfig: null,
@@ -349,34 +340,16 @@ export const useCanvasStore = create<CanvasState>()(
           showEdges: show,
         })),
 
-      setClickToPreview: (enabled) =>
-        set((state) => ({
-          ...state,
-          clickToPreview: enabled,
-        })),
-
       setNodeSizeMode: (mode) =>
         set((state) => ({
           ...state,
           nodeSizeMode: mode,
         })),
 
-      setAutoLayout: (enabled) =>
-        set((state) => ({
-          ...state,
-          autoLayout: enabled,
-        })),
-
       setShowTemplates: (show) =>
         set((state) => ({
           ...state,
           showTemplates: show,
-        })),
-
-      setShowLinearThread: (show) =>
-        set((state) => ({
-          ...state,
-          showLinearThread: show,
         })),
 
       setShowSlideshow: (show) =>
@@ -499,9 +472,7 @@ export const useCanvasStore = create<CanvasState>()(
         currentCanvasId: state.currentCanvasId,
         showEdges: state.showEdges,
         showLaunchpad: state.showLaunchpad,
-        clickToPreview: state.clickToPreview,
         nodeSizeMode: state.nodeSizeMode,
-        showLinearThread: state.showLinearThread,
         linearThreadMessages: state.linearThreadMessages,
         showSlideshow: state.showSlideshow,
         canvasPage: state.canvasPage,

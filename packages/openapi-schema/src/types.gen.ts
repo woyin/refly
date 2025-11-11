@@ -559,6 +559,10 @@ export type ShareUser = {
    */
   nickname?: string;
   /**
+   * User creation time
+   */
+  createdAt?: string;
+  /**
    * User avatar
    */
   avatar?: string;
@@ -3922,6 +3926,8 @@ export type SelectionKey =
 
 export type ActionType = 'skill' | 'tool' | 'media';
 
+export type AgentMode = 'copilot_agent' | 'node_agent';
+
 export type InvokeSkillRequest = {
   /**
    * Skill input
@@ -3996,6 +4002,14 @@ export type InvokeSkillRequest = {
    * Selected toolsets
    */
   toolsets?: Array<GenericToolset>;
+  /**
+   * Agent mode
+   */
+  mode?: AgentMode;
+  /**
+   * Copilot session ID
+   */
+  copilotSessionId?: string;
   /**
    * Workflow execution ID for workflow context
    */
@@ -4648,6 +4662,47 @@ export type GetPilotSessionDetailResponse = BaseResponse & {
    * Pilot session detail
    */
   data?: PilotSession;
+};
+
+export type CopilotSession = {
+  /**
+   * Copilot session ID
+   */
+  sessionId?: string;
+  /**
+   * Copilot session title
+   */
+  title?: string;
+  /**
+   * Copilot session canvas ID
+   */
+  canvasId?: string;
+  /**
+   * Copilot session created at
+   */
+  createdAt?: string;
+  /**
+   * Copilot session updated at
+   */
+  updatedAt?: string;
+  /**
+   * Copilot session results (only returned in detail API)
+   */
+  results?: Array<ActionResult>;
+};
+
+export type ListCopilotSessionsResponse = BaseResponse & {
+  /**
+   * Copilot session list
+   */
+  data?: Array<CopilotSession>;
+};
+
+export type GetCopilotSessionDetailResponse = BaseResponse & {
+  /**
+   * Copilot session detail
+   */
+  data?: CopilotSession;
 };
 
 export type UpdateUserSettingsRequest = {
@@ -5650,7 +5705,7 @@ export type CreditRecharge = {
   /**
    * Recharge source type
    */
-  source?: 'subscription' | 'purchase' | 'gift' | 'promotion' | 'refund';
+  source?: 'subscription' | 'purchase' | 'gift' | 'promotion' | 'refund' | 'commission';
   /**
    * Optional description for this recharge
    */
@@ -5672,7 +5727,7 @@ export type CreditRecharge = {
 /**
  * Recharge source type
  */
-export type source = 'subscription' | 'purchase' | 'gift' | 'promotion' | 'refund';
+export type source = 'subscription' | 'purchase' | 'gift' | 'promotion' | 'refund' | 'commission';
 
 /**
  * Credit usage record for tracking consumption
@@ -5701,7 +5756,7 @@ export type CreditUsage = {
   /**
    * Type of usage that consumed credits
    */
-  usageType: 'model_call' | 'media_generation' | 'embedding' | 'reranking' | 'other';
+  usageType: 'model_call' | 'media_generation' | 'embedding' | 'reranking' | 'commission' | 'other';
   /**
    * Related action result ID (if applicable)
    */
@@ -5727,7 +5782,13 @@ export type CreditUsage = {
 /**
  * Type of usage that consumed credits
  */
-export type usageType = 'model_call' | 'media_generation' | 'embedding' | 'reranking' | 'other';
+export type usageType =
+  | 'model_call'
+  | 'media_generation'
+  | 'embedding'
+  | 'reranking'
+  | 'commission'
+  | 'other';
 
 export type ListProvidersResponse = BaseResponse & {
   data?: Array<Provider>;
@@ -5957,7 +6018,7 @@ export type ToolsetDefinition = {
   /**
    * Toolset label dictionary
    */
-  labelDict?: {
+  labelDict: {
     [key: string]: unknown;
   };
   /**
@@ -5969,7 +6030,7 @@ export type ToolsetDefinition = {
   /**
    * Toolset tools
    */
-  tools: Array<ToolDefinition>;
+  tools?: Array<ToolDefinition>;
   /**
    * Whether the toolset requires auth
    */
@@ -6325,9 +6386,21 @@ export type InitializeWorkflowRequest = {
    */
   canvasId: string;
   /**
-   * New canvas ID
+   * Source canvas ID
    */
-  newCanvasId?: string;
+  sourceCanvasId?: string;
+  /**
+   * Source canvas data
+   */
+  sourceCanvasData?: RawCanvasData;
+  /**
+   * Whether to create a new canvas
+   */
+  createNewCanvas?: boolean;
+  /**
+   * Node behavior when executing workflow
+   */
+  nodeBehavior?: 'create' | 'update';
   /**
    * Workflow variables
    */
@@ -6337,6 +6410,11 @@ export type InitializeWorkflowRequest = {
    */
   startNodes?: Array<string>;
 };
+
+/**
+ * Node behavior when executing workflow
+ */
+export type nodeBehavior = 'create' | 'update';
 
 export type InitializeWorkflowResponse = BaseResponse & {
   data?: {
@@ -8063,6 +8141,32 @@ export type RecoverPilotSessionData = {
 export type RecoverPilotSessionResponse = BaseResponse;
 
 export type RecoverPilotSessionError = unknown;
+
+export type ListCopilotSessionsData = {
+  query?: {
+    /**
+     * Canvas ID
+     */
+    canvasId?: string;
+  };
+};
+
+export type ListCopilotSessionsResponse2 = ListCopilotSessionsResponse;
+
+export type ListCopilotSessionsError = unknown;
+
+export type GetCopilotSessionDetailData = {
+  query: {
+    /**
+     * Copilot session ID
+     */
+    sessionId: string;
+  };
+};
+
+export type GetCopilotSessionDetailResponse2 = GetCopilotSessionDetailResponse;
+
+export type GetCopilotSessionDetailError = unknown;
 
 export type InitializeWorkflowData = {
   body: InitializeWorkflowRequest;

@@ -109,12 +109,9 @@ describe('WorkflowService', () => {
         status: 'waiting',
       } as any);
 
-      const result = await service.initializeWorkflowExecution(
-        mockUser as any,
-        mockCanvasId,
-        mockCanvasId,
-        [],
-      );
+      const result = await service.initializeWorkflowExecution(mockUser as any, mockCanvasId, [], {
+        sourceCanvasId: mockCanvasId,
+      });
 
       expect(result).toBeDefined();
       expect(canvasSyncService.getState).toHaveBeenCalledWith(mockUser, { canvasId: mockCanvasId });

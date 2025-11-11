@@ -63,7 +63,7 @@ export const CanvasResources = memo(
     return (
       <div
         className={cn(
-          'w-full h-full overflow-hidden flex flex-col bg-refly-bg-content-z2 rounded-xl border-solid border border-refly-Card-Border shadow-refly-m',
+          'w-full h-full overflow-hidden flex flex-col bg-refly-bg-content-z2 border-solid border-l-[1px] border-y-0 border-r-0 border-refly-Card-Border shadow-refly-m',
           { 'rounded-l-none': showLeftOverview && !forceHideLeftOverview },
           className,
         )}
@@ -108,10 +108,10 @@ export const CanvasResourcesWidescreenModal = memo(() => {
           padding: 0,
         },
       }}
-      className="flex flex-col"
+      className="resources-widescreen-modal flex flex-col"
       destroyOnHidden
     >
-      <div className="flex w-full h-[calc(100vh-16px)]">
+      <div className="flex w-full h-[calc(var(--screen-height)-56px)] rounded-xl overflow-hidden">
         {!hideLeftOverview && (
           <div className="w-[360px] flex h-full border-r border-refly-Card-Border">
             <ResourceOverview />

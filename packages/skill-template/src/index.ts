@@ -5,4 +5,5 @@ export * from './scheduler/module';
 export * from './scheduler/utils/message';
 export * from './scheduler/utils/extractor';
 export * from './adapters';
+export * from './tool';
 export * from './utils';

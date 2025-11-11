@@ -33,7 +33,6 @@ import {
   QUEUE_AUTO_NAME_CANVAS,
   QUEUE_SYNC_PILOT_STEP,
   QUEUE_SYNC_REQUEST_USAGE,
-  QUEUE_SYNC_TOKEN_CREDIT_USAGE,
   QUEUE_SYNC_TOKEN_USAGE,
 } from '../../utils/const';
 import { genBaseRespDataFromError } from '../../utils/exception';
@@ -44,6 +43,7 @@ import { ActionService } from '../action/action.service';
 import { AutoNameCanvasJobData } from '../canvas/canvas.dto';
 import { PrismaService } from '../common/prisma.service';
 import { CreditUsageStep, SyncBatchTokenCreditUsageJobData } from '../credit/credit.dto';
+import { CreditService } from '../credit/credit.service';
 import { MiscService } from '../misc/misc.service';
 import { SyncPilotStepJobData } from '../pilot/pilot.processor';
 import { projectPO2DTO } from '../project/project.dto';
@@ -73,15 +73,13 @@ export class SkillInvokerService {
     private readonly skillEngineService: SkillEngineService,
     private readonly actionService: ActionService,
     private readonly stepService: StepService,
+    private readonly creditService: CreditService,
     @Optional()
     @InjectQueue(QUEUE_SYNC_REQUEST_USAGE)
     private requestUsageQueue?: Queue<SyncRequestUsageJobData>,
     @Optional()
     @InjectQueue(QUEUE_SYNC_TOKEN_USAGE)
     private usageReportQueue?: Queue<SyncTokenUsageJobData>,
-    @Optional()
-    @InjectQueue(QUEUE_SYNC_TOKEN_CREDIT_USAGE)
-    private creditUsageReportQueue?: Queue<SyncBatchTokenCreditUsageJobData>,
     @Optional()
     @InjectQueue(QUEUE_AUTO_NAME_CANVAS)
     private autoNameCanvasQueue?: Queue<AutoNameCanvasJobData>,
@@ -138,7 +136,7 @@ export class SkillInvokerService {
             });
           })
         : [];
-    console.log('aiMessages', aiMessages);
+
     return [new HumanMessage({ content: messageContent }), ...aiMessages];
   }
 
@@ -179,7 +177,9 @@ export class SkillInvokerService {
         uiLocale: userPo.uiLocale,
         tplConfig,
         runtimeConfig,
+        mode: data.mode,
         resultId: data.result?.resultId,
+        version: data.result?.version,
       },
     };
 
@@ -204,6 +204,10 @@ export class SkillInvokerService {
       const tools = await this.toolService.instantiateToolsets(user, toolsets, this.skillEngine);
       config.configurable.selectedTools = tools;
     }
+
+    config.configurable.installedToolsets = await this.toolService.listTools(user, {
+      enabled: true,
+    });
 
     if (eventListener) {
       const emitter = new EventEmitter<SkillEventMap>();
@@ -921,7 +925,7 @@ export class SkillInvokerService {
       await resultAggregator.clearCache();
 
       // Process credit billing for all steps after skill completion
-      if (this.creditUsageReportQueue && !result.errors.length) {
+      if (!result.errors.length) {
         await this.processCreditUsageReport(user, resultId, version, resultAggregator);
       }
     }
@@ -947,7 +951,7 @@ export class SkillInvokerService {
     const modelNames = new Set<string>();
     for (const step of steps) {
       if (step.tokenUsage) {
-        const tokenUsageArray = JSON.parse(step.tokenUsage);
+        const tokenUsageArray = safeParseJSON(step.tokenUsage);
         const tokenUsages = Array.isArray(tokenUsageArray) ? tokenUsageArray : [tokenUsageArray];
 
         for (const tokenUsage of tokenUsages) {
@@ -964,7 +968,7 @@ export class SkillInvokerService {
       const providerItems = await this.providerService.findProviderItemsByCategory(user, 'llm');
       for (const item of providerItems) {
         try {
-          const config = JSON.parse(item.config || '{}');
+          const config = safeParseJSON(item.config || '{}');
           if (config.modelId && modelNames.has(config.modelId)) {
             providerItemsMap.set(config.modelId, item);
           }
@@ -981,7 +985,7 @@ export class SkillInvokerService {
 
     for (const step of steps) {
       if (step.tokenUsage) {
-        const tokenUsageArray = JSON.parse(step.tokenUsage);
+        const tokenUsageArray = safeParseJSON(step.tokenUsage);
 
         // Handle both array and single object cases
         const tokenUsages = Array.isArray(tokenUsageArray) ? tokenUsageArray : [tokenUsageArray];
@@ -990,7 +994,7 @@ export class SkillInvokerService {
           const providerItem = providerItemsMap.get(String(tokenUsage.modelName));
 
           if (providerItem?.creditBilling) {
-            const creditBilling: CreditBilling = JSON.parse(providerItem.creditBilling);
+            const creditBilling: CreditBilling = safeParseJSON(providerItem.creditBilling);
 
             const usage: TokenUsageItem = {
               tier: providerItem?.tier,
@@ -1014,14 +1018,12 @@ export class SkillInvokerService {
       const batchTokenCreditUsage: SyncBatchTokenCreditUsageJobData = {
         uid: user.uid,
         resultId,
+        version,
         creditUsageSteps,
         timestamp: new Date(),
       };
 
-      await this.creditUsageReportQueue.add(
-        `credit_usage_report:${resultId}:batch`,
-        batchTokenCreditUsage,
-      );
+      await this.creditService.syncBatchTokenCreditUsage(batchTokenCreditUsage);
 
       this.logger.log(
         `Batch credit billing processed for ${resultId}: ${creditUsageSteps.length} usage items`,

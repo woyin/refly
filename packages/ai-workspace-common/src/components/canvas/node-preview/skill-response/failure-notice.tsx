@@ -47,6 +47,7 @@ export const FailureNotice = ({ result, handleRetry }: FailureNoticeProps) => {
   if (isCreditInsufficient) {
     return (
       <ErrorNotice
+        result={result}
         errorType="creditInsufficient"
         membershipLevel={displayName}
         onUpgradeClick={handleSubscriptionClick}
@@ -73,6 +74,7 @@ export const FailureNotice = ({ result, handleRetry }: FailureNoticeProps) => {
 
     return (
       <ErrorNotice
+        result={result}
         errorType={errorNoticeType}
         onRetryClick={handleRetry}
         trackingContext="skill_invoke"

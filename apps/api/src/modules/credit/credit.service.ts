@@ -21,6 +21,7 @@ import {
 } from '@refly/utils';
 import { CreditBalance } from './credit.dto';
 import { CanvasSyncService } from '../canvas-sync/canvas-sync.service';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class CreditService {
@@ -30,6 +31,7 @@ export class CreditService {
     protected readonly prisma: PrismaService,
     private readonly redis: RedisService,
     private readonly canvasSyncService: CanvasSyncService,
+    private readonly configService: ConfigService,
   ) {}
 
   /**
@@ -184,6 +186,7 @@ export class CreditService {
     shareUserId: string,
     executionId: string,
     creditUsage: number,
+    appId?: string,
   ): Promise<void> {
     const creditUsageId = genCommissionCreditUsageId(executionId);
     const creditRechargeId = genCommissionCreditRechargeId(executionId);
@@ -191,12 +194,14 @@ export class CreditService {
     // Calculate expiresAt for commission credit (1 month from now)
     const now = new Date();
     const expiresAt = new Date(now);
-    expiresAt.setMonth(expiresAt.getMonth() + 1);
+    expiresAt.setMonth(
+      expiresAt.getMonth() + this.configService.get('credit.commissionCreditExpiresIn'),
+    );
 
     await this.processCreditRecharge(shareUserId, creditUsage, {
       rechargeId: creditRechargeId,
       source: 'commission',
-      description: `Commission credit for sharing execution ${executionId}`,
+      description: `Commission credit for sharing execution ${executionId} from app ${appId}`,
       createdAt: now,
       expiresAt,
     });
@@ -204,6 +209,7 @@ export class CreditService {
       usageId: creditUsageId,
       usageType: 'commission',
       createdAt: now,
+      description: `Commission credit for sharing execution ${executionId} from app ${appId}`,
     });
   }
 
@@ -398,6 +404,7 @@ export class CreditService {
     creditCost: number,
     usageData: {
       usageId: string;
+      version?: number;
       actionResultId?: string;
       providerItemId?: string;
       modelName?: string;
@@ -406,6 +413,7 @@ export class CreditService {
       createdAt: Date;
       description?: string;
     },
+    dueAmount?: number,
   ): Promise<void> {
     // Lazy load daily gift recharge
     await this.lazyLoadDailyGiftCredits(uid);
@@ -457,10 +465,12 @@ export class CreditService {
           usageId: usageData.usageId,
           providerItemId: usageData.providerItemId,
           actionResultId: usageData.actionResultId,
+          version: usageData.version,
           modelName: usageData.modelName,
           usageType: usageData.usageType,
           modelUsageDetails: usageData.modelUsageDetails,
           amount: creditCost,
+          dueAmount: dueAmount,
           createdAt: usageData.createdAt,
           description: usageData.description,
         },
@@ -513,7 +523,7 @@ export class CreditService {
   }
 
   async syncToolCreditUsage(data: SyncToolCreditUsageJobData) {
-    const { uid, creditCost, timestamp, resultId, toolsetName, toolName } = data;
+    const { uid, creditCost, timestamp, resultId, toolsetName, toolName, version } = data;
 
     // Find user
     const user = await this.prisma.user.findUnique({ where: { uid } });
@@ -528,6 +538,7 @@ export class CreditService {
           uid,
           usageId: genCreditUsageId(),
           actionResultId: resultId,
+          version,
           usageType: 'tool_call',
           amount: 0,
           createdAt: timestamp,
@@ -541,6 +552,7 @@ export class CreditService {
     await this.deductCreditsAndCreateUsage(uid, creditCost, {
       usageId: genCreditUsageId(),
       actionResultId: resultId,
+      version,
       usageType: 'tool_call',
       createdAt: timestamp,
       description: `Tool call: ${toolsetName} ${toolName}`,
@@ -584,7 +596,7 @@ export class CreditService {
   }
 
   async syncBatchTokenCreditUsage(data: SyncBatchTokenCreditUsageJobData) {
-    const { uid, creditUsageSteps, timestamp, resultId } = data;
+    const { uid, creditUsageSteps, timestamp, resultId, version } = data;
 
     // Find user
     const user = await this.prisma.user.findUnique({ where: { uid } });
@@ -597,6 +609,7 @@ export class CreditService {
 
     // Calculate total credit cost for all usages
     let totalCreditCost = 0;
+    let originalDueAmount = 0; // Track original due amount regardless of early bird status
     const modelUsageDetails: ModelUsageDetail[] = [];
 
     for (const step of creditUsageSteps) {
@@ -612,6 +625,9 @@ export class CreditService {
         const tokenUnits = Math.ceil(totalTokens / 5000);
         creditCost = tokenUnits * (creditBilling.unitCost || 0);
       }
+
+      // Track original due amount before early bird discount
+      originalDueAmount += creditCost;
 
       // Check if user is early bird and credit billing is free for early bird users
       if (isEarlyBirdUser && creditBilling?.isEarlyBirdFree) {
@@ -631,6 +647,9 @@ export class CreditService {
       });
     }
 
+    // Always record the original due amount, even for early bird users
+    const dueAmount = originalDueAmount > 0 ? originalDueAmount : totalCreditCost;
+
     // If no credit cost, just create usage record with details
     if (totalCreditCost <= 0) {
       await this.prisma.creditUsage.create({
@@ -638,7 +657,9 @@ export class CreditService {
           uid,
           usageId: genCreditUsageId(),
           actionResultId: resultId,
+          version,
           amount: 0,
+          dueAmount,
           modelUsageDetails: JSON.stringify(modelUsageDetails),
           createdAt: timestamp,
         },
@@ -647,12 +668,18 @@ export class CreditService {
     }
 
     // Use the extracted method to handle credit deduction with model usage details
-    await this.deductCreditsAndCreateUsage(uid, totalCreditCost, {
-      usageId: genCreditUsageId(),
-      actionResultId: resultId,
-      modelUsageDetails: JSON.stringify(modelUsageDetails),
-      createdAt: timestamp,
-    });
+    await this.deductCreditsAndCreateUsage(
+      uid,
+      totalCreditCost,
+      {
+        usageId: genCreditUsageId(),
+        actionResultId: resultId,
+        version,
+        modelUsageDetails: JSON.stringify(modelUsageDetails),
+        createdAt: timestamp,
+      },
+      dueAmount,
+    );
   }
 
   async getCreditRecharge(
@@ -830,11 +857,14 @@ export class CreditService {
   }
 
   async countResultCreditUsage(user: User, resultId: string): Promise<number> {
-    // Verify that the action result belongs to the user
+    // Get the latest action result record for this resultId, ordered by version desc
     const actionResult = await this.prisma.actionResult.findFirst({
       where: {
         resultId,
         uid: user.uid,
+      },
+      orderBy: {
+        version: 'desc',
       },
     });
 
@@ -842,26 +872,71 @@ export class CreditService {
       return 0;
     }
 
+    // First try to find usages by version
     const usages = await this.prisma.creditUsage.findMany({
+      where: {
+        actionResultId: resultId,
+        version: actionResult.version,
+      },
+    });
+
+    if (usages.length > 0) {
+      return usages.reduce((sum, usage) => {
+        const dueAmount = usage.dueAmount ? Number(usage.dueAmount) : 0;
+        return sum + (dueAmount > 0 ? dueAmount : Number(usage.amount));
+      }, 0);
+    }
+
+    // For backward compatibility with old data without version,
+    // query all usages for this actionResultId and divide by version count
+    const allUsages = await this.prisma.creditUsage.findMany({
       where: {
         actionResultId: resultId,
       },
     });
-    return usages.reduce((sum, usage) => {
-      return sum + Number(usage.amount);
+
+    if (allUsages.length === 0) {
+      return 0;
+    }
+
+    const totalUsage = allUsages.reduce((sum, usage) => {
+      const dueAmount = usage.dueAmount ? Number(usage.dueAmount) : 0;
+      return sum + (dueAmount > 0 ? dueAmount : Number(usage.amount));
     }, 0);
+
+    // Get the total number of versions for this resultId
+    const versionCount = await this.prisma.actionResult.count({
+      where: {
+        resultId,
+        uid: user.uid,
+      },
+    });
+
+    // If no versions found, return total usage as is
+    if (versionCount === 0) {
+      return totalUsage;
+    }
+
+    // Return total usage divided by version count (ceiled to ensure integer)
+    return Math.ceil(totalUsage / versionCount);
   }
 
   async countCanvasCreditUsage(user: User, canvasData: RawCanvasData): Promise<number> {
-    const canvasResultIds = canvasData.nodes
-      .filter((node) => node.type === 'skillResponse')
-      .map((node) => node.data.entityId);
-    const total = await Promise.all(
-      canvasResultIds.map((canvasResultId) => this.countResultCreditUsage(user, canvasResultId)),
+    const skillResponseNodes = canvasData.nodes.filter((node) => node.type === 'skillResponse');
+
+    const creditCosts = await Promise.all(
+      skillResponseNodes.map(async (node) => {
+        const resultCreditUsage = await this.countResultCreditUsage(user, node.data.entityId);
+        if (resultCreditUsage > 0) {
+          return resultCreditUsage;
+        }
+        return typeof node.data?.metadata?.creditCost === 'number'
+          ? node.data.metadata.creditCost
+          : 0;
+      }),
     );
-    return total.reduce((sum, total) => {
-      return sum + total;
-    }, 0);
+
+    return creditCosts.reduce((sum, cost) => sum + cost, 0);
   }
 
   async countExecutionCreditUsageByExecutionId(user: User, executionId: string): Promise<number> {
@@ -889,14 +964,8 @@ export class CreditService {
 
   async countCanvasCreditUsageByCanvasId(user: User, canvasId: string): Promise<number> {
     const canvasData = await this.canvasSyncService.getCanvasData(user, { canvasId });
-    const canvasResultIds = canvasData.nodes
-      .filter((node) => node.type === 'skillResponse')
-      .map((node) => node.data.entityId);
-    const total = await Promise.all(
-      canvasResultIds.map((canvasResultId) => this.countResultCreditUsage(user, canvasResultId)),
-    );
-    return total.reduce((sum, total) => {
-      return sum + total;
-    }, 0);
+    const creditUsage = await this.countCanvasCreditUsage(user, canvasData);
+
+    return creditUsage;
   }
 }

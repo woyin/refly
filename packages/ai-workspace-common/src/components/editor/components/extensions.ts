@@ -8,8 +8,6 @@ import {
   TiptapLink,
   UpdatedImage,
   Youtube,
-  SpaceAICommand,
-  DoublePlusAICommand,
   Placeholder,
 } from '@refly-packages/ai-workspace-common/components/editor/core/extensions';
 import { UploadImagesPlugin } from '@refly-packages/ai-workspace-common/components/editor/core/plugins';
@@ -372,8 +370,6 @@ export const defaultExtensions = [
   aiHighlight,
   youtube,
   characterCount,
-  SpaceAICommand,
-  DoublePlusAICommand,
   PasteRuleExtension,
   TrailingEmptyLine,
 ];

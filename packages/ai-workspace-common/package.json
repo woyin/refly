@@ -129,7 +129,7 @@
     "react-syntax-highlighter": "^15.5.0",
     "react-tweet": "^3.2.1",
     "react-use": "^17.5.0",
-    "refly-icons": "^1.1.1",
+    "refly-icons": "^1.1.2",
     "rehype-highlight": "^6.0.0",
     "rehype-katex": "^6.0.2",
     "remark-breaks": "^3.0.2",
@@ -170,7 +170,6 @@
     "@types/react-syntax-highlighter": "^15.5.6",
     "@types/unist": "^3.0.3",
     "@types/uuid": "^9.0.1",
-    "tailwindcss": "^3.2.6",
-    "wxt": "workspace:*"
+    "tailwindcss": "^3.2.6"
   }
 }

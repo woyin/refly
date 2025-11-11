@@ -43,6 +43,13 @@ export class ActionService {
       throw new ActionResultNotFoundError();
     }
 
+    return this.enrichActionResultWithDetails(user, result);
+  }
+
+  private async enrichActionResultWithDetails(
+    user: User,
+    result: ActionResult,
+  ): Promise<ActionDetail> {
     const item =
       (result.providerItemId
         ? await this.providerService.findProviderItemById(user, result.providerItemId)
@@ -62,6 +69,50 @@ export class ActionService {
 
     const stepsWithToolCalls = this.toolCallService.attachToolCallsToSteps(steps, toolCalls);
     return { ...result, steps: stepsWithToolCalls, modelInfo };
+  }
+
+  async batchProcessActionResults(user: User, results: ActionResult[]): Promise<ActionDetail[]> {
+    // Group results by resultId and keep only the latest version for each, maintaining input order
+    const latestResultsMap = new Map<string, ActionResult>();
+    const orderedResultIds: string[] = [];
+
+    for (const result of results) {
+      const existing = latestResultsMap.get(result.resultId);
+      if (!existing || (result.version ?? 0) > (existing.version ?? 0)) {
+        latestResultsMap.set(result.resultId, result);
+        // Only add to ordered list if this is the first time we encounter this resultId
+        if (!existing) {
+          orderedResultIds.push(result.resultId);
+        }
+      }
+    }
+
+    // Get filtered results in the order they first appeared in the input
+    const filteredResults = orderedResultIds.map((resultId) => latestResultsMap.get(resultId));
+
+    // If no results found, return empty array
+    if (!filteredResults.length) {
+      return [];
+    }
+
+    // Use concurrency limit to prevent overwhelming the database
+    const limit = pLimit(5);
+
+    // Process each result in parallel to fetch related data
+    const processedResultsPromises = filteredResults.map((result) =>
+      limit(async () => {
+        try {
+          return await this.enrichActionResultWithDetails(user, result);
+        } catch (error) {
+          this.logger.error(`Failed to process action result ${result.resultId}:`, error);
+          // Return result with empty steps and no model info on error
+          return { ...result, steps: [], modelInfo: null };
+        }
+      }),
+    );
+
+    const processedResults = await Promise.all(processedResultsPromises);
+    return processedResults;
   }
 
   async duplicateActionResults(

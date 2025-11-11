@@ -150,6 +150,8 @@ model ActionResult {
   pilotStepId             String?      @map("pilot_step_id")
   /// Pilot session id
   pilotSessionId          String?      @map("pilot_session_id")
+  /// Copilot session id
+  copilotSessionId        String?      @map("copilot_session_id")
   /// Workflow execution id
   workflowExecutionId     String?      @map("workflow_execution_id")
   /// Workflow node execution id
@@ -169,6 +171,7 @@ model ActionResult {
   @@index([targetType, targetId])
   @@index([pilotStepId])
   @@index([status, updatedAt])
+  @@index([copilotSessionId])
   @@map("action_results")
 }
 
@@ -272,6 +275,26 @@ model PilotStep {
 
   @@index([sessionId, createdAt])
   @@map("pilot_steps")
+}
+
+model CopilotSession {
+  /// Primary key
+  pk        BigInt   @id @default(autoincrement())
+  /// Session id
+  sessionId String   @unique @map("session_id")
+  /// UID
+  uid       String   @map("uid")
+  /// Session title
+  title     String   @map("title")
+  /// Canvas id
+  canvasId  String   @map("canvas_id")
+  /// Create timestamp
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  /// Update timestamp
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz()
+
+  @@index([uid, canvasId])
+  @@map("copilot_sessions")
 }
 
 model WorkflowExecution {
@@ -1264,6 +1287,8 @@ model CreditUsage {
   uid               String   @map("uid")
   /// Used credits amount
   amount            Int      @map("amount")
+  /// Expected used credits amount
+  dueAmount         Int      @default(0) @map("due_amount")
   /// Provider item ID that consumed the credits
   providerItemId    String?  @map("provider_item_id")
   /// Model name used
@@ -1272,6 +1297,8 @@ model CreditUsage {
   usageType         String   @default("model_call") @map("usage_type")
   /// Related action result ID (if applicable)
   actionResultId    String?  @map("action_result_id")
+  /// Action result version
+  version           Int?     @map("version")
   /// Related pilot session ID (if applicable)
   pilotSessionId    String?  @map("pilot_session_id")
   /// Usage description
