@@ -518,87 +518,95 @@ const SiderLoggedIn = (props: { source: 'sider' | 'popover' }) => {
   }, [isCollapsed, isHidden, source]);
 
   return (
-    <Sider
-      width={siderWidth}
-      className={cn(
-        'bg-transparent',
-        source === 'sider'
-          ? ''
-          : 'rounded-lg border-r border-solid border-[1px] border-refly-Card-Border bg-refly-bg-Glass-content backdrop-blur-md shadow-[0_6px_60px_0px_rgba(0,0,0,0.08)]',
-      )}
+    <div
+      className="transition-all duration-500 ease-in-out overflow-hidden"
       style={{
+        width: siderWidth,
         height: source === 'sider' ? 'var(--screen-height)' : 'calc(var(--screen-height) - 16px)',
-        overflow: isHidden ? 'hidden' : undefined,
       }}
     >
-      <div className="flex h-full flex-col gap-3 overflow-hidden p-2 pr-0 pt-6">
-        <div className="flex flex-col gap-2 flex-1 overflow-hidden">
-          <SiderLogo
-            navigate={(path) => navigate(path)}
-            showCollapseButton={source === 'sider'}
-            onCollapseClick={handleCollapseToggle}
-            collapsed={isCollapsed}
-          />
-
-          {/* Main menu items */}
-          {menuItems.map((item, index) => (
-            <SiderSectionHeader
-              key={index}
-              icon={item.icon}
-              title={item.title}
-              onActionClick={item.onActionClick}
-              isActive={item.key === getActiveKey()} // First item (home) is active when on /canvas/empty
+      <Sider
+        width="100%"
+        className={cn(
+          'bg-transparent',
+          source === 'sider'
+            ? ''
+            : 'rounded-lg border-r border-solid border-[1px] border-refly-Card-Border bg-refly-bg-Glass-content backdrop-blur-md shadow-[0_6px_60px_0px_rgba(0,0,0,0.08)]',
+        )}
+        style={{
+          height: '100%',
+          overflow: isHidden ? 'hidden' : undefined,
+        }}
+      >
+        <div className="flex h-full flex-col gap-3 overflow-hidden p-2 pr-0 pt-6">
+          <div className="flex flex-col gap-2 flex-1 overflow-hidden">
+            <SiderLogo
+              navigate={(path) => navigate(path)}
+              showCollapseButton={source === 'sider'}
+              onCollapseClick={handleCollapseToggle}
               collapsed={isCollapsed}
             />
-          ))}
 
-          <Divider className="m-0 border-refly-Card-Border" />
-
-          {/* Bottom menu items */}
-          {bottomMenuItems.map((item, index) => {
-            if (item.key === 'contactUs') {
-              return (
-                <ContactUsPopover
-                  key={`bottom-${index}`}
-                  open={openContactUs}
-                  setOpen={setOpenContactUs}
-                >
-                  <SiderSectionHeader
-                    icon={item.icon}
-                    title={item.title}
-                    onActionClick={item.onActionClick}
-                    isActive={openContactUs}
-                    collapsed={isCollapsed}
-                  />
-                </ContactUsPopover>
-              );
-            }
-            return (
+            {/* Main menu items */}
+            {menuItems.map((item, index) => (
               <SiderSectionHeader
-                key={`bottom-${index}`}
+                key={index}
                 icon={item.icon}
                 title={item.title}
                 onActionClick={item.onActionClick}
-                isActive={item.key === getActiveKey()}
+                isActive={item.key === getActiveKey()} // First item (home) is active when on /canvas/empty
                 collapsed={isCollapsed}
               />
-            );
-          })}
-        </div>
+            ))}
 
-        {!!userProfile?.uid && (
-          <div
-            className={cn(
-              'flex cursor-pointer hover:bg-refly-tertiary-hover rounded-md transition-all duration-300',
-              'h-10 items-center justify-between px-0.5',
-            )}
-            data-cy="settings-menu-item"
-          >
-            <SettingItem collapsed={isCollapsed} />
+            <Divider className="m-0 border-refly-Card-Border" />
+
+            {/* Bottom menu items */}
+            {bottomMenuItems.map((item, index) => {
+              if (item.key === 'contactUs') {
+                return (
+                  <ContactUsPopover
+                    key={`bottom-${index}`}
+                    open={openContactUs}
+                    setOpen={setOpenContactUs}
+                  >
+                    <SiderSectionHeader
+                      icon={item.icon}
+                      title={item.title}
+                      onActionClick={item.onActionClick}
+                      isActive={openContactUs}
+                      collapsed={isCollapsed}
+                    />
+                  </ContactUsPopover>
+                );
+              }
+              return (
+                <SiderSectionHeader
+                  key={`bottom-${index}`}
+                  icon={item.icon}
+                  title={item.title}
+                  onActionClick={item.onActionClick}
+                  isActive={item.key === getActiveKey()}
+                  collapsed={isCollapsed}
+                />
+              );
+            })}
           </div>
-        )}
-      </div>
-    </Sider>
+
+          {!!userProfile?.uid && (
+            <div
+              className={cn(
+                'flex cursor-pointer hover:bg-refly-tertiary-hover rounded-md transition-all duration-300',
+                'h-10 items-center justify-between px-0.5',
+              )}
+              data-cy="settings-menu-item"
+            >
+              <SettingItem collapsed={isCollapsed} />
+            </div>
+          )}
+        </div>
+      </Sider>
+    </div>
   );
 };
 
