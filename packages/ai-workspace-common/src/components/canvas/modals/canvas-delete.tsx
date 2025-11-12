@@ -1,16 +1,13 @@
 import { memo, useState } from 'react';
-import { Checkbox, CheckboxProps, Modal } from 'antd';
+import { Modal } from 'antd';
 import { useTranslation } from 'react-i18next';
 import { useCanvasOperationStoreShallow } from '@refly/stores';
 import { useDeleteCanvas } from '@refly-packages/ai-workspace-common/hooks/canvas/use-delete-canvas';
 import { useSubscriptionUsage } from '@refly-packages/ai-workspace-common/hooks/use-subscription-usage';
-import { useHandleSiderData } from '@refly-packages/ai-workspace-common/hooks/use-handle-sider-data';
-import { useGetProjectCanvasId } from '@refly-packages/ai-workspace-common/hooks/use-get-project-canvasId';
 
 export const CanvasDeleteModal = memo(() => {
   const { t } = useTranslation();
   const [isLoading, setIsLoading] = useState(false);
-  const [isDeleteFile, setIsDeleteFile] = useState(false);
   const { canvasId, canvasTitle, modalVisible, modalType, reset, triggerDeleteSuccess } =
     useCanvasOperationStoreShallow((state) => ({
       canvasId: state.canvasId,
@@ -22,16 +19,10 @@ export const CanvasDeleteModal = memo(() => {
     }));
   const { deleteCanvas } = useDeleteCanvas();
   const { refetchUsage } = useSubscriptionUsage();
-  const { getSourceList } = useHandleSiderData();
-  const { projectId } = useGetProjectCanvasId();
-
-  const onChange: CheckboxProps['onChange'] = (e) => {
-    setIsDeleteFile(e.target.checked);
-  };
 
   const handleDelete = async () => {
     setIsLoading(true);
-    const success = await deleteCanvas(canvasId, isDeleteFile);
+    const success = await deleteCanvas(canvasId, true);
     setIsLoading(false);
 
     if (success) {
@@ -43,11 +34,6 @@ export const CanvasDeleteModal = memo(() => {
 
       reset();
       refetchUsage();
-      if (isDeleteFile && projectId) {
-        setTimeout(() => {
-          getSourceList();
-        }, 1000);
-      }
     }
   };
 
@@ -72,9 +58,6 @@ export const CanvasDeleteModal = memo(() => {
             canvas: canvasTitle || t('common.untitled'),
           })}
         </div>
-        <Checkbox onChange={onChange} className="mb-2 text-[13px]">
-          {t('canvas.toolbar.deleteCanvasFile')}
-        </Checkbox>
       </div>
     </Modal>
   );

@@ -291,7 +291,17 @@ export class ResourceService {
       await this.checkProjectExists(user, param.projectId);
     }
 
-    param.resourceId = genResourceID();
+    if (param.resourceId) {
+      const existingResource = await this.prisma.resource.findFirst({
+        where: { resourceId: param.resourceId },
+      });
+      if (existingResource) {
+        throw new ParamsError(`Resource ${param.resourceId} already exists`);
+      }
+    } else {
+      param.resourceId = genResourceID();
+    }
+
     if (param.content) {
       param.content = param.content.replace(/x00/g, '');
     }
@@ -306,18 +316,8 @@ export class ResourceService {
       metadata,
     } = await this.prepareResource(user, param);
 
-    const existingResource = await this.prisma.resource.findFirst({
-      where: {
-        uid: user.uid,
-        identifier,
-        deletedAt: null,
-      },
-    });
-    param.resourceId = existingResource ? existingResource.resourceId : genResourceID();
-
-    const resource = await this.prisma.resource.upsert({
-      where: { resourceId: param.resourceId },
-      create: {
+    const resource = await this.prisma.resource.create({
+      data: {
         resourceId: param.resourceId,
         identifier,
         resourceType: param.resourceType,
@@ -329,17 +329,6 @@ export class ResourceService {
         projectId: param.projectId,
         canvasId: param.canvasId,
         uid: user.uid,
-        title: param.title || '',
-        indexStatus,
-      },
-      update: {
-        meta: JSON.stringify({ ...param.data, ...metadata }),
-        contentPreview,
-        storageKey,
-        storageSize,
-        rawFileKey: staticFile?.storageKey,
-        projectId: param.projectId,
-        canvasId: param.canvasId,
         title: param.title || '',
         indexStatus,
       },
@@ -1014,7 +1003,11 @@ export class ResourceService {
 
     // Create a new resource ID
     const newResourceId = genResourceID();
-    const newStorageKey = `resources/${newResourceId}.txt`;
+
+    let newStorageKey: string | undefined;
+    if (sourceResource.storageKey) {
+      newStorageKey = `resources/${newResourceId}.txt`;
+    }
 
     // Create the new resource
     const newResource = await this.prisma.resource.create({

@@ -979,7 +979,7 @@ const translations = {
       failed: 'Failed to delete',
       deleteConfirmForDocument: 'Are you sure you want to delete this document?',
       deleteConfirmForCanvas:
-        'Workflow {{canvas}} will be permanently deleted. And the published template cannot be updated (the published template can still be run). Are you sure to delete it?',
+        'Workflow {{canvas}} and all files within it will be permanently deleted. Do you want to continue?',
       deleteConfirmForProject: 'Are you sure you want to delete this project?',
       deleteConfirmForResource: 'Are you sure you want to delete this resource?',
       deleteConfirmForResourceProject: 'Are you sure to remove this resource from the project?',
@@ -1165,7 +1165,6 @@ const translations = {
       video: 'Video',
       audio: 'Audio',
       start: 'User Input',
-      startNode: 'Start Node',
       documentSelection: 'Document Selection',
       resourceSelection: 'Resource Selection',
       skillResponseSelection: 'Skill Response Selection',

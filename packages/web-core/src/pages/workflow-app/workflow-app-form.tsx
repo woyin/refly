@@ -603,7 +603,7 @@ export const WorkflowAPPForm = ({
                   </span>
                   <div className="w-[1px] h-[10px] bg-[#E7E7E7] dark:bg-refly-Card-Border rounded-[3px] flex-shrink-0" />
                   <span className="text-[11px] leading-[1.4545em] text-[rgba(28,31,35,0.35)] dark:text-refly-text-3">
-                    {formatDate(workflowApp.canvasData?.owner?.createdAt)}
+                    {formatDate(workflowApp?.updatedAt)}
                   </span>
                 </div>
               )}
@@ -808,17 +808,17 @@ export const WorkflowAPPForm = ({
                       'h-10 flex items-center justify-center',
                       'w-[120px] sm:w-[200px] min-w-[109px]',
                       'px-4 sm:px-[46px] gap-2',
-                      'text-white dark:text-[var(--text-icon-refly-text-flip,#1C1F23)] dark:hover:text-[var(--text-icon-refly-text-flip,#1C1F23)] font-roboto font-semibold text-[16px] leading-[1.25em]',
+                      '!text-white dark:text-[var(--text-icon-refly-text-flip,#1C1F23)] dark:hover:text-[var(--text-icon-refly-text-flip,#1C1F23)] font-roboto font-semibold text-[16px] leading-[1.25em]',
                       'border-none shadow-none rounded-[12px]',
                       'transition-colors duration-150 ease-in-out',
                       isFormValid && !isRunButtonDisabled
                         ? 'bg-[#1C1F23] hover:!bg-[rgba(28,31,35,0.90)] dark:bg-[var(--bg---refly-bg-dark,#ECECEC)] dark:hover:!bg-[var(--bg---refly-bg-dark,#ECECEC)]'
-                        : 'bg-refly-bg-control-z1 hover:!bg-refly-tertiary-hover dark:bg-[var(--bg---refly-bg-dark,#ECECEC)] dark:hover:!bg-[var(--bg---refly-bg-dark,#ECECEC)]',
+                        : 'bg-[#1C1F23] hover:!bg-[rgba(28,31,35,0.90)] dark:bg-[var(--bg---refly-bg-dark,#ECECEC)] dark:hover:!bg-[var(--bg---refly-bg-dark,#ECECEC)]',
                     )}
                     type="primary"
                     onClick={handleRun}
                     loading={isRunButtonDisabled}
-                    disabled={isRunButtonDisabled}
+                    disabled={isRunButtonDisabled || !isFormValid}
                   >
                     <span className="inline-flex items-center gap-[2px]">
                       {isRunButtonDisabled
@@ -837,7 +837,7 @@ export const WorkflowAPPForm = ({
                             strokeWidth="1.5"
                             strokeLinecap="round"
                             strokeLinejoin="round"
-                            className="stroke-white stroke-opacity-50 dark:stroke-[var(--text-icon-refly-text-flip,#1C1F23)] dark:stroke-opacity-100"
+                            className="stroke-white  stroke-opacity-50 dark:stroke-[var(--text-icon-refly-text-flip,#1C1F23)] dark:stroke-opacity-100"
                           />
                         </svg>
                       )}

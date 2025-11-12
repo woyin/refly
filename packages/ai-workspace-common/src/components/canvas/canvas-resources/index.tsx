@@ -111,7 +111,7 @@ export const CanvasResourcesWidescreenModal = memo(() => {
       className="resources-widescreen-modal flex flex-col"
       destroyOnHidden
     >
-      <div className="flex w-full h-[calc(var(--screen-height)-160px)]">
+      <div className="flex w-full h-[calc(var(--screen-height)-56px)] rounded-xl overflow-hidden">
         {!hideLeftOverview && (
           <div className="w-[360px] flex h-full border-r border-refly-Card-Border">
             <ResourceOverview />
