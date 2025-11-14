@@ -18,6 +18,7 @@ import {
   genSubscriptionRechargeId,
   genCommissionCreditUsageId,
   genCommissionCreditRechargeId,
+  genRegistrationCreditRechargeId,
 } from '@refly/utils';
 import { CreditBalance } from './credit.dto';
 import { CanvasSyncService } from '../canvas-sync/canvas-sync.service';
@@ -242,6 +243,45 @@ export class CreditService {
         appId,
         commissionRate: this.configService.get('credit.canvasCreditCommissionRate'),
       },
+    );
+  }
+
+  /**
+   * Create registration credit recharge for a user
+   * This method creates a one-time 3000 credit registration bonus with 2-week expiration
+   * Each user can only receive this bonus once (uid unique constraint)
+   */
+  async createRegistrationCreditRecharge(uid: string, now: Date = new Date()): Promise<void> {
+    // Check if user already has registration bonus
+    const existingBonus = await this.prisma.creditRecharge.findFirst({
+      where: {
+        uid,
+        source: 'gift',
+        description: 'Registration bonus credit recharge',
+        enabled: true,
+      },
+    });
+
+    if (existingBonus) {
+      this.logger.log(`User ${uid} already has registration bonus, skipping`);
+      return;
+    }
+
+    // Calculate expiration date (2 weeks from now)
+    const expiresAt = new Date(now);
+    expiresAt.setDate(expiresAt.getDate() + 14);
+
+    await this.processCreditRecharge(
+      uid,
+      3000,
+      {
+        rechargeId: genRegistrationCreditRechargeId(uid),
+        source: 'gift',
+        description: 'Registration bonus credit recharge',
+        createdAt: now,
+        expiresAt,
+      },
+      now,
     );
   }
 

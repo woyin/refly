@@ -44,6 +44,7 @@ import {
 import { ProviderService } from '../provider/provider.service';
 import { logEvent } from '@refly/telemetry-node';
 import { NotificationService } from '../notification/notification.service';
+import { CreditService } from '../credit/credit.service';
 
 @Injectable()
 export class AuthService {
@@ -56,6 +57,7 @@ export class AuthService {
     private miscService: MiscService,
     private providerService: ProviderService,
     private notificationService: NotificationService,
+    private creditService: CreditService,
   ) {}
 
   getAuthConfig(): AuthConfigItem[] {
@@ -503,6 +505,7 @@ export class AuthService {
 
   private async postCreateUser(user: User) {
     await this.providerService.prepareGlobalProviderItemsForUser(user);
+    await this.creditService.createRegistrationCreditRecharge(user.uid);
   }
 
   async emailLogin(email: string, password: string) {
