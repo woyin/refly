@@ -29,6 +29,7 @@ const translations = {
     library: 'Library',
     untitled: 'Untitled',
     loading: 'Loading...',
+    activating: 'Activating...',
     loadMore: 'Load More',
     dontShow: "Don't show again",
     appStarting: 'Application is starting',
@@ -2556,6 +2557,20 @@ const translations = {
       imageSizeLimited: 'Image must be less than {{size}}MB',
       onlyImageAllowed: 'Only support {{type}} pictures',
       cropAvatar: 'Crop Avatar',
+
+      // Invitation codes
+      invitationCodes: 'Invitation Codes',
+      generateInvitationCodes: 'Generate Codes',
+      generateInvitationCodeSuccess: 'Invitation codes generated successfully!',
+      generateInvitationCodeFailed: 'Failed to generate invitation codes',
+      noInvitationCodes: 'No invitation codes yet',
+      expiresAt: 'Expires at',
+      statusPending: 'Pending',
+      statusUsed: 'Used',
+      enterInvitationCode: 'Enter invitation code',
+      activateInvitationCode: 'Activate Code',
+      activateInvitationCodeSuccess: 'Invitation code activated successfully!',
+      activateInvitationCodeFailed: 'Failed to activate invitation code',
     },
 
     language: {
@@ -3586,6 +3601,7 @@ const translations = {
         subscription: 'Subscription',
         commission: 'Template earnings',
         commissionPrefix: 'Template earnings: ',
+        invitation: 'Invitation bonus',
       },
       depleted: 'Depleted',
       expired: 'Expired',

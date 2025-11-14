@@ -43,6 +43,7 @@ import {
   listCodeArtifacts,
   listCopilotSessions,
   listDocuments,
+  listInvitationCodes,
   listLabelClasses,
   listLabelInstances,
   listMcpServers,
@@ -137,6 +138,7 @@ import {
   ListCopilotSessionsError,
   ListDocumentsData,
   ListDocumentsError,
+  ListInvitationCodesError,
   ListLabelClassesData,
   ListLabelClassesError,
   ListLabelInstancesData,
@@ -930,6 +932,21 @@ export const useGetCreditUsageByCanvasIdSuspense = <
       getCreditUsageByCanvasId({ ...clientOptions }).then(
         (response) => response.data as TData,
       ) as TData,
+    ...options,
+  });
+export const useListInvitationCodesSuspense = <
+  TData = Common.ListInvitationCodesDefaultResponse,
+  TError = ListInvitationCodesError,
+  TQueryKey extends Array<unknown> = unknown[],
+>(
+  clientOptions: Options<unknown, true> = {},
+  queryKey?: TQueryKey,
+  options?: Omit<UseQueryOptions<TData, TError>, 'queryKey' | 'queryFn'>,
+) =>
+  useSuspenseQuery<TData, TError>({
+    queryKey: Common.UseListInvitationCodesKeyFn(clientOptions, queryKey),
+    queryFn: () =>
+      listInvitationCodes({ ...clientOptions }).then((response) => response.data as TData) as TData,
     ...options,
   });
 export const useGetSubscriptionPlansSuspense = <

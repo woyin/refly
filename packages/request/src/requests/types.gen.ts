@@ -4917,6 +4917,51 @@ export type GetCreditUsageByCanvasIdResponse = BaseResponse & {
   };
 };
 
+export type InvitationCode = {
+  /**
+   * Invitation code
+   */
+  code?: string;
+  /**
+   * Inviter UID
+   */
+  inviterUid?: string;
+  /**
+   * Invitee UID
+   */
+  inviteeUid?: string;
+  /**
+   * Invitation status
+   */
+  status?: string;
+  /**
+   * Invitation expiration time
+   */
+  expiresAt?: string;
+  /**
+   * Invitation creation time
+   */
+  createdAt?: string;
+  /**
+   * Invitation update time
+   */
+  updatedAt?: string;
+};
+
+export type ActivateInvitationCodeRequest = {
+  /**
+   * Invitation code
+   */
+  code?: string;
+};
+
+export type ListInvitationCodesResponse = BaseResponse & {
+  /**
+   * Invitation code list
+   */
+  data?: Array<InvitationCode>;
+};
+
 export type SubscriptionPlan = {
   /**
    * Subscription plan type
@@ -8468,6 +8513,22 @@ export type GetCreditUsageByCanvasIdData = {
 export type GetCreditUsageByCanvasIdResponse2 = GetCreditUsageByCanvasIdResponse;
 
 export type GetCreditUsageByCanvasIdError = unknown;
+
+export type GenerateInvitationCodeResponse = BaseResponse;
+
+export type GenerateInvitationCodeError = unknown;
+
+export type ListInvitationCodesResponse2 = ListInvitationCodesResponse;
+
+export type ListInvitationCodesError = unknown;
+
+export type ActivateInvitationCodeData = {
+  body: ActivateInvitationCodeRequest;
+};
+
+export type ActivateInvitationCodeResponse = BaseResponse;
+
+export type ActivateInvitationCodeError = unknown;
 
 export type GetSubscriptionPlansResponse2 = GetSubscriptionPlansResponse;
 

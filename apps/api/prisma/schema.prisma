@@ -1323,6 +1323,31 @@ model CreditUsage {
   @@map("credit_usages")
 }
 
+model InvitationCode {
+  /// Primary key
+  pk         BigInt   @id @default(autoincrement())
+  /// Invitation code
+  code       String   @unique @map("code")
+  /// Inviter UID
+  inviterUid String   @map("inviter_uid")
+  /// Invitee UID
+  inviteeUid String?  @map("invitee_uid")
+  /// Invitation status: pending, accepted, expired
+  status     String   @default("pending") @map("status")
+  /// Expiration timestamp
+  expiresAt  DateTime @map("expires_at") @db.Timestamptz()
+  /// Create timestamp
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  /// Update timestamp
+  updatedAt  DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz()
+
+  @@unique([inviterUid, inviteeUid])
+  @@index([inviterUid])
+  @@index([inviteeUid])
+  @@index([status])
+  @@map("invitation_codes")
+}
+
 model StorageUsageMeter {
   /// Primary key
   pk                 BigInt    @id @default(autoincrement())

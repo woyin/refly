@@ -373,6 +373,13 @@ import type {
   GetCreditUsageByCanvasIdData,
   GetCreditUsageByCanvasIdError,
   GetCreditUsageByCanvasIdResponse2,
+  GenerateInvitationCodeError,
+  GenerateInvitationCodeResponse,
+  ListInvitationCodesError,
+  ListInvitationCodesResponse2,
+  ActivateInvitationCodeData,
+  ActivateInvitationCodeError,
+  ActivateInvitationCodeResponse,
   GetSubscriptionPlansError,
   GetSubscriptionPlansResponse2,
   GetSubscriptionUsageError,
@@ -2472,6 +2479,57 @@ export const getCreditUsageByCanvasId = <ThrowOnError extends boolean = false>(
   >({
     ...options,
     url: '/credit/canvas',
+  });
+};
+
+/**
+ * Generate invitation code
+ * Generate an invitation code
+ */
+export const generateInvitationCode = <ThrowOnError extends boolean = false>(
+  options?: Options<unknown, ThrowOnError>,
+) => {
+  return (options?.client ?? client).post<
+    GenerateInvitationCodeResponse,
+    GenerateInvitationCodeError,
+    ThrowOnError
+  >({
+    ...options,
+    url: '/invitation/generate',
+  });
+};
+
+/**
+ * List invitation codes
+ * List all invitation codes
+ */
+export const listInvitationCodes = <ThrowOnError extends boolean = false>(
+  options?: Options<unknown, ThrowOnError>,
+) => {
+  return (options?.client ?? client).get<
+    ListInvitationCodesResponse2,
+    ListInvitationCodesError,
+    ThrowOnError
+  >({
+    ...options,
+    url: '/invitation/list',
+  });
+};
+
+/**
+ * Activate invitation code
+ * Activate an invitation code
+ */
+export const activateInvitationCode = <ThrowOnError extends boolean = false>(
+  options: Options<ActivateInvitationCodeData, ThrowOnError>,
+) => {
+  return (options?.client ?? client).post<
+    ActivateInvitationCodeResponse,
+    ActivateInvitationCodeError,
+    ThrowOnError
+  >({
+    ...options,
+    url: '/invitation/activate',
   });
 };
 

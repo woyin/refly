@@ -19,7 +19,9 @@ import {
   genCommissionCreditUsageId,
   genCommissionCreditRechargeId,
   genRegistrationCreditRechargeId,
+  genInvitationActivationCreditRechargeId,
 } from '@refly/utils';
+
 import { CreditBalance } from './credit.dto';
 import { CanvasSyncService } from '../canvas-sync/canvas-sync.service';
 import { ConfigService } from '@nestjs/config';
@@ -44,7 +46,7 @@ export class CreditService {
     creditAmount: number,
     rechargeData: {
       rechargeId: string;
-      source: 'gift' | 'subscription' | 'commission';
+      source: 'gift' | 'subscription' | 'commission' | 'invitation';
       description?: string;
       createdAt: Date;
       expiresAt: Date;
@@ -282,6 +284,52 @@ export class CreditService {
         expiresAt,
       },
       now,
+    );
+  }
+
+  /**
+   * Create invitation activation credit recharge for both inviter and invitee
+   * Each user gets 500 credits with 2-week expiration
+   */
+  async createInvitationActivationCreditRecharge(
+    inviterUid: string,
+    inviteeUid: string,
+    now: Date = new Date(),
+  ): Promise<void> {
+    // Calculate expiration date (2 weeks from now)
+    const expiresAt = new Date(now);
+    expiresAt.setDate(expiresAt.getDate() + 14);
+
+    // Create recharge for inviter
+    await this.processCreditRecharge(
+      inviterUid,
+      500,
+      {
+        rechargeId: genInvitationActivationCreditRechargeId(inviterUid, inviteeUid),
+        source: 'invitation',
+        description: `Invitation activation bonus for inviting user ${inviteeUid}`,
+        createdAt: now,
+        expiresAt,
+      },
+      now,
+    );
+
+    // Create recharge for invitee
+    await this.processCreditRecharge(
+      inviteeUid,
+      500,
+      {
+        rechargeId: genInvitationActivationCreditRechargeId(inviteeUid, inviterUid),
+        source: 'invitation',
+        description: `Invitation activation bonus for being invited by user ${inviterUid}`,
+        createdAt: now,
+        expiresAt,
+      },
+      now,
+    );
+
+    this.logger.log(
+      `Created invitation activation credits: ${inviterUid} and ${inviteeUid} each received 500 credits, expires at ${expiresAt.toISOString()}`,
     );
   }
 

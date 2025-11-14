@@ -291,3 +291,7 @@ export function genNodeID(): string {
 export function genWorkflowAppID(): string {
   return IDPrefix.WorkflowApp + createId();
 }
+
+export const genInvitationActivationCreditRechargeId = (inviterUid: string, inviteeUid: string) => {
+  return `${IDPrefix.CREDIT_RECHARGE}invitation-${inviterUid}-${inviteeUid}`;
+};

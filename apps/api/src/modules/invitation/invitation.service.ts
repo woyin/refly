@@ -1,0 +1,176 @@
+import { Injectable, BadRequestException } from '@nestjs/common';
+import { PrismaService } from '../common/prisma.service';
+import { CreditService } from '../credit/credit.service';
+import { InvitationCode } from '@refly/openapi-schema';
+
+@Injectable()
+export class InvitationService {
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly creditService: CreditService,
+  ) {}
+
+  /**
+   * generate six uppercase letters and numbers combination invitation code
+   */
+  private generateInvitationCode(): string {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let result = '';
+    for (let i = 0; i < 6; i++) {
+      result += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return result;
+  }
+
+  /**
+   * check if the invitation code is unique
+   */
+  private async isCodeUnique(code: string): Promise<boolean> {
+    const existingCode = await this.prisma.invitationCode.findUnique({
+      where: { code },
+    });
+    return !existingCode;
+  }
+
+  /**
+   * generate a unique invitation code
+   */
+  private async generateUniqueCode(): Promise<string> {
+    let code: string;
+    let attempts = 0;
+    const maxAttempts = 100;
+
+    do {
+      code = this.generateInvitationCode();
+      attempts++;
+      if (attempts > maxAttempts) {
+        throw new Error('Failed to generate unique invitation code after maximum attempts');
+      }
+    } while (!(await this.isCodeUnique(code)));
+
+    return code;
+  }
+
+  /**
+   * generate 5 invitation codes for a user
+   * a user can only generate one invitation code
+   * the invitation code expires in 2 weeks
+   */
+  async generateInvitationCodes(uid: string) {
+    // check if the user has already generated invitation codes
+    const existingCodes = await this.prisma.invitationCode.findMany({
+      where: { inviterUid: uid },
+    });
+
+    if (existingCodes?.length > 0) {
+      throw new BadRequestException('User has already generated invitation codes');
+    }
+
+    // generate 5 unique invitation codes
+    const codes: string[] = [];
+    for (let i = 0; i < 5; i++) {
+      const code = await this.generateUniqueCode();
+      codes.push(code);
+    }
+
+    // set 2 weeks later expiration date
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + 14);
+
+    // create the invitation codes in batch
+    const invitationCodes = await Promise.all(
+      codes.map((code) =>
+        this.prisma.invitationCode.create({
+          data: {
+            code,
+            inviterUid: uid,
+            status: 'pending',
+            expiresAt,
+          },
+        }),
+      ),
+    );
+
+    return invitationCodes;
+  }
+
+  /**
+   * list all invitation codes for a user
+   */
+  async listInvitationCodes(uid: string): Promise<InvitationCode[]> {
+    const invitationCodes = await this.prisma.invitationCode.findMany({
+      where: { inviterUid: uid },
+    });
+
+    return invitationCodes.map((code) => ({
+      code: code.code,
+      inviterUid: code.inviterUid,
+      inviteeUid: code.inviteeUid,
+      status: code.status,
+      expiresAt: code.expiresAt.toJSON(),
+      createdAt: code.createdAt.toJSON(),
+      updatedAt: code.updatedAt.toJSON(),
+    }));
+  }
+
+  /**
+   * activate invitation code for invitee
+   * give both inviter and invitee 500 credits each with 2-week expiration
+   */
+  async activateInvitationCode(inviteeUid: string, code: string): Promise<void> {
+    // Check if invitation code exists
+    const invitationCode = await this.prisma.invitationCode.findUnique({
+      where: { code },
+    });
+
+    if (!invitationCode) {
+      throw new BadRequestException('Invalid invitation code');
+    }
+
+    // Check if code is still valid
+    const now = new Date();
+    if (invitationCode.expiresAt < now) {
+      throw new BadRequestException('Invitation code has expired');
+    }
+
+    // Check if code is still pending
+    if (invitationCode.status !== 'pending') {
+      throw new BadRequestException('Invitation code has already been used');
+    }
+
+    // Check if invitee is trying to use their own invitation code
+    if (invitationCode.inviterUid === inviteeUid) {
+      throw new BadRequestException('Cannot use your own invitation code');
+    }
+
+    // Check if invitee has already been invited by this inviter (unique constraint)
+    const existingActivation = await this.prisma.invitationCode.findFirst({
+      where: {
+        inviterUid: invitationCode.inviterUid,
+        inviteeUid: inviteeUid,
+        status: 'accepted',
+      },
+    });
+
+    if (existingActivation) {
+      throw new BadRequestException('This invitation has already been activated');
+    }
+
+    // Update invitation code status and set invitee
+    await this.prisma.invitationCode.update({
+      where: { code },
+      data: {
+        status: 'accepted',
+        inviteeUid,
+        updatedAt: now,
+      },
+    });
+
+    // Create credit recharges for both users
+    await this.creditService.createInvitationActivationCreditRecharge(
+      invitationCode.inviterUid,
+      inviteeUid,
+      now,
+    );
+  }
+}

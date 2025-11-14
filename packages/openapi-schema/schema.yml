@@ -3069,6 +3069,54 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/GetCreditUsageByCanvasIdResponse'
+  /invitation/generate:
+    post:
+      tags:
+        - invitation
+      summary: Generate invitation code
+      description: Generate an invitation code
+      operationId: generateInvitationCode
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseResponse'
+  /invitation/list:
+    get:
+      tags:
+        - invitation
+      summary: List invitation codes
+      description: List all invitation codes
+      operationId: listInvitationCodes
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListInvitationCodesResponse'
+  /invitation/activate:
+    post:
+      tags:
+        - invitation
+      summary: Activate invitation code
+      description: Activate an invitation code
+      operationId: activateInvitationCode
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ActivateInvitationCodeRequest'
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseResponse'
   /subscription/plans:
     get:
       tags:
@@ -8736,6 +8784,49 @@ components:
                   description: Credit usage list by canvas ID
                   items:
                     $ref: '#/components/schemas/CreditUsage'
+    InvitationCode:
+      type: object
+      properties:
+        code:
+          type: string
+          description: Invitation code
+        inviterUid:
+          type: string
+          description: Inviter UID
+        inviteeUid:
+          type: string
+          description: Invitee UID
+        status:
+          type: string
+          description: Invitation status
+        expiresAt:
+          type: string
+          format: date-time
+          description: Invitation expiration time
+        createdAt:
+          type: string
+          format: date-time
+          description: Invitation creation time
+        updatedAt:
+          type: string
+          format: date-time
+          description: Invitation update time
+    ActivateInvitationCodeRequest:
+      type: object
+      properties:
+        code:
+          type: string
+          description: Invitation code
+    ListInvitationCodesResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            data:
+              type: array
+              description: Invitation code list
+              items:
+                $ref: '#/components/schemas/InvitationCode'
     SubscriptionPlan:
       type: object
       properties:

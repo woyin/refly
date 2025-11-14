@@ -6982,6 +6982,73 @@ export const GetCreditUsageByCanvasIdResponseSchema = {
   ],
 } as const;
 
+export const InvitationCodeSchema = {
+  type: 'object',
+  properties: {
+    code: {
+      type: 'string',
+      description: 'Invitation code',
+    },
+    inviterUid: {
+      type: 'string',
+      description: 'Inviter UID',
+    },
+    inviteeUid: {
+      type: 'string',
+      description: 'Invitee UID',
+    },
+    status: {
+      type: 'string',
+      description: 'Invitation status',
+    },
+    expiresAt: {
+      type: 'string',
+      format: 'date-time',
+      description: 'Invitation expiration time',
+    },
+    createdAt: {
+      type: 'string',
+      format: 'date-time',
+      description: 'Invitation creation time',
+    },
+    updatedAt: {
+      type: 'string',
+      format: 'date-time',
+      description: 'Invitation update time',
+    },
+  },
+} as const;
+
+export const ActivateInvitationCodeRequestSchema = {
+  type: 'object',
+  properties: {
+    code: {
+      type: 'string',
+      description: 'Invitation code',
+    },
+  },
+} as const;
+
+export const ListInvitationCodesResponseSchema = {
+  allOf: [
+    {
+      $ref: '#/components/schemas/BaseResponse',
+    },
+    {
+      type: 'object',
+      properties: {
+        data: {
+          type: 'array',
+          description: 'Invitation code list',
+          items: {
+            $ref: '#/components/schemas/InvitationCode',
+          },
+        },
+      },
+    },
+  ],
+} as const;
+
 export const SubscriptionPlanSchema = {
   type: 'object',
   properties: {

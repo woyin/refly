@@ -332,6 +332,7 @@ export const Subscription = () => {
           promotion: t('subscription.subscriptionManagement.rechargeType.promotion'),
           refund: t('subscription.subscriptionManagement.rechargeType.refund'),
           subscription: t('subscription.subscriptionManagement.rechargeType.subscription'),
+          invitation: t('subscription.subscriptionManagement.rechargeType.invitation'),
         };
         return sourceMap[source] || source;
       },
