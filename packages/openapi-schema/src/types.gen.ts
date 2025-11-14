@@ -4858,6 +4858,14 @@ export type getCreditBalanceResponse = BaseResponse & {
      * Credit amount
      */
     creditAmount?: number;
+    /**
+     * Regular credits (from purchases, gifts, subscriptions)
+     */
+    regularCredits?: number;
+    /**
+     * Template earnings credits
+     */
+    templateEarningsCredits?: number;
   };
 };
 

@@ -6877,6 +6877,14 @@ export const getCreditBalanceResponseSchema = {
               type: 'number',
               description: 'Credit amount',
             },
+            regularCredits: {
+              type: 'number',
+              description: 'Regular credits (from purchases, gifts, subscriptions)',
+            },
+            templateEarningsCredits: {
+              type: 'number',
+              description: 'Template earnings credits',
+            },
           },
         },
       },

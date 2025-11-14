@@ -1013,6 +1013,7 @@ export class CreditService {
       select: {
         amount: true,
         balance: true,
+        source: true,
       },
       orderBy: {
         expiresAt: 'asc',
@@ -1049,9 +1050,21 @@ export class CreditService {
     // Net balance is positive balance minus debt
     const netBalance = totalBalance - totalDebt;
 
+    // Calculate regular credits and template earnings credits
+    const regularCredits =
+      activeRecharges
+        .filter((record) => record.source !== 'commission')
+        .reduce((sum, record) => sum + Number(record.balance), 0) - totalDebt;
+
+    const templateEarningsCredits = activeRecharges
+      .filter((record) => record.source === 'commission')
+      .reduce((sum, record) => sum + Number(record.balance), 0);
+
     return {
       creditAmount: totalAmount,
       creditBalance: netBalance,
+      regularCredits: regularCredits,
+      templateEarningsCredits: templateEarningsCredits,
     };
   }
 
