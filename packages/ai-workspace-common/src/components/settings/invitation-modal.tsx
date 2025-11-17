@@ -4,6 +4,9 @@ import { useTranslation } from 'react-i18next';
 import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
 import { InvitationCode } from '@refly/openapi-schema';
 import { useUserStoreShallow } from '@refly/stores';
+import { IconLightning01 } from '@refly-packages/ai-workspace-common/components/common/icon';
+
+const INVITATION_CODE_LENGTH = 6;
 
 interface InvitationModalProps {
   visible: boolean;
@@ -91,6 +94,22 @@ export const InvitationModal: React.FC<InvitationModalProps> = ({ visible, setVi
     }
   };
 
+  // Copy invitation code to clipboard
+  const handleCopyInvitationCode = async (invitationCode: string) => {
+    try {
+      await navigator.clipboard.writeText(invitationCode);
+      message.success(t('settings.account.invitationCodeCopied'));
+    } catch (error) {
+      console.error('Failed to copy invitation code:', error);
+      message.error(t('settings.account.invitationCodeCopyFailed'));
+    }
+  };
+
+  // Join Discord community
+  const handleJoinDiscord = () => {
+    window.open('https://discord.gg/bWjffrb89h', '_blank');
+  };
+
   // Load invitation codes when modal opens
   useEffect(() => {
     if (visible && userProfile?.uid) {
@@ -99,50 +118,67 @@ export const InvitationModal: React.FC<InvitationModalProps> = ({ visible, setVi
   }, [visible, userProfile?.uid]);
 
   return (
-    <Modal
-      title={t('settings.account.invitationCodes')}
-      open={visible}
-      onCancel={() => setVisible(false)}
-      footer={null}
-      width={600}
-      centered
-    >
+    <Modal open={visible} onCancel={() => setVisible(false)} footer={null} width={421} centered>
       <div className="p-4 space-y-4">
         <div className="flex flex-col gap-4">
-          <div className="flex items-center justify-between">
-            <div className="font-semibold text-base text-refly-text-0">
-              {t('settings.account.invitationCodes')}
+          {/* Activate Invitation Code */}
+          <div className="flex justify-center">
+            <div style={{ width: 308, height: 68 }}>
+              <Input.OTP
+                length={INVITATION_CODE_LENGTH}
+                value={activationCode}
+                onChange={(value) => setActivationCode(value)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter') {
+                    handleActivateInvitationCode();
+                  }
+                }}
+              />
             </div>
+          </div>
+          <div className="flex justify-center">
+            <Button
+              type="primary"
+              onClick={handleActivateInvitationCode}
+              loading={activatingCode}
+              disabled={
+                activatingCode || (activationCode ?? '').trim().length < INVITATION_CODE_LENGTH
+              }
+              style={{ width: 308, height: 36 }}
+            >
+              <div className="flex items-center gap-1">
+                <IconLightning01 className="w-4 h-4" />
+                {activatingCode
+                  ? t('common.activating')
+                  : t('settings.account.activateInvitationCode')}
+              </div>
+            </Button>
+          </div>
+
+          <div className="flex justify-center">
+            <Button
+              type="text"
+              size="middle"
+              className="text-sm text-refly-text-0 font-semibold bg-refly-tertiary-default hover:bg-refly-tertiary-hover"
+              onClick={handleJoinDiscord}
+              style={{ width: 308, height: 36 }}
+            >
+              {t('common.joinDiscord')}
+            </Button>
+          </div>
+
+          <div className="flex justify-center">
             <Button
               type="primary"
               onClick={handleGenerateInvitationCodes}
               loading={generatingCodes}
               disabled={generatingCodes}
+              style={{ width: 308, height: 36 }}
             >
+              <IconLightning01 className="w-4 h-4" />
               {generatingCodes
                 ? t('common.generating')
                 : t('settings.account.generateInvitationCodes')}
-            </Button>
-          </div>
-
-          {/* Activate Invitation Code */}
-          <div className="flex gap-2">
-            <Input
-              placeholder={t('settings.account.enterInvitationCode')}
-              value={activationCode}
-              onChange={(e) => setActivationCode(e.target.value)}
-              onPressEnter={handleActivateInvitationCode}
-              className="flex-1"
-            />
-            <Button
-              type="default"
-              onClick={handleActivateInvitationCode}
-              loading={activatingCode}
-              disabled={activatingCode || !activationCode.trim()}
-            >
-              {activatingCode
-                ? t('common.activating')
-                : t('settings.account.activateInvitationCode')}
             </Button>
           </div>
 
@@ -151,7 +187,16 @@ export const InvitationModal: React.FC<InvitationModalProps> = ({ visible, setVi
               {invitationCodes.map((code, index) => (
                 <div
                   key={code.code || index}
-                  className="p-3 rounded-lg bg-refly-bg-control-z1 border border-refly-border-primary"
+                  className={`p-3 rounded-lg border ${
+                    code.status === 'pending'
+                      ? 'bg-green-50 border-green-200 cursor-pointer hover:bg-green-100 transition-colors'
+                      : code.status === 'accepted'
+                        ? 'bg-gray-50 border-gray-200'
+                        : 'bg-refly-bg-control-z1 border-refly-border-primary'
+                  }`}
+                  onClick={() =>
+                    code.status === 'pending' && handleCopyInvitationCode(code.code || '')
+                  }
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex flex-col gap-1">
@@ -163,7 +208,15 @@ export const InvitationModal: React.FC<InvitationModalProps> = ({ visible, setVi
                         {code.expiresAt ? new Date(code.expiresAt).toLocaleDateString() : 'N/A'}
                       </div>
                     </div>
-                    <div className="text-xs text-refly-text-1">
+                    <div
+                      className={`text-xs font-medium px-2 py-1 rounded-full text-center min-w-[60px] ${
+                        code.status === 'pending'
+                          ? 'bg-green-100 text-green-800'
+                          : code.status === 'accepted'
+                            ? 'bg-gray-100 text-gray-600'
+                            : 'text-refly-text-1'
+                      }`}
+                    >
                       {code.status === 'pending'
                         ? t('settings.account.statusPending')
                         : code.status === 'accepted'

@@ -166,6 +166,7 @@ const translations = {
     no: 'No',
     sharing: 'Sharing...',
     view: 'View',
+    joinDiscord: 'Join Discord Community',
   },
   mode: {
     ask: 'Ask',
@@ -2572,6 +2573,8 @@ const translations = {
       activateInvitationCode: 'Activate Code',
       activateInvitationCodeSuccess: 'Invitation code activated successfully!',
       activateInvitationCodeFailed: 'Failed to activate invitation code',
+      invitationCodeCopied: 'Invitation code copied to clipboard',
+      invitationCodeCopyFailed: 'Failed to copy invitation code',
     },
 
     language: {

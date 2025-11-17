@@ -158,7 +158,7 @@ const FieldTemplate = (props: RjsfFieldTemplateProps) => {
           {required ? <span className="text-refly-func-danger-default">*</span> : null}
         </label>
       )}
-      <div className="bg-white">{children}</div>
+      <div className="bg-white rounded-3xl">{children}</div>
       {hasErrors ? (
         <div className="text-xs text-refly-func-danger-default" role="alert">
           {errors}
@@ -287,6 +287,10 @@ const ObjectFieldTemplate = (props: RjsfObjectFieldTemplateProps) => {
       return null;
     }
 
+    // Check if current page has a value
+    const currentFieldValue = currentFieldName ? effectiveFormData[currentFieldName] : undefined;
+    const hasCurrentValue = hasValue(currentFieldValue);
+
     return (
       <div className="flex items-center justify-between">
         <Button
@@ -299,11 +303,21 @@ const ObjectFieldTemplate = (props: RjsfObjectFieldTemplateProps) => {
         </Button>
 
         {isLastPage ? (
-          <Button type="primary" htmlType="submit" className="w-[296px] h-9 -mt-8">
+          <Button
+            type="primary"
+            htmlType="submit"
+            disabled={!hasCurrentValue}
+            className="w-[296px] h-9 -mt-8"
+          >
             提交
           </Button>
         ) : (
-          <Button type="primary" onClick={goToNextPage} className="w-[296px] h-9 -mt-8">
+          <Button
+            type="primary"
+            onClick={goToNextPage}
+            disabled={!hasCurrentValue}
+            className="w-[296px] h-9 -mt-8"
+          >
             下一题
           </Button>
         )}
@@ -489,7 +503,7 @@ const RadioWidget = (props: RjsfWidgetProps) => {
   const enumOptions = getEnumOptions(options);
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-1">
       {enumOptions.map((option, index) => {
         const checked = value === option.value;
         const optionId = id ? `${id}-${index}` : undefined;
@@ -544,7 +558,7 @@ const CheckboxesWidget = (props: RjsfWidgetProps) => {
   };
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-1">
       {enumOptions.map((option) => {
         const checked = selectedValues.some((item) => item === option.value);
         return (
@@ -553,7 +567,7 @@ const CheckboxesWidget = (props: RjsfWidgetProps) => {
             key={String(option.value)}
             className={mergeClassNames(
               'w-full h-[42px] flex items-center gap-3 border rounded-2xl px-4 text-left transition-colors',
-              'border-transparent bg-refly-bg-control-z1',
+              'border-transparent bg-white',
               disabled || readonly ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer',
             )}
             onClick={() => {

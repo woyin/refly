@@ -355,6 +355,7 @@ const translations = {
     no: '否',
     sharing: '分享中...',
     view: '查看',
+    joinDiscord: '加入 Discord 社区',
   },
   mode: {
     ask: '提问',
@@ -2542,6 +2543,8 @@ const translations = {
       activateInvitationCode: '激活邀请码',
       activateInvitationCodeSuccess: '邀请码激活成功！',
       activateInvitationCodeFailed: '激活邀请码失败',
+      invitationCodeCopied: '邀请码已复制到剪切板',
+      invitationCodeCopyFailed: '复制邀请码失败',
     },
     language: {
       title: '语言设置',

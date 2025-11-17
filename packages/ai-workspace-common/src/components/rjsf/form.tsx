@@ -35,7 +35,7 @@ export const ReflyRjsfForm = memo(function ReflyRjsfForm<
   }, [uiSchema]);
 
   const containerClassName = useMemo(() => {
-    const segments = ['w-[680px]', 'h-[766px]'];
+    const segments = ['w-[680px]', 'h-[766px]', 'mt-8'];
 
     if (className) {
       segments.push(className);
