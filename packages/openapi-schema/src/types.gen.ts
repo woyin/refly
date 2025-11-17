@@ -4797,6 +4797,20 @@ export type CreatePortalSessionResponse = BaseResponse & {
   };
 };
 
+export type SubmitFormRequest = {
+  /**
+   * Form submission
+   */
+  formSubmission: FormSubmission;
+};
+
+export type GetFormDefinitionResponse = BaseResponse & {
+  /**
+   * Form definition
+   */
+  data?: FormDefinition;
+};
+
 export type GetCreditRechargeResponse = BaseResponse & {
   /**
    * Credit recharge data with pagination
@@ -7004,6 +7018,212 @@ export type AppTemplateResult = {
  */
 export type canvasComplexity = 'simple' | 'medium' | 'complex';
 
+export type FormDefinition = {
+  /**
+   * Form ID
+   */
+  formId: string;
+  /**
+   * Form title
+   */
+  title: string;
+  /**
+   * Form description
+   */
+  description?: string;
+  /**
+   * JSON Schema definition (RJSF compatible)
+   */
+  schema: string;
+  /**
+   * UI Schema definition (RJSF compatible for controlling UI elements like emoji, layout, helper text)
+   */
+  uiSchema?: string;
+  /**
+   * Form status
+   */
+  status?: 'draft' | 'published' | 'archived';
+  /**
+   * Creation timestamp
+   */
+  createdAt: string;
+  /**
+   * Last update timestamp
+   */
+  updatedAt: string;
+  /**
+   * Soft delete timestamp
+   */
+  deletedAt?: string;
+};
+
+/**
+ * Form status
+ */
+export type status6 = 'draft' | 'published' | 'archived';
+
+export type FormSubmission = {
+  /**
+   * Submission ID
+   */
+  submissionId?: string;
+  /**
+   * Associated form ID
+   */
+  formId: string;
+  /**
+   * User ID who submitted the form
+   */
+  uid: string;
+  /**
+   * Submission answers (JSON object with field values)
+   */
+  answers: string;
+  /**
+   * Submission status
+   */
+  status?: 'draft' | 'submitted' | 'reviewed';
+  /**
+   * Creation timestamp
+   */
+  createdAt: string;
+  /**
+   * Last update timestamp
+   */
+  updatedAt: string;
+};
+
+/**
+ * Submission status
+ */
+export type status7 = 'draft' | 'submitted' | 'reviewed';
+
+/**
+ * RJSF compatible field schema definition
+ */
+export type FormFieldSchema = {
+  /**
+   * Field type
+   */
+  type?: 'string' | 'number' | 'integer' | 'boolean' | 'object' | 'array';
+  /**
+   * Field display title
+   */
+  title?: string;
+  /**
+   * Field description/helper text
+   */
+  description?: string;
+  /**
+   * Enumeration values for radio/select fields
+   */
+  enum?: Array<string>;
+  /**
+   * Display names for enum values
+   */
+  enumNames?: Array<string>;
+  /**
+   * Default value for the field
+   */
+  default?: unknown;
+  /**
+   * Minimum string length
+   */
+  minLength?: number;
+  /**
+   * Maximum string length
+   */
+  maxLength?: number;
+  /**
+   * Regex pattern for validation
+   */
+  pattern?: string;
+  /**
+   * Minimum numeric value
+   */
+  minimum?: number;
+  /**
+   * Maximum numeric value
+   */
+  maximum?: number;
+  /**
+   * Whether this field is required
+   */
+  required?: boolean;
+};
+
+/**
+ * Field type
+ */
+export type type5 = 'string' | 'number' | 'integer' | 'boolean' | 'object' | 'array';
+
+/**
+ * RJSF UI schema for controlling form appearance and behavior
+ */
+export type FormUiSchema = {
+  /**
+   * Widget type override
+   */
+  'ui:widget'?:
+    | 'text'
+    | 'textarea'
+    | 'select'
+    | 'radio'
+    | 'checkbox'
+    | 'checkboxes'
+    | 'date'
+    | 'email'
+    | 'password';
+  /**
+   * Input placeholder text
+   */
+  'ui:placeholder'?: string;
+  /**
+   * Help text displayed below the field
+   */
+  'ui:help'?: string;
+  /**
+   * Widget-specific options (can include emoji, layout settings, etc.)
+   */
+  'ui:options'?: {
+    /**
+     * Emoji to display with the field
+     */
+    emoji?: string;
+    /**
+     * Layout style
+     */
+    layout?: 'horizontal' | 'vertical';
+    /**
+     * Number of rows for textarea
+     */
+    rows?: number;
+    /**
+     * Whether to display radio/checkbox options inline
+     */
+    inline?: boolean;
+  };
+};
+
+/**
+ * Widget type override
+ */
+export type ui_widget =
+  | 'text'
+  | 'textarea'
+  | 'select'
+  | 'radio'
+  | 'checkbox'
+  | 'checkboxes'
+  | 'date'
+  | 'email'
+  | 'password';
+
+/**
+ * Layout style
+ */
+export type layout = 'horizontal' | 'vertical';
+
 export type ExtractVariablesData = {
   body: ExtractVariablesRequest;
 };
@@ -8436,6 +8656,27 @@ export type CheckSettingsFieldData = {
 export type CheckSettingsFieldResponse2 = CheckSettingsFieldResponse;
 
 export type CheckSettingsFieldError = unknown;
+
+export type GetFormDefinitionData = {
+  query: {
+    /**
+     * Form ID
+     */
+    formId: string;
+  };
+};
+
+export type GetFormDefinitionResponse2 = GetFormDefinitionResponse;
+
+export type GetFormDefinitionError = unknown;
+
+export type SubmitFormData = {
+  body: SubmitFormRequest;
+};
+
+export type SubmitFormResponse = BaseResponse;
+
+export type SubmitFormError = unknown;
 
 export type GetCreditRechargeData = {
   query?: {

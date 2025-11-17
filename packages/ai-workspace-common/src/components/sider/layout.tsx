@@ -14,6 +14,7 @@ import { useSubscriptionStoreShallow, useUserStoreShallow } from '@refly/stores'
 import { useTranslation } from 'react-i18next';
 import { SiderMenuSettingList } from '../sider-menu-setting-list';
 import { SettingModal } from '@refly-packages/ai-workspace-common/components/settings';
+import { InvitationModal } from '@refly-packages/ai-workspace-common/components/settings/invitation-modal';
 import { StorageExceededModal } from '@refly-packages/ai-workspace-common/components/subscription/storage-exceeded-modal';
 // hooks
 import { useHandleSiderData } from '@refly-packages/ai-workspace-common/hooks/use-handle-sider-data';
@@ -30,6 +31,7 @@ import {
   SideLeft,
 } from 'refly-icons';
 import { ContactUsPopover } from '@refly-packages/ai-workspace-common/components/contact-us-popover';
+import { IconShare } from '@refly-packages/ai-workspace-common/components/common/icon';
 
 import { useKnowledgeBaseStoreShallow } from '@refly/stores';
 import { subscriptionEnabled } from '@refly/ui-kit';
@@ -288,6 +290,9 @@ const SiderLoggedIn = (props: { source: 'sider' | 'popover' }) => {
   const { updateLibraryModalActiveKey } = useKnowledgeBaseStoreShallow((state) => ({
     updateLibraryModalActiveKey: state.updateLibraryModalActiveKey,
   }));
+  const { setShowInvitationModal } = useSiderStoreShallow((state) => ({
+    setShowInvitationModal: state.setShowInvitationModal,
+  }));
 
   const { userProfile } = useUserStoreShallow((state) => ({
     userProfile: state.userProfile,
@@ -487,12 +492,24 @@ const SiderLoggedIn = (props: { source: 'sider' | 'popover' }) => {
         </div>
 
         {!!userProfile?.uid && (
-          <div
-            className="flex h-12 items-center justify-between cursor-pointer hover:bg-refly-tertiary-hover rounded-md px-2"
-            data-cy="settings-menu-item"
-          >
-            <SettingItem />
-          </div>
+          <>
+            <div
+              className="flex h-12 items-center justify-between cursor-pointer hover:bg-refly-tertiary-hover rounded-md px-2"
+              onClick={() => setShowInvitationModal(true)}
+              data-cy="invite-friends-menu-item"
+            >
+              <div className="flex items-center gap-2">
+                <IconShare size={18} className="text-refly-text-0" />
+                <span className="text-sm font-medium">{t('common.inviteFriends')}</span>
+              </div>
+            </div>
+            <div
+              className="flex h-12 items-center justify-between cursor-pointer hover:bg-refly-tertiary-hover rounded-md px-2"
+              data-cy="settings-menu-item"
+            >
+              <SettingItem />
+            </div>
+          </>
         )}
       </div>
     </Sider>
@@ -529,14 +546,18 @@ export const SiderLayout = (props: { source: 'sider' | 'popover' }) => {
   const pathParams = useMatch('/canvas/:canvasId');
   const isWorkflowDetail = pathParams?.params?.canvasId && pathParams?.params?.canvasId !== 'empty';
 
-  const { showSettingModal, setShowSettingModal } = useSiderStoreShallow((state) => ({
-    showSettingModal: state.showSettingModal,
-    setShowSettingModal: state.setShowSettingModal,
-  }));
+  const { showSettingModal, setShowSettingModal, showInvitationModal, setShowInvitationModal } =
+    useSiderStoreShallow((state) => ({
+      showSettingModal: state.showSettingModal,
+      setShowSettingModal: state.setShowSettingModal,
+      showInvitationModal: state.showInvitationModal,
+      setShowInvitationModal: state.setShowInvitationModal,
+    }));
 
   return (
     <>
       <SettingModal visible={showSettingModal} setVisible={setShowSettingModal} />
+      <InvitationModal visible={showInvitationModal} setVisible={setShowInvitationModal} />
       <StorageExceededModal />
       <CanvasTemplateModal />
 

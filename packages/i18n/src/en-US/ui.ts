@@ -65,6 +65,7 @@ const translations = {
     project: 'Project',
     upgrade: 'Upgrade',
     upgradeSubscription: 'Upgrade Subscription',
+    inviteFriends: 'Invite Friends',
     dismiss: 'Dismiss',
     copyRequestInfo: 'Copy Request Info',
     tryAgain: 'Try again',

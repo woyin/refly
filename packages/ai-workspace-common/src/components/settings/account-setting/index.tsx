@@ -2,7 +2,6 @@ import { Button, Form, Input, Upload, message, Modal } from 'antd';
 import { useState, useMemo, useEffect } from 'react';
 import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
 import { AiOutlineUser } from 'react-icons/ai';
-import { InvitationCode } from '@refly/openapi-schema';
 
 import { useUserStore, useUserStoreShallow } from '@refly/stores';
 // components
@@ -120,13 +119,6 @@ export const AccountSetting = () => {
     }
   }, [userProfile?.avatar]);
 
-  // Load invitation codes on component mount
-  useEffect(() => {
-    if (userProfile?.uid) {
-      fetchInvitationCodes();
-    }
-  }, [userProfile?.uid]);
-
   const [avatarError, setAvatarError] = useState(false);
 
   const [nameStatus, setNameStatus] = useState<'error' | 'success' | 'warning' | 'validating'>(
@@ -135,83 +127,7 @@ export const AccountSetting = () => {
   const [nameMessage, setNameMessage] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // Invitation codes state
-  const [invitationCodes, setInvitationCodes] = useState<InvitationCode[]>([]);
-  const [generatingCodes, setGeneratingCodes] = useState(false);
-  const [loadingCodes, setLoadingCodes] = useState(false);
-
-  // Invitation code activation state
-  const [activationCode, setActivationCode] = useState('');
-  const [activatingCode, setActivatingCode] = useState(false);
-
   const { handleLogout, contextHolder } = useLogout();
-
-  // Generate invitation codes
-  const handleGenerateInvitationCodes = async () => {
-    if (generatingCodes) return;
-    setGeneratingCodes(true);
-    try {
-      const { error } = await getClient().generateInvitationCode();
-      if (error) {
-        message.error(t('settings.account.generateInvitationCodeFailed'));
-        return;
-      }
-      message.success(t('settings.account.generateInvitationCodeSuccess'));
-      // Refresh the invitation codes list
-      await fetchInvitationCodes();
-    } catch (error) {
-      console.error('Error generating invitation codes:', error);
-      message.error(t('settings.account.generateInvitationCodeFailed'));
-    } finally {
-      setGeneratingCodes(false);
-    }
-  };
-
-  // Fetch invitation codes
-  const fetchInvitationCodes = async () => {
-    if (loadingCodes) return;
-    setLoadingCodes(true);
-    try {
-      const { data, error } = await getClient().listInvitationCodes();
-      if (error) {
-        console.error('Error fetching invitation codes:', error);
-        return;
-      }
-      if (data?.data) {
-        setInvitationCodes(data.data);
-      }
-    } catch (error) {
-      console.error('Error fetching invitation codes:', error);
-    } finally {
-      setLoadingCodes(false);
-    }
-  };
-
-  // Activate invitation code
-  const handleActivateInvitationCode = async () => {
-    if (activatingCode || !activationCode.trim()) return;
-
-    setActivatingCode(true);
-    try {
-      const { error } = await getClient().activateInvitationCode({
-        body: { code: activationCode.trim() },
-      });
-
-      if (error) {
-        message.error(t('settings.account.activateInvitationCodeFailed'));
-        return;
-      }
-
-      message.success(t('settings.account.activateInvitationCodeSuccess'));
-      setActivationCode(''); // Clear input after success
-      // Optionally refresh user credits or profile
-    } catch (error) {
-      console.error('Error activating invitation code:', error);
-      message.error(t('settings.account.activateInvitationCodeFailed'));
-    } finally {
-      setActivatingCode(false);
-    }
-  };
 
   const uploadAvatar = async (file: File) => {
     if (loadingAvatar) return;
@@ -414,82 +330,6 @@ export const AccountSetting = () => {
           <div className="flex flex-col gap-2 text-sm  text-refly-text-0 leading-5">
             <div className="font-semibold">{t('settings.account.email')}</div>
             <div>{userProfile?.email || 'Not set'}</div>
-          </div>
-
-          {/* Invitation Codes Section */}
-          <div className="p-4 rounded-xl bg-refly-bg-control-z0">
-            <div className="flex flex-col gap-4">
-              <div className="flex items-center justify-between">
-                <div className="font-semibold text-base text-refly-text-0">
-                  {t('settings.account.invitationCodes')}
-                </div>
-                <Button
-                  type="primary"
-                  onClick={handleGenerateInvitationCodes}
-                  loading={generatingCodes}
-                  disabled={generatingCodes}
-                >
-                  {generatingCodes
-                    ? t('common.generating')
-                    : t('settings.account.generateInvitationCodes')}
-                </Button>
-              </div>
-
-              {/* Activate Invitation Code */}
-              <div className="flex gap-2">
-                <Input
-                  placeholder={t('settings.account.enterInvitationCode')}
-                  value={activationCode}
-                  onChange={(e) => setActivationCode(e.target.value)}
-                  onPressEnter={handleActivateInvitationCode}
-                  className="flex-1"
-                />
-                <Button
-                  type="default"
-                  onClick={handleActivateInvitationCode}
-                  loading={activatingCode}
-                  disabled={activatingCode || !activationCode.trim()}
-                >
-                  {activatingCode
-                    ? t('common.activating')
-                    : t('settings.account.activateInvitationCode')}
-                </Button>
-              </div>
-
-              {invitationCodes.length > 0 ? (
-                <div className="space-y-2">
-                  {invitationCodes.map((code, index) => (
-                    <div
-                      key={code.code || index}
-                      className="p-3 rounded-lg bg-refly-bg-control-z1 border border-refly-border-primary"
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="flex flex-col gap-1">
-                          <div className="font-mono text-sm font-semibold text-refly-text-0">
-                            {code.code}
-                          </div>
-                          <div className="text-xs text-refly-text-1">
-                            {t('settings.account.expiresAt')}:{' '}
-                            {code.expiresAt ? new Date(code.expiresAt).toLocaleDateString() : 'N/A'}
-                          </div>
-                        </div>
-                        <div className="text-xs text-refly-text-1">
-                          {code.status === 'pending'
-                            ? t('settings.account.statusPending')
-                            : code.status === 'accepted'
-                              ? t('settings.account.statusUsed')
-                              : code.status || 'Unknown'}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center text-sm text-refly-text-1 py-4">
-                  {t('settings.account.noInvitationCodes')}
-                </div>
-              )}
-            </div>
           </div>
 
           {/* Logout Button */}

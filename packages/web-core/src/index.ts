@@ -22,6 +22,7 @@ export const UseCasesGalleryPage = lazy(() => import('./pages/use-cases-gallery'
 export const ProjectPage = lazy(() => import('./pages/project'));
 export const WorkflowListPage = lazy(() => import('./pages/workflow-list'));
 export const AppManager = lazy(() => import('./pages/app-manager'));
+export const FormPage = lazy(() => import('./pages/form'));
 
 export { AppLayout } from './components/layout';
 

@@ -253,6 +253,7 @@ const translations = {
     project: '知识库',
     upgrade: '升级',
     upgradeSubscription: '升级订阅',
+    inviteFriends: '邀请好友',
     dismiss: '关闭',
     copyRequestInfo: '复制请求信息',
     tryAgain: '重试',
