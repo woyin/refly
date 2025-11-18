@@ -96,6 +96,7 @@ import {
   getWorkflowAppDetail,
   getWorkflowDetail,
   getWorkflowVariables,
+  hasBeenInvited,
   importCanvas,
   initializeWorkflow,
   invokeSkill,
@@ -344,6 +345,7 @@ import {
   GetWorkflowDetailError,
   GetWorkflowVariablesData,
   GetWorkflowVariablesError,
+  HasBeenInvitedError,
   ImportCanvasData,
   ImportCanvasError,
   InitializeWorkflowData,
@@ -1262,6 +1264,21 @@ export const useListInvitationCodes = <
     queryKey: Common.UseListInvitationCodesKeyFn(clientOptions, queryKey),
     queryFn: () =>
       listInvitationCodes({ ...clientOptions }).then((response) => response.data as TData) as TData,
+    ...options,
+  });
+export const useHasBeenInvited = <
+  TData = Common.HasBeenInvitedDefaultResponse,
+  TError = HasBeenInvitedError,
+  TQueryKey extends Array<unknown> = unknown[],
+>(
+  clientOptions: Options<unknown, true> = {},
+  queryKey?: TQueryKey,
+  options?: Omit<UseQueryOptions<TData, TError>, 'queryKey' | 'queryFn'>,
+) =>
+  useQuery<TData, TError>({
+    queryKey: Common.UseHasBeenInvitedKeyFn(clientOptions, queryKey),
+    queryFn: () =>
+      hasBeenInvited({ ...clientOptions }).then((response) => response.data as TData) as TData,
     ...options,
   });
 export const useGetSubscriptionPlans = <

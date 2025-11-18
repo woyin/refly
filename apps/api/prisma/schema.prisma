@@ -1331,7 +1331,7 @@ model InvitationCode {
   /// Inviter UID
   inviterUid String   @map("inviter_uid")
   /// Invitee UID
-  inviteeUid String?  @map("invitee_uid")
+  inviteeUid String?  @unique @map("invitee_uid")
   /// Invitation status: pending, accepted, expired
   status     String   @default("pending") @map("status")
   /// Expiration timestamp

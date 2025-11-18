@@ -1,0 +1,50 @@
+import { useTranslation } from 'react-i18next';
+import { useUserStoreShallow } from '@refly/stores';
+import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
+import { ActivationCodeInput } from '@refly-packages/ai-workspace-common/components/settings/activation-code-input';
+import { usePublicAccessPage } from '@refly-packages/ai-workspace-common/hooks/use-is-share-page';
+
+export const InvitationCodeModal = () => {
+  const { t } = useTranslation();
+  const isPublicAccessPage = usePublicAccessPage();
+
+  const userStore = useUserStoreShallow((state) => ({
+    showInvitationCodeModal: state.showInvitationCodeModal,
+    setShowInvitationCodeModal: state.setShowInvitationCodeModal,
+  }));
+
+  const handleActivationSuccess = async () => {
+    // Check if user has been invited now
+    try {
+      const invitationResp = await getClient().hasBeenInvited();
+      const hasBeenInvited = invitationResp.data?.data ?? false;
+
+      if (hasBeenInvited) {
+        // Close modal and refresh the page to ensure user can access the app
+        userStore.setShowInvitationCodeModal(false);
+        window.location.replace(isPublicAccessPage ? window.location.href : '/');
+      }
+    } catch (error) {
+      // If check fails, keep modal open
+      console.error('Failed to check invitation status after activation:', error);
+    }
+  };
+
+  if (!userStore.showInvitationCodeModal) {
+    return null;
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 bg-white dark:bg-gray-900 flex flex-col items-center justify-center min-h-screen">
+      <div className="w-full max-w-md px-6 flex flex-col items-center">
+        <div className="text-center mb-8">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+            {t('invitationCode.title')}
+          </h1>
+          <p className="text-gray-600 dark:text-gray-400">{t('invitationCode.description')}</p>
+        </div>
+        <ActivationCodeInput onSuccess={handleActivationSuccess} />
+      </div>
+    </div>
+  );
+};

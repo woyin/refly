@@ -114,6 +114,17 @@ export class InvitationService {
   }
 
   /**
+   * check if a user has been invited (has an invitee_uid record)
+   */
+  async hasBeenInvited(uid: string): Promise<boolean> {
+    const invitationRecord = await this.prisma.invitationCode.findFirst({
+      where: { inviteeUid: uid },
+    });
+
+    return !!invitationRecord;
+  }
+
+  /**
    * activate invitation code for invitee
    * give both inviter and invitee 500 credits each with 2-week expiration
    */
@@ -136,6 +147,18 @@ export class InvitationService {
     // Check if code is still pending
     if (invitationCode.status !== 'pending') {
       throw new BadRequestException('Invitation code has already been used');
+    }
+
+    // Check if invitee has already been invited by anyone
+    const existingInvitee = await this.prisma.invitationCode.findFirst({
+      where: {
+        inviteeUid: inviteeUid,
+        status: 'accepted',
+      },
+    });
+
+    if (existingInvitee) {
+      throw new BadRequestException('This user has already been invited');
     }
 
     // Check if invitee is trying to use their own invitation code

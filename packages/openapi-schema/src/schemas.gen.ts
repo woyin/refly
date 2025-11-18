@@ -7078,6 +7078,30 @@ export const ListInvitationCodesResponseSchema = {
   ],
 } as const;
 
+export const HasBeenInvitedResponseSchema = {
+  allOf: [
+    {
+      $ref: '#/components/schemas/BaseResponse',
+    },
+    {
+      type: 'object',
+      properties: {
+        data: {
+          type: 'object',
+          description: 'Has been invited data',
+          properties: {
+            hasBeenInvited: {
+              type: 'boolean',
+              description: 'Whether user has been invited',
+              default: false,
+            },
+          },
+        },
+      },
+    },
+  ],
+} as const;
+
 export const SubscriptionPlanSchema = {
   type: 'object',
   properties: {

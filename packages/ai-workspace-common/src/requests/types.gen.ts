@@ -4976,6 +4976,18 @@ export type ListInvitationCodesResponse = BaseResponse & {
   data?: Array<InvitationCode>;
 };
 
+export type HasBeenInvitedResponse = BaseResponse & {
+  /**
+   * Has been invited data
+   */
+  data?: {
+    /**
+     * Whether user has been invited
+     */
+    hasBeenInvited?: boolean;
+  };
+};
+
 export type SubscriptionPlan = {
   /**
    * Subscription plan type
@@ -8770,6 +8782,10 @@ export type ActivateInvitationCodeData = {
 export type ActivateInvitationCodeResponse = BaseResponse;
 
 export type ActivateInvitationCodeError = unknown;
+
+export type HasBeenInvitedResponse2 = HasBeenInvitedResponse;
+
+export type HasBeenInvitedError = unknown;
 
 export type GetSubscriptionPlansResponse2 = GetSubscriptionPlansResponse;
 

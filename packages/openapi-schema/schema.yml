@@ -3158,6 +3158,20 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/BaseResponse'
+  /invitation/invited:
+    get:
+      tags:
+        - invitation
+      summary: Check if user has been invited
+      description: Check if user has been invited
+      operationId: hasBeenInvited
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HasBeenInvitedResponse'
   /subscription/plans:
     get:
       tags:
@@ -8885,6 +8899,19 @@ components:
               description: Invitation code list
               items:
                 $ref: '#/components/schemas/InvitationCode'
+    HasBeenInvitedResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            data:
+              type: object
+              description: Has been invited data
+              properties:
+                hasBeenInvited:
+                  type: boolean
+                  description: Whether user has been invited
+                  default: false
     SubscriptionPlan:
       type: object
       properties:

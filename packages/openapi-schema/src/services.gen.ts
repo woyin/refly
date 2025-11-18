@@ -386,6 +386,8 @@ import type {
   ActivateInvitationCodeData,
   ActivateInvitationCodeError,
   ActivateInvitationCodeResponse,
+  HasBeenInvitedError,
+  HasBeenInvitedResponse2,
   GetSubscriptionPlansError,
   GetSubscriptionPlansResponse2,
   GetSubscriptionUsageError,
@@ -2566,6 +2568,23 @@ export const activateInvitationCode = <ThrowOnError extends boolean = false>(
   >({
     ...options,
     url: '/invitation/activate',
+  });
+};
+
+/**
+ * Check if user has been invited
+ * Check if user has been invited
+ */
+export const hasBeenInvited = <ThrowOnError extends boolean = false>(
+  options?: Options<unknown, ThrowOnError>,
+) => {
+  return (options?.client ?? client).get<
+    HasBeenInvitedResponse2,
+    HasBeenInvitedError,
+    ThrowOnError
+  >({
+    ...options,
+    url: '/invitation/invited',
   });
 };
 

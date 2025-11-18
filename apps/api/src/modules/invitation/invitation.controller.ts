@@ -32,4 +32,11 @@ export class InvitationController {
     await this.invitationService.activateInvitationCode(user.uid, body.code);
     return buildSuccessResponse();
   }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('/invited')
+  async hasBeenInvited(@LoginedUser() user: User): Promise<BaseResponse> {
+    const hasBeenInvited = await this.invitationService.hasBeenInvited(user.uid);
+    return buildSuccessResponse(hasBeenInvited);
+  }
 }

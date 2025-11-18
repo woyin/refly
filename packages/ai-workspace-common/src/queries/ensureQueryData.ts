@@ -36,6 +36,7 @@ import {
   getWorkflowAppDetail,
   getWorkflowDetail,
   getWorkflowVariables,
+  hasBeenInvited,
   listAccounts,
   listActions,
   listCanvases,
@@ -527,6 +528,14 @@ export const ensureUseListInvitationCodesData = (
   queryClient.ensureQueryData({
     queryKey: Common.UseListInvitationCodesKeyFn(clientOptions),
     queryFn: () => listInvitationCodes({ ...clientOptions }).then((response) => response.data),
+  });
+export const ensureUseHasBeenInvitedData = (
+  queryClient: QueryClient,
+  clientOptions: Options<unknown, true> = {},
+) =>
+  queryClient.ensureQueryData({
+    queryKey: Common.UseHasBeenInvitedKeyFn(clientOptions),
+    queryFn: () => hasBeenInvited({ ...clientOptions }).then((response) => response.data),
   });
 export const ensureUseGetSubscriptionPlansData = (
   queryClient: QueryClient,

@@ -2884,6 +2884,10 @@ const translations = {
       },
     },
   },
+  invitationCode: {
+    title: '输入邀请码解锁Refly AI自动化',
+    description: '输入您的 6 位邀请码',
+  },
   contentDetail: {
     breadcrumb: {
       homePage: 'Home',

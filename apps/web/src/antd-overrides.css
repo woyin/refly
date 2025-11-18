@@ -141,9 +141,19 @@
   gap: 4px !important;
 }
 
+.ant-otp .ant-input::selection {
+  background: transparent; 
+  color: inherit;          
+}
+
+.ant-otp .ant-input::-moz-selection { 
+  background: transparent;
+  color: inherit;
+}
+
 .ant-otp .ant-otp-input {
-  width: 44px !important;
-  height: 44px !important;
+  width: 43px !important;
+  height: 60px !important;
   font-size: 24px !important;
   font-weight: 600 !important;
   text-align: center !important;
@@ -156,7 +166,9 @@
 }
 
 .ant-otp .ant-otp-input:focus {
-  border-color: #12b76a !important;
+  width: 49px !important;
+  height: 68px !important;
+  border-color: #0E9F77 !important;
   box-shadow: 0 0 0 2px rgba(18, 183, 106, 0.1) !important;
   outline: none !important;
 }

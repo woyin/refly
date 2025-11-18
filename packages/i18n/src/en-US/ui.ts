@@ -2934,6 +2934,10 @@ const translations = {
       },
     },
   },
+  invitationCode: {
+    title: 'Enter an invitation code to unlock Refly AI Automation',
+    description: 'Input your 6-digit invitation code',
+  },
   contentDetail: {
     breadcrumb: {
       homePage: 'Home',

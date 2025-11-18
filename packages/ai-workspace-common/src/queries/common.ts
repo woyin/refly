@@ -95,6 +95,7 @@ import {
   getWorkflowAppDetail,
   getWorkflowDetail,
   getWorkflowVariables,
+  hasBeenInvited,
   importCanvas,
   initializeWorkflow,
   invokeSkill,
@@ -728,6 +729,16 @@ export const UseListInvitationCodesKeyFn = (
   clientOptions: Options<unknown, true> = {},
   queryKey?: Array<unknown>,
 ) => [useListInvitationCodesKey, ...(queryKey ?? [clientOptions])];
+export type HasBeenInvitedDefaultResponse = Awaited<ReturnType<typeof hasBeenInvited>>['data'];
+export type HasBeenInvitedQueryResult<
+  TData = HasBeenInvitedDefaultResponse,
+  TError = unknown,
+> = UseQueryResult<TData, TError>;
+export const useHasBeenInvitedKey = 'HasBeenInvited';
+export const UseHasBeenInvitedKeyFn = (
+  clientOptions: Options<unknown, true> = {},
+  queryKey?: Array<unknown>,
+) => [useHasBeenInvitedKey, ...(queryKey ?? [clientOptions])];
 export type GetSubscriptionPlansDefaultResponse = Awaited<
   ReturnType<typeof getSubscriptionPlans>
 >['data'];

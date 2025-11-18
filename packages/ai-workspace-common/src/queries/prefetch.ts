@@ -36,6 +36,7 @@ import {
   getWorkflowAppDetail,
   getWorkflowDetail,
   getWorkflowVariables,
+  hasBeenInvited,
   listAccounts,
   listActions,
   listCanvases,
@@ -527,6 +528,14 @@ export const prefetchUseListInvitationCodes = (
   queryClient.prefetchQuery({
     queryKey: Common.UseListInvitationCodesKeyFn(clientOptions),
     queryFn: () => listInvitationCodes({ ...clientOptions }).then((response) => response.data),
+  });
+export const prefetchUseHasBeenInvited = (
+  queryClient: QueryClient,
+  clientOptions: Options<unknown, true> = {},
+) =>
+  queryClient.prefetchQuery({
+    queryKey: Common.UseHasBeenInvitedKeyFn(clientOptions),
+    queryFn: () => hasBeenInvited({ ...clientOptions }).then((response) => response.data),
   });
 export const prefetchUseGetSubscriptionPlans = (
   queryClient: QueryClient,
