@@ -31,8 +31,7 @@ import {
   SideLeft,
 } from 'refly-icons';
 import { ContactUsPopover } from '@refly-packages/ai-workspace-common/components/contact-us-popover';
-import { IconShare } from '@refly-packages/ai-workspace-common/components/common/icon';
-
+import InviteIcon from '@refly-packages/ai-workspace-common/assets/invite-sider.svg';
 import { useKnowledgeBaseStoreShallow } from '@refly/stores';
 import { subscriptionEnabled } from '@refly/ui-kit';
 import { CanvasTemplateModal } from '@refly-packages/ai-workspace-common/components/canvas-template';
@@ -494,14 +493,20 @@ const SiderLoggedIn = (props: { source: 'sider' | 'popover' }) => {
         {!!userProfile?.uid && (
           <>
             <div
-              className="flex h-12 items-center justify-between cursor-pointer hover:bg-refly-tertiary-hover rounded-md px-2"
+              className="flex items-center justify-between cursor-pointer rounded-[20px] bg-gradient-to-r from-[#02AE8E] to-[#008AA6] px-3 py-3 transition-shadow"
               onClick={() => setShowInvitationModal(true)}
               data-cy="invite-friends-menu-item"
             >
-              <div className="flex items-center gap-2">
-                <IconShare size={18} className="text-refly-text-0" />
-                <span className="text-sm font-medium">{t('common.inviteFriends')}</span>
+              <div className="flex items-center gap-1.5">
+                <img src={InviteIcon} alt="Invite" className="w-7 h-7" />
+                <div className="flex flex-col leading-tight">
+                  <span className="text-xs font-semibold text-white">
+                    {t('common.inviteFriends')}
+                  </span>
+                  <span className="text-xs text-white/80">{t('common.inviteRewardText')}</span>
+                </div>
               </div>
+              <span className="text-white text-xs font-semibold leading-none">&gt;</span>
             </div>
             <div
               className="flex h-12 items-center justify-between cursor-pointer hover:bg-refly-tertiary-hover rounded-md px-2"
