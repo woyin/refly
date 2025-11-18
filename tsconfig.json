@@ -1,0 +1,10 @@
+{
+  "files": [],
+  "references": [
+    { "path": "./apps/api" },
+    { "path": "./packages/providers" },
+    { "path": "./packages/errors" },
+    { "path": "./packages/agent-tools" },
+    { "path": "./packages/openapi-schema" }
+  ]
+}

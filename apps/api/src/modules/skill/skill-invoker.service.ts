@@ -5,6 +5,7 @@ import { AIMessageChunk, BaseMessage, MessageContentComplex } from '@langchain/c
 import { AIMessage, HumanMessage } from '@langchain/core/messages';
 import { InjectQueue } from '@nestjs/bullmq';
 import { ConfigService } from '@nestjs/config';
+import { RequestContextManager } from '../tool/core/context/request-context';
 import { ProjectNotFoundError } from '@refly/errors';
 import {
   ActionResult,
@@ -1206,43 +1207,55 @@ export class SkillInvokerService {
   }
 
   async streamInvokeSkill(user: User, data: InvokeSkillJobData, res?: Response) {
-    if (res) {
-      res.setHeader('Content-Type', 'text/event-stream');
-      res.setHeader('Cache-Control', 'no-cache');
-      res.setHeader('Connection', 'keep-alive');
-      res.status(200);
-    }
-
-    const { resultId, version } = data.result;
-
-    const defaultModel = await this.providerService.findDefaultProviderItem(user, 'chat');
-    this.skillEngine.setOptions({ defaultModel: defaultModel?.name });
-
-    try {
-      await this._invokeSkill(user, data, res);
-    } catch (err) {
-      if (res) {
-        writeSSEResponse(res, {
-          event: 'error',
-          resultId,
-          version,
-          content: JSON.stringify(genBaseRespDataFromError(err)),
-          originError: err.message,
-        });
-      }
-      this.logger.error(`invoke skill error: ${err.stack}`);
-
-      await this.prisma.actionResult.updateMany({
-        where: { resultId, version },
-        data: {
-          status: 'failed',
-          errors: JSON.stringify([err.message]),
+    // Set request context with user info for the entire skill execution
+    return RequestContextManager.run(
+      {
+        user: {
+          uid: user.uid,
+          email: user.email,
         },
-      });
-    } finally {
-      if (res) {
-        res.end('');
-      }
-    }
+        requestId: `skill-${data.result.resultId}-${Date.now()}`,
+      },
+      async () => {
+        if (res) {
+          res.setHeader('Content-Type', 'text/event-stream');
+          res.setHeader('Cache-Control', 'no-cache');
+          res.setHeader('Connection', 'keep-alive');
+          res.status(200);
+        }
+
+        const { resultId, version } = data.result;
+
+        const defaultModel = await this.providerService.findDefaultProviderItem(user, 'chat');
+        this.skillEngine.setOptions({ defaultModel: defaultModel?.name });
+
+        try {
+          await this._invokeSkill(user, data, res);
+        } catch (err) {
+          if (res) {
+            writeSSEResponse(res, {
+              event: 'error',
+              resultId,
+              version,
+              content: JSON.stringify(genBaseRespDataFromError(err)),
+              originError: err.message,
+            });
+          }
+          this.logger.error(`invoke skill error: ${err.stack}`);
+
+          await this.prisma.actionResult.updateMany({
+            where: { resultId, version },
+            data: {
+              status: 'failed',
+              errors: JSON.stringify([err.message]),
+            },
+          });
+        } finally {
+          if (res) {
+            res.end('');
+          }
+        }
+      },
+    );
   }
 }

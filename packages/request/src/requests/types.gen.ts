@@ -6075,7 +6075,7 @@ export type DeleteProviderItemRequest = {
 /**
  * Toolset auth type
  */
-export type ToolsetAuthType = 'credentials' | 'oauth';
+export type ToolsetAuthType = 'credentials' | 'oauth' | 'config_based';
 
 export type ToolDefinition = {
   /**
@@ -6953,6 +6953,1034 @@ export type AppTemplateResult = {
  * Canvas complexity level
  */
 export type canvasComplexity = 'simple' | 'medium' | 'complex';
+
+/**
+ * Type of billing for a tool method
+ */
+export type BillingType = 'per_call' | 'per_quantity';
+
+export type BillingConfig = {
+  /**
+   * Whether billing is enabled
+   */
+  enabled: boolean;
+  type: BillingType;
+  /**
+   * Credits per call (for PER_CALL type)
+   */
+  creditsPerCall?: number;
+  /**
+   * Credits per unit (for PER_QUANTITY type)
+   */
+  creditsPerUnit?: number;
+  /**
+   * Field name to extract quantity from (for PER_QUANTITY type)
+   */
+  quantityField?: string;
+  /**
+   * Maximum credits per single call
+   */
+  maxCredits?: number;
+  /**
+   * Transform function name for custom quantity calculation
+   */
+  quantityTransform?: string;
+};
+
+/**
+ * JSON Schema property type
+ */
+export type SchemaPropertyType = 'string' | 'number' | 'boolean' | 'object' | 'array';
+
+/**
+ * Resource type for tool operations (subset of ResourceType)
+ */
+export type ToolResourceType = 'audio' | 'video' | 'image' | 'document';
+
+export type SchemaProperty = {
+  type: SchemaPropertyType;
+  /**
+   * Property description
+   */
+  description?: string;
+  /**
+   * Whether this property is a resource reference
+   */
+  isResource?: boolean;
+  resourceType?: ToolResourceType;
+  /**
+   * Minimum length (for string)
+   */
+  minLength?: number;
+  /**
+   * Maximum length (for string)
+   */
+  maxLength?: number;
+  /**
+   * Minimum value (for number)
+   */
+  min?: number;
+  /**
+   * Maximum value (for number)
+   */
+  max?: number;
+  /**
+   * Enum values
+   */
+  enum?: Array<string>;
+  /**
+   * Default value
+   */
+  default?: unknown;
+  /**
+   * Whether this property is optional
+   */
+  optional?: boolean;
+  /**
+   * Nested properties (for object type)
+   */
+  properties?: {
+    [key: string]: SchemaProperty;
+  };
+  items?: SchemaProperty;
+  /**
+   * Required properties (for object type)
+   */
+  required?: Array<string>;
+};
+
+export type JsonSchema = {
+  /**
+   * Schema type
+   */
+  type: 'object';
+  /**
+   * Schema properties
+   */
+  properties: {
+    [key: string]: SchemaProperty;
+  };
+  /**
+   * Required property names
+   */
+  required?: Array<string>;
+  /**
+   * Additional properties allowed
+   */
+  additionalProperties?: boolean;
+};
+
+/**
+ * Schema type
+ */
+export type type5 = 'object';
+
+export type ResponseSchema = JsonSchema & {
+  [key: string]: unknown;
+};
+
+export type ResourceField = {
+  /**
+   * JSONPath to the resource field
+   */
+  fieldPath: string;
+  type: ToolResourceType;
+  /**
+   * Whether this field is an array of resources
+   */
+  isArray: boolean;
+};
+
+/**
+ * HTTP method
+ */
+export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
+
+export type ToolMethodConfig = {
+  /**
+   * Method name (e.g., 'text_to_speech')
+   */
+  name: string;
+  /**
+   * Version number (incremental integer, derived from pk or timestamp)
+   */
+  version?: number;
+  /**
+   * Human-readable display name
+   */
+  displayName?: string;
+  /**
+   * Method description for LLM
+   */
+  description: string;
+  /**
+   * API endpoint URL
+   */
+  endpoint: string;
+  method?: HttpMethod;
+  /**
+   * Input parameter schema (JSON string)
+   */
+  schema: string;
+  /**
+   * Response schema for resource identification (JSON string)
+   */
+  responseSchema: string;
+  billing?: BillingConfig;
+  /**
+   * Custom handler class name (optional)
+   */
+  customHandler?: string;
+  /**
+   * Whether to use SDK instead of HTTP (optional)
+   */
+  useSdk?: boolean;
+  /**
+   * SDK package name (if useSdk is true)
+   */
+  sdkPackage?: string;
+  /**
+   * SDK method path (e.g., 'client.textToSpeech.convert')
+   */
+  sdkMethod?: string;
+  /**
+   * Request timeout in milliseconds
+   */
+  timeout?: number;
+  /**
+   * Maximum retries on failure
+   */
+  maxRetries?: number;
+};
+
+/**
+ * Credential configuration
+ */
+export type CredentialConfig = {
+  /**
+   * API key
+   */
+  apiKey?: string;
+  /**
+   * API secret
+   */
+  apiSecret?: string;
+  /**
+   * OAuth access token
+   */
+  accessToken?: string;
+  /**
+   * OAuth refresh token
+   */
+  refreshToken?: string;
+  [key: string]: string | undefined;
+};
+
+export type ToolsetConfig = {
+  /**
+   * Toolset inventory key (e.g., 'fish_audio', 'heygen')
+   */
+  inventoryKey: string;
+  /**
+   * Tool domain (e.g., 'fish.audio')
+   */
+  domain: string;
+  /**
+   * Display name
+   */
+  name?: string;
+  credentials?: CredentialConfig;
+  /**
+   * Tool methods
+   */
+  methods: Array<ToolMethodConfig>;
+  /**
+   * Configuration version
+   */
+  version?: number;
+  /**
+   * Configuration metadata
+   */
+  metadata?: {
+    [key: string]: unknown;
+  };
+};
+
+export type ParsedMethodConfig = {
+  /**
+   * Method name
+   */
+  name: string;
+  /**
+   * Version number
+   */
+  version?: number;
+  /**
+   * Human-readable display name
+   */
+  displayName?: string;
+  /**
+   * Method description for LLM
+   */
+  description: string;
+  /**
+   * API endpoint URL
+   */
+  endpoint: string;
+  method?: HttpMethod;
+  schema: JsonSchema;
+  responseSchema: ResponseSchema;
+  /**
+   * Extracted resource fields from input schema
+   */
+  inputResourceFields: Array<ResourceField>;
+  /**
+   * Extracted resource fields from response schema
+   */
+  outputResourceFields: Array<ResourceField>;
+  billing?: BillingConfig;
+  /**
+   * Custom handler class name
+   */
+  customHandler?: string;
+  /**
+   * Whether to use SDK instead of HTTP
+   */
+  useSdk?: boolean;
+  /**
+   * SDK package name
+   */
+  sdkPackage?: string;
+  /**
+   * SDK method path
+   */
+  sdkMethod?: string;
+  /**
+   * Request timeout in milliseconds
+   */
+  timeout?: number;
+  /**
+   * Maximum retries on failure
+   */
+  maxRetries?: number;
+};
+
+export type ParsedToolsetConfig = {
+  /**
+   * Toolset inventory key (e.g., 'fish_audio', 'heygen')
+   */
+  inventoryKey: string;
+  /**
+   * Tool domain
+   */
+  domain: string;
+  /**
+   * Display name
+   */
+  name?: string;
+  credentials?: CredentialConfig;
+  /**
+   * Parsed methods with JSON schemas
+   */
+  methods: Array<ParsedMethodConfig>;
+  /**
+   * Configuration version
+   */
+  version?: number;
+  /**
+   * Configuration metadata
+   */
+  metadata?: {
+    [key: string]: unknown;
+  };
+};
+
+export type ConfigChangeEvent = {
+  /**
+   * Toolset key
+   */
+  toolsetKey: string;
+  /**
+   * Configuration MD5 hash
+   */
+  md5: string;
+  config: ToolsetConfig;
+  /**
+   * Event timestamp
+   */
+  timestamp: string;
+};
+
+export type AdapterRequest = {
+  /**
+   * API endpoint or SDK method path
+   */
+  endpoint: string;
+  method?: HttpMethod;
+  /**
+   * Request parameters
+   */
+  params: {
+    [key: string]: unknown;
+  };
+  /**
+   * Request headers (for HTTP adapter)
+   */
+  headers?: {
+    [key: string]: string;
+  };
+  /**
+   * Credentials for authentication
+   */
+  credentials?: {
+    [key: string]: unknown;
+  };
+  /**
+   * Request timeout in milliseconds
+   */
+  timeout?: number;
+  /**
+   * Whether to use multipart/form-data (for HTTP adapter)
+   */
+  useFormData?: boolean;
+};
+
+export type AdapterResponse = {
+  /**
+   * Response data
+   */
+  data: unknown;
+  /**
+   * HTTP status code (for HTTP adapter)
+   */
+  status?: number;
+  /**
+   * Response headers (for HTTP adapter)
+   */
+  headers?: {
+    [key: string]: string;
+  };
+  /**
+   * Raw response body (for debugging)
+   */
+  raw?: unknown;
+};
+
+export type HttpAdapterConfig = {
+  /**
+   * Base URL for the API
+   */
+  baseUrl?: string;
+  /**
+   * Default headers
+   */
+  defaultHeaders?: {
+    [key: string]: string;
+  };
+  /**
+   * Request timeout in milliseconds
+   */
+  timeout?: number;
+  /**
+   * Maximum retries
+   */
+  maxRetries?: number;
+  /**
+   * Retry delay in milliseconds
+   */
+  retryDelay?: number;
+  /**
+   * HTTP proxy URL
+   */
+  proxy?: string;
+};
+
+export type SdkAdapterConfig = {
+  /**
+   * NPM package name
+   */
+  packageName: string;
+  /**
+   * Method path in the SDK (e.g., 'client.textToSpeech.convert')
+   */
+  methodPath: string;
+  /**
+   * SDK client initialization function (runtime only, not serializable)
+   */
+  clientFactory?: unknown;
+  /**
+   * Parameter transformer function (runtime only, not serializable)
+   */
+  paramTransformer?: unknown;
+};
+
+export type RetryConfig = {
+  /**
+   * Maximum number of retries
+   */
+  maxRetries: number;
+  /**
+   * Initial retry delay in milliseconds
+   */
+  initialDelay: number;
+  /**
+   * Maximum retry delay in milliseconds
+   */
+  maxDelay: number;
+  /**
+   * Backoff multiplier
+   */
+  backoffMultiplier: number;
+  /**
+   * Status codes that should trigger a retry
+   */
+  retryableStatusCodes?: Array<number>;
+  /**
+   * Error codes that should trigger a retry
+   */
+  retryableErrorCodes?: Array<string>;
+};
+
+/**
+ * Circuit breaker state
+ */
+export type CircuitBreakerState = 'closed' | 'open' | 'half_open';
+
+export type CircuitBreakerConfig = {
+  /**
+   * Failure threshold to open the circuit
+   */
+  failureThreshold: number;
+  /**
+   * Success threshold to close the circuit from half-open
+   */
+  successThreshold: number;
+  /**
+   * Timeout in milliseconds before attempting to close
+   */
+  timeout: number;
+  /**
+   * Rolling window size for failure counting
+   */
+  rollingWindowSize: number;
+};
+
+export type HandlerRequestUser = {
+  /**
+   * User ID
+   */
+  uid: string;
+  /**
+   * User name
+   */
+  name?: string;
+  /**
+   * User email
+   */
+  email?: string;
+};
+
+export type HandlerRequest = {
+  /**
+   * Provider/toolset identifier
+   */
+  provider: string;
+  /**
+   * Method name
+   */
+  method: string;
+  /**
+   * Input parameters
+   */
+  params: {
+    [key: string]: unknown;
+  };
+  user?: HandlerRequestUser;
+  /**
+   * Request metadata
+   */
+  metadata?: {
+    [key: string]: unknown;
+  };
+};
+
+export type UploadResultMetadata = {
+  /**
+   * File size in bytes
+   */
+  size?: number;
+  /**
+   * MIME type
+   */
+  mimeType?: string;
+  /**
+   * Duration (for audio/video)
+   */
+  duration?: number;
+  /**
+   * Width (for images/video)
+   */
+  width?: number;
+  /**
+   * Height (for images/video)
+   */
+  height?: number;
+  /**
+   * File format
+   */
+  format?: string;
+};
+
+export type UploadResult = {
+  /**
+   * Local file path
+   */
+  localPath: string;
+  /**
+   * Storage key
+   */
+  storageKey: string;
+  /**
+   * Entity ID
+   */
+  entityId: string;
+  /**
+   * File ID in database
+   */
+  fileId: string;
+  /**
+   * Public URL
+   */
+  url: string;
+  resourceType: ToolResourceType;
+  metadata?: UploadResultMetadata;
+};
+
+export type HandlerResponse = {
+  /**
+   * Success status
+   */
+  success: boolean;
+  /**
+   * Response data
+   */
+  data?: {
+    [key: string]: unknown;
+  };
+  /**
+   * Local file path (if file was saved)
+   */
+  localPath?: string;
+  /**
+   * Storage key (if file was uploaded)
+   */
+  storageKey?: string;
+  /**
+   * Entity ID (if resource was created)
+   */
+  entityId?: string;
+  /**
+   * File ID in database
+   */
+  fileId?: string;
+  /**
+   * CDN/public URL
+   */
+  url?: string;
+  /**
+   * Upload results for multiple resources
+   */
+  uploadResults?: Array<UploadResult>;
+  /**
+   * Error information
+   */
+  error?: string;
+  /**
+   * Error code
+   */
+  errorCode?: string;
+  /**
+   * Response metadata
+   */
+  metadata?: {
+    [key: string]: unknown;
+  };
+};
+
+export type HandlerContext = {
+  /**
+   * Credentials for authentication
+   */
+  credentials?: {
+    [key: string]: unknown;
+  };
+  /**
+   * Input resource fields configuration
+   */
+  inputResourceFields?: Array<ResourceField>;
+  /**
+   * Output resource fields configuration
+   */
+  outputResourceFields?: Array<ResourceField>;
+  /**
+   * Request start timestamp
+   */
+  startTime: number;
+};
+
+export type HandlerConfig = {
+  /**
+   * API endpoint URL
+   */
+  endpoint: string;
+  method?: HttpMethod;
+  /**
+   * Credentials
+   */
+  credentials?: {
+    [key: string]: unknown;
+  };
+  /**
+   * Input resource fields
+   */
+  inputResourceFields?: Array<ResourceField>;
+  /**
+   * Output resource fields
+   */
+  outputResourceFields?: Array<ResourceField>;
+  /**
+   * Request timeout (ms)
+   */
+  timeout?: number;
+  /**
+   * Maximum retries
+   */
+  maxRetries?: number;
+  /**
+   * Custom headers
+   */
+  headers?: {
+    [key: string]: string;
+  };
+  /**
+   * Whether to use multipart/form-data
+   */
+  useFormData?: boolean;
+};
+
+export type FileMetadata = {
+  /**
+   * Entity ID
+   */
+  entityId: string;
+  /**
+   * Storage key
+   */
+  storageKey: string;
+  /**
+   * File type
+   */
+  type: string;
+  /**
+   * MIME type
+   */
+  mimeType?: string;
+  /**
+   * Visibility
+   */
+  visibility: 'public' | 'private';
+  /**
+   * File size in bytes
+   */
+  size?: number;
+  /**
+   * Additional metadata
+   */
+  metadata?: {
+    [key: string]: unknown;
+  };
+};
+
+/**
+ * Visibility
+ */
+export type visibility = 'public' | 'private';
+
+export type UploadMetadata = {
+  /**
+   * Provider name
+   */
+  provider: string;
+  /**
+   * Method name
+   */
+  method: string;
+  type: ToolResourceType;
+  /**
+   * MIME type
+   */
+  mimeType?: string;
+  /**
+   * User ID
+   */
+  userId?: string;
+};
+
+export type HandlerExecutionResult = {
+  /**
+   * Success status
+   */
+  success: boolean;
+  /**
+   * Result data
+   */
+  data?: unknown;
+  error?: {
+    /**
+     * Error code
+     */
+    code?: string;
+    /**
+     * Error message
+     */
+    message?: string;
+    /**
+     * Error details
+     */
+    details?: {
+      [key: string]: unknown;
+    };
+  };
+  metrics?: {
+    /**
+     * Execution duration in milliseconds
+     */
+    duration?: number;
+    /**
+     * Number of retries
+     */
+    retries?: number;
+  };
+};
+
+export type ToolMetadataBilling = {
+  /**
+   * Whether billing is enabled
+   */
+  enabled: boolean;
+  /**
+   * Billing type
+   */
+  type: 'per_call' | 'per_quantity';
+  /**
+   * Credits per call
+   */
+  creditsPerCall?: number;
+  /**
+   * Credits per unit
+   */
+  creditsPerUnit?: number;
+};
+
+/**
+ * Billing type
+ */
+export type type6 = 'per_call' | 'per_quantity';
+
+export type ToolMetadata = {
+  /**
+   * Version number (incremental integer for version tracking)
+   */
+  version: number;
+  /**
+   * Toolset key
+   */
+  toolsetKey: string;
+  /**
+   * Method name
+   */
+  methodName: string;
+  billing?: ToolMetadataBilling;
+  /**
+   * Resource types handled by this tool
+   */
+  resourceTypes?: Array<string>;
+  /**
+   * Supported file extensions for each resource type
+   */
+  resourceExtensions?: {
+    [key: string]: Array<string>;
+  };
+};
+
+export type ToolInstantiationContextUser = {
+  /**
+   * User ID
+   */
+  uid: string;
+  /**
+   * User name
+   */
+  name?: string;
+  /**
+   * User email
+   */
+  email?: string;
+};
+
+export type ToolInstantiationContext = {
+  user: ToolInstantiationContextUser;
+  /**
+   * Toolset ID
+   */
+  toolsetId: string;
+  /**
+   * Configuration ID (for versioned configs)
+   */
+  configId?: string;
+  /**
+   * Additional context
+   */
+  metadata?: {
+    [key: string]: unknown;
+  };
+};
+
+export type ToolExecutionContextUser = {
+  /**
+   * User ID
+   */
+  uid: string;
+  /**
+   * User name
+   */
+  name?: string;
+  /**
+   * User email
+   */
+  email?: string;
+};
+
+export type ToolExecutionContext = {
+  user: ToolExecutionContextUser;
+  /**
+   * Parent result ID (for workflow chaining)
+   */
+  parentResultId?: string;
+  /**
+   * Action step PK (for workflow tracking)
+   */
+  actionStepPk?: number;
+  /**
+   * Canvas node ID
+   */
+  canvasNodeId?: string;
+  /**
+   * Additional metadata
+   */
+  metadata?: {
+    [key: string]: unknown;
+  };
+};
+
+export type ToolExecutionResult = {
+  /**
+   * Success status
+   */
+  success: boolean;
+  /**
+   * Result data
+   */
+  data?: unknown;
+  error?: {
+    /**
+     * Error code
+     */
+    code?: string;
+    /**
+     * Error message
+     */
+    message?: string;
+    /**
+     * Error details
+     */
+    details?: {
+      [key: string]: unknown;
+    };
+  };
+  metrics?: {
+    /**
+     * Execution duration in milliseconds
+     */
+    duration?: number;
+    /**
+     * Credits cost
+     */
+    creditsCost?: number;
+  };
+};
+
+export type DynamicToolDefinition = {
+  /**
+   * Tool name (unique identifier)
+   */
+  name: string;
+  /**
+   * Tool description for LLM
+   */
+  description: string;
+  /**
+   * Zod schema for parameters (runtime only, not serializable)
+   */
+  schema?: unknown;
+  metadata: ToolMetadata;
+};
+
+export type InstantiatedTool = {
+  /**
+   * LangChain DynamicStructuredTool instance (runtime only, not serializable)
+   */
+  tool?: unknown;
+  metadata: ToolMetadata;
+  /**
+   * Configuration version
+   */
+  configVersion?: number;
+};
+
+export type ToolCacheEntry = {
+  /**
+   * Configuration MD5 hash
+   */
+  configHash: string;
+  /**
+   * Cache timestamp
+   */
+  timestamp: string;
+  /**
+   * Cache expiration time
+   */
+  expiresAt: string;
+};
+
+export type ToolRegistryEntry = {
+  /**
+   * Toolset key
+   */
+  toolsetKey: string;
+  /**
+   * Tool definitions
+   */
+  definitions: Array<DynamicToolDefinition>;
+  /**
+   * Configuration version
+   */
+  configVersion: number;
+  /**
+   * Last update timestamp
+   */
+  updatedAt: string;
+};
 
 export type ExtractVariablesData = {
   body: ExtractVariablesRequest;

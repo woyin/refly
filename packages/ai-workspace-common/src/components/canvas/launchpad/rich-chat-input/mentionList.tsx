@@ -270,18 +270,32 @@ export const MentionList = ({
     const toolsetItems = items.filter((item) => item.source === 'toolsets');
     const toolItems = items.filter((item) => item.source === 'tools');
 
+    console.log('[MentionList] groupedItems:', {
+      totalItems: items.length,
+      toolsetsCount: toolsetItems.length,
+      toolItemsCount: toolItems.length,
+      query,
+    });
+
     // Running record combines step records and result records
     const runningRecordItems = [...stepRecordItems, ...resultRecordItems];
 
     // Apply filtering based on query
-    return {
+    const result = {
       variables: filterItems(variableItems, query) || [],
       resourceLibrary: filterItems(myUploadItems, query) || [],
       runningRecord: filterItems(runningRecordItems, query) || [],
       toolsets: filterItems(toolsetItems, query) || [],
-      // Only show individual tools if user has typed a query
-      ...(query ? { tools: filterItems(toolItems, query) || [] } : {}),
+      // Show individual tools both in query mode and when hovering tools category
+      tools: filterItems(toolItems, query) || [],
     };
+
+    console.log('[MentionList] filtered groupedItems:', {
+      toolsetsFiltered: result.toolsets.length,
+      toolsFiltered: result.tools.length,
+    });
+
+    return result;
   }, [items, filterItems, query]);
 
   // When there's a query, create grouped items with headers
@@ -434,7 +448,7 @@ export const MentionList = ({
       return groupedItems.runningRecord ?? [];
     }
     if (hoveredCategory === 'tools') {
-      return groupedItems.toolsets ?? [];
+      return [...(groupedItems.toolsets ?? []), ...(groupedItems.tools ?? [])];
     }
     return [];
   }, [hoveredCategory, groupedItems]);

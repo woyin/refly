@@ -19,7 +19,6 @@ import { QUEUE_SYNC_TOOL_CREDIT_USAGE } from '../../../../utils/const';
 import { PrismaService } from '../../../common/prisma.service';
 import { SyncToolCreditUsageJobData } from '../../../credit/credit.dto';
 import { MiscService } from '../../../misc/misc.service';
-import { MEDIA_TYPES } from '../../common/constant/media-types';
 import { ToolExecutionSync } from '../../common/decorators/tool-execution-sync.decorator';
 import {
   type ToolExecutionResult,
@@ -27,6 +26,7 @@ import {
 } from '../../common/interceptors/tool-execution-sync.interceptor';
 import type { FishAudioClient, ReferenceAudio, STTRequest, TTSRequest } from './fish-audio.cjs';
 import { loadFishAudio } from './fish-audio.cjs';
+import { MEDIA_TYPES } from '../../constant';
 
 /**
  * Fish Audio Service
