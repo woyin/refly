@@ -1,6 +1,6 @@
 import type { FormProps } from '@rjsf/core';
 import type { RJSFSchema } from '@rjsf/utils';
-import { memo, useMemo } from 'react';
+import { memo, useCallback, useMemo, useRef, useState } from 'react';
 import { ReflyRjsfTheme } from './theme';
 
 type SchemaDefaults = RJSFSchema;
@@ -18,8 +18,40 @@ export const ReflyRjsfForm = memo(function ReflyRjsfForm<
     showErrorList = false,
     liveValidate = true,
     uiSchema = {},
+    formContext,
+    onChange,
     ...rest
   } = props;
+
+  const [shouldLiveValidate, setShouldLiveValidate] = useState(false);
+  const skipNextValidationRef = useRef(false);
+
+  const suppressNextValidation = useCallback(() => {
+    skipNextValidationRef.current = true;
+  }, []);
+
+  const mergedFormContext = useMemo(() => {
+    return {
+      ...(formContext ?? {}),
+      __reflySuppressNextValidation__: suppressNextValidation,
+    };
+  }, [formContext, suppressNextValidation]);
+
+  const handleChange = useCallback<
+    NonNullable<FormProps<TFormData, TSchema, TContext>['onChange']>
+  >(
+    (event, idSchema) => {
+      if (skipNextValidationRef.current) {
+        skipNextValidationRef.current = false;
+      } else if (!shouldLiveValidate && liveValidate) {
+        setShouldLiveValidate(true);
+      }
+      onChange?.(event, idSchema);
+    },
+    [liveValidate, onChange, shouldLiveValidate],
+  );
+
+  const resolvedLiveValidate = liveValidate && shouldLiveValidate;
 
   // Hide default submit button since we handle submission through pagination
   const finalUiSchema = useMemo(() => {
@@ -51,7 +83,9 @@ export const ReflyRjsfForm = memo(function ReflyRjsfForm<
         uiSchema={finalUiSchema}
         noHtml5Validate={noHtml5Validate}
         showErrorList={showErrorList}
-        liveValidate={liveValidate}
+        liveValidate={resolvedLiveValidate}
+        onChange={handleChange}
+        formContext={mergedFormContext}
       />
     </div>
   );

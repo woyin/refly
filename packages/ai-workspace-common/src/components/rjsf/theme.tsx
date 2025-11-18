@@ -1,6 +1,6 @@
 import { withTheme } from '@rjsf/core';
 import { Button, Checkbox, Input, Radio } from 'antd';
-import { useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { CSSProperties, ReactNode } from 'react';
 
 interface RjsfFieldTemplateProps {
@@ -63,6 +63,10 @@ interface EnumOption {
   label?: ReactNode;
 }
 
+interface ReflyFormContext extends Record<string, unknown> {
+  __reflySuppressNextValidation__?: () => void;
+}
+
 interface RjsfWidgetProps {
   id?: string;
   required?: boolean;
@@ -74,6 +78,7 @@ interface RjsfWidgetProps {
   schema?: Record<string, unknown>;
   options?: Record<string, unknown>;
   autofocus?: boolean;
+  formContext?: ReflyFormContext;
 }
 
 const mergeClassNames = (...classes: Array<string | false | undefined>): string => {
@@ -291,6 +296,27 @@ const ObjectFieldTemplate = (props: RjsfObjectFieldTemplateProps) => {
     const currentFieldValue = currentFieldName ? effectiveFormData[currentFieldName] : undefined;
     const hasCurrentValue = hasValue(currentFieldValue);
 
+    // Check if "other" option is selected but no text input provided
+    let hasValidOtherInput = true;
+    if (hasCurrentValue && currentFieldValue) {
+      if (typeof currentFieldValue === 'string' && currentFieldValue === 'other') {
+        // For single select, if "other" is selected, it should have been replaced with the input text
+        hasValidOtherInput = hasValue(currentFieldValue) && currentFieldValue !== 'other';
+      } else if (Array.isArray(currentFieldValue)) {
+        // For multi-select, check if "other" is selected and there's a corresponding text input
+        const hasOtherSelected = currentFieldValue.includes('other');
+        if (hasOtherSelected) {
+          // Look for a text value that is not just "other"
+          const hasOtherText = currentFieldValue.some(
+            (item) => typeof item === 'string' && item.trim() !== '' && item !== 'other',
+          );
+          hasValidOtherInput = hasOtherText;
+        }
+      }
+    }
+
+    const canProceed = hasCurrentValue && hasValidOtherInput;
+
     return (
       <div className="flex items-center justify-between">
         <Button
@@ -306,8 +332,11 @@ const ObjectFieldTemplate = (props: RjsfObjectFieldTemplateProps) => {
           <Button
             type="primary"
             htmlType="submit"
-            disabled={!hasCurrentValue}
+            disabled={!canProceed}
             className="w-[296px] h-9 -mt-8"
+            onClick={() => {
+              console.log('rjsf表单提交时的value:', effectiveFormData);
+            }}
           >
             提交
           </Button>
@@ -315,7 +344,7 @@ const ObjectFieldTemplate = (props: RjsfObjectFieldTemplateProps) => {
           <Button
             type="primary"
             onClick={goToNextPage}
-            disabled={!hasCurrentValue}
+            disabled={!canProceed}
             className="w-[296px] h-9 -mt-8"
           >
             下一题
@@ -499,13 +528,44 @@ const CheckboxWidget = (props: RjsfWidgetProps) => {
 };
 
 const RadioWidget = (props: RjsfWidgetProps) => {
-  const { id, value, disabled, readonly, onChange, options } = props;
-  const enumOptions = getEnumOptions(options);
+  const { id, value, disabled, readonly, onChange, options, schema, formContext } = props;
+  const enumOptions = useMemo(() => {
+    return getEnumOptions(options);
+  }, [options]);
+  const hasClearedInitialValueRef = useRef(false);
+
+  useEffect(() => {
+    if (hasClearedInitialValueRef.current) {
+      return;
+    }
+    const firstOptionValue = enumOptions.length > 0 ? enumOptions[0]?.value : undefined;
+    const shouldResetValue = schema?.default === '' && value === firstOptionValue;
+    if (shouldResetValue) {
+      formContext?.__reflySuppressNextValidation__?.();
+      onChange(undefined);
+      hasClearedInitialValueRef.current = true;
+    }
+  }, [enumOptions, formContext, onChange, schema, value]);
+
+  // Handle "other" option with input field
+  const isOtherSelected =
+    value === 'other' ||
+    (typeof value === 'string' && !enumOptions.some((opt) => opt.value === value));
+  const [otherValue, setOtherValue] = useState(
+    isOtherSelected && value !== 'other' ? (value as string) : '',
+  );
+
+  // Update otherValue when value changes from external source
+  useEffect(() => {
+    if (isOtherSelected && value !== 'other') {
+      setOtherValue(value as string);
+    }
+  }, [isOtherSelected, value]);
 
   return (
     <div className="space-y-1">
       {enumOptions.map((option, index) => {
-        const checked = value === option.value;
+        const checked = value === option.value || (option.value === 'other' && isOtherSelected);
         const optionId = id ? `${id}-${index}` : undefined;
         return (
           <button
@@ -521,7 +581,19 @@ const RadioWidget = (props: RjsfWidgetProps) => {
               if (disabled || readonly) {
                 return;
               }
-              onChange(option.value);
+              if (checked) {
+                // Allow deselection by clicking on selected option
+                onChange(undefined);
+                setOtherValue('');
+              } else {
+                if (option.value === 'other') {
+                  // When selecting "other", set to empty string initially
+                  onChange('');
+                  setOtherValue('');
+                } else {
+                  onChange(option.value);
+                }
+              }
             }}
           >
             <Radio
@@ -530,7 +602,18 @@ const RadioWidget = (props: RjsfWidgetProps) => {
               disabled={disabled || readonly}
               onChange={(event) => {
                 event.stopPropagation();
-                onChange(option.value);
+                if (checked) {
+                  // Allow deselection when clicking on selected radio
+                  onChange(undefined);
+                  setOtherValue('');
+                } else {
+                  if (option.value === 'other') {
+                    onChange('');
+                    setOtherValue('');
+                  } else {
+                    onChange(option.value);
+                  }
+                }
               }}
             />
             <span className="text-sm font-medium text-refly-text-0">
@@ -539,6 +622,21 @@ const RadioWidget = (props: RjsfWidgetProps) => {
           </button>
         );
       })}
+      {isOtherSelected && (
+        <div className="mt-3">
+          <Input
+            placeholder="请输入其他选项"
+            value={otherValue}
+            disabled={disabled || readonly}
+            onChange={(e) => {
+              const newValue = e.target.value;
+              setOtherValue(newValue);
+              onChange(newValue);
+            }}
+            className="w-full"
+          />
+        </div>
+      )}
     </div>
   );
 };
@@ -548,47 +646,111 @@ const CheckboxesWidget = (props: RjsfWidgetProps) => {
   const enumOptions = getEnumOptions(options);
   const selectedValues = Array.isArray(value) ? value : [];
 
+  // Handle "other" option with input field
+  const isOtherSelected = selectedValues.includes('other');
+  const otherTextValue =
+    (selectedValues.find(
+      (item) =>
+        typeof item === 'string' &&
+        !enumOptions.some((opt) => opt.value === item) &&
+        item !== 'other',
+    ) as string) || '';
+  const [otherValue, setOtherValue] = useState(otherTextValue);
+
+  // Update otherValue when selectedValues change
+  useEffect(() => {
+    const newOtherText =
+      (selectedValues.find(
+        (item) =>
+          typeof item === 'string' &&
+          !enumOptions.some((opt) => opt.value === item) &&
+          item !== 'other',
+      ) as string) || '';
+    setOtherValue(newOtherText);
+  }, [selectedValues, enumOptions]);
+
   const toggleValue = (optionValue: unknown) => {
     const exists = selectedValues.some((item) => item === optionValue);
     if (exists) {
-      onChange(selectedValues.filter((item) => item !== optionValue));
+      if (optionValue === 'other') {
+        // When unchecking "other", remove both "other" and any custom text
+        const filtered = selectedValues.filter(
+          (item) => item !== 'other' && enumOptions.some((opt) => opt.value === item),
+        );
+        onChange(filtered);
+        setOtherValue('');
+      } else {
+        onChange(selectedValues.filter((item) => item !== optionValue));
+      }
     } else {
       onChange([...selectedValues, optionValue]);
+    }
+  };
+
+  const handleOtherInputChange = (newValue: string) => {
+    setOtherValue(newValue);
+
+    // Remove any existing custom text values and "other" from selectedValues
+    const filteredValues = selectedValues.filter((item) =>
+      enumOptions.some((opt) => opt.value === item),
+    );
+
+    if (newValue.trim()) {
+      // Add the custom text value
+      onChange([...filteredValues, 'other', newValue.trim()]);
+    } else {
+      // Just add "other" if no text
+      onChange([...filteredValues, 'other']);
     }
   };
 
   return (
     <div className="space-y-1">
       {enumOptions.map((option) => {
-        const checked = selectedValues.some((item) => item === option.value);
+        const checked =
+          selectedValues.some((item) => item === option.value) ||
+          (option.value === 'other' && isOtherSelected);
+        const isOtherOption = option.value === 'other';
         return (
-          <button
-            type="button"
-            key={String(option.value)}
-            className={mergeClassNames(
-              'w-full h-[42px] flex items-center gap-3 border rounded-2xl px-4 text-left transition-colors',
-              'border-transparent bg-white',
-              disabled || readonly ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer',
-            )}
-            onClick={() => {
-              if (disabled || readonly) {
-                return;
-              }
-              toggleValue(option.value);
-            }}
-          >
-            <Checkbox
-              checked={checked}
-              disabled={disabled || readonly}
-              onChange={(event) => {
-                event.stopPropagation();
+          <div key={String(option.value)}>
+            <button
+              type="button"
+              className={mergeClassNames(
+                'w-full h-[42px] flex items-center gap-3 border rounded-2xl px-4 text-left transition-colors',
+                'border-transparent bg-white',
+                disabled || readonly ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer',
+              )}
+              onClick={() => {
+                if (disabled || readonly) {
+                  return;
+                }
                 toggleValue(option.value);
               }}
-            />
-            <span className="text-sm font-medium text-refly-text-0">
-              {buildOptionLabel(option.label, option.value)}
-            </span>
-          </button>
+            >
+              <Checkbox
+                checked={checked}
+                disabled={disabled || readonly}
+                onChange={(event) => {
+                  event.stopPropagation();
+                  toggleValue(option.value);
+                }}
+              />
+              <span className="text-sm font-medium text-refly-text-0">
+                {buildOptionLabel(option.label, option.value)}
+              </span>
+            </button>
+            {isOtherOption && checked && (
+              <div className="mt-3">
+                <Input
+                  placeholder="请输入其他选项"
+                  value={otherValue}
+                  disabled={disabled || readonly}
+                  onChange={(e) => handleOtherInputChange(e.target.value)}
+                  className="w-full"
+                />
+              </div>
+            )}
+          </div>
         );
       })}
     </div>

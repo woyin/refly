@@ -48,6 +48,7 @@ export const rjsfSchema: RJSFSchema = {
     role: {
       type: 'string',
       title: '🍃 1. Which of the following best describes your role?',
+      default: '',
       anyOf: roleOptions.map((option) => ({
         const: option.value,
         title: option.label,
@@ -58,6 +59,7 @@ export const rjsfSchema: RJSFSchema = {
       title: '🌱 2. What do you mainly use automation tools for?',
       uniqueItems: true,
       minItems: 1,
+      default: [],
       items: {
         type: 'string',
         anyOf: useCaseOptions.map((option) => ({
@@ -71,6 +73,7 @@ export const rjsfSchema: RJSFSchema = {
       title: '🌿 3. What type of automation workflow are you most interested in?',
       uniqueItems: true,
       minItems: 1,
+      default: [],
       items: {
         type: 'string',
         anyOf: interestOptions.map((option) => ({
