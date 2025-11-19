@@ -110,7 +110,7 @@ export const InvitationModal: React.FC<InvitationModalProps> = ({ visible, setVi
                   key={code.code || index}
                   className={`p-3 rounded-lg ${
                     code.status === 'pending'
-                      ? 'bg-refly-bg-control-z0 cursor-pointer transition-colors'
+                      ? 'bg-refly-bg-control-z0 cursor-pointer transition-colors border-[1px] border-solid border-refly-primary-default hover:bg-refly-primary-light'
                       : code.status === 'accepted'
                         ? 'bg-refly-bg-control-z0'
                         : 'bg-refly-bg-control-z1'
@@ -120,13 +120,28 @@ export const InvitationModal: React.FC<InvitationModalProps> = ({ visible, setVi
                   }
                 >
                   <div className="flex items-center justify-between">
-                    <div className="flex flex-col items-center justify-center text-base gap-1 bg-refly-bg-content-z2 h-7 rounded-lg min-w-[76px] px-3">
-                      <div className="font-mono font-semibold text-refly-primary">{code.code}</div>
+                    <div className="flex items-center gap-2">
+                      <div className="flex flex-col items-center justify-center text-base gap-1 bg-refly-bg-content-z2 h-7 rounded-lg min-w-[76px] px-2">
+                        <div className="font-mono font-semibold text-refly-primary">
+                          {code.code}
+                        </div>
+                      </div>
+                      {code.status === 'accepted' && code.updatedAt ? (
+                        <div className="flex items-center justify-center gap-1 text-refly-text-3">
+                          <div className="w-3 h-3 rounded-full flex items-center justify-center border-[1.5px] border-solid border-refly-primary">
+                            <IconCheck className="w-2 h-2 text-refly-primary" strokeWidth={3} />
+                          </div>
+                          <span className="text-[12px] font-medium leading-[16px]">
+                            {t('invitationCode.reward')}
+                          </span>
+                        </div>
+                      ) : null}
                     </div>
+
                     <div
-                      className={`text-base font-medium px-2 py-1 rounded-full text-center min-w-[60px] ${
+                      className={`text-base font-medium px-2 py-2 rounded-full text-center min-w-[60px] ${
                         code.status === 'pending'
-                          ? 'text-refly-primary'
+                          ? 'text-refly-primary hover:text-refly-primary-hover'
                           : code.status === 'accepted'
                             ? 'text-refly-text-3 text-xs'
                             : 'text-refly-text-1'
@@ -136,17 +151,9 @@ export const InvitationModal: React.FC<InvitationModalProps> = ({ visible, setVi
                         t('settings.account.copy')
                       ) : code.status === 'accepted' ? (
                         code.updatedAt ? (
-                          <div className="flex items-center justify-center gap-2">
-                            <div className="w-4 h-4 rounded-full flex items-center justify-center">
-                              <IconCheck className="w-3 h-3 text-refly-primary " />
-                            </div>
-                            <span className="text-[11px] font-medium">
-                              {t('invitationCode.reward')}
-                            </span>
-                            <span className="text-[11px] font-medium">
-                              {new Date(code.updatedAt).toLocaleDateString()}
-                            </span>
-                          </div>
+                          <span className="text-[12px] font-medium leading-[16px]">
+                            {new Date(code.updatedAt).toLocaleDateString()}
+                          </span>
                         ) : (
                           t('settings.account.statusUsed')
                         )
