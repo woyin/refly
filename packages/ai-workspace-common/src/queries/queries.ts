@@ -87,7 +87,6 @@ import {
   getCreditUsageByExecutionId,
   getCreditUsageByResultId,
   getDocumentDetail,
-  getFormDefinition,
   getPageByCanvasId,
   getPageDetail,
   getPilotSessionDetail,
@@ -146,7 +145,6 @@ import {
   setCanvasState,
   sharePage,
   streamInvokeSkill,
-  submitForm,
   syncCanvasState,
   testProviderConnection,
   unpinSkillInstance,
@@ -335,8 +333,6 @@ import {
   GetCreditUsageError,
   GetDocumentDetailData,
   GetDocumentDetailError,
-  GetFormDefinitionData,
-  GetFormDefinitionError,
   GetPageByCanvasIdData,
   GetPageByCanvasIdError,
   GetPageDetailData,
@@ -440,8 +436,6 @@ import {
   SharePageError,
   StreamInvokeSkillData,
   StreamInvokeSkillError,
-  SubmitFormData,
-  SubmitFormError,
   SyncCanvasStateData,
   SyncCanvasStateError,
   TestProviderConnectionData,
@@ -1168,21 +1162,6 @@ export const useCheckSettingsField = <
     queryKey: Common.UseCheckSettingsFieldKeyFn(clientOptions, queryKey),
     queryFn: () =>
       checkSettingsField({ ...clientOptions }).then((response) => response.data as TData) as TData,
-    ...options,
-  });
-export const useGetFormDefinition = <
-  TData = Common.GetFormDefinitionDefaultResponse,
-  TError = GetFormDefinitionError,
-  TQueryKey extends Array<unknown> = unknown[],
->(
-  clientOptions: Options<GetFormDefinitionData, true>,
-  queryKey?: TQueryKey,
-  options?: Omit<UseQueryOptions<TData, TError>, 'queryKey' | 'queryFn'>,
-) =>
-  useQuery<TData, TError>({
-    queryKey: Common.UseGetFormDefinitionKeyFn(clientOptions, queryKey),
-    queryFn: () =>
-      getFormDefinition({ ...clientOptions }).then((response) => response.data as TData) as TData,
     ...options,
   });
 export const useGetCreditRecharge = <
@@ -2779,23 +2758,6 @@ export const useExecuteWorkflowApp = <
   useMutation<TData, TError, Options<ExecuteWorkflowAppData, true>, TContext>({
     mutationKey: Common.UseExecuteWorkflowAppKeyFn(mutationKey),
     mutationFn: (clientOptions) => executeWorkflowApp(clientOptions) as unknown as Promise<TData>,
-    ...options,
-  });
-export const useSubmitForm = <
-  TData = Common.SubmitFormMutationResult,
-  TError = SubmitFormError,
-  TQueryKey extends Array<unknown> = unknown[],
-  TContext = unknown,
->(
-  mutationKey?: TQueryKey,
-  options?: Omit<
-    UseMutationOptions<TData, TError, Options<SubmitFormData, true>, TContext>,
-    'mutationKey' | 'mutationFn'
-  >,
-) =>
-  useMutation<TData, TError, Options<SubmitFormData, true>, TContext>({
-    mutationKey: Common.UseSubmitFormKeyFn(mutationKey),
-    mutationFn: (clientOptions) => submitForm(clientOptions) as unknown as Promise<TData>,
     ...options,
   });
 export const useGenerateInvitationCode = <

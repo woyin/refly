@@ -24,7 +24,6 @@ import {
   getCreditUsageByExecutionId,
   getCreditUsageByResultId,
   getDocumentDetail,
-  getFormDefinition,
   getPageByCanvasId,
   getPageDetail,
   getPilotSessionDetail,
@@ -108,8 +107,6 @@ import {
   GetCreditUsageError,
   GetDocumentDetailData,
   GetDocumentDetailError,
-  GetFormDefinitionData,
-  GetFormDefinitionError,
   GetPageByCanvasIdData,
   GetPageByCanvasIdError,
   GetPageDetailData,
@@ -859,21 +856,6 @@ export const useCheckSettingsFieldSuspense = <
     queryKey: Common.UseCheckSettingsFieldKeyFn(clientOptions, queryKey),
     queryFn: () =>
       checkSettingsField({ ...clientOptions }).then((response) => response.data as TData) as TData,
-    ...options,
-  });
-export const useGetFormDefinitionSuspense = <
-  TData = Common.GetFormDefinitionDefaultResponse,
-  TError = GetFormDefinitionError,
-  TQueryKey extends Array<unknown> = unknown[],
->(
-  clientOptions: Options<GetFormDefinitionData, true>,
-  queryKey?: TQueryKey,
-  options?: Omit<UseQueryOptions<TData, TError>, 'queryKey' | 'queryFn'>,
-) =>
-  useSuspenseQuery<TData, TError>({
-    queryKey: Common.UseGetFormDefinitionKeyFn(clientOptions, queryKey),
-    queryFn: () =>
-      getFormDefinition({ ...clientOptions }).then((response) => response.data as TData) as TData,
     ...options,
   });
 export const useGetCreditRechargeSuspense = <

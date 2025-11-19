@@ -4877,20 +4877,6 @@ export type CreatePortalSessionResponse = BaseResponse & {
   };
 };
 
-export type SubmitFormRequest = {
-  /**
-   * Form submission
-   */
-  formSubmission: FormSubmission;
-};
-
-export type GetFormDefinitionResponse = BaseResponse & {
-  /**
-   * Form definition
-   */
-  data?: FormDefinition;
-};
-
 export type GetCreditRechargeResponse = BaseResponse & {
   /**
    * Credit recharge data with pagination
@@ -8975,27 +8961,6 @@ export type CheckSettingsFieldData = {
 export type CheckSettingsFieldResponse2 = CheckSettingsFieldResponse;
 
 export type CheckSettingsFieldError = unknown;
-
-export type GetFormDefinitionData = {
-  query: {
-    /**
-     * Form ID
-     */
-    formId: string;
-  };
-};
-
-export type GetFormDefinitionResponse2 = GetFormDefinitionResponse;
-
-export type GetFormDefinitionError = unknown;
-
-export type SubmitFormData = {
-  body: SubmitFormRequest;
-};
-
-export type SubmitFormResponse = BaseResponse;
-
-export type SubmitFormError = unknown;
 
 export type GetCreditRechargeData = {
   query?: {
