@@ -87,16 +87,23 @@ export const ActivationCodeInput: React.FC<ActivationCodeInputProps> = ({
       </div>
 
       {showDiscordButton && (
-        <div className="flex justify-center">
-          <Button
-            type="text"
-            size="middle"
-            className="text-sm text-refly-text-0 font-semibold bg-refly-tertiary-default hover:bg-refly-tertiary-hover"
-            onClick={handleJoinDiscord}
-            style={{ width: 308, height: 36 }}
-          >
-            {t('common.joinDiscord')}
-          </Button>
+        <div className="flex flex-col gap-1 mt-4">
+          <div className="flex justify-center">
+            <span className="text-refly-text-3 text-sm">
+              {t('invitationCode.dontHaveInvitationCode')}
+            </span>
+          </div>
+          <div className="flex justify-center">
+            <Button
+              type="text"
+              size="middle"
+              className="text-sm text-refly-primary-default font-semibold bg-refly-tertiary-default hover:bg-refly-tertiary-hover"
+              onClick={handleJoinDiscord}
+              style={{ width: 220, height: 36 }}
+            >
+              {t('common.joinDiscord')}
+            </Button>
+          </div>
         </div>
       )}
     </div>

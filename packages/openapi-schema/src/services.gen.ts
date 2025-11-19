@@ -70,7 +70,7 @@ import type {
   ResendVerificationResponse,
   CheckVerificationData,
   CheckVerificationError,
-  CheckVerificationResponse,
+  CheckVerificationResponse2,
   ListAccountsData,
   ListAccountsError,
   ListAccountsResponse2,
@@ -820,7 +820,7 @@ export const checkVerification = <ThrowOnError extends boolean = false>(
   options: Options<CheckVerificationData, ThrowOnError>,
 ) => {
   return (options?.client ?? client).post<
-    CheckVerificationResponse,
+    CheckVerificationResponse2,
     CheckVerificationError,
     ThrowOnError
   >({

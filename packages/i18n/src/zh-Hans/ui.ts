@@ -253,7 +253,7 @@ const translations = {
     project: '知识库',
     upgrade: '升级',
     upgradeSubscription: '升级订阅',
-    inviteFriends: '邀请好友开启 AI 自动化之旅',
+    inviteFriends: '邀请好友，领取奖励积分',
     inviteRewardText: '与好友各得500积分',
     dismiss: '关闭',
     copyRequestInfo: '复制请求信息',
@@ -2542,8 +2542,8 @@ const translations = {
       statusUsed: '已使用',
       enterInvitationCode: '请输入邀请码',
       activateInvitationCode: '激活邀请码',
-      activateInvitationCodeSuccess: '邀请码激活成功！',
-      activateInvitationCodeFailed: '激活邀请码失败',
+      activateInvitationCodeSuccess: '欢迎使用 Refly 🎉 开始您的 AI 自动化之旅！',
+      activateInvitationCodeFailed: '邀请码无效，请重试或加入 Discord 群组获取新邀请码。',
       invitationCodeCopied: '邀请码已复制到剪切板',
       invitationCodeCopyFailed: '复制邀请码失败',
       invitationReward: '+{{amount}}积分',
@@ -2885,8 +2885,11 @@ const translations = {
     },
   },
   invitationCode: {
-    title: '输入邀请码解锁Refly AI自动化',
+    title1: '输入邀请码以解锁',
+    title2: 'Refly AI自动化',
     description: '输入您的 6 位邀请码',
+    dontHaveInvitationCode: '还没有邀请码？',
+    reward: '已使用 +500积分',
   },
   contentDetail: {
     breadcrumb: {

@@ -65,7 +65,7 @@ const translations = {
     project: 'Project',
     upgrade: 'Upgrade',
     upgradeSubscription: 'Upgrade Subscription',
-    inviteFriends: 'Invite for AI Automation',
+    inviteFriends: 'Earn Credits by Inviting',
     inviteRewardText: 'Each gets 500 credits',
     dismiss: 'Dismiss',
     copyRequestInfo: 'Copy Request Info',
@@ -2572,8 +2572,9 @@ const translations = {
       statusUsed: 'Used',
       enterInvitationCode: 'Enter invitation code',
       activateInvitationCode: 'Activate Code',
-      activateInvitationCodeSuccess: 'Invitation code activated successfully!',
-      activateInvitationCodeFailed: 'Failed to activate invitation code',
+      activateInvitationCodeSuccess: 'Welcome to Refly 🎉 Start your AI automation journey!',
+      activateInvitationCodeFailed:
+        'Invite code is invalid. Please try again or join Discord to get a new one.',
       invitationCodeCopied: 'Invitation code copied to clipboard',
       invitationCodeCopyFailed: 'Failed to copy invitation code',
       invitationReward: '+{amount} credits',
@@ -2935,8 +2936,11 @@ const translations = {
     },
   },
   invitationCode: {
-    title: 'Enter an invitation code to unlock Refly AI Automation',
-    description: 'Input your 6-digit invitation code',
+    title1: 'Enter an invitation code to unlock',
+    title2: 'Refly AI Automation',
+    description: 'Enter your 6-digit invitation code',
+    dontHaveInvitationCode: "Don't have an invite code yet?",
+    reward: 'Used +500 points',
   },
   contentDetail: {
     breadcrumb: {

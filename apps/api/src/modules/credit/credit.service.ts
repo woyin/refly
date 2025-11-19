@@ -289,16 +289,16 @@ export class CreditService {
 
   /**
    * Create invitation activation credit recharge for both inviter and invitee
-   * Each user gets 500 credits with 2-week expiration
+   * Each user gets 500 credits with 3-month expiration
    */
   async createInvitationActivationCreditRecharge(
     inviterUid: string,
     inviteeUid: string,
     now: Date = new Date(),
   ): Promise<void> {
-    // Calculate expiration date (2 weeks from now)
+    // Calculate expiration date (3 months from now)
     const expiresAt = new Date(now);
-    expiresAt.setDate(expiresAt.getDate() + 14);
+    expiresAt.setMonth(expiresAt.getMonth() + 3);
 
     // Create recharge for inviter
     await this.processCreditRecharge(

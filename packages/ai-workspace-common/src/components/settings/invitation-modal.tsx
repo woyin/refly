@@ -5,6 +5,7 @@ import getClient from '@refly-packages/ai-workspace-common/requests/proxiedReque
 import { InvitationCode } from '@refly/openapi-schema';
 import { useUserStoreShallow } from '@refly/stores';
 import InviteIcon from '@refly-packages/ai-workspace-common/assets/invite.svg';
+import { IconCheck } from '@refly-packages/ai-workspace-common/components/common/icon';
 
 const INVITATION_LIMIT = 5;
 
@@ -98,10 +99,10 @@ export const InvitationModal: React.FC<InvitationModalProps> = ({ visible, setVi
           <h3 className="text-lg font-semibold text-refly-text-0">
             {t('settings.account.inviteFriendsTitle')}
           </h3>
-          <p className="text-sm text-refly-text-1">{t('settings.account.inviteFriendsSubtitle')}</p>
-          <p className="text-xs text-refly-text-2">{usageText}</p>
+          <p className="text-xs text-refly-text-2">{t('settings.account.inviteFriendsSubtitle')}</p>
         </div>
         <div className="flex flex-col gap-4 rounded-lg p-4">
+          <p className="text-sm text-refly-text-0 text-center font-semibold">{usageText}</p>
           {invitationOverview.sortedCodes.length > 0 ? (
             <div className="space-y-3">
               {invitationOverview.sortedCodes.map((code, index) => (
@@ -127,17 +128,31 @@ export const InvitationModal: React.FC<InvitationModalProps> = ({ visible, setVi
                         code.status === 'pending'
                           ? 'text-refly-primary'
                           : code.status === 'accepted'
-                            ? 'text-refly-text-3'
+                            ? 'text-refly-text-3 text-xs'
                             : 'text-refly-text-1'
                       }`}
                     >
-                      {code.status === 'pending'
-                        ? t('settings.account.copy')
-                        : code.status === 'accepted'
-                          ? code.updatedAt
-                            ? new Date(code.updatedAt).toLocaleDateString()
-                            : t('settings.account.statusUsed')
-                          : code.status || 'Unknown'}
+                      {code.status === 'pending' ? (
+                        t('settings.account.copy')
+                      ) : code.status === 'accepted' ? (
+                        code.updatedAt ? (
+                          <div className="flex items-center justify-center gap-2">
+                            <div className="w-4 h-4 rounded-full flex items-center justify-center">
+                              <IconCheck className="w-3 h-3 text-refly-primary " />
+                            </div>
+                            <span className="text-[11px] font-medium">
+                              {t('invitationCode.reward')}
+                            </span>
+                            <span className="text-[11px] font-medium">
+                              {new Date(code.updatedAt).toLocaleDateString()}
+                            </span>
+                          </div>
+                        ) : (
+                          t('settings.account.statusUsed')
+                        )
+                      ) : (
+                        code.status || 'Unknown'
+                      )}
                     </div>
                   </div>
                 </div>

@@ -3,6 +3,7 @@ import { useUserStoreShallow } from '@refly/stores';
 import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
 import { ActivationCodeInput } from '@refly-packages/ai-workspace-common/components/settings/activation-code-input';
 import { usePublicAccessPage } from '@refly-packages/ai-workspace-common/hooks/use-is-share-page';
+import reflyUnionSvg from '@refly-packages/ai-workspace-common/assets/refly-union.svg';
 
 export const InvitationCodeModal = () => {
   const { t } = useTranslation();
@@ -35,16 +36,18 @@ export const InvitationCodeModal = () => {
   }
 
   return (
-    <div className="fixed inset-0 z-50 bg-white dark:bg-gray-900 flex flex-col items-center justify-center min-h-screen">
-      <div className="w-full max-w-md px-6 flex flex-col items-center">
+    <div className="fixed inset-0 z-50 bg-refly-bg-canvas flex flex-col items-center justify-center">
+      <div className="max-w-[580px] h-[357px] px-6 flex flex-col items-center mb-8">
         <div className="text-center mb-8">
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
-            {t('invitationCode.title')}
+          <h1 className="text-[32px] font-bold text-gray-900 dark:text-white mb-2 max-w-[540px]">
+            <div>{t('invitationCode.title1')}</div>
+            <div>{t('invitationCode.title2')}</div>
           </h1>
           <p className="text-gray-600 dark:text-gray-400">{t('invitationCode.description')}</p>
         </div>
         <ActivationCodeInput onSuccess={handleActivationSuccess} />
       </div>
+      <img src={reflyUnionSvg} alt="Refly Union" className="w-full absolute bottom-0 left-0" />
     </div>
   );
 };

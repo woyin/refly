@@ -142,11 +142,11 @@
 }
 
 .ant-otp .ant-input::selection {
-  background: transparent; 
-  color: inherit;          
+  background: transparent;
+  color: inherit;
 }
 
-.ant-otp .ant-input::-moz-selection { 
+.ant-otp .ant-input::-moz-selection {
   background: transparent;
   color: inherit;
 }
@@ -168,7 +168,7 @@
 .ant-otp .ant-otp-input:focus {
   width: 49px !important;
   height: 68px !important;
-  border-color: #0E9F77 !important;
+  border-color: #0e9f77 !important;
   box-shadow: 0 0 0 2px rgba(18, 183, 106, 0.1) !important;
   outline: none !important;
 }

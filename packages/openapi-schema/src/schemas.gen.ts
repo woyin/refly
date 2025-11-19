@@ -3092,6 +3092,35 @@ export const GetCollabTokenResponseSchema = {
   ],
 } as const;
 
+export const CheckVerificationResponseSchema = {
+  type: 'object',
+  required: ['success'],
+  properties: {
+    success: {
+      type: 'boolean',
+      description: 'Whether the operation was successful',
+      example: true,
+    },
+    errCode: {
+      type: 'string',
+    },
+    data: {
+      type: 'object',
+      properties: {
+        confirmationSessionId: {
+          type: 'string',
+          description: 'Session ID for registration confirmation',
+        },
+        ttlSeconds: {
+          type: 'integer',
+          description: 'Time to live for the confirmation session in seconds',
+        },
+      },
+    },
+  },
+  description: 'Check verification response, may contain confirmation data for registration',
+} as const;
+
 export const BaseResponseSchema = {
   type: 'object',
   required: ['success'],
