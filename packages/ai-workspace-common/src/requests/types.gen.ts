@@ -2123,6 +2123,14 @@ export type UserPreferences = {
    */
   disableHoverCard?: boolean;
   /**
+   * Whether the user has been invited
+   */
+  hasBeenInvited?: boolean;
+  /**
+   * Whether to require invitation code
+   */
+  requireInvitationCode?: boolean;
+  /**
    * Web search config
    */
   webSearch?: ProviderConfig;

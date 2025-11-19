@@ -2732,6 +2732,15 @@ export const UserPreferencesSchema = {
       description: 'Whether to disable hover tutorial',
       default: false,
     },
+    hasBeenInvited: {
+      type: 'boolean',
+      description: 'Whether the user has been invited',
+      default: false,
+    },
+    requireInvitationCode: {
+      type: 'boolean',
+      description: 'Whether to require invitation code',
+    },
     webSearch: {
       description: 'Web search config',
       $ref: '#/components/schemas/ProviderConfig',
@@ -3090,35 +3099,6 @@ export const GetCollabTokenResponseSchema = {
       },
     },
   ],
-} as const;
-
-export const CheckVerificationResponseSchema = {
-  type: 'object',
-  required: ['success'],
-  properties: {
-    success: {
-      type: 'boolean',
-      description: 'Whether the operation was successful',
-      example: true,
-    },
-    errCode: {
-      type: 'string',
-    },
-    data: {
-      type: 'object',
-      properties: {
-        confirmationSessionId: {
-          type: 'string',
-          description: 'Session ID for registration confirmation',
-        },
-        ttlSeconds: {
-          type: 'integer',
-          description: 'Time to live for the confirmation session in seconds',
-        },
-      },
-    },
-  },
-  description: 'Check verification response, may contain confirmation data for registration',
 } as const;
 
 export const BaseResponseSchema = {

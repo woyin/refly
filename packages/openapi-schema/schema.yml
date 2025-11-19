@@ -5947,6 +5947,13 @@ components:
           type: boolean
           description: Whether to disable hover tutorial
           default: false
+        hasBeenInvited:
+          type: boolean
+          description: Whether the user has been invited
+          default: false
+        requireInvitationCode:
+          type: boolean
+          description: Whether to require invitation code
         webSearch:
           description: Web search config
           $ref: '#/components/schemas/ProviderConfig'

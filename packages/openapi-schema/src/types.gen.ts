@@ -2123,6 +2123,14 @@ export type UserPreferences = {
    */
   disableHoverCard?: boolean;
   /**
+   * Whether the user has been invited
+   */
+  hasBeenInvited?: boolean;
+  /**
+   * Whether to require invitation code
+   */
+  requireInvitationCode?: boolean;
+  /**
    * Web search config
    */
   webSearch?: ProviderConfig;
@@ -2359,27 +2367,6 @@ export type CollabTokenData = {
 
 export type GetCollabTokenResponse = BaseResponse & {
   data?: CollabTokenData;
-};
-
-/**
- * Check verification response, may contain confirmation data for registration
- */
-export type CheckVerificationResponse = {
-  /**
-   * Whether the operation was successful
-   */
-  success: boolean;
-  errCode?: string;
-  data?: {
-    /**
-     * Session ID for registration confirmation
-     */
-    confirmationSessionId?: string;
-    /**
-     * Time to live for the confirmation session in seconds
-     */
-    ttlSeconds?: number;
-  };
 };
 
 export type BaseResponse = {
@@ -7484,7 +7471,7 @@ export type CheckVerificationData = {
   body: CheckVerificationRequest;
 };
 
-export type CheckVerificationResponse2 = BaseResponse;
+export type CheckVerificationResponse = BaseResponse;
 
 export type CheckVerificationError = unknown;
 

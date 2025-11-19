@@ -60,6 +60,15 @@ export class AuthService {
     private creditService: CreditService,
   ) {}
 
+  private getUserPreferences(): string {
+    const requireInvitationCode =
+      this.configService.get('auth.invitation.requireInvitationCode') ?? false;
+    return JSON.stringify({
+      requireInvitationCode,
+      hasBeenInvited: false,
+    });
+  }
+
   getAuthConfig(): AuthConfigItem[] {
     const items: AuthConfigItem[] = [];
     if (this.configService.get('auth.email.enabled')) {
@@ -422,6 +431,7 @@ export class AuthService {
           avatar,
           emailVerified: new Date(),
           outputLocale: 'auto',
+          preferences: this.getUserPreferences(),
         },
       });
       await this.postCreateUser(newUser);
@@ -483,6 +493,7 @@ export class AuthService {
             nickname: name,
             emailVerified: new Date(),
             outputLocale: 'auto',
+            preferences: this.getUserPreferences(),
           },
         }),
         this.prisma.account.create({
@@ -609,6 +620,7 @@ export class AuthService {
             nickname: name,
             emailVerified: new Date(),
             outputLocale: 'auto',
+            preferences: this.getUserPreferences(),
           },
         }),
         this.prisma.account.create({

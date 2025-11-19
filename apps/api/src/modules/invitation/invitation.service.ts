@@ -1,6 +1,7 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../common/prisma.service';
 import { CreditService } from '../credit/credit.service';
+import { ConfigService } from '@nestjs/config';
 import { InvitationCode } from '@refly/openapi-schema';
 
 @Injectable()
@@ -8,6 +9,7 @@ export class InvitationService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly creditService: CreditService,
+    private readonly configService: ConfigService,
   ) {}
 
   /**
@@ -114,14 +116,29 @@ export class InvitationService {
   }
 
   /**
-   * check if a user has been invited (has an invitee_uid record)
+   * check if a user has been invited (check hasBeenInvited field in user preferences)
    */
   async hasBeenInvited(uid: string): Promise<boolean> {
-    const invitationRecord = await this.prisma.invitationCode.findFirst({
-      where: { inviteeUid: uid },
+    const requireInvitationCode =
+      this.configService.get('auth.invitation.requireInvitationCode') ?? false;
+
+    // If invitation code is not required, all users are considered invited
+    if (!requireInvitationCode) {
+      return true;
+    }
+
+    // If invitation code is required, check user's hasBeenInvited preference
+    const user = await this.prisma.user.findUnique({
+      where: { uid },
+      select: { preferences: true },
     });
 
-    return !!invitationRecord;
+    if (!user?.preferences) {
+      return false;
+    }
+
+    const preferences = JSON.parse(user.preferences);
+    return preferences.hasBeenInvited ?? false;
   }
 
   /**
@@ -186,6 +203,25 @@ export class InvitationService {
         status: 'accepted',
         inviteeUid,
         updatedAt: now,
+      },
+    });
+
+    // Update user preferences
+    const user = await this.prisma.user.findUnique({
+      where: { uid: inviteeUid },
+      select: { preferences: true },
+    });
+
+    const currentPreferences = user?.preferences ? JSON.parse(user.preferences) : {};
+    const updatedPreferences = {
+      ...currentPreferences,
+      hasBeenInvited: true,
+    };
+
+    await this.prisma.user.update({
+      where: { uid: inviteeUid },
+      data: {
+        preferences: JSON.stringify(updatedPreferences),
       },
     });
 

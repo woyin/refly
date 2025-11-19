@@ -250,7 +250,7 @@ export class CreditService {
 
   /**
    * Create registration credit recharge for a user
-   * This method creates a one-time 3000 credit registration bonus with 2-week expiration
+   * This method creates a one-time configurable credit registration bonus
    * Each user can only receive this bonus once (uid unique constraint)
    */
   async createRegistrationCreditRecharge(uid: string, now: Date = new Date()): Promise<void> {
@@ -269,13 +269,18 @@ export class CreditService {
       return;
     }
 
-    // Calculate expiration date (2 weeks from now)
+    const bonusCreditAmount = this.configService.get('registration.bonusCreditAmount');
+    const bonusCreditExpiresInMonths = this.configService.get(
+      'registration.bonusCreditExpiresInMonths',
+    );
+
+    // Calculate expiration date
     const expiresAt = new Date(now);
-    expiresAt.setDate(expiresAt.getDate() + 14);
+    expiresAt.setMonth(expiresAt.getMonth() + bonusCreditExpiresInMonths);
 
     await this.processCreditRecharge(
       uid,
-      3000,
+      bonusCreditAmount,
       {
         rechargeId: genRegistrationCreditRechargeId(uid),
         source: 'gift',
@@ -285,31 +290,47 @@ export class CreditService {
       },
       now,
     );
+
+    this.logger.log(
+      `Created registration bonus: ${uid} received ${bonusCreditAmount} credits, expires at ${expiresAt.toISOString()}`,
+    );
   }
 
   /**
    * Create invitation activation credit recharge for both inviter and invitee
-   * Each user gets 500 credits with 3-month expiration
+   * Credit amounts and expiration periods are configurable
    */
   async createInvitationActivationCreditRecharge(
     inviterUid: string,
     inviteeUid: string,
     now: Date = new Date(),
   ): Promise<void> {
-    // Calculate expiration date (3 months from now)
-    const expiresAt = new Date(now);
-    expiresAt.setMonth(expiresAt.getMonth() + 3);
+    const inviterCreditAmount = this.configService.get('invitation.inviterCreditAmount');
+    const inviteeCreditAmount = this.configService.get('invitation.inviteeCreditAmount');
+    const inviterCreditExpiresInMonths = this.configService.get(
+      'invitation.inviterCreditExpiresInMonths',
+    );
+    const inviteeCreditExpiresInMonths = this.configService.get(
+      'invitation.inviteeCreditExpiresInMonths',
+    );
+
+    // Calculate expiration dates
+    const inviterExpiresAt = new Date(now);
+    inviterExpiresAt.setMonth(inviterExpiresAt.getMonth() + inviterCreditExpiresInMonths);
+
+    const inviteeExpiresAt = new Date(now);
+    inviteeExpiresAt.setMonth(inviteeExpiresAt.getMonth() + inviteeCreditExpiresInMonths);
 
     // Create recharge for inviter
     await this.processCreditRecharge(
       inviterUid,
-      500,
+      inviterCreditAmount,
       {
         rechargeId: genInvitationActivationCreditRechargeId(inviterUid, inviteeUid),
         source: 'invitation',
         description: `Invitation activation bonus for inviting user ${inviteeUid}`,
         createdAt: now,
-        expiresAt,
+        expiresAt: inviterExpiresAt,
       },
       now,
     );
@@ -317,19 +338,19 @@ export class CreditService {
     // Create recharge for invitee
     await this.processCreditRecharge(
       inviteeUid,
-      500,
+      inviteeCreditAmount,
       {
         rechargeId: genInvitationActivationCreditRechargeId(inviteeUid, inviterUid),
         source: 'invitation',
         description: `Invitation activation bonus for being invited by user ${inviterUid}`,
         createdAt: now,
-        expiresAt,
+        expiresAt: inviteeExpiresAt,
       },
       now,
     );
 
     this.logger.log(
-      `Created invitation activation credits: ${inviterUid} and ${inviteeUid} each received 500 credits, expires at ${expiresAt.toISOString()}`,
+      `Created invitation activation credits: ${inviterUid} received ${inviterCreditAmount} credits (expires at ${inviterExpiresAt.toISOString()}), ${inviteeUid} received ${inviteeCreditAmount} credits (expires at ${inviteeExpiresAt.toISOString()})`,
     );
   }
 
