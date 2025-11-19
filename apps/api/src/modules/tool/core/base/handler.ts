@@ -21,8 +21,8 @@ import { IHandler } from '../interfaces/handler';
  */
 export abstract class BaseHandler implements IHandler {
   protected readonly logger: Logger;
-  protected readonly preHandlers: PreHandler[] = [];
-  protected readonly postHandlers: PostHandler[] = [];
+  protected preHandler: PreHandler;
+  protected postHandler: PostHandler;
   protected readonly context: HandlerContext;
 
   constructor(
@@ -34,23 +34,24 @@ export abstract class BaseHandler implements IHandler {
       credentials: config.credentials,
       inputResourceFields: config.inputResourceFields,
       outputResourceFields: config.outputResourceFields,
+      responseSchema: config.responseSchema,
       startTime: Date.now(),
     };
   }
 
   /**
-   * Register a pre-handler
+   * Register a pre-handler (replaces any existing pre-handler)
    */
   use(handler: PreHandler): this {
-    this.preHandlers.push(handler);
+    this.preHandler = handler;
     return this;
   }
 
   /**
-   * Register a post-handler
+   * Register a post-handler (replaces any existing post-handler)
    */
   usePost(handler: PostHandler): this {
-    this.postHandlers.push(handler);
+    this.postHandler = handler;
     return this;
   }
 
@@ -63,15 +64,15 @@ export abstract class BaseHandler implements IHandler {
 
   /**
    * Main handler execution method
-   * Orchestrates pre-handlers, API call, and post-handlers
+   * Orchestrates pre-handler, API call, and post-handler
    */
   async handle(request: HandlerRequest): Promise<HandlerResponse> {
     try {
-      // Step 1: Execute pre-handlers
+      // Step 1: Execute pre-handler
       let processedRequest = request;
-      for (const preHandler of this.preHandlers) {
+      if (this.preHandler) {
         try {
-          processedRequest = await preHandler(processedRequest, this.context);
+          processedRequest = await this.preHandler(processedRequest, this.context);
         } catch (error) {
           this.logger.error(
             `Pre-handler failed: ${(error as Error).message}`,
@@ -99,11 +100,15 @@ export abstract class BaseHandler implements IHandler {
         );
       }
 
-      // Step 3: Execute post-handlers
+      // Step 3: Execute post-handler
       let processedResponse = response;
-      for (const postHandler of this.postHandlers) {
+      if (this.postHandler) {
         try {
-          processedResponse = await postHandler(processedResponse, processedRequest, this.context);
+          processedResponse = await this.postHandler(
+            processedResponse,
+            processedRequest,
+            this.context,
+          );
         } catch (error) {
           this.logger.error(
             `Post-handler failed: ${(error as Error).message}`,

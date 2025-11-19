@@ -13,7 +13,7 @@ import type {
   ToolsetConfig,
   ParsedMethodConfig,
 } from '@refly/openapi-schema';
-import { buildSchema, extractResourceFields, parseJsonSchema } from '../../utils';
+import { buildSchema, parseJsonSchema } from '../../utils';
 import { RESOURCE_EXTENSIONS, type ResourceTypeValue } from '../../constant';
 
 /**
@@ -60,8 +60,8 @@ export class ToolDefinitionRegistry implements IToolDefinitionRegistry {
     const responseSchema = parseJsonSchema(method.responseSchema);
 
     // Extract resource fields
-    const inputResourceFields = extractResourceFields(schema);
-    const outputResourceFields = extractResourceFields(responseSchema);
+    const inputResourceFields = [];
+    const outputResourceFields = [];
 
     return {
       ...method,

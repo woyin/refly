@@ -1,0 +1,67 @@
+{
+  "name": "generate_video",
+  "displayName": "Generate Video",
+  "description": "Generate a video from audio and images",
+  "version": 1,
+  "endpoint": "https://api.example.com/generate-video",
+  "method": "POST",
+  "schema": {
+    "type": "object",
+    "required": ["prompt"],
+    "properties": {
+      "prompt": {
+        "type": "string",
+        "description": "Text prompt for video generation"
+      },
+      "referenceImage": {
+        "type": "string",
+        "description": "Reference image file ID",
+        "isResource": true,
+        "resourceOutputFormat": "base64"
+      },
+      "backgroundMusic": {
+        "type": "string",
+        "description": "Background music file ID",
+        "isResource": true,
+        "resourceOutputFormat": "buffer"
+      },
+      "voiceFiles": {
+        "type": "array",
+        "description": "Array of voice audio files",
+        "items": {
+          "type": "string",
+          "isResource": true,
+          "resourceOutputFormat": "url"
+        }
+      },
+      "config": {
+        "type": "object",
+        "properties": {
+          "avatar": {
+            "type": "string",
+            "description": "Avatar image file ID",
+            "isResource": true,
+            "resourceOutputFormat": "base64"
+          },
+          "duration": {
+            "type": "number",
+            "description": "Video duration in seconds"
+          }
+        }
+      }
+    }
+  },
+  "responseSchema": {
+    "type": "object",
+    "properties": {
+      "videoUrl": {
+        "type": "string",
+        "description": "Generated video URL"
+      },
+      "duration": {
+        "type": "number",
+        "description": "Actual video duration"
+      }
+    }
+  }
+}

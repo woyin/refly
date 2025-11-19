@@ -32,7 +32,6 @@ export class AdapterFactory {
     if (methodConfig.useSdk && methodConfig.sdkPackage) {
       return this.createSdkAdapter(methodConfig, credentials);
     }
-
     // Default to HTTP adapter
     return this.createHttpAdapter(methodConfig, credentials);
   }
@@ -49,10 +48,7 @@ export class AdapterFactory {
       maxRetries: methodConfig.maxRetries || 3,
       retryDelay: 1000,
     };
-
     const adapter = new HttpAdapter(config);
-
-    this.logger.log(`Created HTTP adapter for method: ${methodConfig.name}`);
     return adapter;
   }
 

@@ -3,7 +3,6 @@
  */
 
 import type {
-  FileMetadata,
   HandlerContext,
   HandlerRequest,
   HandlerResponse,
@@ -35,22 +34,53 @@ export type PostHandler = (
  */
 export interface ResourceResolver {
   /**
-   * Download file from storage by storage key
+   * Resolve drive file by file ID and convert to specified format
+   * @param fileId - Drive file ID
+   * @param format - Output format (base64, url, buffer, text)
+   * @returns Resolved file content in the specified format
    */
-  resolveFile: (storageKey: string, visibility: 'public' | 'private') => Promise<Buffer>;
-
-  /**
-   * Get file metadata from database by entity ID
-   */
-  getFileMetadata: (entityId: string) => Promise<FileMetadata | null>;
+  resolveDriveFile: (
+    fileId: string,
+    format?: 'base64' | 'url' | 'buffer' | 'text',
+  ) => Promise<string | Buffer>;
 }
 
 /**
  * Resource uploader interface
+ * Uses DriveService for underlying file upload and storage operations
  */
 export interface ResourceUploader {
   /**
-   * Upload file to storage and create database record
+   * Upload file to storage and create database record using DriveService
+   * @param localPath - Local file path to upload
+   * @param metadata - Upload metadata including provider, method, and resource type
+   * @returns Upload result with file information
    */
   uploadFile: (localPath: string, metadata: UploadMetadata) => Promise<UploadResult>;
+
+  /**
+   * Upload file buffer directly to storage using DriveService
+   * @param buffer - File buffer to upload
+   * @param filename - Name of the file
+   * @param metadata - Upload metadata including provider, method, and resource type
+   * @returns Upload result with file information
+   */
+  uploadBuffer?: (
+    buffer: Buffer,
+    filename: string,
+    metadata: UploadMetadata,
+  ) => Promise<UploadResult>;
+
+  /**
+   * Upload file from external URL using DriveService
+   * @param url - External URL to download and upload
+   * @param filename - Name for the uploaded file
+   * @param metadata - Upload metadata including provider, method, and resource type
+   * @returns Upload result with file information
+   */
+  uploadFromUrl?: (
+    url: string,
+    filename: string,
+    metadata: UploadMetadata,
+  ) => Promise<UploadResult>;
 }

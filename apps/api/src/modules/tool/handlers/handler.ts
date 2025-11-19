@@ -20,14 +20,18 @@ import type { ResourceResolver, ResourceUploader } from './types';
  * HTTP Handler configuration options
  */
 export interface HttpHandlerOptions extends HandlerConfig {
-  /** Resource resolver for input files */
+  /** Resource resolver for input files (deprecated, now handled in ToolFactory) */
   resourceResolver?: ResourceResolver;
-  /** Resource uploader for output files */
+  /** Resource uploader for output files (deprecated, now handled via ResourceHandler) */
   resourceUploader?: ResourceUploader;
   /** Billing configuration */
   billing?: BillingConfig;
   /** Whether to format response */
   formatResponse?: boolean;
+  /** Whether to enable resource upload via ResourceHandler */
+  enableResourceUpload?: boolean;
+  /** ResourceHandler instance for output resource processing */
+  resourceHandler?: any; // Avoid circular dependency with ResourceHandler type
 }
 
 /**
@@ -52,11 +56,11 @@ export class HttpHandler extends BaseHandler {
    * Setup pre-handlers in order
    */
   private setupPreHandlers(): void {
-    // Use base pre-handler that combines credential injection and resource resolution
+    // Use base pre-handler for credential injection only
+    // Resource resolution is now handled in ToolFactory.func before handler execution
     this.use(
       createBasePreHandler({
         credentials: this.options.credentials,
-        resolver: this.options.resourceResolver,
       }),
     );
   }
@@ -65,11 +69,11 @@ export class HttpHandler extends BaseHandler {
    * Setup post-handlers in order
    */
   private setupPostHandlers(): void {
-    // Use base post-handler that combines billing and resource upload
+    // Use base post-handler with ResourceHandler for output resource processing
     this.usePost(
       createBasePostHandler({
         billing: this.options.billing,
-        uploader: this.options.resourceUploader,
+        resourceHandler: this.options.resourceHandler,
       }),
     );
   }

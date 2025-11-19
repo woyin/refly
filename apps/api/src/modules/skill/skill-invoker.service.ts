@@ -5,13 +5,13 @@ import { AIMessageChunk, BaseMessage, MessageContentComplex } from '@langchain/c
 import { AIMessage, HumanMessage } from '@langchain/core/messages';
 import { InjectQueue } from '@nestjs/bullmq';
 import { ConfigService } from '@nestjs/config';
-import { RequestContextManager } from '../tool/core/context/request-context';
 import { ProjectNotFoundError } from '@refly/errors';
 import {
   ActionResult,
   ActionStep,
   Artifact,
   CreditBilling,
+  DriveFile,
   ProviderItem,
   SkillEvent,
   TokenUsageItem,
@@ -25,11 +25,12 @@ import {
   SkillRunnableMeta,
   createSkillInventory,
 } from '@refly/skill-template';
-import { getWholeParsedContent, safeParseJSON } from '@refly/utils';
+import { genImageID, getWholeParsedContent, safeParseJSON } from '@refly/utils';
 import { Queue } from 'bullmq';
 import { Response } from 'express';
 import { EventEmitter } from 'node:events';
 import * as Y from 'yjs';
+import { ToolCallResult } from '../../generated/client';
 import {
   QUEUE_AUTO_NAME_CANVAS,
   QUEUE_SYNC_PILOT_STEP,
@@ -41,10 +42,12 @@ import { extractChunkContent } from '../../utils/llm';
 import { writeSSEResponse } from '../../utils/response';
 import { ResultAggregator } from '../../utils/result';
 import { ActionService } from '../action/action.service';
+import { CanvasSyncService } from '../canvas-sync/canvas-sync.service';
 import { AutoNameCanvasJobData } from '../canvas/canvas.dto';
 import { PrismaService } from '../common/prisma.service';
 import { CreditUsageStep, SyncBatchTokenCreditUsageJobData } from '../credit/credit.dto';
 import { CreditService } from '../credit/credit.service';
+import { DriveService } from '../drive/drive.service';
 import { MiscService } from '../misc/misc.service';
 import { SyncPilotStepJobData } from '../pilot/pilot.processor';
 import { projectPO2DTO } from '../project/project.dto';
@@ -55,9 +58,6 @@ import { SyncRequestUsageJobData, SyncTokenUsageJobData } from '../subscription/
 import { ToolCallService, ToolCallStatus } from '../tool-call/tool-call.service';
 import { ToolService } from '../tool/tool.service';
 import { InvokeSkillJobData } from './skill.dto';
-import { ToolCallResult } from '../../generated/client';
-import { CanvasSyncService } from '../canvas-sync/canvas-sync.service';
-import { genImageID } from '@refly/utils';
 
 @Injectable()
 export class SkillInvokerService {
@@ -74,6 +74,7 @@ export class SkillInvokerService {
     private readonly config: ConfigService,
     private readonly miscService: MiscService,
     private readonly providerService: ProviderService,
+    private readonly driveService: DriveService,
     private readonly toolService: ToolService,
     private readonly toolCallService: ToolCallService,
     private readonly skillEngineService: SkillEngineService,
@@ -157,10 +158,8 @@ export class SkillInvokerService {
       context,
       tplConfig,
       runtimeConfig,
-      providerItem,
       modelConfigMap,
       provider,
-      resultHistory,
       projectId,
       eventListener,
       toolsets,
@@ -187,6 +186,7 @@ export class SkillInvokerService {
         mode: data.mode,
         resultId: data.result?.resultId,
         version: data.result?.version,
+        canvasId: data.target?.entityType === 'canvas' ? data.target?.entityId : undefined,
       },
     };
 
@@ -199,12 +199,6 @@ export class SkillInvokerService {
         throw new ProjectNotFoundError(`project ${projectId} not found`);
       }
       config.configurable.project = projectPO2DTO(project);
-    }
-
-    if (resultHistory?.length > 0) {
-      config.configurable.chatHistory = await Promise.all(
-        resultHistory.map((r) => this.buildLangchainMessages(user, providerItem, r, r.steps)),
-      ).then((messages) => messages.flat());
     }
 
     if (toolsets?.length > 0) {
@@ -290,14 +284,18 @@ export class SkillInvokerService {
   }
 
   private async _invokeSkill(user: User, data: InvokeSkillJobData, res?: Response) {
-    const { input, result } = data;
+    const { input, result, context } = data;
     const { resultId, version, actionMeta, tier } = result;
     this.logger.log(
       `invoke skill with input: ${JSON.stringify(input)}, resultId: ${resultId}, version: ${version}`,
     );
 
-    if (input.images?.length > 0 && (data.providerItem?.config as any)?.capabilities?.vision) {
-      input.images = await this.miscService.generateImageUrls(user, input.images);
+    const imageFiles: DriveFile[] = context?.files
+      ?.filter((item) => item.file?.category === 'image' || item.file?.type.startsWith('image/'))
+      ?.map((item) => item.file);
+
+    if (imageFiles.length > 0 && (data.providerItem?.config as any)?.capabilities?.vision) {
+      input.images = await this.driveService.generateDriveFileUrls(user, imageFiles);
     } else {
       input.images = [];
     }
@@ -553,8 +551,10 @@ export class SkillInvokerService {
 
       // tool callId, now we use first time returned run_id as tool call id
       const startTs = Date.now();
-
       const toolCallIds: Set<string> = new Set();
+
+      //
+
       for await (const event of skill.streamEvents(input, {
         ...config,
         version: 'v2',
@@ -1207,55 +1207,43 @@ export class SkillInvokerService {
   }
 
   async streamInvokeSkill(user: User, data: InvokeSkillJobData, res?: Response) {
-    // Set request context with user info for the entire skill execution
-    return RequestContextManager.run(
-      {
-        user: {
-          uid: user.uid,
-          email: user.email,
+    if (res) {
+      res.setHeader('Content-Type', 'text/event-stream');
+      res.setHeader('Cache-Control', 'no-cache');
+      res.setHeader('Connection', 'keep-alive');
+      res.status(200);
+    }
+
+    const { resultId, version } = data.result;
+
+    const defaultModel = await this.providerService.findDefaultProviderItem(user, 'chat');
+    this.skillEngine.setOptions({ defaultModel: defaultModel?.name });
+
+    try {
+      await this._invokeSkill(user, data, res);
+    } catch (err) {
+      if (res) {
+        writeSSEResponse(res, {
+          event: 'error',
+          resultId,
+          version,
+          content: JSON.stringify(genBaseRespDataFromError(err)),
+          originError: err.message,
+        });
+      }
+      this.logger.error(`invoke skill error: ${err.stack}`);
+
+      await this.prisma.actionResult.updateMany({
+        where: { resultId, version },
+        data: {
+          status: 'failed',
+          errors: JSON.stringify([err.message]),
         },
-        requestId: `skill-${data.result.resultId}-${Date.now()}`,
-      },
-      async () => {
-        if (res) {
-          res.setHeader('Content-Type', 'text/event-stream');
-          res.setHeader('Cache-Control', 'no-cache');
-          res.setHeader('Connection', 'keep-alive');
-          res.status(200);
-        }
-
-        const { resultId, version } = data.result;
-
-        const defaultModel = await this.providerService.findDefaultProviderItem(user, 'chat');
-        this.skillEngine.setOptions({ defaultModel: defaultModel?.name });
-
-        try {
-          await this._invokeSkill(user, data, res);
-        } catch (err) {
-          if (res) {
-            writeSSEResponse(res, {
-              event: 'error',
-              resultId,
-              version,
-              content: JSON.stringify(genBaseRespDataFromError(err)),
-              originError: err.message,
-            });
-          }
-          this.logger.error(`invoke skill error: ${err.stack}`);
-
-          await this.prisma.actionResult.updateMany({
-            where: { resultId, version },
-            data: {
-              status: 'failed',
-              errors: JSON.stringify([err.message]),
-            },
-          });
-        } finally {
-          if (res) {
-            res.end('');
-          }
-        }
-      },
-    );
+      });
+    } finally {
+      if (res) {
+        res.end('');
+      }
+    }
   }
 }

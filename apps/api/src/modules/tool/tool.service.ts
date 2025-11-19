@@ -889,6 +889,7 @@ export class ToolService {
     engine: SkillEngine,
     options?: {
       context?: SkillContext;
+      canvasId?: string;
     },
   ): Promise<StructuredToolInterface[]> {
     const builtinKeys = toolsets
@@ -983,6 +984,7 @@ export class ToolService {
     engine: SkillEngine,
     options?: {
       context?: SkillContext;
+      canvasId?: string;
     },
   ): Promise<DynamicStructuredTool[]> {
     if (!toolsets?.length) {
@@ -1096,19 +1098,12 @@ export class ToolService {
     if (!toolsetPOs?.length) {
       return [];
     }
-
     const allTools: DynamicStructuredTool[] = [];
-
     for (const toolsetPO of toolsetPOs) {
       try {
         // Use ToolFactory to instantiate tools
         // Credentials are loaded automatically from the config
         const tools = await this.toolFactory.instantiateToolsByKey(toolsetPO.key);
-
-        this.logger.log(
-          `Instantiated ${tools.length} config-based tools for toolset ${toolsetPO.key} (${toolsetPO.name})`,
-        );
-
         allTools.push(...tools);
       } catch (error) {
         this.logger.error(

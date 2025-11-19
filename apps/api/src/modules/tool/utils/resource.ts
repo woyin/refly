@@ -1,800 +1,673 @@
 /**
  * Resource management utilities
- * Handles file upload, download, path operations, and resource field extraction for tool responses
+ * Handles file upload, download, and resource field extraction for tool responses
  */
 
-import { Logger } from '@nestjs/common';
-import * as fs from 'node:fs/promises';
+import { Injectable, Logger } from '@nestjs/common';
 import type {
-  FileMetadata,
-  HandlerContext,
   HandlerRequest,
+  HandlerResponse,
   JsonSchema,
-  ResourceField,
   ResponseSchema,
   SchemaProperty,
   ToolResourceType,
   UploadResult,
 } from '@refly/openapi-schema';
+import mime from 'mime';
+import { readFile } from 'node:fs/promises';
+import { basename } from 'node:path';
+import { getCanvasId, getCurrentUser } from '../core/context/tool-context';
 import type { ResourceResolver, ResourceUploader } from '../handlers/types';
-import { RequestContextManager } from '../core/context/request-context';
+import { DriveService } from '../../drive/drive.service';
+import { MiscService } from '../../misc/misc.service';
 
 /**
- * ============================================================================
- * Path Utilities
- * ============================================================================
+ * Process resources in data based on schema definitions
+ * Traverses both schema and data simultaneously, processing fields marked with isResource
+ *
+ * @param schema - JSON schema with isResource markers
+ * @param data - Data object to process
+ * @param processor - Function to process each resource field
+ * @returns Processed data
  */
+export async function processResourcesInData(
+  schema: JsonSchema,
+  data: Record<string, unknown>,
+  processor: (value: unknown, schema: SchemaProperty) => Promise<unknown>,
+): Promise<Record<string, unknown>> {
+  const result = { ...data };
 
-/**
- * Get value from object by path (supports nested paths with dots)
- * @param obj - Source object
- * @param path - Dot-separated path (e.g., "user.profile.name")
- * @returns Value at the path or undefined
- */
-export function getValueByPath(obj: Record<string, unknown>, path: string): unknown {
-  const parts = path.split('.');
-  let current: unknown = obj;
-
-  for (const part of parts) {
-    if (!current || typeof current !== 'object') {
-      return undefined;
-    }
-
-    current = (current as Record<string, unknown>)[part];
-
-    if (current === undefined) {
-      return undefined;
-    }
-  }
-
-  return current;
-}
-
-/**
- * Set value in object by path (supports nested paths with dots)
- * Creates intermediate objects if they don't exist
- * @param obj - Target object
- * @param path - Dot-separated path (e.g., "user.profile.name")
- * @param value - Value to set
- */
-export function setValueByPath(obj: Record<string, unknown>, path: string, value: unknown): void {
-  const parts = path.split('.');
-  const lastPart = parts.pop();
-
-  if (!lastPart) {
-    return;
-  }
-
-  let current: Record<string, unknown> = obj;
-
-  // Navigate to the parent object
-  for (const part of parts) {
-    if (!(part in current)) {
-      current[part] = {};
-    }
-
-    const next = current[part];
-    if (typeof next !== 'object' || next === null) {
-      current[part] = {};
-    }
-
-    current = current[part] as Record<string, unknown>;
-  }
-
-  // Set the value
-  current[lastPart] = value;
-}
-
-/**
- * Check if a path exists in an object
- * @param obj - Source object
- * @param path - Dot-separated path
- * @returns True if path exists
- */
-export function hasPath(obj: Record<string, unknown>, path: string): boolean {
-  return getValueByPath(obj, path) !== undefined;
-}
-
-/**
- * Get all paths in an object (useful for debugging)
- * @param obj - Source object
- * @param prefix - Path prefix for recursion
- * @returns Array of all paths in the object
- */
-export function getAllPaths(obj: Record<string, unknown>, prefix = ''): string[] {
-  const paths: string[] = [];
-
-  for (const [key, value] of Object.entries(obj)) {
-    const currentPath = prefix ? `${prefix}.${key}` : key;
-    paths.push(currentPath);
-
-    if (value && typeof value === 'object' && !Array.isArray(value)) {
-      paths.push(...getAllPaths(value as Record<string, unknown>, currentPath));
-    }
-  }
-
-  return paths;
-}
-
-/**
- * ============================================================================
- * Upload Utilities
- * ============================================================================
- */
-
-/**
- * Upload a single resource item
- * Automatically detects resource type and handles:
- * - Buffer objects: { buffer: Buffer, filename?: string, mimetype?: string }
- * - URL strings: "https://example.com/file.mp3"
- * - Local file paths: "/tmp/file.mp3"
- * - Base64 objects: { data: string, filename: string, mimetype: string }
- * - Upload results: { url, entityId, storageKey }
- */
-export async function uploadResourceItem(
-  value: unknown,
-  fieldPath: string,
-  resourceType: ToolResourceType,
-  request: HandlerRequest,
-  uploader: ResourceUploader,
-  logger: Logger,
-  context?: HandlerContext,
-): Promise<UploadResult | null> {
-  try {
-    // Case 1: Already an upload result - return directly
-    if (isUploadResult(value)) {
-      return value as UploadResult;
-    }
-
-    // Case 2: Buffer object - { buffer, filename?, mimetype? }
-    if (isBufferObject(value)) {
-      return await uploadBufferResource(value, resourceType, request, uploader, logger, context);
-    }
-
-    // Case 3: Base64 object - { data, filename, mimetype }
-    if (isBase64Object(value)) {
-      return await uploadBase64Resource(value, resourceType, request, uploader, logger, context);
-    }
-
-    // Case 4: String - could be URL or local file path
-    if (typeof value === 'string') {
-      logger.log(
-        `Detected string value for field ${fieldPath}: ${value.substring(0, 100)}${value.length > 100 ? '...' : ''}`,
-      );
-      return await uploadStringResource(value, resourceType, request, uploader, logger);
-    }
-
-    logger.warn(`Unsupported resource value type for field ${fieldPath}: ${typeof value}`);
-    return null;
-  } catch (error) {
-    logger.error(
-      `Failed to upload resource ${fieldPath}: ${(error as Error).message}`,
-      (error as Error).stack,
-    );
-    return null;
-  }
-}
-
-/**
- * Upload a local file to storage
- */
-async function uploadLocalFile(
-  filePath: string,
-  resourceType: ToolResourceType,
-  request: HandlerRequest,
-  uploader: ResourceUploader,
-  logger: Logger,
-): Promise<UploadResult | null> {
-  try {
-    // Check if it's a valid local file path
-    await fs.access(filePath);
-
-    // Upload the file - use context.user if available, fallback to request.user
-    const userId = RequestContextManager.getContext().user?.uid;
-    return await uploader.uploadFile(filePath, {
-      provider: request.provider,
-      method: request.method,
-      type: resourceType,
-      userId,
-    });
-  } catch {
-    // Not a local file path, might be a URL or other string
-    logger.warn(`Value is not a local file path: ${filePath}`);
-    return null;
-  }
-}
-
-/**
- * Check if value is an upload result
- */
-function isUploadResult(value: unknown): value is UploadResult {
-  return (
-    typeof value === 'object' &&
-    value !== null &&
-    'entityId' in value &&
-    'url' in value &&
-    'storageKey' in value
-  );
-}
-
-/**
- * Upload multiple resource items in parallel
- */
-export async function uploadResourceItems(
-  items: unknown[],
-  baseFieldPath: string,
-  resourceType: ToolResourceType,
-  request: HandlerRequest,
-  uploader: ResourceUploader,
-  logger: Logger,
-  context?: HandlerContext,
-): Promise<UploadResult[]> {
-  const results = await Promise.all(
-    items.map((item, index) =>
-      uploadResourceItem(
-        item,
-        `${baseFieldPath}[${index}]`,
-        resourceType,
-        request,
-        uploader,
-        logger,
-        context,
-      ),
-    ),
-  );
-
-  return results.filter((r): r is UploadResult => r !== null);
-}
-
-/**
- * Extract upload result data for response
- */
-export function extractUploadData(result: UploadResult): {
-  url: string;
-  entityId: string;
-  storageKey: string;
-} {
-  return {
-    url: result.url,
-    entityId: result.entityId,
-    storageKey: result.storageKey,
-  };
-}
-
-/**
- * ============================================================================
- * Resource Resolution Utilities (for input resources)
- * ============================================================================
- */
-
-/**
- * Process a single resource item for input
- * Converts entityId to Buffer/File or keeps existing Buffer/File
- * @param value - Value to process (entityId, Buffer, File, etc.)
- * @param fieldPath - Path to the field for logging
- * @param resolver - Resource resolver instance
- * @param logger - Logger instance
- * @returns Processed value (Buffer, File, or original)
- */
-export async function resolveResourceItem(
-  value: unknown,
-  fieldPath: string,
-  resolver: ResourceResolver,
-  logger: Logger,
-): Promise<unknown> {
-  // If value is already a Buffer or File, return as-is
-  if (value instanceof Buffer || value instanceof Blob || isFileObject(value)) {
-    return value;
-  }
-
-  // If value is an object with entityId, resolve it
-  if (typeof value === 'object' && value !== null && 'entityId' in value) {
-    const entityId = (value as { entityId: string }).entityId;
-
-    try {
-      // Get file metadata from database
-      const metadata = await resolver.getFileMetadata(entityId);
-
-      if (!metadata) {
-        logger.warn(`File not found for entityId: ${entityId}`);
-        return value;
+  /**
+   * Recursively traverse schema and data together
+   */
+  async function traverse(
+    schemaProperty: SchemaProperty,
+    dataValue: unknown,
+    key: string,
+    parent: Record<string, unknown>,
+  ): Promise<void> {
+    // Case 1: This field is marked as a resource
+    if (schemaProperty.isResource) {
+      if (dataValue !== undefined && dataValue !== null) {
+        parent[key] = await processor(dataValue, schemaProperty);
       }
-
-      // Download file buffer
-      const buffer = await resolver.resolveFile(metadata.storageKey, metadata.visibility);
-
-      // Create a File-like object with buffer and metadata
-      return createFileObject(buffer, metadata.entityId, metadata.mimeType);
-    } catch (error) {
-      logger.error(
-        `Failed to resolve entityId ${entityId} for field ${fieldPath}: ${(error as Error).message}`,
-      );
-      return value;
-    }
-  }
-
-  // If value is a string (might be entityId directly), try to resolve
-  if (typeof value === 'string') {
-    try {
-      const metadata = await resolver.getFileMetadata(value);
-
-      if (!metadata) {
-        // Not a valid entityId, return original value
-        return value;
-      }
-
-      const buffer = await resolver.resolveFile(metadata.storageKey, metadata.visibility);
-      return createFileObject(buffer, metadata.entityId, metadata.mimeType);
-    } catch {
-      // Not a valid entityId, return original value
-      return value;
-    }
-  }
-
-  return value;
-}
-
-/**
- * Resolve multiple resource items in parallel
- * @param items - Array of items to resolve
- * @param baseFieldPath - Base path for logging
- * @param resolver - Resource resolver instance
- * @param logger - Logger instance
- * @returns Array of resolved items
- */
-export async function resolveResourceItems(
-  items: unknown[],
-  baseFieldPath: string,
-  resolver: ResourceResolver,
-  logger: Logger,
-): Promise<unknown[]> {
-  return await Promise.all(
-    items.map((item, index) =>
-      resolveResourceItem(item, `${baseFieldPath}[${index}]`, resolver, logger),
-    ),
-  );
-}
-
-/**
- * Check if value is a File object
- * @param value - Value to check
- * @returns True if value appears to be a File
- */
-function isFileObject(value: unknown): boolean {
-  return (
-    value !== null &&
-    typeof value === 'object' &&
-    ('name' in value || 'type' in value || 'lastModified' in value)
-  );
-}
-
-/**
- * Create a File-like object from Buffer
- * @param buffer - File buffer
- * @param filename - File name
- * @param mimeType - MIME type
- * @returns File object
- */
-function createFileObject(buffer: Buffer, filename: string, mimeType?: string): File {
-  // Convert Buffer to Blob
-  const blob = new Blob([buffer], { type: mimeType || 'application/octet-stream' });
-
-  // Create File from Blob
-  const extension = filename.split('.').pop() || 'bin';
-  return new File([blob], `${filename}.${extension}`, { type: mimeType });
-}
-
-/**
- * ============================================================================
- * Download Utilities
- * ============================================================================
- */
-
-/**
- * Download file from storage
- * @param storageKey - Storage key of the file
- * @param visibility - File visibility (public or private)
- * @param resolver - Resource resolver instance
- * @param logger - Logger instance
- * @returns File content as Buffer
- */
-export async function downloadFile(
-  storageKey: string,
-  visibility: 'public' | 'private',
-  resolver: ResourceResolver,
-  logger: Logger,
-): Promise<Buffer | null> {
-  try {
-    return await resolver.resolveFile(storageKey, visibility);
-  } catch (error) {
-    logger.error(
-      `Failed to download file ${storageKey}: ${(error as Error).message}`,
-      (error as Error).stack,
-    );
-    return null;
-  }
-}
-
-/**
- * Get file metadata from database
- * @param entityId - Entity ID of the file
- * @param resolver - Resource resolver instance
- * @param logger - Logger instance
- * @returns File metadata or null if not found
- */
-export async function getFileMetadata(
-  entityId: string,
-  resolver: ResourceResolver,
-  logger: Logger,
-): Promise<FileMetadata | null> {
-  try {
-    return await resolver.getFileMetadata(entityId);
-  } catch (error) {
-    logger.error(
-      `Failed to get file metadata for ${entityId}: ${(error as Error).message}`,
-      (error as Error).stack,
-    );
-    return null;
-  }
-}
-
-/**
- * Download and resolve resource by entity ID
- * Fetches metadata first, then downloads the file
- * @param entityId - Entity ID of the resource
- * @param resolver - Resource resolver instance
- * @param logger - Logger instance
- * @returns Object containing metadata and file buffer
- */
-export async function resolveResource(
-  entityId: string,
-  resolver: ResourceResolver,
-  logger: Logger,
-): Promise<{ metadata: FileMetadata; buffer: Buffer } | null> {
-  try {
-    // Get file metadata
-    const metadata = await resolver.getFileMetadata(entityId);
-    if (!metadata) {
-      logger.warn(`File metadata not found for entity ${entityId}`);
-      return null;
-    }
-
-    // Download file
-    const buffer = await resolver.resolveFile(metadata.storageKey, metadata.visibility);
-    if (!buffer) {
-      logger.warn(`File not found in storage for entity ${entityId}`);
-      return null;
-    }
-
-    return { metadata, buffer };
-  } catch (error) {
-    logger.error(
-      `Failed to resolve resource ${entityId}: ${(error as Error).message}`,
-      (error as Error).stack,
-    );
-    return null;
-  }
-}
-
-/**
- * ============================================================================
- * Schema Extraction Utilities
- * ============================================================================
- */
-
-/**
- * Extract resource fields from JSON schema
- * Finds all fields marked with isResource: true
- * @param schema - JSON schema to extract from
- * @returns Array of resource fields with their paths and types
- */
-export function extractResourceFields(schema: JsonSchema): ResourceField[] {
-  const resourceFields: ResourceField[] = [];
-
-  function traverse(property: SchemaProperty, path: string, parentIsArray = false): void {
-    if (property.isResource && property.resourceType) {
-      resourceFields.push({
-        fieldPath: path,
-        type: property.resourceType,
-        isArray: parentIsArray,
-      });
       return;
     }
 
-    if (property.type === 'object' && property.properties) {
-      for (const [key, subProperty] of Object.entries(property.properties)) {
-        const subPath = path ? `${path}.${key}` : key;
-        traverse(subProperty, subPath, false);
+    // Case 2: Array type
+    if (schemaProperty.type === 'array' && schemaProperty.items && Array.isArray(dataValue)) {
+      // Check if array items are resources
+      if (schemaProperty.items.isResource) {
+        const processed = await Promise.all(
+          dataValue.map((item) => processor(item, schemaProperty.items!)),
+        );
+        parent[key] = processed;
+      } else if (schemaProperty.items.type === 'object' && schemaProperty.items.properties) {
+        // Array of objects that might contain resources
+        const processed = await Promise.all(
+          dataValue.map(async (item) => {
+            if (item && typeof item === 'object') {
+              return await processResourcesInData(
+                { type: 'object', properties: schemaProperty.items!.properties! } as JsonSchema,
+                item as Record<string, unknown>,
+                processor,
+              );
+            }
+            return item;
+          }),
+        );
+        parent[key] = processed;
       }
+      return;
     }
 
-    if (property.type === 'array' && property.items) {
-      if (property.items.isResource && property.items.resourceType) {
-        resourceFields.push({
-          fieldPath: path,
-          type: property.items.resourceType,
-          isArray: true,
-        });
-      } else {
-        traverse(property.items, path, true);
-      }
+    // Case 3: Object with nested properties
+    if (
+      schemaProperty.type === 'object' &&
+      schemaProperty.properties &&
+      dataValue &&
+      typeof dataValue === 'object'
+    ) {
+      const nestedData = dataValue as Record<string, unknown>;
+      const processedNested = { ...nestedData };
+
+      await Promise.all(
+        Object.entries(schemaProperty.properties).map(async ([nestedKey, nestedSchema]) => {
+          const nestedValue = nestedData[nestedKey];
+          if (nestedValue !== undefined) {
+            await traverse(nestedSchema, nestedValue, nestedKey, processedNested);
+          }
+        }),
+      );
+
+      parent[key] = processedNested;
     }
   }
 
-  // Traverse all properties in the schema
+  // Process all root properties
   if (schema.properties) {
-    for (const [fieldName, fieldSchema] of Object.entries(schema.properties)) {
-      traverse(fieldSchema, fieldName);
-    }
+    await Promise.all(
+      Object.entries(schema.properties).map(async ([key, schemaProperty]) => {
+        const value = data[key];
+        if (value !== undefined) {
+          await traverse(schemaProperty, value, key, result);
+        }
+      }),
+    );
   }
 
-  return resourceFields;
+  return result;
 }
 
 /**
- * Extract resource fields from response schema
- * @param schema - Response schema to extract from
- * @returns Array of output resource fields
+ * Create a ResourceResolver instance using DriveService
+ * Note: getCurrentUser is obtained from context, not passed as dependency
+ *
+ * @param driveService - DriveService instance
+ * @param prisma - Prisma client instance
+ * @param logger - Logger instance
+ * @returns ResourceResolver instance
  */
-export function extractOutputResourceFields(schema: ResponseSchema): ResourceField[] {
-  return extractResourceFields(schema);
-}
+export function createResourceResolver(driveService: any, logger: Logger): ResourceResolver {
+  return {
+    resolveDriveFile: async (
+      fileId: string,
+      format: 'base64' | 'url' | 'buffer' | 'text' = 'buffer',
+    ) => {
+      try {
+        const user = getCurrentUser();
+        if (!user) {
+          throw new Error('User context is required for drive file resolution');
+        }
 
-/**
- * ============================================================================
- * Enhanced Resource Upload Utilities (Buffer, URL, Base64 support)
- * ============================================================================
- */
+        // Get drive file details
+        const driveFile = await driveService.getDriveFileDetail(user, fileId);
+        if (!driveFile) {
+          throw new Error(`Drive file not found: ${fileId}`);
+        }
 
-/**
- * Buffer object interface
- */
-interface BufferObject {
-  buffer: Buffer;
-  filename?: string;
-  mimetype?: string;
-}
+        // Handle different output formats
+        switch (format) {
+          case 'url': {
+            // Generate signed URL for the drive file
+            const urls = await driveService.generateDriveFileUrls(user, [driveFile]);
+            if (!urls || urls.length === 0) {
+              throw new Error(`Failed to generate URL for drive file: ${fileId}`);
+            }
+            return urls[0];
+          }
 
-/**
- * Base64 object interface
- */
-interface Base64Object {
-  data: string;
-  filename: string;
-  mimetype: string;
-}
+          case 'base64': {
+            // Get file stream and convert to base64
+            const result = await driveService.getDriveFileStream(user, fileId);
+            const base64 = result.data.toString('base64');
+            return `data:${result.contentType};base64,${base64}`;
+          }
 
-/**
- * Check if value is a buffer object
- */
-function isBufferObject(value: unknown): value is BufferObject {
-  return (
-    typeof value === 'object' &&
-    value !== null &&
-    'buffer' in value &&
-    Buffer.isBuffer((value as BufferObject).buffer)
-  );
-}
+          case 'text': {
+            // Get file stream and convert to text
+            const result = await driveService.getDriveFileStream(user, fileId);
+            return result.data.toString('utf-8');
+          }
 
-/**
- * Check if value is a base64 object
- */
-function isBase64Object(value: unknown): value is Base64Object {
-  return (
-    typeof value === 'object' &&
-    value !== null &&
-    'data' in value &&
-    typeof (value as Base64Object).data === 'string' &&
-    'filename' in value &&
-    'mimetype' in value
-  );
-}
-
-/**
- * Check if string is a URL
- */
-function isURL(str: string): boolean {
-  try {
-    const url = new URL(str);
-    return url.protocol === 'http:' || url.protocol === 'https:';
-  } catch {
-    return false;
-  }
-}
-
-/**
- * Check if string is a local file path
- */
-async function isLocalFile(path: string): Promise<boolean> {
-  try {
-    await fs.access(path);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-/**
- * Upload string resource (URL or local path)
- */
-async function uploadStringResource(
-  value: string,
-  resourceType: ToolResourceType,
-  request: HandlerRequest,
-  uploader: ResourceUploader,
-  logger: Logger,
-): Promise<UploadResult | null> {
-  // Try local file path first
-  if (await isLocalFile(value)) {
-    logger.log(`Uploading from local file: ${value}`);
-    return await uploadLocalFile(value, resourceType, request, uploader, logger);
-  }
-
-  // Try URL
-  if (isURL(value)) {
-    logger.log(`Downloading and uploading from URL: ${value}`);
-    return await downloadAndUpload(value, resourceType, request, uploader, logger);
-  }
-
-  logger.warn(`String value is neither a local file nor URL: ${value}`);
-  return null;
-}
-
-/**
- * Upload buffer resource
- */
-async function uploadBufferResource(
-  value: BufferObject,
-  resourceType: ToolResourceType,
-  request: HandlerRequest,
-  uploader: ResourceUploader,
-  logger: Logger,
-  context?: HandlerContext,
-): Promise<UploadResult | null> {
-  // Save buffer to temp file and upload
-  return await uploadBufferViaTemp(value, resourceType, request, uploader, logger, context);
-}
-
-/**
- * Upload base64 resource
- */
-async function uploadBase64Resource(
-  value: Base64Object,
-  resourceType: ToolResourceType,
-  request: HandlerRequest,
-  uploader: ResourceUploader,
-  logger: Logger,
-  context?: HandlerContext,
-): Promise<UploadResult | null> {
-  // Convert base64 to buffer
-  const buffer = Buffer.from(value.data, 'base64');
-  return await uploadBufferViaTemp(
-    { buffer, filename: value.filename, mimetype: value.mimetype },
-    resourceType,
-    request,
-    uploader,
-    logger,
-    context,
-  );
-}
-
-/**
- * Upload buffer via temporary file
- */
-async function uploadBufferViaTemp(
-  value: BufferObject,
-  resourceType: ToolResourceType,
-  request: HandlerRequest,
-  uploader: ResourceUploader,
-  logger: Logger,
-  _context?: HandlerContext,
-): Promise<UploadResult | null> {
-  const os = await import('node:os');
-  const path = await import('node:path');
-
-  const tempDir = os.tmpdir();
-  const extension =
-    value.filename?.split('.').pop() || getExtensionFromMimeType(value.mimetype || '');
-  const tempPath = path.join(tempDir, `upload-${Date.now()}.${extension}`);
-
-  try {
-    // Write buffer to temp file
-    await fs.writeFile(tempPath, value.buffer);
-    logger.log(`Saved buffer to temp file: ${tempPath}`);
-
-    // Upload temp file - use context.user if available, fallback to request.user
-    const userId = RequestContextManager.getContext().user.uid;
-    const result = await uploader.uploadFile(tempPath, {
-      provider: request.provider,
-      method: request.method,
-      type: resourceType,
-      userId,
-    });
-
-    return result;
-  } finally {
-    // Clean up temp file
-    try {
-      await fs.unlink(tempPath);
-      logger.log(`Deleted temp file: ${tempPath}`);
-    } catch (error) {
-      logger.warn(`Failed to delete temp file ${tempPath}: ${(error as Error).message}`);
-    }
-  }
-}
-
-/**
- * Download from URL and upload to storage
- */
-async function downloadAndUpload(
-  url: string,
-  resourceType: ToolResourceType,
-  request: HandlerRequest,
-  uploader: ResourceUploader,
-  logger: Logger,
-): Promise<UploadResult | null> {
-  const os = await import('node:os');
-  const path = await import('node:path');
-
-  const tempDir = os.tmpdir();
-  const urlObj = new URL(url);
-  const extension = path.extname(urlObj.pathname) || '.bin';
-  const tempPath = path.join(tempDir, `download-${Date.now()}${extension}`);
-
-  try {
-    // Download file
-    logger.log(`Downloading from URL: ${url}`);
-    const response = await fetch(url);
-    if (!response.ok) {
-      throw new Error(`Failed to download from ${url}: ${response.statusText}`);
-    }
-
-    const buffer = Buffer.from(await response.arrayBuffer());
-    await fs.writeFile(tempPath, buffer);
-    logger.log(`Downloaded to temp file: ${tempPath} (${buffer.length} bytes)`);
-
-    // Upload temp file - use context.user if available, fallback to request.user
-    const userId = RequestContextManager.getContext().user.uid;
-    const result = await uploader.uploadFile(tempPath, {
-      provider: request.provider,
-      method: request.method,
-      type: resourceType,
-      userId,
-    });
-
-    return result;
-  } finally {
-    // Clean up temp file
-    try {
-      await fs.unlink(tempPath);
-      logger.log(`Deleted temp file: ${tempPath}`);
-    } catch (error) {
-      logger.warn(`Failed to delete temp file ${tempPath}: ${(error as Error).message}`);
-    }
-  }
-}
-
-/**
- * Get file extension from MIME type
- */
-function getExtensionFromMimeType(mimetype: string): string {
-  const map: Record<string, string> = {
-    'audio/mpeg': 'mp3',
-    'audio/mp3': 'mp3',
-    'audio/wav': 'wav',
-    'audio/ogg': 'ogg',
-    'video/mp4': 'mp4',
-    'video/webm': 'webm',
-    'image/png': 'png',
-    'image/jpeg': 'jpg',
-    'image/jpg': 'jpg',
-    'image/gif': 'gif',
-    'image/webp': 'webp',
-    'application/pdf': 'pdf',
-    'application/octet-stream': 'bin',
+          default: {
+            // Get file as buffer (default)
+            const result = await driveService.getDriveFileStream(user, fileId);
+            return result.data;
+          }
+        }
+      } catch (error) {
+        logger.error(
+          `Failed to resolve drive file ${fileId} (format: ${format}): ${(error as Error).message}`,
+        );
+        throw error;
+      }
+    },
   };
+}
 
-  // Extract base type (remove charset, etc.)
-  const baseType = mimetype.split(';')[0].trim().toLowerCase();
-  return map[baseType] || 'bin';
+/**
+ * Create a ResourceUploader instance using DriveService
+ * Note: getCurrentUser and getCanvasId are obtained from context, not passed as dependencies
+ *
+ * @param driveService - DriveService instance
+ * @param logger - Logger instance
+ * @returns ResourceUploader instance
+ */
+export function createResourceUploader(driveService: any, logger: Logger): ResourceUploader {
+  return {
+    uploadFile: async (localPath: string, metadata: any) => {
+      try {
+        const user = getCurrentUser();
+        if (!user) {
+          throw new Error('User context is required for file upload');
+        }
+
+        // Read file from local path
+        const buffer = await readFile(localPath);
+        const filename = basename(localPath);
+
+        // Determine MIME type
+        const mimetype = metadata.mimeType || mime.getType(filename) || 'application/octet-stream';
+
+        // Use 'agent' as source for tool-generated files
+        const source = 'agent' as const;
+
+        // Get canvas ID from request context
+        const canvasId = getCanvasId();
+        if (!canvasId) {
+          throw new Error('Canvas ID is required in request context for file upload');
+        }
+
+        // Create drive file using DriveService
+        const driveFile = await driveService.createDriveFile(user, {
+          canvasId,
+          name: filename,
+          type: mimetype,
+          source,
+          content: buffer.toString('base64'),
+        });
+
+        logger.debug(`Uploaded file ${filename} to drive with fileId: ${driveFile.fileId}`);
+
+        return {
+          fileId: driveFile.fileId,
+          resourceType: metadata.type,
+          metadata: {
+            size: buffer.length,
+            mimeType: mimetype,
+          },
+        };
+      } catch (error) {
+        logger.error(
+          `Failed to upload file ${localPath}: ${(error as Error).message}`,
+          (error as Error).stack,
+        );
+        throw error;
+      }
+    },
+
+    uploadBuffer: async (buffer: Buffer, filename: string, metadata: any) => {
+      try {
+        const user = getCurrentUser();
+        if (!user) {
+          throw new Error('User context is required for buffer upload');
+        }
+
+        // Determine MIME type
+        const mimetype = metadata.mimeType || mime.getType(filename) || 'application/octet-stream';
+
+        // Use 'agent' as source for tool-generated files
+        const source = 'agent' as const;
+
+        // Get canvas ID from request context
+        const canvasId = getCanvasId();
+        if (!canvasId) {
+          throw new Error('Canvas ID is required in request context for buffer upload');
+        }
+
+        // Create drive file using DriveService
+        const driveFile = await driveService.createDriveFile(user, {
+          canvasId,
+          name: filename,
+          type: mimetype,
+          source,
+          content: buffer.toString('base64'),
+        });
+
+        logger.debug(`Uploaded buffer as ${filename} to drive with fileId: ${driveFile.fileId}`);
+
+        return {
+          fileId: driveFile.fileId,
+          resourceType: metadata.type,
+          metadata: {
+            size: buffer.length,
+            mimeType: mimetype,
+          },
+        };
+      } catch (error) {
+        logger.error(
+          `Failed to upload buffer ${filename}: ${(error as Error).message}`,
+          (error as Error).stack,
+        );
+        throw error;
+      }
+    },
+
+    uploadFromUrl: async (url: string, filename: string, metadata: any) => {
+      try {
+        const user = getCurrentUser();
+        if (!user) {
+          throw new Error('User context is required for URL upload');
+        }
+
+        // Determine MIME type
+        const mimetype = metadata.mimeType || mime.getType(filename) || 'application/octet-stream';
+
+        // Use 'agent' as source for tool-generated files
+        const source = 'agent' as const;
+
+        // Get canvas ID from request context
+        const canvasId = getCanvasId();
+        if (!canvasId) {
+          throw new Error('Canvas ID is required in request context for URL upload');
+        }
+
+        // Create drive file using DriveService with external URL
+        const driveFile = await driveService.createDriveFile(user, {
+          canvasId,
+          name: filename,
+          type: mimetype,
+          source,
+          externalUrl: url,
+        });
+
+        logger.debug(`Uploaded file from URL ${url} to drive with fileId: ${driveFile.fileId}`);
+
+        return {
+          fileId: driveFile.fileId,
+          resourceType: metadata.type,
+          metadata: {
+            size: Number(driveFile.size),
+            mimeType: mimetype,
+          },
+        };
+      } catch (error) {
+        logger.error(
+          `Failed to upload from URL ${url}: ${(error as Error).message}`,
+          (error as Error).stack,
+        );
+        throw error;
+      }
+    },
+  };
+}
+
+/**
+ * ============================================================================
+ * ResourceHandler Class
+ * Encapsulates all resource preprocessing and postprocessing logic
+ * ============================================================================
+ */
+
+@Injectable()
+export class ResourceHandler {
+  private readonly logger = new Logger(ResourceHandler.name);
+
+  constructor(
+    private readonly driveService: DriveService,
+    private readonly miscService: MiscService,
+  ) {}
+
+  /**
+   * Preprocess input resources by traversing schema and data together
+   * Automatically resolves all fields marked with isResource: true
+   *
+   * @param request - Handler request containing params with fileIds
+   * @param schema - JSON schema with isResource markers
+   * @returns Processed request with fileIds replaced by actual content
+   */
+  async preprocessInputResources(
+    request: HandlerRequest,
+    schema: JsonSchema,
+  ): Promise<HandlerRequest> {
+    if (!schema?.properties) {
+      this.logger.debug('No schema properties to process');
+      return request;
+    }
+
+    const processedParams = await processResourcesInData(
+      schema,
+      request.params as Record<string, unknown>,
+      async (value, schemaProperty) => {
+        return await this.resolveFileIdToFormat(
+          value,
+          schemaProperty.resourceOutputFormat || 'buffer',
+        );
+      },
+    );
+
+    return {
+      ...request,
+      params: processedParams,
+    };
+  }
+
+  /**
+   * Postprocess output resources by traversing schema and data together
+   * Upload generated resources to DriveService and replace with fileIds
+   *
+   * Handles two cases:
+   * 1. Direct binary response: response.data is { buffer, filename, mimetype }
+   * 2. Structured response: response.data contains fields marked with isResource in schema
+   *
+   * @param response - Handler response containing resource content
+   * @param request - Original handler request (for metadata)
+   * @param schema - Response schema with isResource markers
+   * @returns Processed response with content replaced by fileIds
+   */
+  async postprocessOutputResources(
+    response: HandlerResponse,
+    request: HandlerRequest,
+    schema: ResponseSchema,
+  ): Promise<HandlerResponse> {
+    if (!response.success || !response.data) {
+      return response;
+    }
+    // Case 1: Direct binary response from HTTP adapter
+    // Response data is { buffer: Buffer, filename: string, mimetype: string }
+    if (this.isDirectBinaryResponse(response.data)) {
+      const uploadResult = await this.uploadResource(response.data, request);
+      if (uploadResult) {
+        return {
+          ...response,
+          data: { fileId: uploadResult.fileId },
+          fileId: uploadResult.fileId,
+        };
+      }
+      // If upload failed, return original response
+      return response;
+    }
+
+    // Case 2: Structured response with schema-based resource fields
+    if (!schema?.properties) {
+      this.logger.debug('No schema properties to process');
+      return response;
+    }
+
+    const processedData = await processResourcesInData(
+      schema as JsonSchema,
+      response.data as Record<string, unknown>,
+      async (value) => {
+        // Upload the resource and return fileId reference
+        const result = await this.uploadResource(value, request);
+        return result ? { fileId: result.fileId } : value;
+      },
+    );
+
+    return {
+      ...response,
+      data: processedData,
+    };
+  }
+
+  /**
+   * Check if response data is a direct binary response from HTTP adapter
+   * Binary responses have the shape: { buffer: Buffer, filename: string, mimetype: string }
+   */
+  private isDirectBinaryResponse(data: unknown): boolean {
+    return (
+      typeof data === 'object' &&
+      data !== null &&
+      'buffer' in data &&
+      'filename' in data &&
+      'mimetype' in data &&
+      Buffer.isBuffer((data as any).buffer)
+    );
+  }
+
+  /**
+   * Infer resource type from MIME type
+   */
+  private inferResourceType(mimeType: string): ToolResourceType {
+    if (mimeType.startsWith('image/')) return 'image';
+    if (mimeType.startsWith('audio/')) return 'audio';
+    if (mimeType.startsWith('video/')) return 'video';
+    if (mimeType.startsWith('text/') || mimeType.includes('json') || mimeType.includes('xml')) {
+      return 'document';
+    }
+    if (mimeType.includes('pdf') || mimeType.includes('word') || mimeType.includes('document')) {
+      return 'document';
+    }
+    return 'document'; // Default fallback
+  }
+
+  /**
+   * Upload a resource value to DriveService
+   * @param value - Resource content (Buffer, base64, URL, etc.)
+   * @param _request - Original handler request for metadata (unused but kept for signature compatibility)
+   * @returns Upload result with fileId
+   */
+  private async uploadResource(
+    value: unknown,
+    _request: HandlerRequest,
+  ): Promise<UploadResult | null> {
+    try {
+      const user = getCurrentUser();
+      const canvasId = getCanvasId();
+      // Handle different value types
+      if (Buffer.isBuffer(value)) {
+        // Step 1: Upload buffer to object storage via MiscService
+        const uploadResult = await this.miscService.uploadFile(user, {
+          file: {
+            buffer: value,
+            mimetype: 'application/octet-stream',
+            originalname: `resource-${Date.now()}.bin`,
+          },
+          visibility: 'private',
+        });
+
+        // Step 2: Create DriveFile with the storageKey
+        const driveFile = await this.driveService.createDriveFile(user, {
+          canvasId,
+          name: `resource-${Date.now()}.bin`,
+          storageKey: uploadResult.storageKey,
+          source: 'agent',
+        });
+
+        return {
+          fileId: driveFile.fileId,
+          resourceType: this.inferResourceType(driveFile.type),
+          metadata: {
+            size: Number(driveFile.size),
+            mimeType: driveFile.type,
+          },
+        };
+      }
+
+      if (typeof value === 'string') {
+        // Could be base64, URL, or file path
+        if (value.startsWith('data:')) {
+          // Base64 data URL
+          const matches = value.match(/^data:([^;]+);base64,(.+)$/);
+          if (matches) {
+            const [, mimeType, base64Data] = matches;
+            const driveFile = await this.driveService.createDriveFile(user, {
+              canvasId,
+              name: `resource-${Date.now()}.${mime.getExtension(mimeType) || 'bin'}`,
+              type: mimeType,
+              content: base64Data,
+              source: 'agent',
+            });
+            return {
+              fileId: driveFile.fileId,
+              resourceType: this.inferResourceType(driveFile.type),
+              metadata: {
+                size: Number(driveFile.size),
+                mimeType: driveFile.type,
+              },
+            };
+          }
+        } else if (value.startsWith('http://') || value.startsWith('https://')) {
+          // External URL
+          const driveFile = await this.driveService.createDriveFile(user, {
+            canvasId,
+            name: `resource-${Date.now()}.bin`,
+            externalUrl: value,
+            source: 'agent',
+          });
+          return {
+            fileId: driveFile.fileId,
+            resourceType: this.inferResourceType(driveFile.type),
+            metadata: {
+              size: Number(driveFile.size),
+              mimeType: driveFile.type,
+            },
+          };
+        }
+      }
+
+      // Handle object with buffer property
+      if (value && typeof value === 'object') {
+        const obj = value as any;
+        if (obj.buffer && Buffer.isBuffer(obj.buffer)) {
+          const mimeType = obj.mimetype || 'application/octet-stream';
+          const filename = obj.filename || `resource-${Date.now()}.bin`;
+
+          // Step 1: Upload buffer to object storage via MiscService
+          const uploadResult = await this.miscService.uploadFile(user, {
+            file: {
+              buffer: obj.buffer,
+              mimetype: mimeType,
+              originalname: filename,
+            },
+            visibility: 'private',
+          });
+
+          // Step 2: Create DriveFile with the storageKey
+          const driveFile = await this.driveService.createDriveFile(user, {
+            canvasId,
+            name: filename,
+            storageKey: uploadResult.storageKey,
+            source: 'agent',
+          });
+
+          return {
+            fileId: driveFile.fileId,
+            resourceType: this.inferResourceType(driveFile.type),
+            metadata: {
+              size: Number(driveFile.size),
+              mimeType: driveFile.type,
+            },
+          };
+        }
+      }
+
+      this.logger.warn('Unsupported resource value type, skipping upload');
+      return null;
+    } catch (error) {
+      this.logger.error(`Failed to upload resource: ${(error as Error).message}`);
+      throw error;
+    }
+  }
+
+  /**
+   * Resolve fileId to specified format
+   * @param value - String fileId or object with fileId property
+   * @param format - Output format (base64/url/buffer/text)
+   * @param fieldPath - Field path for logging
+   * @returns Resolved content in specified format
+   */
+  private async resolveFileIdToFormat(
+    value: unknown,
+    format: 'base64' | 'url' | 'buffer' | 'text',
+  ): Promise<string | Buffer> {
+    // Extract fileId from value
+    const fileId = typeof value === 'string' ? value : (value as any)?.fileId;
+    if (!fileId) {
+      throw new Error('Invalid resource value: missing fileId');
+    }
+
+    // Get user context
+    const user = getCurrentUser();
+    if (!user) {
+      throw new Error('User context is required for file resolution');
+    }
+
+    this.logger.debug(`Resolving fileId ${fileId} to format: ${format}`);
+
+    // Get drive file details
+    const driveFile = await this.driveService.getDriveFileDetail(user, fileId);
+    if (!driveFile) {
+      throw new Error(`Drive file not found: ${fileId}`);
+    }
+
+    // Convert to specified format
+    switch (format) {
+      case 'url': {
+        const urls = await this.driveService.generateDriveFileUrls(user, [driveFile]);
+        if (!urls || urls.length === 0) {
+          throw new Error(`Failed to generate URL for drive file: ${fileId}`);
+        }
+        return urls[0];
+      }
+
+      case 'base64': {
+        const result = await this.driveService.getDriveFileStream(user, fileId);
+        const base64 = result.data.toString('base64');
+        return `data:${result.contentType};base64,${base64}`;
+      }
+
+      case 'text': {
+        const result = await this.driveService.getDriveFileStream(user, fileId);
+        return result.data.toString('utf-8');
+      }
+
+      default: {
+        // buffer
+        const result = await this.driveService.getDriveFileStream(user, fileId);
+        return result.data;
+      }
+    }
+  }
 }

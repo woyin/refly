@@ -8,6 +8,7 @@ import { CollabModule } from '../collab/collab.module';
 import { CommonModule } from '../common/common.module';
 import { CreditModule } from '../credit/credit.module';
 import { SyncToolCreditUsageProcessor } from '../credit/credit.processor';
+import { DriveModule } from '../drive/drive.module';
 import { KnowledgeModule } from '../knowledge/knowledge.module';
 import { McpServerModule } from '../mcp-server/mcp-server.module';
 import { MiscModule } from '../misc/misc.module';
@@ -23,12 +24,14 @@ import { FishAudioModule } from './media/audio/fish-audio.module';
 import { HeyGenModule } from './media/video/heygen.module';
 import { ToolController } from './tool.controller';
 import { ToolService } from './tool.service';
+import { ResourceHandler } from './utils/resource';
 
 @Module({
   imports: [
     CommonModule,
     McpServerModule,
     MiscModule,
+    DriveModule,
     ComposioModule,
     CodeArtifactModule,
     CollabModule,
@@ -52,6 +55,8 @@ import { ToolService } from './tool.service';
     ToolDefinitionRegistry,
     ToolFactory,
     AdapterFactory,
+    // Resource handler for input/output resource preprocessing
+    ResourceHandler,
   ],
   exports: [
     ToolService,
