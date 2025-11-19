@@ -175,6 +175,7 @@
 
 .ant-otp .ant-otp-input.ant-input-status-error {
   border-color: var(--refly-error) !important;
+}
 .ant-image-preview-operations {
   background-color: var(--refly-bg-content-z2) !important;
 }
