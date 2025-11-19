@@ -2617,7 +2617,7 @@ const translations = {
       activateInvitationCodeSuccess: 'Welcome to Refly 🎉 Start your AI automation journey!',
       activateInvitationCodeFailed:
         'Invite code is invalid. Please try again or join Discord to get a new one.',
-      invitationCodeCopied: 'Invitation code copied to clipboard',
+      invitationCodeCopied: 'Invite code copied! Go share it with your friends~',
       invitationCodeCopyFailed: 'Failed to copy invitation code',
       invitationReward: '+{amount} credits',
       inviteFriendsTitle: 'Invite friends with your code',
