@@ -305,13 +305,13 @@ export class CreditService {
     inviteeUid: string,
     now: Date = new Date(),
   ): Promise<void> {
-    const inviterCreditAmount = this.configService.get('invitation.inviterCreditAmount');
-    const inviteeCreditAmount = this.configService.get('invitation.inviteeCreditAmount');
+    const inviterCreditAmount = this.configService.get('auth.invitation.inviterCreditAmount');
+    const inviteeCreditAmount = this.configService.get('auth.invitation.inviteeCreditAmount');
     const inviterCreditExpiresInMonths = this.configService.get(
-      'invitation.inviterCreditExpiresInMonths',
+      'auth.invitation.inviterCreditExpiresInMonths',
     );
     const inviteeCreditExpiresInMonths = this.configService.get(
-      'invitation.inviteeCreditExpiresInMonths',
+      'auth.invitation.inviteeCreditExpiresInMonths',
     );
 
     // Calculate expiration dates
