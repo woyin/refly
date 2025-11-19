@@ -8,6 +8,7 @@ import {
   addNodesToCanvasPage,
   authorizeComposioConnection,
   autoNameCanvas,
+  batchCreateDriveFiles,
   batchCreateProviderItems,
   batchCreateResource,
   batchUpdateDocument,
@@ -22,6 +23,7 @@ import {
   createCheckoutSession,
   createCodeArtifact,
   createDocument,
+  createDriveFile,
   createLabelClass,
   createLabelInstance,
   createMcpServer,
@@ -40,6 +42,7 @@ import {
   createWorkflowApp,
   deleteCanvas,
   deleteDocument,
+  deleteDriveFile,
   deleteLabelClass,
   deleteLabelInstance,
   deleteMcpServer,
@@ -107,6 +110,7 @@ import {
   listCodeArtifacts,
   listCopilotSessions,
   listDocuments,
+  listDriveFiles,
   listInvitationCodes,
   listLabelClasses,
   listLabelInstances,
@@ -149,6 +153,7 @@ import {
   updateCanvasTemplate,
   updateCodeArtifact,
   updateDocument,
+  updateDriveFile,
   updateLabelClass,
   updateLabelInstance,
   updateMcpServer,
@@ -325,6 +330,16 @@ export const UseGetWorkflowVariablesKeyFn = (
   clientOptions: Options<unknown, true>,
   queryKey?: Array<unknown>,
 ) => [useGetWorkflowVariablesKey, ...(queryKey ?? [clientOptions])];
+export type ListDriveFilesDefaultResponse = Awaited<ReturnType<typeof listDriveFiles>>['data'];
+export type ListDriveFilesQueryResult<
+  TData = ListDriveFilesDefaultResponse,
+  TError = unknown,
+> = UseQueryResult<TData, TError>;
+export const useListDriveFilesKey = 'ListDriveFiles';
+export const UseListDriveFilesKeyFn = (
+  clientOptions: Options<unknown, true>,
+  queryKey?: Array<unknown>,
+) => [useListDriveFilesKey, ...(queryKey ?? [clientOptions])];
 export type ListCanvasTemplatesDefaultResponse = Awaited<
   ReturnType<typeof listCanvasTemplates>
 >['data'];
@@ -1011,6 +1026,30 @@ export type UpdateWorkflowVariablesMutationResult = Awaited<
 export const useUpdateWorkflowVariablesKey = 'UpdateWorkflowVariables';
 export const UseUpdateWorkflowVariablesKeyFn = (mutationKey?: Array<unknown>) => [
   useUpdateWorkflowVariablesKey,
+  ...(mutationKey ?? []),
+];
+export type CreateDriveFileMutationResult = Awaited<ReturnType<typeof createDriveFile>>;
+export const useCreateDriveFileKey = 'CreateDriveFile';
+export const UseCreateDriveFileKeyFn = (mutationKey?: Array<unknown>) => [
+  useCreateDriveFileKey,
+  ...(mutationKey ?? []),
+];
+export type BatchCreateDriveFilesMutationResult = Awaited<ReturnType<typeof batchCreateDriveFiles>>;
+export const useBatchCreateDriveFilesKey = 'BatchCreateDriveFiles';
+export const UseBatchCreateDriveFilesKeyFn = (mutationKey?: Array<unknown>) => [
+  useBatchCreateDriveFilesKey,
+  ...(mutationKey ?? []),
+];
+export type UpdateDriveFileMutationResult = Awaited<ReturnType<typeof updateDriveFile>>;
+export const useUpdateDriveFileKey = 'UpdateDriveFile';
+export const UseUpdateDriveFileKeyFn = (mutationKey?: Array<unknown>) => [
+  useUpdateDriveFileKey,
+  ...(mutationKey ?? []),
+];
+export type DeleteDriveFileMutationResult = Awaited<ReturnType<typeof deleteDriveFile>>;
+export const useDeleteDriveFileKey = 'DeleteDriveFile';
+export const UseDeleteDriveFileKeyFn = (mutationKey?: Array<unknown>) => [
+  useDeleteDriveFileKey,
   ...(mutationKey ?? []),
 ];
 export type CreateCanvasTemplateMutationResult = Awaited<ReturnType<typeof createCanvasTemplate>>;

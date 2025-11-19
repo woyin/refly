@@ -45,6 +45,7 @@ import {
   listCodeArtifacts,
   listCopilotSessions,
   listDocuments,
+  listDriveFiles,
   listInvitationCodes,
   listLabelClasses,
   listLabelInstances,
@@ -101,6 +102,7 @@ import {
   ListCodeArtifactsData,
   ListCopilotSessionsData,
   ListDocumentsData,
+  ListDriveFilesData,
   ListLabelClassesData,
   ListLabelInstancesData,
   ListMcpServersData,
@@ -238,6 +240,14 @@ export const prefetchUseGetWorkflowVariables = (
   queryClient.prefetchQuery({
     queryKey: Common.UseGetWorkflowVariablesKeyFn(clientOptions),
     queryFn: () => getWorkflowVariables({ ...clientOptions }).then((response) => response.data),
+  });
+export const prefetchUseListDriveFiles = (
+  queryClient: QueryClient,
+  clientOptions: Options<ListDriveFilesData, true>,
+) =>
+  queryClient.prefetchQuery({
+    queryKey: Common.UseListDriveFilesKeyFn(clientOptions),
+    queryFn: () => listDriveFiles({ ...clientOptions }).then((response) => response.data),
   });
 export const prefetchUseListCanvasTemplates = (
   queryClient: QueryClient,

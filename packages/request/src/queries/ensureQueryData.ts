@@ -45,6 +45,7 @@ import {
   listCodeArtifacts,
   listCopilotSessions,
   listDocuments,
+  listDriveFiles,
   listInvitationCodes,
   listLabelClasses,
   listLabelInstances,
@@ -101,6 +102,7 @@ import {
   ListCodeArtifactsData,
   ListCopilotSessionsData,
   ListDocumentsData,
+  ListDriveFilesData,
   ListLabelClassesData,
   ListLabelInstancesData,
   ListMcpServersData,
@@ -238,6 +240,14 @@ export const ensureUseGetWorkflowVariablesData = (
   queryClient.ensureQueryData({
     queryKey: Common.UseGetWorkflowVariablesKeyFn(clientOptions),
     queryFn: () => getWorkflowVariables({ ...clientOptions }).then((response) => response.data),
+  });
+export const ensureUseListDriveFilesData = (
+  queryClient: QueryClient,
+  clientOptions: Options<ListDriveFilesData, true>,
+) =>
+  queryClient.ensureQueryData({
+    queryKey: Common.UseListDriveFilesKeyFn(clientOptions),
+    queryFn: () => listDriveFiles({ ...clientOptions }).then((response) => response.data),
   });
 export const ensureUseListCanvasTemplatesData = (
   queryClient: QueryClient,

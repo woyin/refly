@@ -9,6 +9,7 @@ import {
   addNodesToCanvasPage,
   authorizeComposioConnection,
   autoNameCanvas,
+  batchCreateDriveFiles,
   batchCreateProviderItems,
   batchCreateResource,
   batchUpdateDocument,
@@ -23,6 +24,7 @@ import {
   createCheckoutSession,
   createCodeArtifact,
   createDocument,
+  createDriveFile,
   createLabelClass,
   createLabelInstance,
   createMcpServer,
@@ -41,6 +43,7 @@ import {
   createWorkflowApp,
   deleteCanvas,
   deleteDocument,
+  deleteDriveFile,
   deleteLabelClass,
   deleteLabelInstance,
   deleteMcpServer,
@@ -108,6 +111,7 @@ import {
   listCodeArtifacts,
   listCopilotSessions,
   listDocuments,
+  listDriveFiles,
   listInvitationCodes,
   listLabelClasses,
   listLabelInstances,
@@ -150,6 +154,7 @@ import {
   updateCanvasTemplate,
   updateCodeArtifact,
   updateDocument,
+  updateDriveFile,
   updateLabelClass,
   updateLabelInstance,
   updateMcpServer,
@@ -179,6 +184,8 @@ import {
   AuthorizeComposioConnectionError,
   AutoNameCanvasData,
   AutoNameCanvasError,
+  BatchCreateDriveFilesData,
+  BatchCreateDriveFilesError,
   BatchCreateProviderItemsData,
   BatchCreateProviderItemsError,
   BatchCreateResourceData,
@@ -207,6 +214,8 @@ import {
   CreateCodeArtifactError,
   CreateDocumentData,
   CreateDocumentError,
+  CreateDriveFileData,
+  CreateDriveFileError,
   CreateLabelClassData,
   CreateLabelClassError,
   CreateLabelInstanceData,
@@ -242,6 +251,8 @@ import {
   DeleteCanvasError,
   DeleteDocumentData,
   DeleteDocumentError,
+  DeleteDriveFileData,
+  DeleteDriveFileError,
   DeleteLabelClassData,
   DeleteLabelClassError,
   DeleteLabelInstanceData,
@@ -366,6 +377,8 @@ import {
   ListCopilotSessionsError,
   ListDocumentsData,
   ListDocumentsError,
+  ListDriveFilesData,
+  ListDriveFilesError,
   ListInvitationCodesError,
   ListLabelClassesData,
   ListLabelClassesError,
@@ -443,6 +456,8 @@ import {
   UpdateCodeArtifactError,
   UpdateDocumentData,
   UpdateDocumentError,
+  UpdateDriveFileData,
+  UpdateDriveFileError,
   UpdateLabelClassData,
   UpdateLabelClassError,
   UpdateLabelInstanceData,
@@ -708,6 +723,21 @@ export const useGetWorkflowVariables = <
       getWorkflowVariables({ ...clientOptions }).then(
         (response) => response.data as TData,
       ) as TData,
+    ...options,
+  });
+export const useListDriveFiles = <
+  TData = Common.ListDriveFilesDefaultResponse,
+  TError = ListDriveFilesError,
+  TQueryKey extends Array<unknown> = unknown[],
+>(
+  clientOptions: Options<ListDriveFilesData, true>,
+  queryKey?: TQueryKey,
+  options?: Omit<UseQueryOptions<TData, TError>, 'queryKey' | 'queryFn'>,
+) =>
+  useQuery<TData, TError>({
+    queryKey: Common.UseListDriveFilesKeyFn(clientOptions, queryKey),
+    queryFn: () =>
+      listDriveFiles({ ...clientOptions }).then((response) => response.data as TData) as TData,
     ...options,
   });
 export const useListCanvasTemplates = <
@@ -1880,6 +1910,75 @@ export const useUpdateWorkflowVariables = <
     mutationKey: Common.UseUpdateWorkflowVariablesKeyFn(mutationKey),
     mutationFn: (clientOptions) =>
       updateWorkflowVariables(clientOptions) as unknown as Promise<TData>,
+    ...options,
+  });
+export const useCreateDriveFile = <
+  TData = Common.CreateDriveFileMutationResult,
+  TError = CreateDriveFileError,
+  TQueryKey extends Array<unknown> = unknown[],
+  TContext = unknown,
+>(
+  mutationKey?: TQueryKey,
+  options?: Omit<
+    UseMutationOptions<TData, TError, Options<CreateDriveFileData, true>, TContext>,
+    'mutationKey' | 'mutationFn'
+  >,
+) =>
+  useMutation<TData, TError, Options<CreateDriveFileData, true>, TContext>({
+    mutationKey: Common.UseCreateDriveFileKeyFn(mutationKey),
+    mutationFn: (clientOptions) => createDriveFile(clientOptions) as unknown as Promise<TData>,
+    ...options,
+  });
+export const useBatchCreateDriveFiles = <
+  TData = Common.BatchCreateDriveFilesMutationResult,
+  TError = BatchCreateDriveFilesError,
+  TQueryKey extends Array<unknown> = unknown[],
+  TContext = unknown,
+>(
+  mutationKey?: TQueryKey,
+  options?: Omit<
+    UseMutationOptions<TData, TError, Options<BatchCreateDriveFilesData, true>, TContext>,
+    'mutationKey' | 'mutationFn'
+  >,
+) =>
+  useMutation<TData, TError, Options<BatchCreateDriveFilesData, true>, TContext>({
+    mutationKey: Common.UseBatchCreateDriveFilesKeyFn(mutationKey),
+    mutationFn: (clientOptions) =>
+      batchCreateDriveFiles(clientOptions) as unknown as Promise<TData>,
+    ...options,
+  });
+export const useUpdateDriveFile = <
+  TData = Common.UpdateDriveFileMutationResult,
+  TError = UpdateDriveFileError,
+  TQueryKey extends Array<unknown> = unknown[],
+  TContext = unknown,
+>(
+  mutationKey?: TQueryKey,
+  options?: Omit<
+    UseMutationOptions<TData, TError, Options<UpdateDriveFileData, true>, TContext>,
+    'mutationKey' | 'mutationFn'
+  >,
+) =>
+  useMutation<TData, TError, Options<UpdateDriveFileData, true>, TContext>({
+    mutationKey: Common.UseUpdateDriveFileKeyFn(mutationKey),
+    mutationFn: (clientOptions) => updateDriveFile(clientOptions) as unknown as Promise<TData>,
+    ...options,
+  });
+export const useDeleteDriveFile = <
+  TData = Common.DeleteDriveFileMutationResult,
+  TError = DeleteDriveFileError,
+  TQueryKey extends Array<unknown> = unknown[],
+  TContext = unknown,
+>(
+  mutationKey?: TQueryKey,
+  options?: Omit<
+    UseMutationOptions<TData, TError, Options<DeleteDriveFileData, true>, TContext>,
+    'mutationKey' | 'mutationFn'
+  >,
+) =>
+  useMutation<TData, TError, Options<DeleteDriveFileData, true>, TContext>({
+    mutationKey: Common.UseDeleteDriveFileKeyFn(mutationKey),
+    mutationFn: (clientOptions) => deleteDriveFile(clientOptions) as unknown as Promise<TData>,
     ...options,
   });
 export const useCreateCanvasTemplate = <
