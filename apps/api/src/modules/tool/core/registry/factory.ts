@@ -47,7 +47,6 @@ export class ToolFactory implements OnModuleInit {
     // Preload config-based tools on startup for debugging
     try {
       const configs = await this.configLoader.loadAllConfigs(ToolsetType.REGULAR);
-      this.logger.log(`Preloaded ${configs.length} config-based toolset configurations`);
       // Register tool definitions for preloaded configs
       for (const config of configs) {
         this.definitionRegistry.registerTools(config);
@@ -236,7 +235,6 @@ export class ToolFactory implements OnModuleInit {
         };
 
         tools.push(tool);
-        this.logger.debug(`Created tool: ${definition.name}`);
       } catch (error) {
         this.logger.error(
           `Failed to create tool ${definition.name}: ${(error as Error).message}`,

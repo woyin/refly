@@ -88,12 +88,6 @@ export class HttpAdapter extends BaseAdapter implements IHttpAdapter {
         }
       }
 
-      // Always use arraybuffer responseType to handle both JSON and binary responses
-      // This allows us to detect and handle binary responses even when Accept header is application/json
-      this.logger.debug(
-        `Setting responseType to arraybuffer for endpoint: ${request.endpoint} to support both JSON and binary responses`,
-      );
-
       // Execute request based on HTTP method
       const method = request.method?.toUpperCase() || HttpMethod.POST;
       let response: AxiosResponse;
@@ -224,7 +218,6 @@ export class HttpAdapter extends BaseAdapter implements IHttpAdapter {
     response: AxiosResponse,
   ): { buffer: Buffer; filename: string; mimetype: string } {
     const buffer = this.normalizeToBuffer(data);
-
     const filename = this.extractFilename(response) || this.generateFilename(contentType);
 
     return {

@@ -1612,7 +1612,7 @@ model ToolMethod {
   /// Toolset inventory key (foreign key to ToolsetInventory)
   inventoryKey   String    @map("inventory_key")
   /// Version ID (for version control)
-  versionId      String    @map("version_id")
+  versionId      Int       @default(1) @map("version_id")
   /// Method name (unique within toolset version)
   name           String    @map("name")
   /// Method description (for LLM understanding)

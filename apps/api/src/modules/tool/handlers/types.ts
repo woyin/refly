@@ -36,12 +36,12 @@ export interface ResourceResolver {
   /**
    * Resolve drive file by file ID and convert to specified format
    * @param fileId - Drive file ID
-   * @param format - Output format (base64, url, buffer, text)
+   * @param format - Output format (base64, url, binary, text, or legacy 'buffer')
    * @returns Resolved file content in the specified format
    */
   resolveDriveFile: (
     fileId: string,
-    format?: 'base64' | 'url' | 'buffer' | 'text',
+    format?: 'base64' | 'url' | 'binary' | 'buffer' | 'text',
   ) => Promise<string | Buffer>;
 }
 

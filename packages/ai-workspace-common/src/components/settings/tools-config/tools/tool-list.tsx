@@ -181,7 +181,7 @@ const ToolItem = ({
           )}
         </div>
 
-        {tool?.definition?.tools?.length && (
+        {(tool?.definition?.tools?.length ?? 0) > 0 && (
           <div className="mt-2 p-2 bg-refly-bg-control-z0 rounded-[8px]">
             <div className="flex items-center flex-wrap gap-1">
               {tool?.definition?.tools?.map((t, index) => {

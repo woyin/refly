@@ -7228,11 +7228,6 @@ export type SchemaPropertyType = 'string' | 'number' | 'boolean' | 'object' | 'a
  */
 export type ToolResourceType = 'audio' | 'video' | 'image' | 'document';
 
-/**
- * Output format for resource content
- */
-export type ResourceOutputFormat = 'base64' | 'url' | 'buffer' | 'text';
-
 export type SchemaProperty = {
   type: SchemaPropertyType;
   /**
@@ -7244,9 +7239,9 @@ export type SchemaProperty = {
    */
   isResource?: boolean;
   /**
-   * Output format for resource resolution (default is buffer)
+   * Format for the property value. For resources: base64, url, binary, text. For strings: date-time, uri, email, etc.
    */
-  resourceOutputFormat?: ResourceOutputFormat;
+  format?: string;
   /**
    * Minimum length (for string)
    */
@@ -7332,9 +7327,9 @@ export type ResourceField = {
    */
   isArray: boolean;
   /**
-   * Format to convert resource content to (default is buffer)
+   * Format to convert resource content to (default is binary). Options: base64, url, binary, text
    */
-  outputFormat?: ResourceOutputFormat;
+  format?: string;
 };
 
 /**

@@ -10247,12 +10247,6 @@ export const ToolResourceTypeSchema = {
   description: 'Resource type for tool operations (subset of ResourceType)',
 } as const;
 
-export const ResourceOutputFormatSchema = {
-  type: 'string',
-  enum: ['base64', 'url', 'buffer', 'text'],
-  description: 'Output format for resource content',
-} as const;
-
 export const SchemaPropertySchema = {
   type: 'object',
   required: ['type'],
@@ -10268,9 +10262,11 @@ export const SchemaPropertySchema = {
       type: 'boolean',
       description: 'Whether this property is a resource reference',
     },
-    resourceOutputFormat: {
-      $ref: '#/components/schemas/ResourceOutputFormat',
-      description: 'Output format for resource resolution (default is buffer)',
+    format: {
+      type: 'string',
+      description:
+        'Format for the property value. For resources: base64, url, binary, text. For strings: date-time, uri, email, etc.',
+      example: 'binary',
     },
     minLength: {
       type: 'number',
@@ -10380,9 +10376,11 @@ export const ResourceFieldSchema = {
       type: 'boolean',
       description: 'Whether this field is an array of resources',
     },
-    outputFormat: {
-      $ref: '#/components/schemas/ResourceOutputFormat',
-      description: 'Format to convert resource content to (default is buffer)',
+    format: {
+      type: 'string',
+      description:
+        'Format to convert resource content to (default is binary). Options: base64, url, binary, text',
+      example: 'binary',
     },
   },
 } as const;

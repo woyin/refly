@@ -11258,15 +11258,6 @@ components:
         - document
       description: Resource type for tool operations (subset of ResourceType)
 
-    ResourceOutputFormat:
-      type: string
-      enum:
-        - base64
-        - url
-        - buffer
-        - text
-      description: Output format for resource content
-
     SchemaProperty:
       type: object
       required:
@@ -11280,9 +11271,10 @@ components:
         isResource:
           type: boolean
           description: Whether this property is a resource reference
-        resourceOutputFormat:
-          $ref: '#/components/schemas/ResourceOutputFormat'
-          description: Output format for resource resolution (default is buffer)
+        format:
+          type: string
+          description: 'Format for the property value. For resources: base64, url, binary, text. For strings: date-time, uri, email, etc.'
+          example: 'binary'
         minLength:
           type: number
           description: Minimum length (for string)
@@ -11364,9 +11356,10 @@ components:
         isArray:
           type: boolean
           description: Whether this field is an array of resources
-        outputFormat:
-          $ref: '#/components/schemas/ResourceOutputFormat'
-          description: Format to convert resource content to (default is buffer)
+        format:
+          type: string
+          description: 'Format to convert resource content to (default is binary). Options: base64, url, binary, text'
+          example: 'binary'
 
     # Tool Configuration
     HttpMethod:

@@ -16,6 +16,7 @@ import type {
 import mime from 'mime';
 import { readFile } from 'node:fs/promises';
 import { basename } from 'node:path';
+
 import { getCanvasId, getCurrentUser } from '../core/context/tool-context';
 import type { ResourceResolver, ResourceUploader } from '../handlers/types';
 import { DriveService } from '../../drive/drive.service';
@@ -38,6 +39,20 @@ export async function processResourcesInData(
   const result = { ...data };
 
   /**
+   * Validate if a value is a valid fileId (must start with 'df-')
+   */
+  function isValidFileId(value: unknown): boolean {
+    if (typeof value === 'string') {
+      return value.startsWith('df-');
+    }
+    if (value && typeof value === 'object' && 'fileId' in value) {
+      const fileId = (value as any).fileId;
+      return typeof fileId === 'string' && fileId.startsWith('df-');
+    }
+    return false;
+  }
+
+  /**
    * Recursively traverse schema and data together
    */
   async function traverse(
@@ -49,6 +64,12 @@ export async function processResourcesInData(
     // Case 1: This field is marked as a resource
     if (schemaProperty.isResource) {
       if (dataValue !== undefined && dataValue !== null) {
+        // Validate fileId format - if invalid, skip processing and keep original value
+        if (!isValidFileId(dataValue)) {
+          // Not a valid fileId format, treat as regular value and skip resource processing
+          parent[key] = dataValue;
+          return;
+        }
         parent[key] = await processor(dataValue, schemaProperty);
       }
       return;
@@ -58,8 +79,15 @@ export async function processResourcesInData(
     if (schemaProperty.type === 'array' && schemaProperty.items && Array.isArray(dataValue)) {
       // Check if array items are resources
       if (schemaProperty.items.isResource) {
+        // Process each item - skip invalid fileIds
         const processed = await Promise.all(
-          dataValue.map((item) => processor(item, schemaProperty.items!)),
+          dataValue.map(async (item) => {
+            // If item is not a valid fileId, keep original value without processing
+            if (item === undefined || item === null || !isValidFileId(item)) {
+              return item;
+            }
+            return await processor(item, schemaProperty.items!);
+          }),
         );
         parent[key] = processed;
       } else if (schemaProperty.items.type === 'object' && schemaProperty.items.properties) {
@@ -130,10 +158,7 @@ export async function processResourcesInData(
  */
 export function createResourceResolver(driveService: any, logger: Logger): ResourceResolver {
   return {
-    resolveDriveFile: async (
-      fileId: string,
-      format: 'base64' | 'url' | 'buffer' | 'text' = 'buffer',
-    ) => {
+    resolveDriveFile: async (fileId: string, format: 'base64' | 'url' | 'binary' | 'text') => {
       try {
         const user = getCurrentUser();
         if (!user) {
@@ -164,16 +189,16 @@ export function createResourceResolver(driveService: any, logger: Logger): Resou
             return `data:${result.contentType};base64,${base64}`;
           }
 
-          case 'text': {
-            // Get file stream and convert to text
+          case 'binary': {
+            // binary (OpenAPI standard)
             const result = await driveService.getDriveFileStream(user, fileId);
-            return result.data.toString('utf-8');
+            return result.data;
           }
 
           default: {
-            // Get file as buffer (default)
+            // Default to text format
             const result = await driveService.getDriveFileStream(user, fileId);
-            return result.data;
+            return result.data.toString('utf-8');
           }
         }
       } catch (error) {
@@ -380,10 +405,7 @@ export class ResourceHandler {
       schema,
       request.params as Record<string, unknown>,
       async (value, schemaProperty) => {
-        return await this.resolveFileIdToFormat(
-          value,
-          schemaProperty.resourceOutputFormat || 'buffer',
-        );
+        return await this.resolveFileIdToFormat(value, schemaProperty.format || 'binary');
       },
     );
 
@@ -571,39 +593,49 @@ export class ResourceHandler {
       if (value && typeof value === 'object') {
         const obj = value as any;
         if (obj.buffer && Buffer.isBuffer(obj.buffer)) {
-          const mimeType = obj.mimetype || 'application/octet-stream';
-          const filename = obj.filename || `resource-${Date.now()}.bin`;
+          const mimeType = obj.mimetype;
+          const filename = obj.filename;
+          try {
+            // Step 1: Upload buffer to object storage via MiscService
+            const uploadResult = await this.miscService.uploadFile(user, {
+              file: {
+                buffer: obj.buffer,
+                mimetype: mimeType,
+                originalname: filename,
+              },
+              visibility: 'private',
+            });
 
-          // Step 1: Upload buffer to object storage via MiscService
-          const uploadResult = await this.miscService.uploadFile(user, {
-            file: {
-              buffer: obj.buffer,
-              mimetype: mimeType,
-              originalname: filename,
-            },
-            visibility: 'private',
-          });
+            this.logger.log(`[DEBUG] Uploaded to storage, storageKey: ${uploadResult.storageKey}`);
 
-          // Step 2: Create DriveFile with the storageKey
-          const driveFile = await this.driveService.createDriveFile(user, {
-            canvasId,
-            name: filename,
-            storageKey: uploadResult.storageKey,
-            source: 'agent',
-          });
+            // Step 2: Create DriveFile with the storageKey
+            const driveFile = await this.driveService.createDriveFile(user, {
+              canvasId,
+              name: filename,
+              storageKey: uploadResult.storageKey,
+              source: 'agent',
+            });
 
-          return {
-            fileId: driveFile.fileId,
-            resourceType: this.inferResourceType(driveFile.type),
-            metadata: {
-              size: Number(driveFile.size),
-              mimeType: driveFile.type,
-            },
-          };
+            this.logger.log(
+              `[DEBUG] Created DriveFile, fileId: ${driveFile.fileId}, size: ${driveFile.size}, type: ${driveFile.type}`,
+            );
+
+            return {
+              fileId: driveFile.fileId,
+              resourceType: this.inferResourceType(driveFile.type),
+              metadata: {
+                size: Number(driveFile.size),
+                mimeType: driveFile.type,
+              },
+            };
+          } catch (debugError) {
+            this.logger.error(
+              `[DEBUG] Error during upload process: ${(debugError as Error).message}`,
+            );
+            throw debugError;
+          }
         }
       }
-
-      this.logger.warn('Unsupported resource value type, skipping upload');
       return null;
     } catch (error) {
       this.logger.error(`Failed to upload resource: ${(error as Error).message}`);
@@ -614,14 +646,11 @@ export class ResourceHandler {
   /**
    * Resolve fileId to specified format
    * @param value - String fileId or object with fileId property
-   * @param format - Output format (base64/url/buffer/text)
+   * @param format - Output format (base64/url/binary/text, or legacy 'buffer')
    * @param fieldPath - Field path for logging
    * @returns Resolved content in specified format
    */
-  private async resolveFileIdToFormat(
-    value: unknown,
-    format: 'base64' | 'url' | 'buffer' | 'text',
-  ): Promise<string | Buffer> {
+  private async resolveFileIdToFormat(value: unknown, format: string): Promise<string | Buffer> {
     // Extract fileId from value
     const fileId = typeof value === 'string' ? value : (value as any)?.fileId;
     if (!fileId) {
@@ -663,8 +692,15 @@ export class ResourceHandler {
         return result.data.toString('utf-8');
       }
 
+      case 'binary':
+      case 'buffer': {
+        // binary (OpenAPI standard) or buffer (legacy, kept for backward compatibility)
+        const result = await this.driveService.getDriveFileStream(user, fileId);
+        return result.data;
+      }
+
       default: {
-        // buffer
+        // Default to binary format
         const result = await this.driveService.getDriveFileStream(user, fileId);
         return result.data;
       }
