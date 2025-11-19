@@ -1,7 +1,7 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
 import { ReflyService } from '@refly/agent-tools';
-import { SkillEngine, SkillEngineOptions, SkillRunnableConfig } from '@refly/skill-template';
+import { SkillEngine, SkillEngineOptions } from '@refly/skill-template';
 import { CanvasService } from '../canvas/canvas.service';
 import { CanvasSyncService } from '../canvas-sync/canvas-sync.service';
 import { ProviderService } from '../provider/provider.service';
@@ -15,7 +15,6 @@ import { ConfigService } from '@nestjs/config';
 import { AuthService } from '../auth/auth.service';
 import { MediaGeneratorService } from '../media-generator/media-generator.service';
 import { ActionService } from '../action/action.service';
-import { InternalToolService } from '../tool/internal-tool.service';
 import { NotificationService } from '../notification/notification.service';
 import { genBaseRespDataFromError } from '../../utils/exception';
 import { CodeArtifactService } from '../code-artifact/code-artifact.service';
@@ -26,6 +25,7 @@ import { MiscService } from '../misc/misc.service';
 import { genImageID } from '@refly/utils';
 import { FishAudioService } from '../tool/media/audio/fish-audio.service';
 import { HeyGenService } from '../tool/media/video/heygen.service';
+import { DriveService } from '../drive/drive.service';
 
 @Injectable()
 export class SkillEngineService implements OnModuleInit {
@@ -40,7 +40,7 @@ export class SkillEngineService implements OnModuleInit {
   private authService: AuthService;
   private mediaGeneratorService: MediaGeneratorService;
   private actionService: ActionService;
-  private internalToolService: InternalToolService;
+  private driveService: DriveService;
   private notificationService: NotificationService;
   private codeArtifactService: CodeArtifactService;
   private miscService: MiscService;
@@ -63,7 +63,7 @@ export class SkillEngineService implements OnModuleInit {
     this.authService = this.moduleRef.get(AuthService, { strict: false });
     this.mediaGeneratorService = this.moduleRef.get(MediaGeneratorService, { strict: false });
     this.actionService = this.moduleRef.get(ActionService, { strict: false });
-    this.internalToolService = this.moduleRef.get(InternalToolService, { strict: false });
+    this.driveService = this.moduleRef.get(DriveService, { strict: false });
     this.notificationService = this.moduleRef.get(NotificationService, { strict: false });
     this.codeArtifactService = this.moduleRef.get(CodeArtifactService, { strict: false });
     this.miscService = this.moduleRef.get(MiscService, { strict: false });
@@ -148,23 +148,6 @@ export class SkillEngineService implements OnModuleInit {
         const result = await this.searchService.search(user, req, options);
         return buildSuccessResponse(result);
       },
-      generateDoc: async (user, title, config) => {
-        const result = await this.internalToolService.generateDoc(
-          user,
-          title,
-          config as SkillRunnableConfig,
-        );
-        return result;
-      },
-      generateCodeArtifact: async (user, title, type, config) => {
-        const result = await this.internalToolService.generateCodeArtifact(
-          user,
-          title,
-          type,
-          config as SkillRunnableConfig,
-        );
-        return result;
-      },
       inMemorySearchWithIndexing: async (user, options) => {
         const result = await this.ragService.inMemorySearchWithIndexing(user, options);
         return buildSuccessResponse(result);
@@ -233,6 +216,13 @@ export class SkillEngineService implements OnModuleInit {
       },
       addNodeToCanvasWithoutCanvasId: async (user, node, connectTo, options) => {
         await this.canvasSyncService.addNodeToCanvasWithoutCanvasId(user, node, connectTo, options);
+      },
+      readFile: async (user, fileId) => {
+        const result = await this.driveService.getDriveFileDetail(user, fileId);
+        return result;
+      },
+      writeFile: async (user, param) => {
+        return await this.driveService.createDriveFile(user, param);
       },
       genImageID: async () => {
         return genImageID();

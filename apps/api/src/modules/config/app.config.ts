@@ -26,6 +26,12 @@ export default () => ({
     username: process.env.REDIS_USERNAME,
     password: process.env.REDIS_PASSWORD,
   },
+  drive: {
+    storageKeyPrefix: process.env.DRIVE_STORAGE_KEY_PREFIX || 'drive',
+    payloadMode: process.env.DRIVE_PAYLOAD_MODE || 'base64', // 'url' or 'base64'
+    presignExpiry: Number.parseInt(process.env.DRIVE_PRESIGN_EXPIRY) || 15 * 60, // 15 minutes
+    archiveConcurrencyLimit: Number.parseInt(process.env.DRIVE_ARCHIVE_CONCURRENCY_LIMIT) || 10, // Maximum concurrent file archive operations
+  },
   session: {
     secret: process.env.SESSION_SECRET || 'refly-session-secret-key-change-in-production',
     maxAge: Number.parseInt(process.env.SESSION_MAX_AGE) || 86400000, // 24 hours in milliseconds
