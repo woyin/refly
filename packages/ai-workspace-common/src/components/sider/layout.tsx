@@ -20,6 +20,7 @@ import { StorageExceededModal } from '@refly-packages/ai-workspace-common/compon
 import { useHandleSiderData } from '@refly-packages/ai-workspace-common/hooks/use-handle-sider-data';
 import { SettingsModalActiveTab, useSiderStoreShallow } from '@refly/stores';
 import { useCreateCanvas } from '@refly-packages/ai-workspace-common/hooks/canvas/use-create-canvas';
+import { useGenerateInvitationCode } from '@refly-packages/ai-workspace-common/queries';
 import {
   Account,
   File,
@@ -312,6 +313,8 @@ const SiderLoggedIn = (props: { source: 'sider' | 'popover' }) => {
     setSettingsModalActiveTab: state.setSettingsModalActiveTab,
   }));
 
+  const { mutateAsync: generateInvitationCode } = useGenerateInvitationCode();
+
   useHandleSiderData(true);
 
   const [openContactUs, setOpenContactUs] = useState(false);
@@ -342,6 +345,18 @@ const SiderLoggedIn = (props: { source: 'sider' | 'popover' }) => {
     }
     return 'home';
   }, [location.pathname]);
+
+  // Handle invitation button click - generate invitation code first, then show modal
+  const handleInvitationClick = useCallback(async () => {
+    try {
+      await generateInvitationCode({});
+      setShowInvitationModal(true);
+    } catch (error) {
+      console.error('Failed to generate invitation code:', error);
+      // Still show the modal even if generation fails, user can retry or see existing codes
+      setShowInvitationModal(true);
+    }
+  }, [generateInvitationCode, setShowInvitationModal]);
 
   // Menu items configuration
   const menuItems = useMemo(
@@ -494,7 +509,7 @@ const SiderLoggedIn = (props: { source: 'sider' | 'popover' }) => {
           <>
             <div
               className="flex items-center justify-between cursor-pointer rounded-[20px] bg-gradient-to-r from-[#02AE8E] to-[#008AA6] px-3 py-3 transition-shadow"
-              onClick={() => setShowInvitationModal(true)}
+              onClick={handleInvitationClick}
               data-cy="invite-friends-menu-item"
             >
               <div className="flex items-center gap-1.5">

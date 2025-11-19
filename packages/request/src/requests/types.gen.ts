@@ -5015,10 +5015,6 @@ export type InvitationCode = {
    */
   status?: string;
   /**
-   * Invitation expiration time
-   */
-  expiresAt?: string;
-  /**
    * Invitation creation time
    */
   createdAt?: string;

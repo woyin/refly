@@ -1370,8 +1370,6 @@ model InvitationCode {
   inviteeUid String?  @unique @map("invitee_uid")
   /// Invitation status: pending, accepted, expired
   status     String   @default("pending") @map("status")
-  /// Expiration timestamp
-  expiresAt  DateTime @map("expires_at") @db.Timestamptz()
   /// Create timestamp
   createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz()
   /// Update timestamp

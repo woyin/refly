@@ -56,7 +56,6 @@ export class InvitationService {
   /**
    * generate 5 invitation codes for a user
    * a user can only generate one invitation code
-   * the invitation code expires in 2 weeks
    */
   async generateInvitationCodes(uid: string) {
     // check if the user has already generated invitation codes
@@ -75,10 +74,6 @@ export class InvitationService {
       codes.push(code);
     }
 
-    // set 2 weeks later expiration date
-    const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + 14);
-
     // create the invitation codes in batch
     const invitationCodes = await Promise.all(
       codes.map((code) =>
@@ -87,7 +82,6 @@ export class InvitationService {
             code,
             inviterUid: uid,
             status: 'pending',
-            expiresAt,
           },
         }),
       ),
@@ -109,7 +103,6 @@ export class InvitationService {
       inviterUid: code.inviterUid,
       inviteeUid: code.inviteeUid,
       status: code.status,
-      expiresAt: code.expiresAt.toJSON(),
       createdAt: code.createdAt.toJSON(),
       updatedAt: code.updatedAt.toJSON(),
     }));
@@ -155,12 +148,6 @@ export class InvitationService {
       throw new BadRequestException('Invalid invitation code');
     }
 
-    // Check if code is still valid
-    const now = new Date();
-    if (invitationCode.expiresAt < now) {
-      throw new BadRequestException('Invitation code has expired');
-    }
-
     // Check if code is still pending
     if (invitationCode.status !== 'pending') {
       throw new BadRequestException('Invitation code has already been used');
@@ -195,7 +182,7 @@ export class InvitationService {
     if (existingActivation) {
       throw new BadRequestException('This invitation has already been activated');
     }
-
+    const now = new Date();
     // Update invitation code status and set invitee
     await this.prisma.invitationCode.update({
       where: { code },

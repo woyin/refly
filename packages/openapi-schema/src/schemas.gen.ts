@@ -7102,11 +7102,6 @@ export const InvitationCodeSchema = {
       type: 'string',
       description: 'Invitation status',
     },
-    expiresAt: {
-      type: 'string',
-      format: 'date-time',
-      description: 'Invitation expiration time',
-    },
     createdAt: {
       type: 'string',
       format: 'date-time',
