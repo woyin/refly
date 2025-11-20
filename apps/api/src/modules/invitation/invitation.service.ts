@@ -131,7 +131,7 @@ export class InvitationService {
     }
 
     const preferences = JSON.parse(user.preferences);
-    return preferences.hasBeenInvited ?? false;
+    return preferences.hasBeenInvited ?? true;
   }
 
   /**

@@ -269,9 +269,9 @@ export class CreditService {
       return;
     }
 
-    const bonusCreditAmount = this.configService.get('registration.bonusCreditAmount');
+    const bonusCreditAmount = this.configService.get('auth.registration.bonusCreditAmount');
     const bonusCreditExpiresInMonths = this.configService.get(
-      'registration.bonusCreditExpiresInMonths',
+      'auth.registration.bonusCreditExpiresInMonths',
     );
 
     // Calculate expiration date
