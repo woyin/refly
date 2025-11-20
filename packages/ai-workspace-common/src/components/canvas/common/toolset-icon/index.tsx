@@ -53,7 +53,6 @@ export const ToolsetIcon: React.FC<{
   const { size = 24, className, builtinClassName } = config ?? {};
 
   if (toolsetKey && Object.keys(builtinToolsetIconMap).includes(toolsetKey ?? '')) {
-    console.log('ToolsetIcon', toolsetKey);
     const builtinToolsetIcon = builtinToolsetIconMap[toolsetKey];
     const IconComponent = builtinToolsetIcon?.icon ?? null;
     return (
