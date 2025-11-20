@@ -14,386 +14,9 @@ import type {
   UploadResult,
 } from '@refly/openapi-schema';
 import mime from 'mime';
-import { readFile } from 'node:fs/promises';
-import { basename } from 'node:path';
-
 import { getCanvasId, getCurrentUser } from '../core/context/tool-context';
-import type { ResourceResolver, ResourceUploader } from '../handlers/types';
 import { DriveService } from '../../drive/drive.service';
 import { MiscService } from '../../misc/misc.service';
-
-/**
- * Process resources in data based on schema definitions
- * Traverses both schema and data simultaneously, processing fields marked with isResource
- *
- * @param schema - JSON schema with isResource markers
- * @param data - Data object to process
- * @param processor - Function to process each resource field
- * @returns Processed data
- */
-export async function processResourcesInData(
-  schema: JsonSchema,
-  data: Record<string, unknown>,
-  processor: (value: unknown, schema: SchemaProperty) => Promise<unknown>,
-): Promise<Record<string, unknown>> {
-  const result = { ...data };
-
-  /**
-   * Validate if a value is a valid fileId (must start with 'df-')
-   */
-  function isValidFileId(value: unknown): boolean {
-    if (typeof value === 'string') {
-      return value.startsWith('df-');
-    }
-    if (value && typeof value === 'object' && 'fileId' in value) {
-      const fileId = (value as any).fileId;
-      return typeof fileId === 'string' && fileId.startsWith('df-');
-    }
-    return false;
-  }
-
-  /**
-   * Recursively traverse schema and data together
-   */
-  async function traverse(
-    schemaProperty: SchemaProperty,
-    dataValue: unknown,
-    key: string,
-    parent: Record<string, unknown>,
-  ): Promise<void> {
-    // Case 0: Handle oneOf/anyOf schemas
-    // Check if any of the options has isResource=true
-    const schemaWithOneOf = schemaProperty as SchemaProperty & {
-      oneOf?: SchemaProperty[];
-      anyOf?: SchemaProperty[];
-    };
-
-    if (schemaWithOneOf.oneOf || schemaWithOneOf.anyOf) {
-      const options = schemaWithOneOf.oneOf || schemaWithOneOf.anyOf || [];
-
-      // Find the resource option (the one with isResource: true)
-      const resourceOption = options.find((opt: SchemaProperty) => opt.isResource);
-
-      if (resourceOption && dataValue !== undefined && dataValue !== null) {
-        // Check if the value looks like a fileId (starts with 'df-')
-        if (isValidFileId(dataValue)) {
-          // Process as resource using the resource option schema
-          parent[key] = await processor(dataValue, resourceOption);
-          return;
-        }
-      }
-
-      // If not a fileId or no resource option found, keep original value
-      parent[key] = dataValue;
-      return;
-    }
-
-    // Case 1: This field is marked as a resource
-    if (schemaProperty.isResource) {
-      if (dataValue !== undefined && dataValue !== null) {
-        // Validate fileId format - if invalid, skip processing and keep original value
-        if (!isValidFileId(dataValue)) {
-          // Not a valid fileId format, treat as regular value and skip resource processing
-          parent[key] = dataValue;
-          return;
-        }
-        parent[key] = await processor(dataValue, schemaProperty);
-      }
-      return;
-    }
-
-    // Case 2: Array type
-    if (schemaProperty.type === 'array' && schemaProperty.items && Array.isArray(dataValue)) {
-      // Check if array items are resources
-      if (schemaProperty.items.isResource) {
-        // Process each item - skip invalid fileIds
-        const processed = await Promise.all(
-          dataValue.map(async (item) => {
-            // If item is not a valid fileId, keep original value without processing
-            if (item === undefined || item === null || !isValidFileId(item)) {
-              return item;
-            }
-            return await processor(item, schemaProperty.items!);
-          }),
-        );
-        parent[key] = processed;
-      } else if (schemaProperty.items.type === 'object' && schemaProperty.items.properties) {
-        // Array of objects that might contain resources
-        const processed = await Promise.all(
-          dataValue.map(async (item) => {
-            if (item && typeof item === 'object') {
-              return await processResourcesInData(
-                { type: 'object', properties: schemaProperty.items!.properties! } as JsonSchema,
-                item as Record<string, unknown>,
-                processor,
-              );
-            }
-            return item;
-          }),
-        );
-        parent[key] = processed;
-      }
-      return;
-    }
-
-    // Case 3: Object with nested properties
-    if (
-      schemaProperty.type === 'object' &&
-      schemaProperty.properties &&
-      dataValue &&
-      typeof dataValue === 'object'
-    ) {
-      const nestedData = dataValue as Record<string, unknown>;
-      const processedNested = { ...nestedData };
-
-      await Promise.all(
-        Object.entries(schemaProperty.properties).map(async ([nestedKey, nestedSchema]) => {
-          const nestedValue = nestedData[nestedKey];
-          if (nestedValue !== undefined) {
-            await traverse(nestedSchema, nestedValue, nestedKey, processedNested);
-          }
-        }),
-      );
-
-      parent[key] = processedNested;
-    }
-  }
-
-  // Process all root properties
-  if (schema.properties) {
-    await Promise.all(
-      Object.entries(schema.properties).map(async ([key, schemaProperty]) => {
-        const value = data[key];
-        if (value !== undefined) {
-          await traverse(schemaProperty, value, key, result);
-        }
-      }),
-    );
-  }
-
-  return result;
-}
-
-/**
- * Create a ResourceResolver instance using DriveService
- * Note: getCurrentUser is obtained from context, not passed as dependency
- *
- * @param driveService - DriveService instance
- * @param prisma - Prisma client instance
- * @param logger - Logger instance
- * @returns ResourceResolver instance
- */
-export function createResourceResolver(driveService: any, logger: Logger): ResourceResolver {
-  return {
-    resolveDriveFile: async (fileId: string, format: 'base64' | 'url' | 'binary' | 'text') => {
-      try {
-        const user = getCurrentUser();
-        if (!user) {
-          throw new Error('User context is required for drive file resolution');
-        }
-
-        // Get drive file details
-        const driveFile = await driveService.getDriveFileDetail(user, fileId);
-        if (!driveFile) {
-          throw new Error(`Drive file not found: ${fileId}`);
-        }
-
-        // Handle different output formats
-        switch (format) {
-          case 'url': {
-            // Generate signed URL for the drive file
-            const urls = await driveService.generateDriveFileUrls(user, [driveFile]);
-            if (!urls || urls.length === 0) {
-              throw new Error(`Failed to generate URL for drive file: ${fileId}`);
-            }
-            return urls[0];
-          }
-
-          case 'base64': {
-            // Get file stream and convert to base64
-            const result = await driveService.getDriveFileStream(user, fileId);
-            const base64 = result.data.toString('base64');
-            return `data:${result.contentType};base64,${base64}`;
-          }
-
-          case 'binary': {
-            // binary (OpenAPI standard)
-            const result = await driveService.getDriveFileStream(user, fileId);
-            return result.data;
-          }
-
-          default: {
-            // Default to text format
-            const result = await driveService.getDriveFileStream(user, fileId);
-            return result.data.toString('utf-8');
-          }
-        }
-      } catch (error) {
-        logger.error(
-          `Failed to resolve drive file ${fileId} (format: ${format}): ${(error as Error).message}`,
-        );
-        throw error;
-      }
-    },
-  };
-}
-
-/**
- * Create a ResourceUploader instance using DriveService
- * Note: getCurrentUser and getCanvasId are obtained from context, not passed as dependencies
- *
- * @param driveService - DriveService instance
- * @param logger - Logger instance
- * @returns ResourceUploader instance
- */
-export function createResourceUploader(driveService: any, logger: Logger): ResourceUploader {
-  return {
-    uploadFile: async (localPath: string, metadata: any) => {
-      try {
-        const user = getCurrentUser();
-        if (!user) {
-          throw new Error('User context is required for file upload');
-        }
-
-        // Read file from local path
-        const buffer = await readFile(localPath);
-        const filename = basename(localPath);
-
-        // Determine MIME type
-        const mimetype = metadata.mimeType || mime.getType(filename) || 'application/octet-stream';
-
-        // Use 'agent' as source for tool-generated files
-        const source = 'agent' as const;
-
-        // Get canvas ID from request context
-        const canvasId = getCanvasId();
-        if (!canvasId) {
-          throw new Error('Canvas ID is required in request context for file upload');
-        }
-
-        // Create drive file using DriveService
-        const driveFile = await driveService.createDriveFile(user, {
-          canvasId,
-          name: filename,
-          type: mimetype,
-          source,
-          content: buffer.toString('base64'),
-        });
-
-        logger.debug(`Uploaded file ${filename} to drive with fileId: ${driveFile.fileId}`);
-
-        return {
-          fileId: driveFile.fileId,
-          resourceType: metadata.type,
-          metadata: {
-            size: buffer.length,
-            mimeType: mimetype,
-          },
-        };
-      } catch (error) {
-        logger.error(
-          `Failed to upload file ${localPath}: ${(error as Error).message}`,
-          (error as Error).stack,
-        );
-        throw error;
-      }
-    },
-
-    uploadBuffer: async (buffer: Buffer, filename: string, metadata: any) => {
-      try {
-        const user = getCurrentUser();
-        if (!user) {
-          throw new Error('User context is required for buffer upload');
-        }
-
-        // Determine MIME type
-        const mimetype = metadata.mimeType || mime.getType(filename) || 'application/octet-stream';
-
-        // Use 'agent' as source for tool-generated files
-        const source = 'agent' as const;
-
-        // Get canvas ID from request context
-        const canvasId = getCanvasId();
-        if (!canvasId) {
-          throw new Error('Canvas ID is required in request context for buffer upload');
-        }
-
-        // Create drive file using DriveService
-        const driveFile = await driveService.createDriveFile(user, {
-          canvasId,
-          name: filename,
-          type: mimetype,
-          source,
-          content: buffer.toString('base64'),
-        });
-
-        logger.debug(`Uploaded buffer as ${filename} to drive with fileId: ${driveFile.fileId}`);
-
-        return {
-          fileId: driveFile.fileId,
-          resourceType: metadata.type,
-          metadata: {
-            size: buffer.length,
-            mimeType: mimetype,
-          },
-        };
-      } catch (error) {
-        logger.error(
-          `Failed to upload buffer ${filename}: ${(error as Error).message}`,
-          (error as Error).stack,
-        );
-        throw error;
-      }
-    },
-
-    uploadFromUrl: async (url: string, filename: string, metadata: any) => {
-      try {
-        const user = getCurrentUser();
-        if (!user) {
-          throw new Error('User context is required for URL upload');
-        }
-
-        // Determine MIME type
-        const mimetype = metadata.mimeType || mime.getType(filename) || 'application/octet-stream';
-
-        // Use 'agent' as source for tool-generated files
-        const source = 'agent' as const;
-
-        // Get canvas ID from request context
-        const canvasId = getCanvasId();
-        if (!canvasId) {
-          throw new Error('Canvas ID is required in request context for URL upload');
-        }
-
-        // Create drive file using DriveService with external URL
-        const driveFile = await driveService.createDriveFile(user, {
-          canvasId,
-          name: filename,
-          type: mimetype,
-          source,
-          externalUrl: url,
-        });
-
-        logger.debug(`Uploaded file from URL ${url} to drive with fileId: ${driveFile.fileId}`);
-
-        return {
-          fileId: driveFile.fileId,
-          resourceType: metadata.type,
-          metadata: {
-            size: Number(driveFile.size),
-            mimeType: mimetype,
-          },
-        };
-      } catch (error) {
-        logger.error(
-          `Failed to upload from URL ${url}: ${(error as Error).message}`,
-          (error as Error).stack,
-        );
-        throw error;
-      }
-    },
-  };
-}
 
 /**
  * ============================================================================
@@ -427,8 +50,7 @@ export class ResourceHandler {
       this.logger.debug('No schema properties to process');
       return request;
     }
-
-    const processedParams = await processResourcesInData(
+    const processedParams = await this.processResourcesField(
       schema,
       request.params as Record<string, unknown>,
       async (value, schemaProperty) => {
@@ -484,7 +106,7 @@ export class ResourceHandler {
       return response;
     }
 
-    const processedData = await processResourcesInData(
+    const processedData = await this.processResourcesField(
       schema as JsonSchema,
       response.data as Record<string, unknown>,
       async (value) => {
@@ -690,8 +312,6 @@ export class ResourceHandler {
       throw new Error('User context is required for file resolution');
     }
 
-    this.logger.debug(`Resolving fileId ${fileId} to format: ${format}`);
-
     // Get drive file details
     const driveFile = await this.driveService.getDriveFileDetail(user, fileId);
     if (!driveFile) {
@@ -732,5 +352,157 @@ export class ResourceHandler {
         return result.data;
       }
     }
+  }
+
+  /**
+   * Process resources in data based on schema definitions
+   * Traverses both schema and data simultaneously, processing fields marked with isResource
+   *
+   * @param schema - JSON schema with isResource markers
+   * @param data - Data object to process
+   * @param processor - Function to process each resource field
+   * @returns Processed data
+   */
+  private async processResourcesField(
+    schema: JsonSchema,
+    data: Record<string, unknown>,
+    processor: (value: unknown, schema: SchemaProperty) => Promise<unknown>,
+  ): Promise<Record<string, unknown>> {
+    const result = { ...data };
+
+    /**
+     * Validate if a value is a valid fileId (must start with 'df-')
+     */
+    const isValidFileId = (value: unknown): boolean => {
+      if (typeof value === 'string') {
+        return value.startsWith('df-');
+      }
+      if (value && typeof value === 'object' && 'fileId' in value) {
+        const fileId = (value as any).fileId;
+        return typeof fileId === 'string' && fileId.startsWith('df-');
+      }
+      return false;
+    };
+
+    /**
+     * Recursively traverse schema and data together
+     */
+    const traverse = async (
+      schemaProperty: SchemaProperty,
+      dataValue: unknown,
+      key: string,
+      parent: Record<string, unknown>,
+    ): Promise<void> => {
+      // Case 0: Handle oneOf/anyOf schemas
+      // Check if any of the options has isResource=true
+      const schemaWithOneOf = schemaProperty as SchemaProperty & {
+        oneOf?: SchemaProperty[];
+        anyOf?: SchemaProperty[];
+      };
+
+      if (schemaWithOneOf.oneOf || schemaWithOneOf.anyOf) {
+        const options = schemaWithOneOf.oneOf || schemaWithOneOf.anyOf || [];
+
+        // Find the resource option (the one with isResource: true)
+        const resourceOption = options.find((opt: SchemaProperty) => opt.isResource);
+
+        if (resourceOption && dataValue !== undefined && dataValue !== null) {
+          // Check if the value looks like a fileId (starts with 'df-')
+          if (isValidFileId(dataValue)) {
+            // Process as resource using the resource option schema
+            parent[key] = await processor(dataValue, resourceOption);
+            return;
+          }
+        }
+
+        // If not a fileId or no resource option found, keep original value
+        parent[key] = dataValue;
+        return;
+      }
+
+      // Case 1: This field is marked as a resource
+      if (schemaProperty.isResource) {
+        if (dataValue !== undefined && dataValue !== null) {
+          // Validate fileId format - if invalid, skip processing and keep original value
+          if (!isValidFileId(dataValue)) {
+            // Not a valid fileId format, treat as regular value and skip resource processing
+            parent[key] = dataValue;
+            return;
+          }
+          parent[key] = await processor(dataValue, schemaProperty);
+        }
+        return;
+      }
+
+      // Case 2: Array type
+      if (schemaProperty.type === 'array' && schemaProperty.items && Array.isArray(dataValue)) {
+        // Check if array items are resources
+        if (schemaProperty.items.isResource) {
+          // Process each item - skip invalid fileIds
+          const processed = await Promise.all(
+            dataValue.map(async (item) => {
+              // If item is not a valid fileId, keep original value without processing
+              if (item === undefined || item === null || !isValidFileId(item)) {
+                return item;
+              }
+              return await processor(item, schemaProperty.items!);
+            }),
+          );
+          parent[key] = processed;
+        } else if (schemaProperty.items.type === 'object' && schemaProperty.items.properties) {
+          // Array of objects that might contain resources
+          const processed = await Promise.all(
+            dataValue.map(async (item) => {
+              if (item && typeof item === 'object') {
+                return await this.processResourcesField(
+                  { type: 'object', properties: schemaProperty.items!.properties! } as JsonSchema,
+                  item as Record<string, unknown>,
+                  processor,
+                );
+              }
+              return item;
+            }),
+          );
+          parent[key] = processed;
+        }
+        return;
+      }
+
+      // Case 3: Object with nested properties
+      if (
+        schemaProperty.type === 'object' &&
+        schemaProperty.properties &&
+        dataValue &&
+        typeof dataValue === 'object'
+      ) {
+        const nestedData = dataValue as Record<string, unknown>;
+        const processedNested = { ...nestedData };
+
+        await Promise.all(
+          Object.entries(schemaProperty.properties).map(async ([nestedKey, nestedSchema]) => {
+            const nestedValue = nestedData[nestedKey];
+            if (nestedValue !== undefined) {
+              await traverse(nestedSchema, nestedValue, nestedKey, processedNested);
+            }
+          }),
+        );
+
+        parent[key] = processedNested;
+      }
+    };
+
+    // Process all root properties
+    if (schema.properties) {
+      await Promise.all(
+        Object.entries(schema.properties).map(async ([key, schemaProperty]) => {
+          const value = data[key];
+          if (value !== undefined) {
+            await traverse(schemaProperty, value, key, result);
+          }
+        }),
+      );
+    }
+
+    return result;
   }
 }
