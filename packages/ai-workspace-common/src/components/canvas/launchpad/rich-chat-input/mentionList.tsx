@@ -278,14 +278,16 @@ export const MentionList = ({
     const agentsItems = [...agentItems];
 
     // Apply filtering based on query
-    return {
+    const result = {
       variables: filterItems(variableItems, query) || [],
       files: filterItems(fileItems, query) || [],
       agents: filterItems(agentsItems, query) || [],
       toolsets: filterItems(toolsetItems, query) || [],
-      // Only show individual tools if user has typed a query
-      ...(query ? { tools: filterItems(toolItems, query) || [] } : {}),
+      // Show individual tools both in query mode and when hovering tools category
+      tools: filterItems(toolItems, query) || [],
     };
+
+    return result;
   }, [items, filterItems, query]);
 
   // When there's a query, create grouped items with headers

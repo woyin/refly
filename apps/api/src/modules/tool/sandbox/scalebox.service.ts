@@ -18,7 +18,7 @@ import {
   MissingCanvasIdException,
   SandboxExecutionFailedException,
 } from './scalebox.exception';
-import { MEDIA_TYPES } from '../common/constant/media-types';
+import { MEDIA_TYPES } from '../constant';
 import { ToolExecutionSync } from '../common/decorators/tool-execution-sync.decorator';
 import { ToolExecutionSyncInterceptor } from '../common/interceptors/tool-execution-sync.interceptor';
 import { ScaleboxExecutionResult, ExecutionContext } from './scalebox.dto';
