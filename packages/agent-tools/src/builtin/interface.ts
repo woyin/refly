@@ -37,7 +37,6 @@ import {
   UploadResponse,
   FileVisibility,
   EntityType,
-  CanvasNode,
   SandboxExecuteRequest,
   SandboxExecuteResponse,
   DriveFile,
@@ -133,12 +132,6 @@ export interface ReflyService {
       storageKey?: string;
     },
   ) => Promise<UploadResponse['data']>;
-  addNodeToCanvasWithoutCanvasId: (
-    user: User,
-    node: Pick<CanvasNode, 'type' | 'data'> & Partial<Pick<CanvasNode, 'id'>>,
-    connectTo?: any,
-    options?: { autoLayout?: boolean },
-  ) => Promise<void>;
   genImageID: () => Promise<string>;
   // Generate JWT token for user (same as AuthService.login)
   generateJwtToken: (user: User) => Promise<string>;

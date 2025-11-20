@@ -14,6 +14,8 @@ import {
   CanvasNode,
   GenericToolset,
   SyncCanvasStateResult,
+  NodeDiff,
+  EdgeDiff,
 } from '@refly/openapi-schema';
 import {
   getCanvasDataFromState,
@@ -38,6 +40,11 @@ import { ObjectStorageService, OSS_INTERNAL } from '../common/object-storage';
 import { streamToBuffer, streamToString } from '../../utils';
 import { genCanvasVersionId, genTransactionId, safeParseJSON } from '@refly/utils';
 import { IContextItem } from '@refly/common-types';
+
+type NodeWithConnection = {
+  node: Pick<CanvasNode, 'type' | 'data'> & Partial<Pick<CanvasNode, 'id'>>;
+  connectTo?: CanvasNodeFilter[];
+};
 
 @Injectable()
 export class CanvasSyncService {
@@ -459,36 +466,74 @@ export class CanvasSyncService {
       await releaseLock();
     }
   }
-
   /**
-   * Add a node to the canvas
-   * @param user - The user who is adding the node
-   * @param canvasId - The id of the canvas to add the node to
-   * @param node - The node to add
-   * @param connectTo - The nodes to connect to
+   * Add one or more nodes to the canvas
+   * @param user - The user who is adding the nodes
+   * @param canvasId - The id of the canvas to add the nodes to
+   * @param nodesWithConnections - The nodes to add with optional connection filters
    * @param options - Additional options including autoLayout
    */
-  async addNodeToCanvas(
+  async addNodesToCanvas(
     user: User,
     canvasId: string,
-    node: Pick<CanvasNode, 'type' | 'data'> & Partial<Pick<CanvasNode, 'id'>>,
-    connectTo?: CanvasNodeFilter[],
+    nodesWithConnections: NodeWithConnection[],
     options?: { autoLayout?: boolean },
   ) {
+    if (!Array.isArray(nodesWithConnections) || nodesWithConnections.length === 0) {
+      this.logger.warn('[addNodesToCanvas] no nodes provided, skip syncing');
+      return;
+    }
+
     const releaseLock = await this.lockState(canvasId);
-    const { nodes, edges } = await this.getCanvasData(user, { canvasId });
+    const canvasData = await this.getCanvasData(user, { canvasId });
+    const workingNodes = [...(canvasData.nodes ?? [])];
+    const workingEdges = [...(canvasData.edges ?? [])];
 
-    const { newNode, newEdges } = prepareAddNode({
-      node,
-      nodes,
-      edges,
-      connectTo,
-      autoLayout: options?.autoLayout, // Pass autoLayout parameter
-    });
+    const nodeDiffs: NodeDiff[] = [];
+    const edgeDiffs: EdgeDiff[] = [];
 
-    this.logger.log(
-      `[addNodeToCanvas] new node: ${JSON.stringify(newNode)}, new edges: ${JSON.stringify(newEdges)}`,
-    );
+    for (const item of nodesWithConnections) {
+      if (!item?.node) {
+        continue;
+      }
+
+      const { newNode, newEdges } = prepareAddNode({
+        node: item.node,
+        nodes: workingNodes,
+        edges: workingEdges,
+        connectTo: item.connectTo ? [...item.connectTo] : undefined,
+        autoLayout: options?.autoLayout,
+      });
+
+      workingNodes.push(newNode);
+      workingEdges.push(...newEdges);
+
+      nodeDiffs.push({
+        type: 'add',
+        id: newNode.id,
+        to: newNode,
+      } as NodeDiff);
+
+      edgeDiffs.push(
+        ...newEdges.map(
+          (edge): EdgeDiff => ({
+            type: 'add',
+            id: edge.id,
+            to: edge,
+          }),
+        ),
+      );
+
+      this.logger.log(
+        `[addNodesToCanvas] new node: ${JSON.stringify(newNode)}, new edges: ${JSON.stringify(newEdges)}`,
+      );
+    }
+
+    if (!nodeDiffs.length && !edgeDiffs.length) {
+      await releaseLock();
+      this.logger.warn('[addNodesToCanvas] no diffs generated, skip syncing');
+      return;
+    }
 
     await this.syncState(
       user,
@@ -500,42 +545,13 @@ export class CanvasSyncService {
             createdAt: Date.now(),
             syncedAt: Date.now(),
             source: { type: 'system' },
-            nodeDiffs: [
-              {
-                type: 'add',
-                id: newNode.id,
-                to: newNode,
-              },
-            ],
-            edgeDiffs: newEdges.map((edge) => ({
-              type: 'add',
-              id: edge.id,
-              to: edge,
-            })),
+            nodeDiffs,
+            edgeDiffs,
           },
         ],
       },
       { releaseLock },
     );
-  }
-
-  async addNodeToCanvasWithoutCanvasId(
-    user: User,
-    node: Pick<CanvasNode, 'type' | 'data'> & Partial<Pick<CanvasNode, 'id'>>,
-    connectTo?: CanvasNodeFilter[],
-    options?: { autoLayout?: boolean },
-  ) {
-    const parentResult = await this.prisma.actionResult.findFirst({
-      select: {
-        targetId: true,
-        targetType: true,
-        workflowNodeExecutionId: true,
-      },
-      where: { resultId: node.data?.metadata?.parentResultId },
-      orderBy: { version: 'desc' },
-    });
-
-    await this.addNodeToCanvas(user, parentResult.targetId, node, connectTo, options);
   }
 
   async createCanvasVersion(
