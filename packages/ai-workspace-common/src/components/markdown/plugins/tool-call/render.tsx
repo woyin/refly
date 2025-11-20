@@ -13,6 +13,7 @@ import { Button } from 'antd';
 import { Spin } from '@refly-packages/ai-workspace-common/components/common/spin';
 
 import { ArrowDown, ArrowUp, Checked } from 'refly-icons';
+import { useListToolsetInventory } from '@refly-packages/ai-workspace-common/queries';
 
 const FailedIcon = () => (
   <svg
@@ -60,7 +61,8 @@ interface ToolCallProps {
  * similar to the Cursor MCP UI seen in the screenshot
  */
 const ToolCall: React.FC<ToolCallProps> = (props) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const currentLanguage = i18n.language || 'en';
   const [isCollapsed, setIsCollapsed] = useState(true);
 
   // Extract tool name from props
@@ -164,43 +166,57 @@ const ToolCall: React.FC<ToolCallProps> = (props) => {
     return filePreviewDriveFile.length > 0;
   }, [filePreviewDriveFile]);
 
+  const { data } = useListToolsetInventory({}, null, {
+    enabled: true,
+  });
+  const toolsetDefinition = data?.data?.find((t) => t.key === toolsetKey);
+  const toolsetName = toolsetDefinition?.labelDict?.[currentLanguage] ?? '';
+
   return (
     <>
       <div className="rounded-lg overflow-hidden bg-refly-bg-control-z0 text-refly-text-0">
         {/* Header bar */}
         <div
-          className="flex items-center p-3 gap-2 cursor-pointer select-none min-h-[44px]"
+          className="flex items-center justify-between p-3 gap-2 cursor-pointer select-none min-h-[44px]"
           onClick={() => setIsCollapsed(!isCollapsed)}
         >
-          <ToolsetIcon
-            toolsetKey={toolsetKey}
-            config={{ size: 16, className: 'flex-shrink-0', builtinClassName: '!w-4 !h-4' }}
-          />
-          <div className="flex-1 text-sm font-semibold">{`${toolName}`}</div>
-          {/* Status indicator */}
-          {toolCallStatus === ToolCallStatus.EXECUTING && (
-            <Spin size="small" className="text-refly-text-2" />
-          )}
-          {toolCallStatus === ToolCallStatus.COMPLETED && (
-            <span className="flex items-center">
-              <Checked size={14} color="var(--refly-primary-default)" />
-              {durationText && (
-                <span className="ml-2 text-xs text-refly-text-2">{durationText}</span>
-              )}
-            </span>
-          )}
-          {toolCallStatus === ToolCallStatus.FAILED && (
-            <span className="ml-2 flex items-center">
-              <FailedIcon />
-            </span>
-          )}
+          <div className="flex items-center gap-2">
+            <ToolsetIcon
+              toolsetKey={toolsetKey}
+              config={{ size: 16, className: 'flex-shrink-0', builtinClassName: '!w-4 !h-4' }}
+            />
+            <div className="flex-1 text-sm font-semibold">{`${toolsetName}`}</div>
+            {!toolsetDefinition.builtin && (
+              <div className="text-xs text-refly-text-2">{`${toolName}`}</div>
+            )}
+          </div>
 
-          <Button
-            type="text"
-            size="small"
-            icon={isCollapsed ? <ArrowDown size={14} /> : <ArrowUp size={14} />}
-            onClick={() => setIsCollapsed(!isCollapsed)}
-          />
+          <div className="flex items-center gap-2">
+            {/* Status indicator */}
+            {toolCallStatus === ToolCallStatus.EXECUTING && (
+              <Spin size="small" className="text-refly-text-2" />
+            )}
+            {toolCallStatus === ToolCallStatus.COMPLETED && (
+              <span className="flex items-center">
+                <Checked size={14} color="var(--refly-primary-default)" />
+                {durationText && (
+                  <span className="ml-2 text-xs text-refly-text-2">{durationText}</span>
+                )}
+              </span>
+            )}
+            {toolCallStatus === ToolCallStatus.FAILED && (
+              <span className="ml-2 flex items-center">
+                <FailedIcon />
+              </span>
+            )}
+
+            <Button
+              type="text"
+              size="small"
+              icon={isCollapsed ? <ArrowDown size={14} /> : <ArrowUp size={14} />}
+              onClick={() => setIsCollapsed(!isCollapsed)}
+            />
+          </div>
         </div>
 
         {/* Content section */}

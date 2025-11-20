@@ -6360,6 +6360,10 @@ export type ToolsetDefinition = {
    */
   key: string;
   /**
+   * Whether this is a builtin toolset
+   */
+  builtin?: boolean;
+  /**
    * Toolset domain (used for display icon)
    */
   domain?: string;
