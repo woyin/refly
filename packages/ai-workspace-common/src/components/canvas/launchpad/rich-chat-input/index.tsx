@@ -36,6 +36,7 @@ import {
   createContextItemFromMentionItem,
   serializeDocToTokens,
 } from './utils';
+import { useAgentConnections } from '@refly-packages/ai-workspace-common/hooks/canvas/use-agent-connections';
 
 interface RichChatInputProps {
   readonly: boolean;
@@ -80,8 +81,9 @@ const RichChatInputComponent = forwardRef<RichChatInputRef, RichChatInputProps>(
     const searchStore = useSearchStoreShallow((state) => ({
       setIsSearchOpen: state.setIsSearchOpen,
     }));
-    const { query, setQuery, setContextItems, setSelectedToolsets, setUpstreamResultIds } =
+    const { query, setQuery, setContextItems, setSelectedToolsets } =
       useAgentNodeManagement(nodeId);
+    const { connectToUpstreamAgent } = useAgentConnections();
 
     const [isMentionListVisible, setIsMentionListVisible] = useState(false);
 
@@ -137,17 +139,11 @@ const RichChatInputComponent = forwardRef<RichChatInputRef, RichChatInputProps>(
       [setSelectedToolsets],
     );
 
-    const addToUpstreamResultIds = useCallback(
+    const addToUpstreamAgents = useCallback(
       (resultId: string) => {
-        setUpstreamResultIds((prevResultIds) => {
-          const isAlreadyIncluded = (prevResultIds ?? []).includes(resultId);
-          if (isAlreadyIncluded) {
-            return prevResultIds ?? [];
-          }
-          return [...(prevResultIds ?? []), resultId];
-        });
+        connectToUpstreamAgent(nodeId, resultId);
       },
-      [setUpstreamResultIds],
+      [connectToUpstreamAgent, nodeId],
     );
 
     // Helper function to insert mention into editor
@@ -193,7 +189,7 @@ const RichChatInputComponent = forwardRef<RichChatInputRef, RichChatInputProps>(
               const contextItem = createContextItemFromMentionItem(item);
               addToContextItems(contextItem);
             } else if (item.source === 'agents') {
-              addToUpstreamResultIds(item.entityId);
+              addToUpstreamAgents(item.entityId);
             }
           }, 100);
         } else if (item.source === 'toolsets' || item.source === 'tools') {
@@ -386,7 +382,7 @@ const RichChatInputComponent = forwardRef<RichChatInputRef, RichChatInputProps>(
       [editor, readonly, hasUserInteractedRef, popupInstanceRef],
     );
 
-    // Sync all mentions in the editor to contextItems/selectedToolsets/upstreamResultIds
+    // Sync all mentions in the editor to contextItems/selectedToolsets
     const syncMentionsToState = useCallback(() => {
       if (!editor) return;
 
@@ -465,33 +461,7 @@ const RichChatInputComponent = forwardRef<RichChatInputRef, RichChatInputProps>(
           });
         }
       }
-
-      // Collect agent mentions and sync to upstreamResultIds
-      const agentMentions = mentionNodes.filter((node) => node?.attrs?.source === 'agents');
-
-      if (agentMentions.length > 0) {
-        const newResultIds: string[] = [];
-        for (const mention of agentMentions) {
-          const attrs = mention?.attrs;
-          if (attrs?.entityId) {
-            newResultIds.push(attrs.entityId);
-          }
-        }
-
-        if (newResultIds.length > 0) {
-          setUpstreamResultIds((prevResultIds) => {
-            const existing = prevResultIds ?? [];
-            const merged = [...existing];
-            for (const resultId of newResultIds) {
-              if (!existing.includes(resultId)) {
-                merged.push(resultId);
-              }
-            }
-            return merged;
-          });
-        }
-      }
-    }, [editor, setContextItems, setSelectedToolsets, setUpstreamResultIds]);
+    }, [editor, setContextItems, setSelectedToolsets]);
 
     // Enhanced handleSendMessage that converts mentions to Handlebars
     const handleSendMessageWithMentions = useCallback(() => {
