@@ -553,8 +553,6 @@ export class SkillInvokerService {
       const startTs = Date.now();
       const toolCallIds: Set<string> = new Set();
 
-      //
-
       for await (const event of skill.streamEvents(input, {
         ...config,
         version: 'v2',

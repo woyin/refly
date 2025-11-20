@@ -275,13 +275,6 @@ export const MentionList = ({
     const toolsetItems = items.filter((item) => item.source === 'toolsets');
     const toolItems = items.filter((item) => item.source === 'tools');
 
-    console.log('[MentionList] groupedItems:', {
-      totalItems: items.length,
-      toolsetsCount: toolsetItems.length,
-      toolItemsCount: toolItems.length,
-      query,
-    });
-
     const agentsItems = [...agentItems];
 
     // Apply filtering based on query
@@ -293,11 +286,6 @@ export const MentionList = ({
       // Show individual tools both in query mode and when hovering tools category
       tools: filterItems(toolItems, query) || [],
     };
-
-    console.log('[MentionList] filtered groupedItems:', {
-      toolsetsFiltered: result.toolsets.length,
-      toolsFiltered: result.tools.length,
-    });
 
     return result;
   }, [items, filterItems, query]);
