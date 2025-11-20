@@ -485,73 +485,95 @@ export class CanvasSyncService {
     }
 
     const releaseLock = await this.lockState(canvasId);
-    const canvasData = await this.getCanvasData(user, { canvasId });
-    const workingNodes = [...(canvasData.nodes ?? [])];
-    const workingEdges = [...(canvasData.edges ?? [])];
+    let syncStateInvoked = false;
 
-    const nodeDiffs: NodeDiff[] = [];
-    const edgeDiffs: EdgeDiff[] = [];
+    try {
+      const canvasData = await this.getCanvasData(user, { canvasId });
+      const workingNodes = [...(canvasData.nodes ?? [])];
+      const workingEdges = [...(canvasData.edges ?? [])];
 
-    for (const item of nodesWithConnections) {
-      if (!item?.node) {
-        continue;
+      const nodeDiffs: NodeDiff[] = [];
+      const edgeDiffs: EdgeDiff[] = [];
+
+      for (const item of nodesWithConnections) {
+        if (!item?.node) {
+          continue;
+        }
+
+        const { newNode, newEdges } = prepareAddNode({
+          node: item.node,
+          nodes: workingNodes,
+          edges: workingEdges,
+          connectTo: item.connectTo ? [...item.connectTo] : undefined,
+          autoLayout: options?.autoLayout,
+        });
+
+        const existingNodeIndex = workingNodes.findIndex((node) => node.id === newNode.id);
+        if (existingNodeIndex >= 0) {
+          const existingNode = workingNodes[existingNodeIndex];
+          workingNodes[existingNodeIndex] = newNode;
+
+          nodeDiffs.push({
+            type: 'update',
+            id: newNode.id,
+            from: existingNode,
+            to: newNode,
+          } as NodeDiff);
+        } else {
+          workingNodes.push(newNode);
+
+          nodeDiffs.push({
+            type: 'add',
+            id: newNode.id,
+            to: newNode,
+          } as NodeDiff);
+        }
+
+        workingEdges.push(...newEdges);
+
+        edgeDiffs.push(
+          ...newEdges.map(
+            (edge): EdgeDiff => ({
+              type: 'add',
+              id: edge.id,
+              to: edge,
+            }),
+          ),
+        );
+
+        this.logger.log(
+          `[addNodesToCanvas] new node: ${JSON.stringify(newNode)}, new edges: ${JSON.stringify(newEdges)}`,
+        );
       }
 
-      const { newNode, newEdges } = prepareAddNode({
-        node: item.node,
-        nodes: workingNodes,
-        edges: workingEdges,
-        connectTo: item.connectTo ? [...item.connectTo] : undefined,
-        autoLayout: options?.autoLayout,
-      });
+      if (!nodeDiffs.length && !edgeDiffs.length) {
+        this.logger.warn('[addNodesToCanvas] no diffs generated, skip syncing');
+        return;
+      }
 
-      workingNodes.push(newNode);
-      workingEdges.push(...newEdges);
-
-      nodeDiffs.push({
-        type: 'add',
-        id: newNode.id,
-        to: newNode,
-      } as NodeDiff);
-
-      edgeDiffs.push(
-        ...newEdges.map(
-          (edge): EdgeDiff => ({
-            type: 'add',
-            id: edge.id,
-            to: edge,
-          }),
-        ),
+      syncStateInvoked = true;
+      await this.syncState(
+        user,
+        {
+          canvasId,
+          transactions: [
+            {
+              txId: genTransactionId(),
+              createdAt: Date.now(),
+              syncedAt: Date.now(),
+              source: { type: 'system' },
+              nodeDiffs,
+              edgeDiffs,
+            },
+          ],
+        },
+        { releaseLock },
       );
-
-      this.logger.log(
-        `[addNodesToCanvas] new node: ${JSON.stringify(newNode)}, new edges: ${JSON.stringify(newEdges)}`,
-      );
+    } finally {
+      if (!syncStateInvoked) {
+        await releaseLock();
+      }
     }
-
-    if (!nodeDiffs.length && !edgeDiffs.length) {
-      await releaseLock();
-      this.logger.warn('[addNodesToCanvas] no diffs generated, skip syncing');
-      return;
-    }
-
-    await this.syncState(
-      user,
-      {
-        canvasId,
-        transactions: [
-          {
-            txId: genTransactionId(),
-            createdAt: Date.now(),
-            syncedAt: Date.now(),
-            source: { type: 'system' },
-            nodeDiffs,
-            edgeDiffs,
-          },
-        ],
-      },
-      { releaseLock },
-    );
   }
 
   async createCanvasVersion(
