@@ -44,7 +44,7 @@ export const useAgentNodeManagement = (nodeId: string) => {
     const nodeData = (node?.data as CanvasNodeData<ResponseNodeMeta>) ?? undefined;
     return nodeData?.metadata ?? ({} as ResponseNodeMeta);
   }, [node]);
-  const { query, modelInfo, contextItems, upstreamResultIds, selectedToolsets } = metadata;
+  const { query, modelInfo, contextItems, selectedToolsets } = metadata;
 
   const { setNodeData } = useNodeData();
 
@@ -93,27 +93,14 @@ export const useAgentNodeManagement = (nodeId: string) => {
     [setNodeData, nodeId, metadata.contextItems],
   );
 
-  const setUpstreamResultIds = useCallback(
-    (resultIds: string[] | ((prevResultIds: string[]) => string[])) => {
-      const newResultIds =
-        typeof resultIds === 'function' ? resultIds(metadata.upstreamResultIds ?? []) : resultIds;
-      setNodeData(nodeId, {
-        metadata: { upstreamResultIds: newResultIds },
-      });
-    },
-    [setNodeData, nodeId, metadata.upstreamResultIds],
-  );
-
   return {
     query,
     modelInfo,
     contextItems,
-    upstreamResultIds,
     selectedToolsets,
     setQuery,
     setModelInfo,
     setSelectedToolsets,
-    setUpstreamResultIds,
     setContextItems,
   };
 };
