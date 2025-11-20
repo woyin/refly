@@ -8970,6 +8970,10 @@ export const ToolsetDefinitionSchema = {
       type: 'string',
       description: 'Toolset key',
     },
+    builtin: {
+      type: 'boolean',
+      description: 'Whether this is a builtin toolset',
+    },
     domain: {
       type: 'string',
       description: 'Toolset domain (used for display icon)',

@@ -1088,18 +1088,22 @@ export class SkillInvokerService {
           }
 
           // Add node to canvas
-          await this.canvasSyncService.addNodeToCanvas(
+          await this.canvasSyncService.addNodesToCanvas(
             user,
             targetId,
-            {
-              type: nodeType,
-              data: {
-                title: nodeTitle,
-                entityId: mediaId,
-                metadata,
+            [
+              {
+                node: {
+                  type: nodeType,
+                  data: {
+                    title: nodeTitle,
+                    entityId: mediaId,
+                    metadata,
+                  },
+                },
+                connectTo: [{ type: 'skillResponse', entityId: parentResultId }],
               },
-            },
-            [{ type: 'skillResponse', entityId: parentResultId }],
+            ],
             { autoLayout: true },
           );
 

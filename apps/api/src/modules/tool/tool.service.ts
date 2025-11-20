@@ -93,8 +93,12 @@ export class ToolService {
   }
 
   async listToolsetInventory(): Promise<ToolsetDefinition[]> {
+    const builtinInventory = Object.values(builtinToolsetInventory).map((toolset) => ({
+      ...toolset.definition,
+      builtin: true,
+    }));
     const definitions = await this.inventoryService.getInventoryDefinitions();
-    return definitions.sort((a, b) => a.key.localeCompare(b.key));
+    return [...builtinInventory, ...definitions].sort((a, b) => a.key.localeCompare(b.key));
   }
 
   listBuiltinTools(): GenericToolset[] {
@@ -949,8 +953,8 @@ export class ToolService {
             metadata: {
               name: tool.name,
               type: ToolsetType.REGULAR,
-              toolsetKey: 'builtin',
-              toolsetName: 'Builtin',
+              toolsetKey: tool.toolsetKey,
+              toolsetName: tool.name,
             },
           }),
       );

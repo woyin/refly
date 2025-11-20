@@ -231,9 +231,6 @@ export class SkillEngineService implements OnModuleInit {
         const result = await this.miscService.uploadBase64(user, param);
         return result;
       },
-      addNodeToCanvasWithoutCanvasId: async (user, node, connectTo, options) => {
-        await this.canvasSyncService.addNodeToCanvasWithoutCanvasId(user, node, connectTo, options);
-      },
       readFile: async (user, fileId) => {
         const result = await this.driveService.getDriveFileDetail(user, fileId);
         return result;
