@@ -40,7 +40,7 @@ export const useAgentConnections = () => {
       };
       addEdges([newEdge]);
     },
-    [getNodes],
+    [getNodes, addEdges, edgeStyles],
   );
 
   const disconnectFromUpstreamAgent = useCallback(
