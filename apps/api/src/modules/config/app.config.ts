@@ -135,6 +135,20 @@ export default () => ({
       callbackUrl: process.env.NOTION_CALLBACK_URL || 'test',
       authorizationURL: process.env.NOTION_AUTHORIZATION_URL || 'test',
     },
+    invitation: {
+      requireInvitationCode: process.env.AUTH_REQUIRE_INVITATION_CODE === 'true' || false,
+      inviterCreditAmount: Number.parseInt(process.env.INVITATION_INVITER_CREDIT_AMOUNT) || 500,
+      inviteeCreditAmount: Number.parseInt(process.env.INVITATION_INVITEE_CREDIT_AMOUNT) || 500,
+      inviterCreditExpiresInMonths:
+        Number.parseInt(process.env.INVITATION_INVITER_CREDIT_EXPIRES_IN_MONTHS) || 3,
+      inviteeCreditExpiresInMonths:
+        Number.parseInt(process.env.INVITATION_INVITEE_CREDIT_EXPIRES_IN_MONTHS) || 3,
+    },
+    registration: {
+      bonusCreditAmount: Number.parseInt(process.env.REGISTRATION_BONUS_CREDIT_AMOUNT) || 3000,
+      bonusCreditExpiresInMonths:
+        Number.parseInt(process.env.REGISTRATION_BONUS_CREDIT_EXPIRES_IN_MONTHS) || 3,
+    },
   },
   tools: {
     supportedToolsets: process.env.SUPPORTED_TOOLSETS || '', // comma separated list of toolset keys
