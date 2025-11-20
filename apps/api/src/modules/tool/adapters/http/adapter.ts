@@ -1,10 +1,15 @@
 /**
  * HTTP adapter implementation
- * Handles HTTP-based API calls
+ * Handles HTTP-based API calls with optional async task polling
  */
 
-import type { AdapterRequest, AdapterResponse, HttpAdapterConfig } from '@refly/openapi-schema';
-import { AxiosResponse } from 'axios';
+import type {
+  AdapterRequest,
+  AdapterResponse,
+  HttpAdapterConfig,
+  PollingConfig,
+} from '@refly/openapi-schema';
+import axios, { AxiosResponse } from 'axios';
 import { AdapterType, HttpMethod } from '../../constant';
 import { BaseAdapter } from '../../core/base';
 import type { IHttpAdapter } from '../../core/interfaces';
@@ -12,10 +17,11 @@ import { AdapterError } from '../types';
 import { HttpClient } from './client';
 
 /**
- * HTTP adapter for making HTTP API calls
+ * HTTP adapter for making HTTP API calls with intelligent polling support
  */
 export class HttpAdapter extends BaseAdapter implements IHttpAdapter {
   private readonly httpClient: HttpClient;
+  private readonly pollingConfig?: PollingConfig;
 
   constructor(config: HttpAdapterConfig = {}) {
     super({
@@ -29,6 +35,9 @@ export class HttpAdapter extends BaseAdapter implements IHttpAdapter {
       headers: config.defaultHeaders,
       proxy: config.proxy,
     });
+
+    // Store polling configuration
+    this.pollingConfig = config.polling;
   }
 
   /**
@@ -55,11 +64,37 @@ export class HttpAdapter extends BaseAdapter implements IHttpAdapter {
   }
 
   /**
-   * Execute HTTP request
+   * Execute HTTP request with optional polling support
    */
   protected async executeInternal(request: AdapterRequest): Promise<AdapterResponse> {
     this.validateRequest(request);
 
+    // Execute initial request
+    const initialResponse = await this.executeHttpRequest(request);
+
+    // If polling is not configured, return immediately
+    if (!this.pollingConfig?.statusUrl) {
+      return initialResponse;
+    }
+
+    // Auto-detect task ID from initial response
+    const taskId = this.autoDetectTaskId(initialResponse.data);
+    if (!taskId) {
+      this.logger.warn(
+        'Polling enabled but no task ID found in response, returning initial response',
+      );
+      return initialResponse;
+    }
+
+    // Start polling
+    this.logger.log(`Task ${taskId} created, starting polling...`);
+    return await this.pollUntilComplete(taskId);
+  }
+
+  /**
+   * Execute standard HTTP request (extracted from executeInternal)
+   */
+  private async executeHttpRequest(request: AdapterRequest): Promise<AdapterResponse> {
     try {
       // Prepare headers
       const headers = {
@@ -80,10 +115,18 @@ export class HttpAdapter extends BaseAdapter implements IHttpAdapter {
         requestData = this.httpClient.createFormData(request.params);
         // Don't set Content-Type header for FormData, let axios set it with boundary
         headers['Content-Type'] = undefined;
+        headers['content-type'] = undefined;
       } else {
-        // Use JSON for regular requests
+        // Use request params directly
         requestData = request.params;
-        if (!contentType) {
+        // Only set Content-Type to JSON if:
+        // 1. No Content-Type is specified
+        // 2. Request has body data (params is not empty)
+        // 3. Request method is not GET (GET requests typically don't have body)
+        const hasBodyData =
+          requestData && typeof requestData === 'object' && Object.keys(requestData).length > 0;
+        const method = request.method?.toUpperCase() || 'POST';
+        if (!contentType && hasBodyData && method !== 'GET') {
           headers['Content-Type'] = 'application/json';
         }
       }
@@ -339,6 +382,337 @@ export class HttpAdapter extends BaseAdapter implements IHttpAdapter {
     if (credentials.apiKeyHeader && credentials.apiKey) {
       headers[credentials.apiKeyHeader as string] = credentials.apiKey as string;
     }
+  }
+
+  /**
+   * Auto-detect task ID from response
+   */
+  private autoDetectTaskId(data: any): string | null {
+    const TASK_ID_FIELDS = [
+      'id',
+      'request_id',
+      'requestId',
+      'video_id',
+      'videoId',
+      'task_id',
+      'taskId',
+      'job_id',
+      'jobId',
+      'prediction_id',
+      'predictionId',
+      'data.id',
+      'data.video_id',
+      'data.task_id',
+      'data.request_id',
+      'data.job_id',
+    ];
+
+    for (const field of TASK_ID_FIELDS) {
+      const value = this.getNestedValue(data, field);
+      if (value && typeof value === 'string') {
+        this.logger.log(`✅ Task ID detected: ${field} = ${value}`);
+        return value;
+      }
+    }
+
+    return null;
+  }
+
+  /**
+   * Poll task status until complete, failed, or timeout
+   */
+  private async pollUntilComplete(taskId: string): Promise<AdapterResponse> {
+    const config = this.pollingConfig!;
+    const maxWaitSeconds = config.maxWaitSeconds || 300;
+    const intervalSeconds = config.intervalSeconds || 5;
+
+    const maxAttempts = Math.ceil(maxWaitSeconds / intervalSeconds);
+    const pollInterval = intervalSeconds * 1000;
+
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      // Build status URL by replacing {id} placeholder
+      const statusUrl = config.statusUrl.replace('{id}', taskId);
+
+      this.logger.log(`Polling ${attempt}/${maxAttempts}: ${statusUrl}`);
+
+      // Execute status check
+      const response = await this.httpClient.get(statusUrl);
+      const data = this.parseResponse(response);
+
+      // Auto-detect status
+      const status = this.autoDetectStatus(data);
+      if (!status) {
+        this.logger.warn('Cannot detect status field, assuming not ready');
+        if (attempt < maxAttempts) {
+          await this.sleep(pollInterval);
+        }
+        continue;
+      }
+
+      this.logger.log(`Task ${taskId} status: ${status}`);
+
+      // Check if completed (case-insensitive)
+      const COMPLETED_STATUSES = ['completed', 'success', 'succeeded', 'done'];
+      if (COMPLETED_STATUSES.includes(status.toLowerCase())) {
+        this.logger.log(`✅ Task ${taskId} completed`);
+
+        // Auto-extract result data
+        const resultData = this.autoExtractResult(data);
+
+        // Auto-download file if URL found
+        const finalData = await this.autoDownloadIfNeeded(resultData, taskId);
+
+        return {
+          data: finalData,
+          status: response.status,
+          headers: response.headers as Record<string, string>,
+          raw: response,
+        };
+      }
+
+      // Check if failed (case-insensitive)
+      const FAILED_STATUSES = ['failed', 'error', 'cancelled', 'canceled'];
+      if (FAILED_STATUSES.includes(status.toLowerCase())) {
+        const errorMsg = this.autoDetectError(data);
+        throw new AdapterError(
+          errorMsg || `Task failed with status: ${status}`,
+          'TASK_FAILED',
+          response.status,
+          { responseData: data },
+        );
+      }
+
+      // Wait before next poll (skip on last attempt)
+      if (attempt < maxAttempts) {
+        await this.sleep(pollInterval);
+      }
+    }
+
+    throw new AdapterError(
+      `Polling timeout after ${maxWaitSeconds} seconds`,
+      'POLLING_TIMEOUT',
+      408,
+    );
+  }
+
+  /**
+   * Auto-detect status field from response
+   */
+  private autoDetectStatus(data: any): string | null {
+    const STATUS_FIELDS = ['status', 'state', 'data.status', 'data.state', 'task.status'];
+
+    for (const field of STATUS_FIELDS) {
+      const value = this.getNestedValue(data, field);
+      if (value && typeof value === 'string') {
+        return value;
+      }
+    }
+
+    return null;
+  }
+
+  /**
+   * Auto-extract result data from response
+   */
+  private autoExtractResult(data: any): any {
+    const RESULT_FIELDS = ['data', 'result', 'output'];
+
+    // Try standard result fields
+    for (const field of RESULT_FIELDS) {
+      const value = this.getNestedValue(data, field);
+      if (value && typeof value === 'object') {
+        return value;
+      }
+    }
+
+    // Default: return full data
+    return data;
+  }
+
+  /**
+   * Auto-detect error message from response
+   */
+  private autoDetectError(data: any): string | null {
+    const ERROR_FIELDS = [
+      'error',
+      'error.message',
+      'data.error',
+      'data.error.message',
+      'message',
+      'error_message',
+    ];
+
+    for (const field of ERROR_FIELDS) {
+      const value = this.getNestedValue(data, field);
+      if (value && typeof value === 'string') {
+        return value;
+      }
+    }
+
+    return null;
+  }
+
+  /**
+   * Auto-download file if response contains URL
+   */
+  private async autoDownloadIfNeeded(data: any, taskId: string): Promise<any> {
+    // Recursively find all URLs
+    const urls = this.findAllUrls(data);
+
+    if (urls.length === 0) {
+      return data;
+    }
+
+    // Download first URL (primary file)
+    const primaryUrl = urls[0];
+    this.logger.log(`🔽 Downloading from: ${primaryUrl.path} = ${primaryUrl.value}`);
+
+    return await this.downloadFile(primaryUrl.value, data, taskId);
+  }
+
+  /**
+   * Recursively find all HTTP(S) URLs in object
+   */
+  private findAllUrls(obj: any, prefix = ''): Array<{ path: string; value: string }> {
+    const urls: Array<{ path: string; value: string }> = [];
+
+    if (typeof obj === 'string' && obj.startsWith('http')) {
+      return [{ path: prefix, value: obj }];
+    }
+
+    if (Array.isArray(obj)) {
+      obj.forEach((item, index) => {
+        urls.push(...this.findAllUrls(item, `${prefix}[${index}]`));
+      });
+    } else if (obj && typeof obj === 'object') {
+      // Priority fields (check first)
+      const PRIORITY_FIELDS = [
+        'video_url',
+        'videoUrl',
+        'audio_url',
+        'audioUrl',
+        'file_url',
+        'fileUrl',
+        'url',
+        'download_url',
+        'downloadUrl',
+      ];
+
+      for (const key of PRIORITY_FIELDS) {
+        if (obj[key]) {
+          const found = this.findAllUrls(obj[key], prefix ? `${prefix}.${key}` : key);
+          if (found.length > 0) {
+            urls.push(...found);
+            return urls; // Found, stop searching
+          }
+        }
+      }
+
+      // Search other fields
+      for (const [key, value] of Object.entries(obj)) {
+        if (!PRIORITY_FIELDS.includes(key)) {
+          urls.push(...this.findAllUrls(value, prefix ? `${prefix}.${key}` : key));
+        }
+      }
+    }
+
+    return urls;
+  }
+
+  /**
+   * Download file from URL
+   */
+  private async downloadFile(url: string, originalData: any, taskId: string): Promise<any> {
+    try {
+      this.logger.log(`Downloading file from: ${url}`);
+
+      const response = await axios.get(url, {
+        responseType: 'arraybuffer',
+        timeout: 600000, // 10 minutes for large files
+      });
+
+      const buffer = Buffer.from(response.data);
+      const contentType = response.headers['content-type'] || '';
+
+      // Infer file extension
+      const ext = this.guessExtension(contentType, url);
+      const filename = `file-${taskId}.${ext}`;
+
+      this.logger.log(`✅ Downloaded ${buffer.length} bytes as ${filename}`);
+
+      return {
+        ...originalData,
+        buffer,
+        filename,
+        mimetype: contentType || 'application/octet-stream',
+      };
+    } catch (error) {
+      this.logger.error(`Failed to download file: ${(error as Error).message}`);
+      // Return original data on download failure (graceful degradation)
+      return originalData;
+    }
+  }
+
+  /**
+   * Guess file extension from MIME type or URL
+   */
+  private guessExtension(contentType: string, url: string): string {
+    // Try to extract from URL
+    const urlMatch = url.match(/\.(\w+)(\?|$)/);
+    if (urlMatch) return urlMatch[1];
+
+    // Map MIME type to extension
+    const mimeMap: Record<string, string> = {
+      'video/mp4': 'mp4',
+      'video/webm': 'webm',
+      'video/quicktime': 'mov',
+      'audio/mpeg': 'mp3',
+      'audio/mp3': 'mp3',
+      'audio/wav': 'wav',
+      'audio/ogg': 'ogg',
+      'image/png': 'png',
+      'image/jpeg': 'jpg',
+      'image/jpg': 'jpg',
+      'image/gif': 'gif',
+      'image/webp': 'webp',
+      'application/pdf': 'pdf',
+    };
+
+    const baseType = contentType.split(';')[0].trim().toLowerCase();
+    return mimeMap[baseType] || 'bin';
+  }
+
+  /**
+   * Get nested value from object using dot notation
+   */
+  private getNestedValue(obj: any, path: string): any {
+    if (!path || !obj) return undefined;
+
+    const keys = path.split('.');
+    let current = obj;
+
+    for (const key of keys) {
+      if (current?.[key] === undefined) return undefined;
+      current = current[key];
+    }
+
+    return current;
+  }
+
+  /**
+   * Parse response data (handle arraybuffer for JSON)
+   */
+  private parseResponse(response: AxiosResponse): any {
+    const contentType = response.headers['content-type'] || '';
+
+    if (contentType.includes('application/json')) {
+      if (Buffer.isBuffer(response.data) || response.data instanceof ArrayBuffer) {
+        return JSON.parse(Buffer.from(response.data).toString('utf-8'));
+      }
+      return response.data;
+    }
+
+    return response.data;
   }
 
   /**

@@ -7471,14 +7471,6 @@ export type ParsedMethodConfig = {
   method?: HttpMethod;
   schema: JsonSchema;
   responseSchema: ResponseSchema;
-  /**
-   * Extracted resource fields from input schema
-   */
-  inputResourceFields: Array<ResourceField>;
-  /**
-   * Extracted resource fields from response schema
-   */
-  outputResourceFields: Array<ResourceField>;
   billing?: BillingConfig;
   /**
    * Custom handler class name
@@ -7504,6 +7496,10 @@ export type ParsedMethodConfig = {
    * Maximum retries on failure
    */
   maxRetries?: number;
+  /**
+   * Whether to use multipart/form-data encoding
+   */
+  useFormData?: boolean;
 };
 
 export type ParsedToolsetConfig = {
@@ -7634,6 +7630,25 @@ export type HttpAdapterConfig = {
    * HTTP proxy URL
    */
   proxy?: string;
+  /**
+   * Polling configuration for async task tracking
+   */
+  polling?: PollingConfig;
+};
+
+export type PollingConfig = {
+  /**
+   * Status check endpoint template (e.g., "/v1/tasks/{id}" or "/v1/video_status.get?video_id={id}")
+   */
+  statusUrl: string;
+  /**
+   * Maximum wait time in seconds
+   */
+  maxWaitSeconds?: number;
+  /**
+   * Poll interval in seconds
+   */
+  intervalSeconds?: number;
 };
 
 export type SdkAdapterConfig = {
@@ -7829,14 +7844,6 @@ export type HandlerContext = {
     [key: string]: unknown;
   };
   /**
-   * Input resource fields configuration (deprecated, use schema traversal instead)
-   */
-  inputResourceFields?: Array<ResourceField>;
-  /**
-   * Output resource fields configuration (deprecated, use schema traversal instead)
-   */
-  outputResourceFields?: Array<ResourceField>;
-  /**
    * Response schema for identifying resource fields via traversal
    */
   responseSchema?: ResponseSchema;
@@ -7859,14 +7866,6 @@ export type HandlerConfig = {
     [key: string]: unknown;
   };
   /**
-   * Input resource fields (deprecated, use schema traversal instead)
-   */
-  inputResourceFields?: Array<ResourceField>;
-  /**
-   * Output resource fields (deprecated, use schema traversal instead)
-   */
-  outputResourceFields?: Array<ResourceField>;
-  /**
    * Response schema for identifying resource fields via traversal
    */
   responseSchema?: ResponseSchema;
@@ -7878,12 +7877,6 @@ export type HandlerConfig = {
    * Maximum retries
    */
   maxRetries?: number;
-  /**
-   * Custom headers
-   */
-  headers?: {
-    [key: string]: string;
-  };
   /**
    * Whether to use multipart/form-data
    */

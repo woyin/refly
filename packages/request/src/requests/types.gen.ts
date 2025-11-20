@@ -7228,11 +7228,6 @@ export type SchemaPropertyType = 'string' | 'number' | 'boolean' | 'object' | 'a
  */
 export type ToolResourceType = 'audio' | 'video' | 'image' | 'document';
 
-/**
- * Output format for resource content
- */
-export type ResourceOutputFormat = 'base64' | 'url' | 'buffer' | 'text';
-
 export type SchemaProperty = {
   type: SchemaPropertyType;
   /**
@@ -7244,9 +7239,9 @@ export type SchemaProperty = {
    */
   isResource?: boolean;
   /**
-   * Output format for resource resolution (default is buffer)
+   * Format for the property value. For resources: base64, url, binary, text. For strings: date-time, uri, email, etc.
    */
-  resourceOutputFormat?: ResourceOutputFormat;
+  format?: string;
   /**
    * Minimum length (for string)
    */
@@ -7332,9 +7327,9 @@ export type ResourceField = {
    */
   isArray: boolean;
   /**
-   * Format to convert resource content to (default is buffer)
+   * Format to convert resource content to (default is binary). Options: base64, url, binary, text
    */
-  outputFormat?: ResourceOutputFormat;
+  format?: string;
 };
 
 /**
@@ -7476,14 +7471,6 @@ export type ParsedMethodConfig = {
   method?: HttpMethod;
   schema: JsonSchema;
   responseSchema: ResponseSchema;
-  /**
-   * Extracted resource fields from input schema
-   */
-  inputResourceFields: Array<ResourceField>;
-  /**
-   * Extracted resource fields from response schema
-   */
-  outputResourceFields: Array<ResourceField>;
   billing?: BillingConfig;
   /**
    * Custom handler class name
@@ -7509,6 +7496,16 @@ export type ParsedMethodConfig = {
    * Maximum retries on failure
    */
   maxRetries?: number;
+  /**
+   * Custom headers for HTTP requests
+   */
+  headers?: {
+    [key: string]: string;
+  };
+  /**
+   * Whether to use multipart/form-data encoding
+   */
+  useFormData?: boolean;
 };
 
 export type ParsedToolsetConfig = {
@@ -7834,14 +7831,6 @@ export type HandlerContext = {
     [key: string]: unknown;
   };
   /**
-   * Input resource fields configuration (deprecated, use schema traversal instead)
-   */
-  inputResourceFields?: Array<ResourceField>;
-  /**
-   * Output resource fields configuration (deprecated, use schema traversal instead)
-   */
-  outputResourceFields?: Array<ResourceField>;
-  /**
    * Response schema for identifying resource fields via traversal
    */
   responseSchema?: ResponseSchema;
@@ -7863,14 +7852,6 @@ export type HandlerConfig = {
   credentials?: {
     [key: string]: unknown;
   };
-  /**
-   * Input resource fields (deprecated, use schema traversal instead)
-   */
-  inputResourceFields?: Array<ResourceField>;
-  /**
-   * Output resource fields (deprecated, use schema traversal instead)
-   */
-  outputResourceFields?: Array<ResourceField>;
   /**
    * Response schema for identifying resource fields via traversal
    */

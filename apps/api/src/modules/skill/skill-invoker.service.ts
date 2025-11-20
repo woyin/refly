@@ -42,12 +42,10 @@ import { extractChunkContent } from '../../utils/llm';
 import { writeSSEResponse } from '../../utils/response';
 import { ResultAggregator } from '../../utils/result';
 import { ActionService } from '../action/action.service';
-import { CanvasSyncService } from '../canvas-sync/canvas-sync.service';
 import { AutoNameCanvasJobData } from '../canvas/canvas.dto';
 import { PrismaService } from '../common/prisma.service';
 import { CreditUsageStep, SyncBatchTokenCreditUsageJobData } from '../credit/credit.dto';
 import { CreditService } from '../credit/credit.service';
-import { DriveService } from '../drive/drive.service';
 import { MiscService } from '../misc/misc.service';
 import { SyncPilotStepJobData } from '../pilot/pilot.processor';
 import { projectPO2DTO } from '../project/project.dto';
@@ -58,6 +56,8 @@ import { SyncRequestUsageJobData, SyncTokenUsageJobData } from '../subscription/
 import { ToolCallService, ToolCallStatus } from '../tool-call/tool-call.service';
 import { ToolService } from '../tool/tool.service';
 import { InvokeSkillJobData } from './skill.dto';
+import { DriveService } from '../drive/drive.service';
+import { CanvasSyncService } from '../canvas-sync/canvas-sync.service';
 
 @Injectable()
 export class SkillInvokerService {

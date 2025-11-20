@@ -61,6 +61,33 @@ export async function processResourcesInData(
     key: string,
     parent: Record<string, unknown>,
   ): Promise<void> {
+    // Case 0: Handle oneOf/anyOf schemas
+    // Check if any of the options has isResource=true
+    const schemaWithOneOf = schemaProperty as SchemaProperty & {
+      oneOf?: SchemaProperty[];
+      anyOf?: SchemaProperty[];
+    };
+
+    if (schemaWithOneOf.oneOf || schemaWithOneOf.anyOf) {
+      const options = schemaWithOneOf.oneOf || schemaWithOneOf.anyOf || [];
+
+      // Find the resource option (the one with isResource: true)
+      const resourceOption = options.find((opt: SchemaProperty) => opt.isResource);
+
+      if (resourceOption && dataValue !== undefined && dataValue !== null) {
+        // Check if the value looks like a fileId (starts with 'df-')
+        if (isValidFileId(dataValue)) {
+          // Process as resource using the resource option schema
+          parent[key] = await processor(dataValue, resourceOption);
+          return;
+        }
+      }
+
+      // If not a fileId or no resource option found, keep original value
+      parent[key] = dataValue;
+      return;
+    }
+
     // Case 1: This field is marked as a resource
     if (schemaProperty.isResource) {
       if (dataValue !== undefined && dataValue !== null) {
@@ -405,7 +432,7 @@ export class ResourceHandler {
       schema,
       request.params as Record<string, unknown>,
       async (value, schemaProperty) => {
-        return await this.resolveFileIdToFormat(value, schemaProperty.format || 'binary');
+        return await this.resolveFileIdToFormat(value, schemaProperty.format || 'text');
       },
     );
 

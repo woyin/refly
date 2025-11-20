@@ -10522,15 +10522,7 @@ export const ToolsetConfigSchema = {
 
 export const ParsedMethodConfigSchema = {
   type: 'object',
-  required: [
-    'name',
-    'description',
-    'endpoint',
-    'schema',
-    'responseSchema',
-    'inputResourceFields',
-    'outputResourceFields',
-  ],
+  required: ['name', 'description', 'endpoint', 'schema', 'responseSchema'],
   properties: {
     name: {
       type: 'string',
@@ -10561,20 +10553,6 @@ export const ParsedMethodConfigSchema = {
     responseSchema: {
       $ref: '#/components/schemas/ResponseSchema',
     },
-    inputResourceFields: {
-      type: 'array',
-      items: {
-        $ref: '#/components/schemas/ResourceField',
-      },
-      description: 'Extracted resource fields from input schema',
-    },
-    outputResourceFields: {
-      type: 'array',
-      items: {
-        $ref: '#/components/schemas/ResourceField',
-      },
-      description: 'Extracted resource fields from response schema',
-    },
     billing: {
       $ref: '#/components/schemas/BillingConfig',
     },
@@ -10601,6 +10579,10 @@ export const ParsedMethodConfigSchema = {
     maxRetries: {
       type: 'number',
       description: 'Maximum retries on failure',
+    },
+    useFormData: {
+      type: 'boolean',
+      description: 'Whether to use multipart/form-data encoding',
     },
   },
 } as const;
@@ -10758,6 +10740,32 @@ export const HttpAdapterConfigSchema = {
     proxy: {
       type: 'string',
       description: 'HTTP proxy URL',
+    },
+    polling: {
+      $ref: '#/components/schemas/PollingConfig',
+      description: 'Polling configuration for async task tracking',
+    },
+  },
+} as const;
+
+export const PollingConfigSchema = {
+  type: 'object',
+  required: ['statusUrl'],
+  properties: {
+    statusUrl: {
+      type: 'string',
+      description:
+        'Status check endpoint template (e.g., "/v1/tasks/{id}" or "/v1/video_status.get?video_id={id}")',
+    },
+    maxWaitSeconds: {
+      type: 'number',
+      description: 'Maximum wait time in seconds',
+      default: 300,
+    },
+    intervalSeconds: {
+      type: 'number',
+      description: 'Poll interval in seconds',
+      default: 5,
     },
   },
 } as const;
@@ -10993,21 +11001,6 @@ export const HandlerContextSchema = {
       additionalProperties: true,
       description: 'Credentials for authentication',
     },
-    inputResourceFields: {
-      type: 'array',
-      items: {
-        $ref: '#/components/schemas/ResourceField',
-      },
-      description: 'Input resource fields configuration (deprecated, use schema traversal instead)',
-    },
-    outputResourceFields: {
-      type: 'array',
-      items: {
-        $ref: '#/components/schemas/ResourceField',
-      },
-      description:
-        'Output resource fields configuration (deprecated, use schema traversal instead)',
-    },
     responseSchema: {
       $ref: '#/components/schemas/ResponseSchema',
       description: 'Response schema for identifying resource fields via traversal',
@@ -11035,20 +11028,6 @@ export const HandlerConfigSchema = {
       additionalProperties: true,
       description: 'Credentials',
     },
-    inputResourceFields: {
-      type: 'array',
-      items: {
-        $ref: '#/components/schemas/ResourceField',
-      },
-      description: 'Input resource fields (deprecated, use schema traversal instead)',
-    },
-    outputResourceFields: {
-      type: 'array',
-      items: {
-        $ref: '#/components/schemas/ResourceField',
-      },
-      description: 'Output resource fields (deprecated, use schema traversal instead)',
-    },
     responseSchema: {
       $ref: '#/components/schemas/ResponseSchema',
       description: 'Response schema for identifying resource fields via traversal',
@@ -11060,13 +11039,6 @@ export const HandlerConfigSchema = {
     maxRetries: {
       type: 'number',
       description: 'Maximum retries',
-    },
-    headers: {
-      type: 'object',
-      additionalProperties: {
-        type: 'string',
-      },
-      description: 'Custom headers',
     },
     useFormData: {
       type: 'boolean',

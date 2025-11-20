@@ -5,15 +5,13 @@ import { useActionPolling } from '@refly-packages/ai-workspace-common/hooks/canv
 import { useFetchActionResult } from '@refly-packages/ai-workspace-common/hooks/canvas/use-fetch-action-result';
 import { useInvokeAction } from '@refly-packages/ai-workspace-common/hooks/canvas/use-invoke-action';
 import { useFetchShareData } from '@refly-packages/ai-workspace-common/hooks/use-fetch-share-data';
+import { CanvasNode, convertResultContextToItems, ResponseNodeMeta } from '@refly/canvas-common';
+import { ActionResult } from '@refly/openapi-schema';
 import {
-  CanvasNode,
-  convertResultContextToItems,
-  purgeContextItems,
-  ResponseNodeMeta,
-} from '@refly/canvas-common';
-import { ActionResult, GenericToolset } from '@refly/openapi-schema';
-import { IContextItem } from '@refly/common-types';
-import { useActionResultStoreShallow, type ResultActiveTab } from '@refly/stores';
+  useActionResultStoreShallow,
+  useCanvasStoreShallow,
+  type ResultActiveTab,
+} from '@refly/stores';
 import { sortSteps } from '@refly/utils/step';
 import { Segmented, Button } from 'antd';
 import { memo, useCallback, useEffect, useState, useMemo } from 'react';
@@ -27,6 +25,7 @@ import { Close, Play } from 'refly-icons';
 import { useReactFlow } from '@xyflow/react';
 import { processQueryWithMentions } from '@refly/utils/query-processor';
 import { useVariablesManagement } from '@refly-packages/ai-workspace-common/hooks/use-variables-management';
+import { ProductCard } from '@refly-packages/ai-workspace-common/components/markdown/plugins/tool-call/product-card';
 
 interface SkillResponseNodePreviewProps {
   node: CanvasNode<ResponseNodeMeta>;
@@ -47,12 +46,16 @@ const SkillResponseNodePreviewComponent = ({
     isStreaming,
     updateActionResult,
     setResultActiveTab,
+    setCurrentFile,
+    currentFile,
   } = useActionResultStoreShallow((state) => ({
     result: state.resultMap[resultId],
     activeTab: state.resultActiveTabMap[resultId],
     isStreaming: !!state.streamResults[resultId],
     updateActionResult: state.updateActionResult,
     setResultActiveTab: state.setResultActiveTab,
+    setCurrentFile: state.setCurrentFile,
+    currentFile: state.currentFile,
   }));
   const { setNodes } = useReactFlow();
 
@@ -126,42 +129,7 @@ const SkillResponseNodePreviewComponent = ({
   const contextItems =
     data?.metadata?.contextItems ?? convertResultContextToItems(result?.context, result?.history);
   const selectedToolsets = data?.metadata?.selectedToolsets ?? result?.toolsets;
-
-  const setQuery = useCallback(
-    (query: string) => {
-      setNodeData(node.id, {
-        metadata: { query },
-      });
-    },
-    [setNodeData, node.id],
-  );
-
-  const setModelInfo = useCallback(
-    (modelInfo: any | null) => {
-      setNodeData(node.id, {
-        metadata: { modelInfo },
-      });
-    },
-    [setNodeData, node.id],
-  );
-
-  const setSelectedToolsets = useCallback(
-    (toolsets: GenericToolset[]) => {
-      setNodeData(node.id, {
-        metadata: { selectedToolsets: toolsets },
-      });
-    },
-    [setNodeData, node.id],
-  );
-
-  const setContextItems = useCallback(
-    (contextItems: IContextItem[]) => {
-      setNodeData(node.id, {
-        metadata: { contextItems: purgeContextItems(contextItems) },
-      });
-    },
-    [setNodeData, node.id],
-  );
+  const upstreamResultIds = data?.metadata?.upstreamResultIds;
 
   const { steps = [] } = result ?? {};
 
@@ -191,7 +159,7 @@ const SkillResponseNodePreviewComponent = ({
   const handleRetry = useCallback(() => {
     // Reset failed state before retrying
     resetFailedState(resultId);
-    const { processedQuery } = processQueryWithMentions(query, {
+    const { llmInputQuery } = processQueryWithMentions(query, {
       replaceVars: true,
       variables,
     });
@@ -208,10 +176,11 @@ const SkillResponseNodePreviewComponent = ({
     invokeAction(
       {
         resultId,
-        query: processedQuery,
+        query: llmInputQuery,
         modelInfo,
         contextItems,
         selectedToolsets,
+        upstreamResultIds,
         version: nextVersion,
       },
       {
@@ -225,6 +194,7 @@ const SkillResponseNodePreviewComponent = ({
     modelInfo,
     contextItems,
     selectedToolsets,
+    upstreamResultIds,
     canvasId,
     invokeAction,
     resetFailedState,
@@ -243,15 +213,37 @@ const SkillResponseNodePreviewComponent = ({
       })),
     );
   };
+  const { nodeExecutions } = useCanvasStoreShallow((state) => ({
+    nodeExecutions: state.canvasNodeExecutions[canvasId] ?? [],
+  }));
+
+  const isExecuting = useMemo(() => {
+    return nodeExecutions.some((execution) => ['executing', 'waiting'].includes(execution.status));
+  }, [nodeExecutions]);
+
+  const isRunning = useMemo(
+    () => isExecuting || result?.status === 'executing' || result?.status === 'waiting',
+    [isExecuting, result?.status],
+  );
+
+  useEffect(() => {
+    setCurrentFile(null);
+  }, [resultId]);
+
+  useEffect(() => {
+    if (result?.status === 'waiting') {
+      setCurrentFile(null);
+    }
+  }, [result?.status]);
 
   const TitleActions = useMemo(() => {
     return (
       <>
-        <Button type="text" icon={<Play size={20} />} onClick={handleRetry} />
+        <Button type="text" icon={<Play size={20} />} onClick={handleRetry} disabled={isRunning} />
         <Button type="text" icon={<Close size={24} />} onClick={handleClose} />
       </>
     );
-  }, [handleClose, handleRetry]);
+  }, [handleClose, handleRetry, isRunning]);
 
   return purePreview ? (
     !result && !loading ? (
@@ -278,54 +270,56 @@ const SkillResponseNodePreviewComponent = ({
         actions={TitleActions}
       />
 
-      <div className="flex-1 flex flex-col min-h-0 px-4">
-        <div className="py-3">
-          <Segmented
-            options={[
-              { label: t('agent.configure'), value: 'configure' },
-              { label: t('agent.lastRun'), value: 'lastRun' },
-            ]}
-            value={activeTab}
-            onChange={(value) => setResultActiveTab(resultId, value as ResultActiveTab)}
-            block
-            size="small"
-            shape="round"
-          />
-        </div>
-
-        <div className="flex-1 min-h-0 overflow-y-auto">
-          {activeTab === 'configure' && (
-            <ConfigureTab
-              query={query}
-              version={version}
-              resultId={resultId}
-              modelInfo={modelInfo}
-              selectedToolsets={selectedToolsets}
-              contextItems={contextItems}
-              canvasId={canvasId}
-              setModelInfo={setModelInfo}
-              setSelectedToolsets={setSelectedToolsets}
-              setContextItems={setContextItems}
-              setQuery={setQuery}
+      {currentFile ? (
+        <ProductCard
+          file={currentFile}
+          classNames="w-full flex-1 overflow-y-auto"
+          source="preview"
+        />
+      ) : (
+        <div className="flex-1 flex flex-col min-h-0 px-4">
+          <div className="py-3">
+            <Segmented
+              options={[
+                { label: t('agent.configure'), value: 'configure' },
+                { label: t('agent.lastRun'), value: 'lastRun' },
+              ]}
+              value={activeTab}
+              onChange={(value) => setResultActiveTab(resultId, value as ResultActiveTab)}
+              block
+              size="small"
+              shape="round"
             />
-          )}
+          </div>
 
-          {activeTab === 'lastRun' && (
-            <LastRunTab
-              loading={loading}
-              isStreaming={isStreaming}
-              result={result}
-              outputStep={outputStep}
-              statusText={statusText}
-              query={query}
-              title={title}
-              nodeId={node.id}
-              selectedToolsets={selectedToolsets}
-              handleRetry={handleRetry}
-            />
-          )}
+          <div className="flex-1 min-h-0 overflow-y-auto">
+            {activeTab === 'configure' && (
+              <ConfigureTab
+                query={query}
+                version={version}
+                resultId={resultId}
+                nodeId={node.id}
+                canvasId={canvasId}
+              />
+            )}
+
+            {activeTab === 'lastRun' && (
+              <LastRunTab
+                loading={loading}
+                isStreaming={isStreaming}
+                result={result}
+                outputStep={outputStep}
+                statusText={statusText}
+                query={query}
+                title={title}
+                nodeId={node.id}
+                selectedToolsets={selectedToolsets}
+                handleRetry={handleRetry}
+              />
+            )}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };

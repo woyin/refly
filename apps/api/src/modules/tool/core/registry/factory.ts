@@ -14,7 +14,7 @@ import type {
 import { AdapterFactory } from '../../adapters/factory/factory';
 import { ToolsetType } from '../../constant';
 import { HttpHandler } from '../../handlers/handler';
-import { parseJsonSchema, ResourceHandler, resolveCredentials } from '../../utils';
+import { ResourceHandler, parseJsonSchema, resolveCredentials } from '../../utils';
 import { getCurrentUser, runInContext, type SkillRunnableConfig } from '../context/tool-context';
 import { ConfigLoader } from '../loader/loader';
 import { ToolDefinitionRegistry } from './definition';
@@ -154,11 +154,10 @@ export class ToolFactory implements OnModuleInit {
           endpoint: parsedMethod.endpoint,
           method: parsedMethod.method,
           credentials,
-          inputResourceFields: parsedMethod.inputResourceFields,
-          outputResourceFields: parsedMethod.outputResourceFields,
           responseSchema: parsedMethod.responseSchema,
           billing: parsedMethod.billing,
           timeout: parsedMethod.timeout,
+          useFormData: parsedMethod.useFormData,
           formatResponse: false, // Return JSON, not formatted text
           enableResourceUpload: true, // Enable ResourceHandler for output processing
           resourceHandler: this.getResourceHandler(),
@@ -254,16 +253,10 @@ export class ToolFactory implements OnModuleInit {
     const schema = parseJsonSchema(method.schema);
     const responseSchema = parseJsonSchema(method.responseSchema);
 
-    // For simplicity, we skip extracting resource fields here
-    const inputResourceFields: any[] = [];
-    const outputResourceFields: any[] = [];
-
     return {
       ...method,
       schema,
       responseSchema,
-      inputResourceFields,
-      outputResourceFields,
     };
   }
 }

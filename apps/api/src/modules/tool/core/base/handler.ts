@@ -32,8 +32,6 @@ export abstract class BaseHandler implements IHandler {
     this.logger = new Logger(this.constructor.name);
     this.context = {
       credentials: config.credentials,
-      inputResourceFields: config.inputResourceFields,
-      outputResourceFields: config.outputResourceFields,
       responseSchema: config.responseSchema,
       startTime: Date.now(),
     };

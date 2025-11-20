@@ -14,7 +14,6 @@ import type {
   ParsedMethodConfig,
 } from '@refly/openapi-schema';
 import { buildSchema, parseJsonSchema } from '../../utils';
-import { RESOURCE_EXTENSIONS, type ResourceTypeValue } from '../../constant';
 
 /**
  * Tool definition registry service
@@ -59,16 +58,10 @@ export class ToolDefinitionRegistry implements IToolDefinitionRegistry {
     const schema = parseJsonSchema(method.schema);
     const responseSchema = parseJsonSchema(method.responseSchema);
 
-    // Extract resource fields
-    const inputResourceFields = [];
-    const outputResourceFields = [];
-
     return {
       ...method,
       schema,
       responseSchema,
-      inputResourceFields,
-      outputResourceFields,
     };
   }
 
@@ -84,14 +77,11 @@ export class ToolDefinitionRegistry implements IToolDefinitionRegistry {
     // Generate tool name (e.g., fish_audio__text_to_speech)
     const toolName = `${method.name}`;
     // Create metadata
-    const resourceInfo = this.extractResourceTypes(method);
     const metadata: ToolMetadata = {
       version: method.version || 1,
       toolsetKey: config.inventoryKey,
       methodName: method.name,
       billing: method.billing,
-      resourceTypes: resourceInfo?.types,
-      resourceExtensions: resourceInfo?.extensions,
     };
 
     return {
@@ -99,41 +89,6 @@ export class ToolDefinitionRegistry implements IToolDefinitionRegistry {
       description: method.description,
       schema,
       metadata,
-    };
-  }
-
-  /**
-   * Extract resource types and extensions from method config
-   */
-  private extractResourceTypes(
-    method: ParsedMethodConfig,
-  ): { types: ResourceTypeValue[]; extensions: Record<ResourceTypeValue, string[]> } | undefined {
-    const types = new Set<ResourceTypeValue>();
-
-    // Collect types from input and output resource fields
-    for (const r of method.inputResourceFields) {
-      types.add(r.type as ResourceTypeValue);
-    }
-    for (const r of method.outputResourceFields) {
-      types.add(r.type as ResourceTypeValue);
-    }
-
-    if (types.size === 0) {
-      return undefined;
-    }
-
-    // Build extensions map for collected types
-    const extensions: Record<ResourceTypeValue, string[]> = {} as Record<
-      ResourceTypeValue,
-      string[]
-    >;
-    for (const type of types) {
-      extensions[type] = RESOURCE_EXTENSIONS[type] || [];
-    }
-
-    return {
-      types: Array.from(types),
-      extensions,
     };
   }
 

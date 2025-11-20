@@ -81,17 +81,32 @@ export class ConfigLoader implements IConfigLoader {
         domain: inventory.domain,
         name: inventory.name,
         credentials: apiKey ? { apiKey } : undefined,
-        methods: methods.map((method) => ({
-          name: method.name,
-          version: Number(method.versionId),
-          description: method.description,
-          endpoint: method.endpoint,
-          method: method.httpMethod as 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH',
-          schema: method.requestSchema,
-          responseSchema: method.responseSchema,
-          useSdk: method.adapterType === 'sdk',
-          timeout: 30000, // Default timeout
-        })),
+        methods: methods.map((method) => {
+          // Parse adapter config if present
+          let adapterConfig: Record<string, unknown> = {};
+          try {
+            if (method.adapterConfig) {
+              adapterConfig = JSON.parse(method.adapterConfig);
+            }
+          } catch (error) {
+            this.logger.warn(
+              `Failed to parse adapterConfig for method ${method.name}: ${(error as Error).message}`,
+            );
+          }
+
+          return {
+            name: method.name,
+            version: Number(method.versionId),
+            description: method.description,
+            endpoint: method.endpoint,
+            method: method.httpMethod as 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH',
+            schema: method.requestSchema,
+            responseSchema: method.responseSchema,
+            useSdk: method.adapterType === 'sdk',
+            timeout: 30000, // Default timeout
+            useFormData: adapterConfig.useFormData as boolean | undefined,
+          };
+        }),
       };
 
       this.logger.log(`Loaded config for ${inventoryKey}, methods: ${methods.length}`);

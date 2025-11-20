@@ -88,7 +88,6 @@ export class HttpHandler extends BaseHandler {
         endpoint: this.options.endpoint,
         method: this.options.method || 'POST',
         params: request.params,
-        headers: this.options.headers,
         credentials: this.context.credentials,
         timeout: this.options.timeout,
         useFormData: this.options.useFormData,
