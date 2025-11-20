@@ -5,7 +5,7 @@
 
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../../common/prisma.service';
-import type { ToolsetConfig } from '@refly/openapi-schema';
+import type { PollingConfig, ToolsetConfig } from '@refly/openapi-schema';
 import type { IConfigLoader } from '../interfaces';
 
 /**
@@ -74,39 +74,83 @@ export class ConfigLoader implements IConfigLoader {
 
       // Load API key from inventory
       const apiKey = inventory.apiKey || '';
+      let apiKeyHeaderFromAdapter: string | undefined;
+
+      const parsedMethods = methods.map((method) => {
+        // Parse adapter config if present
+        let adapterConfig: Record<string, unknown> = {};
+        try {
+          if (method.adapterConfig) {
+            adapterConfig = JSON.parse(method.adapterConfig);
+          }
+        } catch (error) {
+          this.logger.warn(
+            `Failed to parse adapterConfig for method ${method.name}: ${(error as Error).message}`,
+          );
+        }
+
+        // Detect api-key header in adapterConfig to later drive auth header style
+        if (!apiKeyHeaderFromAdapter && adapterConfig.headers) {
+          const headerKey = Object.keys(adapterConfig.headers as Record<string, unknown>).find(
+            (key) => key.toLowerCase().includes('api-key'),
+          );
+          if (headerKey) {
+            apiKeyHeaderFromAdapter = headerKey;
+          }
+        }
+
+        // Normalize polling config (ensure absolute statusUrl)
+        let pollingConfig: PollingConfig | undefined;
+        const pollingFromAdapter = adapterConfig.polling as PollingConfig | undefined;
+        if (pollingFromAdapter?.statusUrl) {
+          let statusUrl = pollingFromAdapter.statusUrl;
+          const isAbsolute = /^https?:\/\//i.test(statusUrl);
+          if (!isAbsolute && inventory.domain) {
+            try {
+              statusUrl = new URL(statusUrl, inventory.domain).toString();
+            } catch (error) {
+              this.logger.warn(
+                `Failed to normalize polling.statusUrl for method ${method.name}: ${(error as Error).message}`,
+              );
+            }
+          }
+          pollingConfig = {
+            ...pollingFromAdapter,
+            statusUrl,
+          };
+        }
+
+        return {
+          name: method.name,
+          version: Number(method.versionId),
+          description: method.description,
+          endpoint: method.endpoint,
+          method: method.httpMethod as 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH',
+          schema: method.requestSchema,
+          responseSchema: method.responseSchema,
+          useSdk: method.adapterType === 'sdk',
+          timeout: (adapterConfig.timeout as number | undefined) || 30000, // Default timeout
+          maxRetries: adapterConfig.maxRetries as number | undefined,
+          useFormData: adapterConfig.useFormData as boolean | undefined,
+          polling: pollingConfig,
+          defaultHeaders: adapterConfig.headers as Record<string, string> | undefined,
+        };
+      });
+
+      const credentials = apiKey
+        ? {
+            apiKey,
+            ...(apiKeyHeaderFromAdapter ? { apiKeyHeader: apiKeyHeaderFromAdapter } : {}),
+          }
+        : undefined;
 
       // Build ToolsetConfig from inventory and methods
       const config: ToolsetConfig = {
         inventoryKey,
         domain: inventory.domain,
         name: inventory.name,
-        credentials: apiKey ? { apiKey } : undefined,
-        methods: methods.map((method) => {
-          // Parse adapter config if present
-          let adapterConfig: Record<string, unknown> = {};
-          try {
-            if (method.adapterConfig) {
-              adapterConfig = JSON.parse(method.adapterConfig);
-            }
-          } catch (error) {
-            this.logger.warn(
-              `Failed to parse adapterConfig for method ${method.name}: ${(error as Error).message}`,
-            );
-          }
-
-          return {
-            name: method.name,
-            version: Number(method.versionId),
-            description: method.description,
-            endpoint: method.endpoint,
-            method: method.httpMethod as 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH',
-            schema: method.requestSchema,
-            responseSchema: method.responseSchema,
-            useSdk: method.adapterType === 'sdk',
-            timeout: 30000, // Default timeout
-            useFormData: adapterConfig.useFormData as boolean | undefined,
-          };
-        }),
+        credentials,
+        methods: parsedMethods,
       };
 
       this.logger.log(`Loaded config for ${inventoryKey}, methods: ${methods.length}`);

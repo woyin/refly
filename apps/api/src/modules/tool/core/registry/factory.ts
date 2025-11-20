@@ -14,7 +14,12 @@ import type {
 import { AdapterFactory } from '../../adapters/factory/factory';
 import { ToolsetType } from '../../constant';
 import { HttpHandler } from '../../handlers/handler';
-import { ResourceHandler, parseJsonSchema, resolveCredentials } from '../../utils';
+import {
+  ResourceHandler,
+  parseJsonSchema,
+  resolveCredentials,
+  fillDefaultValues,
+} from '../../utils';
 import { getCurrentUser, runInContext, type SkillRunnableConfig } from '../context/tool-context';
 import { ConfigLoader } from '../loader/loader';
 import { ToolDefinitionRegistry } from './definition';
@@ -183,11 +188,17 @@ export class ToolFactory implements OnModuleInit {
                   requestId: `tool-${definition.name}-${Date.now()}`,
                 },
                 async () => {
+                  // Fill default values from schema
+                  let paramsWithDefaults = args;
+                  if (parsedMethod.schema) {
+                    paramsWithDefaults = fillDefaultValues(args, parsedMethod.schema);
+                  }
+
                   // Build initial request
                   const initialRequest: HandlerRequest = {
                     provider: config.domain,
                     method: parsedMethod.name,
-                    params: args,
+                    params: paramsWithDefaults,
                     user: getCurrentUser(),
                     metadata: {
                       toolName: parsedMethod.name,

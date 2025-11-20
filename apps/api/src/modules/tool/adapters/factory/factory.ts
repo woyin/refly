@@ -40,13 +40,18 @@ export class AdapterFactory {
    * Create HTTP adapter
    */
   private createHttpAdapter(
-    methodConfig: ParsedMethodConfig,
+    methodConfig: ParsedMethodConfig & {
+      polling?: Record<string, unknown>;
+      defaultHeaders?: Record<string, string>;
+    },
     _credentials: Record<string, unknown>,
   ): HttpAdapter {
     const config: HttpAdapterConfig = {
+      defaultHeaders: methodConfig.defaultHeaders,
       timeout: methodConfig.timeout || 30000,
       maxRetries: methodConfig.maxRetries || 3,
       retryDelay: 1000,
+      polling: methodConfig.polling as HttpAdapterConfig['polling'],
     };
     const adapter = new HttpAdapter(config);
     return adapter;

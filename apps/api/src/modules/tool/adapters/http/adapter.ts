@@ -30,7 +30,6 @@ export class HttpAdapter extends BaseAdapter implements IHttpAdapter {
     });
 
     this.httpClient = new HttpClient({
-      baseURL: config.baseUrl,
       timeout: config.timeout,
       headers: config.defaultHeaders,
       proxy: config.proxy,
@@ -80,15 +79,15 @@ export class HttpAdapter extends BaseAdapter implements IHttpAdapter {
     // Auto-detect task ID from initial response
     const taskId = this.autoDetectTaskId(initialResponse.data);
     if (!taskId) {
-      this.logger.warn(
-        'Polling enabled but no task ID found in response, returning initial response',
+      throw new AdapterError(
+        'Polling configured but no task ID found in response',
+        'POLLING_TASK_ID_NOT_FOUND',
       );
-      return initialResponse;
     }
 
     // Start polling
     this.logger.log(`Task ${taskId} created, starting polling...`);
-    return await this.pollUntilComplete(taskId);
+    return await this.pollUntilComplete(taskId, request);
   }
 
   /**
@@ -360,8 +359,10 @@ export class HttpAdapter extends BaseAdapter implements IHttpAdapter {
     headers: Record<string, string>,
     credentials: Record<string, unknown>,
   ): void {
-    // API Key authentication
-    if (credentials.apiKey) {
+    // API Key authentication (custom header takes precedence)
+    if (credentials.apiKeyHeader && credentials.apiKey) {
+      headers[credentials.apiKeyHeader as string] = credentials.apiKey as string;
+    } else if (credentials.apiKey) {
       headers.Authorization = `Bearer ${credentials.apiKey}`;
     }
 
@@ -421,7 +422,10 @@ export class HttpAdapter extends BaseAdapter implements IHttpAdapter {
   /**
    * Poll task status until complete, failed, or timeout
    */
-  private async pollUntilComplete(taskId: string): Promise<AdapterResponse> {
+  private async pollUntilComplete(
+    taskId: string,
+    request: AdapterRequest,
+  ): Promise<AdapterResponse> {
     const config = this.pollingConfig!;
     const maxWaitSeconds = config.maxWaitSeconds || 300;
     const intervalSeconds = config.intervalSeconds || 5;
@@ -429,14 +433,35 @@ export class HttpAdapter extends BaseAdapter implements IHttpAdapter {
     const maxAttempts = Math.ceil(maxWaitSeconds / intervalSeconds);
     const pollInterval = intervalSeconds * 1000;
 
+    const statusUrlTemplate = config.statusUrl;
+    const isAbsolute = /^https?:\/\//i.test(statusUrlTemplate);
+    if (!isAbsolute) {
+      throw new AdapterError(
+        `Polling statusUrl must be absolute: ${statusUrlTemplate}`,
+        'INVALID_POLLING_URL',
+      );
+    }
+
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
       // Build status URL by replacing {id} placeholder
-      const statusUrl = config.statusUrl.replace('{id}', taskId);
+      const statusUrl = statusUrlTemplate.replace('{id}', taskId);
 
       this.logger.log(`Polling ${attempt}/${maxAttempts}: ${statusUrl}`);
 
+      // Build headers for polling (reuse default/request headers + auth)
+      const pollHeaders = {
+        ...this.httpClient.getHeaders(),
+        ...request.headers,
+      };
+      if (request.credentials) {
+        this.addAuthHeaders(pollHeaders, request.credentials);
+      }
+
       // Execute status check
-      const response = await this.httpClient.get(statusUrl);
+      const response = await this.httpClient.get(statusUrl, {
+        headers: pollHeaders,
+        timeout: request.timeout,
+      });
       const data = this.parseResponse(response);
 
       // Auto-detect status

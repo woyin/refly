@@ -14,16 +14,12 @@ import { BaseHandler } from '../core/base';
 import type { IAdapter } from '../core/interfaces';
 import { createBasePostHandler } from './post';
 import { createBasePreHandler } from './pre';
-import type { ResourceResolver, ResourceUploader } from './types';
+import { ResourceHandler } from '../utils';
 
 /**
  * HTTP Handler configuration options
  */
 export interface HttpHandlerOptions extends HandlerConfig {
-  /** Resource resolver for input files (deprecated, now handled in ToolFactory) */
-  resourceResolver?: ResourceResolver;
-  /** Resource uploader for output files (deprecated, now handled via ResourceHandler) */
-  resourceUploader?: ResourceUploader;
   /** Billing configuration */
   billing?: BillingConfig;
   /** Whether to format response */
@@ -31,7 +27,7 @@ export interface HttpHandlerOptions extends HandlerConfig {
   /** Whether to enable resource upload via ResourceHandler */
   enableResourceUpload?: boolean;
   /** ResourceHandler instance for output resource processing */
-  resourceHandler?: any; // Avoid circular dependency with ResourceHandler type
+  resourceHandler: ResourceHandler; // Avoid circular dependency with ResourceHandler type
 }
 
 /**

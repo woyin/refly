@@ -20,8 +20,6 @@ import { ConfigLoader } from './core/loader/loader';
 import { ToolDefinitionRegistry } from './core/registry/definition';
 import { ToolFactory } from './core/registry/factory';
 import { ToolInventoryService } from './inventory/inventory.service';
-import { FishAudioModule } from './media/audio/fish-audio.module';
-import { HeyGenModule } from './media/video/heygen.module';
 import { ToolController } from './tool.controller';
 import { ToolService } from './tool.service';
 import { ResourceHandler } from './utils/resource';
@@ -40,8 +38,6 @@ import { ScaleboxModule } from './sandbox/scalebox.module';
     CanvasSyncModule,
     ProviderModule,
     CreditModule,
-    FishAudioModule,
-    HeyGenModule,
     ScaleboxModule,
     ...(isDesktop() ? [] : [BullModule.registerQueue({ name: QUEUE_SYNC_TOOL_CREDIT_USAGE })]),
   ],

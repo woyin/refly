@@ -38,12 +38,6 @@ import {
   FileVisibility,
   EntityType,
   CanvasNode,
-  FishAudioTextToSpeechRequest,
-  FishAudioTextToSpeechResponse,
-  FishAudioSpeechToTextRequest,
-  FishAudioSpeechToTextResponse,
-  HeyGenGenerateVideoRequest,
-  HeyGenGenerateVideoResponse,
   SandboxExecuteRequest,
   SandboxExecuteResponse,
   DriveFile,
@@ -162,21 +156,6 @@ export interface ReflyService {
     providerItemId: string;
     model: string;
   } | null>;
-
-  textToSpeech: (
-    user: User,
-    request: FishAudioTextToSpeechRequest,
-  ) => Promise<FishAudioTextToSpeechResponse>;
-  speechToText: (
-    user: User,
-    request: FishAudioSpeechToTextRequest,
-  ) => Promise<FishAudioSpeechToTextResponse>;
-
-  // HeyGen video generation methods
-  generateVideo: (
-    user: User,
-    request: HeyGenGenerateVideoRequest,
-  ) => Promise<HeyGenGenerateVideoResponse>;
 
   // Sandbox code execution
   execute: (user: User, request: SandboxExecuteRequest) => Promise<SandboxExecuteResponse>;
