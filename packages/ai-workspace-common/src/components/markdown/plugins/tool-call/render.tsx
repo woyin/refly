@@ -170,7 +170,7 @@ const ToolCall: React.FC<ToolCallProps> = (props) => {
     enabled: true,
   });
   const toolsetDefinition = data?.data?.find((t) => t.key === toolsetKey);
-  const toolsetName = toolsetDefinition?.labelDict?.[currentLanguage] ?? '';
+  const toolsetName = toolsetDefinition?.labelDict?.[currentLanguage] ?? toolsetKey;
 
   return (
     <>
@@ -186,7 +186,7 @@ const ToolCall: React.FC<ToolCallProps> = (props) => {
               config={{ size: 16, className: 'flex-shrink-0', builtinClassName: '!w-4 !h-4' }}
             />
             <div className="flex-1 text-sm font-semibold">{`${toolsetName}`}</div>
-            {!toolsetDefinition.builtin && (
+            {!toolsetDefinition?.builtin && (
               <div className="text-xs text-refly-text-2">{`${toolName}`}</div>
             )}
           </div>
