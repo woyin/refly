@@ -57,7 +57,7 @@ Each task should have:
 - **prompt**: Detailed instruction for the task, including:
   - Clear step-by-step execution process
   - Tool call descriptions with expected inputs/outputs using the format: @{type=toolset,id=toolset_id,name=ToolName}
-  - Dependent task references using the format: @{type=agent,id=task-1,title=Task Title}
+  - Dependent task references using the format: @{type=agent,id=task-1,name=Task Title}
   - Variable references using the format: @{type=var,id=var-1,name=varName}
   - Expected output format
 - **products**: Array of product IDs that this task will generate
@@ -169,7 +169,7 @@ When users request changes to a workflow they've already seen:
     {
       "id": "task-2",
       "title": "Analyze Company Performance",
-      "prompt": "Using the collected data from @{type=agent,id=task-1,title=Collect Company Data}, analyze the company's performance focusing on @{type=var,id=var-2,name=analysisAspect}. Identify strengths, weaknesses, opportunities, and threats (SWOT analysis). Compare with industry standards if data is available. Generate insights about: growth trajectory, competitive advantages, risk factors, and future potential. Present findings in a structured format with clear sections. Save the analysis to a document using the @{type=toolset,id=generate_doc,name=Generate Document} tool.",
+      "prompt": "Using the collected data from @{type=agent,id=task-1,name=Collect Company Data}, analyze the company's performance focusing on @{type=var,id=var-2,name=analysisAspect}. Identify strengths, weaknesses, opportunities, and threats (SWOT analysis). Compare with industry standards if data is available. Generate insights about: growth trajectory, competitive advantages, risk factors, and future potential. Present findings in a structured format with clear sections. Save the analysis to a document using the @{type=toolset,id=generate_doc,name=Generate Document} tool.",
       "products": ["product-2"],
       "dependentTasks": ["task-1"],
       "dependentProducts": ["product-1"],
@@ -178,7 +178,7 @@ When users request changes to a workflow they've already seen:
     {
       "id": "task-3",
       "title": "Create Visual Dashboard",
-      "prompt": "Based on the analysis from @{type=agent,id=task-2,title=Analyze Company Performance}, create a code artifact for an interactive dashboard. Use React and Chart.js to visualize key metrics. The dashboard should include: 1) Company overview card, 2) Performance metrics charts (line/bar charts), 3) SWOT analysis visualization, 4) Key insights section. Make it responsive and visually appealing with a professional color scheme. Include mock data based on the analysis.",
+      "prompt": "Based on the analysis from @{type=agent,id=task-2,name=Analyze Company Performance}, create a code artifact for an interactive dashboard. Use React and Chart.js to visualize key metrics. The dashboard should include: 1) Company overview card, 2) Performance metrics charts (line/bar charts), 3) SWOT analysis visualization, 4) Key insights section. Make it responsive and visually appealing with a professional color scheme. Include mock data based on the analysis.",
       "products": ["product-3"],
       "dependentTasks": ["task-2"],
       "dependentProducts": ["product-2"],
@@ -254,7 +254,7 @@ When users request changes to a workflow they've already seen:
     {
       "id": "task-2",
       "title": "Create Code Examples",
-      "prompt": "Based on the research from @{type=agent,id=task-1,title=Research Topic and Gather Information}, create 2-3 practical code examples demonstrating @{type=var,id=var-1,name=topicName}. Examples should: 1) Start simple and increase in complexity, 2) Include clear comments explaining each step, 3) Follow best practices and modern conventions, 4) Be runnable and practical. For each example, provide: code snippet, explanation of what it does, and when to use it. Output as a code artifact with proper syntax highlighting.",
+      "prompt": "Based on the research from @{type=agent,id=task-1,name=Research Topic and Gather Information}, create 2-3 practical code examples demonstrating @{type=var,id=var-1,name=topicName}. Examples should: 1) Start simple and increase in complexity, 2) Include clear comments explaining each step, 3) Follow best practices and modern conventions, 4) Be runnable and practical. For each example, provide: code snippet, explanation of what it does, and when to use it. Output as a code artifact with proper syntax highlighting.",
       "products": ["product-2"],
       "dependentTasks": ["task-1"],
       "dependentProducts": ["product-1"],
@@ -263,7 +263,7 @@ When users request changes to a workflow they've already seen:
     {
       "id": "task-3",
       "title": "Write Blog Post",
-      "prompt": "Using the research from @{type=agent,id=task-1,title=Research Topic and Gather Information} and code examples from @{type=agent,id=task-2,title=Create Code Examples}, write a comprehensive blog post about @{type=var,id=var-1,name=topicName}. Structure: 1) Engaging introduction with hook, 2) What and Why section explaining the concept and its importance, 3) How section with step-by-step guide, 4) Code examples with explanations, 5) Best practices and tips, 6) Common mistakes to avoid, 7) Conclusion with key takeaways. Tone: @{type=var,id=var-2,name=toneStyle}. Target length: 1500-2000 words. Include section headings, bullet points for readability.",
+      "prompt": "Using the research from @{type=agent,id=task-1,name=Research Topic and Gather Information} and code examples from @{type=agent,id=task-2,name=Create Code Examples}, write a comprehensive blog post about @{type=var,id=var-1,name=topicName}. Structure: 1) Engaging introduction with hook, 2) What and Why section explaining the concept and its importance, 3) How section with step-by-step guide, 4) Code examples with explanations, 5) Best practices and tips, 6) Common mistakes to avoid, 7) Conclusion with key takeaways. Tone: @{type=var,id=var-2,name=toneStyle}. Target length: 1500-2000 words. Include section headings, bullet points for readability.",
       "products": ["product-3"],
       "dependentTasks": ["task-2"],
       "dependentProducts": ["product-1", "product-2"],
