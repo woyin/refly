@@ -21,43 +21,51 @@ export const useAgentConnections = () => {
   );
 
   const connectToUpstreamAgent = useCallback(
-    (sourceNodeId: string, targetEntityId: string) => {
+    (nodeId: string, upstreamEntityId: string) => {
       const nodes = getNodes();
-      const targetNode = nodes.find((node) => node.data?.entityId === targetEntityId);
-      if (!targetNode) {
+      const edges = getEdges();
+      const upstreamNode = nodes.find((node) => node.data?.entityId === upstreamEntityId);
+      if (!upstreamNode) {
         return;
       }
-      const targetNodeId = targetNode?.id ?? '';
-      if (!targetNodeId) {
+      const upstreamNodeId = upstreamNode?.id ?? '';
+      if (!upstreamNodeId) {
         return;
       }
+
+      // Check if connection already exists
+      const existingEdge = edges.find(
+        (edge) => edge.source === upstreamNodeId && edge.target === nodeId,
+      );
+      if (existingEdge) {
+        return;
+      }
+
       const newEdge = {
-        source: sourceNodeId,
-        target: targetNodeId,
+        source: upstreamNodeId,
+        target: nodeId,
         id: `edge-${genUniqueId()}`,
         animated: false,
         style: edgeStyles.default,
       };
       addEdges([newEdge]);
     },
-    [getNodes, addEdges, edgeStyles],
+    [getNodes, getEdges, addEdges, edgeStyles],
   );
 
   const disconnectFromUpstreamAgent = useCallback(
-    (sourceNodeId: string, targetEntityId: string) => {
+    (nodeId: string, upstreamEntityId: string) => {
       const nodes = getNodes();
       const edges = getEdges();
-      const targetNode = nodes.find((node) => node.data?.entityId === targetEntityId);
-      if (!targetNode) {
+      const upstreamNode = nodes.find((node) => node.data?.entityId === upstreamEntityId);
+      if (!upstreamNode) {
         return;
       }
-      const targetNodeId = targetNode?.id ?? '';
-      if (!targetNodeId) {
+      const upstreamNodeId = upstreamNode?.id ?? '';
+      if (!upstreamNodeId) {
         return;
       }
-      const edge = edges.find(
-        (edge) => edge.source === sourceNodeId && edge.target === targetNodeId,
-      );
+      const edge = edges.find((edge) => edge.source === upstreamNodeId && edge.target === nodeId);
       if (!edge) {
         return;
       }
