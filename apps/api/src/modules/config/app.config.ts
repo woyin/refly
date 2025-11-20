@@ -26,6 +26,12 @@ export default () => ({
     username: process.env.REDIS_USERNAME,
     password: process.env.REDIS_PASSWORD,
   },
+  drive: {
+    storageKeyPrefix: process.env.DRIVE_STORAGE_KEY_PREFIX || 'drive',
+    payloadMode: process.env.DRIVE_PAYLOAD_MODE || 'base64', // 'url' or 'base64'
+    presignExpiry: Number.parseInt(process.env.DRIVE_PRESIGN_EXPIRY) || 15 * 60, // 15 minutes
+    archiveConcurrencyLimit: Number.parseInt(process.env.DRIVE_ARCHIVE_CONCURRENCY_LIMIT) || 10, // Maximum concurrent file archive operations
+  },
   session: {
     secret: process.env.SESSION_SECRET || 'refly-session-secret-key-change-in-production',
     maxAge: Number.parseInt(process.env.SESSION_MAX_AGE) || 86400000, // 24 hours in milliseconds
@@ -45,6 +51,7 @@ export default () => ({
         accessKey: process.env.MINIO_INTERNAL_ACCESS_KEY || 'minioadmin',
         secretKey: process.env.MINIO_INTERNAL_SECRET_KEY || 'minioadmin',
         bucket: process.env.MINIO_INTERNAL_BUCKET || 'refly-weblink',
+        region: process.env.MINIO_INTERNAL_REGION || 'us-east-1',
       },
       external: {
         endPoint: process.env.MINIO_EXTERNAL_ENDPOINT || 'localhost',
@@ -53,6 +60,7 @@ export default () => ({
         accessKey: process.env.MINIO_EXTERNAL_ACCESS_KEY || 'minioadmin',
         secretKey: process.env.MINIO_EXTERNAL_SECRET_KEY || 'minioadmin',
         bucket: process.env.MINIO_EXTERNAL_BUCKET || 'refly-weblink',
+        region: process.env.MINIO_EXTERNAL_REGION || 'us-east-1',
       },
     },
   },
@@ -145,8 +153,9 @@ export default () => ({
       Number.parseInt(process.env.SKILL_STREAM_IDLE_CHECK_INTERVAL) || 1000 * 10, // 10 seconds
     stuckCheckInterval: Number.parseInt(process.env.SKILL_STUCK_CHECK_INTERVAL) || 1000 * 60, // 1 minute
     stuckTimeoutThreshold:
-      Number.parseInt(process.env.SKILL_STUCK_TIMEOUT_THRESHOLD) || 1000 * 60 * 5, // 5 minutes
-    aiModelNetworkTimeout: Number.parseInt(process.env.SKILL_AI_MODEL_NETWORK_TIMEOUT) || 1000 * 30, // 30 seconds
+      Number.parseInt(process.env.SKILL_STUCK_TIMEOUT_THRESHOLD) || 1000 * 60 * 15, // 15 minutes
+    aiModelNetworkTimeout:
+      Number.parseInt(process.env.SKILL_AI_MODEL_NETWORK_TIMEOUT) || 1000 * 300, // 30 seconds
   },
   provider: {
     defaultMode: process.env.PROVIDER_DEFAULT_MODE || 'custom',
@@ -211,6 +220,17 @@ export default () => ({
   video: {
     heygen: {
       apiKey: process.env.HEYGEN_API_KEY,
+    },
+  },
+
+  sandbox: {
+    scalebox: {
+      apiKey: process.env.SCALEBOX_API_KEY,
+      timeout: process.env.SCALEBOX_TIMEOUT,
+      maxQueueSize: process.env.SCALEBOX_MAX_QUEUE_SIZE,
+      maxSandboxes: process.env.SCALEBOX_MAX_SANDBOXES,
+      minRemainingMs: process.env.SCALEBOX_MIN_REMAINING_MS,
+      extendTimeoutMs: process.env.SCALEBOX_EXTEND_TIMEOUT_MS,
     },
   },
 });

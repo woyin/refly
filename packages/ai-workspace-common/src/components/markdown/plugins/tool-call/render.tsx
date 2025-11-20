@@ -1,48 +1,18 @@
-import { ToolOutlined } from '@ant-design/icons';
 import React, { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import type { DriveFile } from '@refly/openapi-schema';
+
 import { MarkdownMode } from '../../types';
 import { ToolCallStatus, parseToolCallStatus } from './types';
-import { CopilotWorkflowPlan } from '@refly-packages/ai-workspace-common/components/markdown/plugins/tool-call/copilot-workflow-plan';
+import { CopilotWorkflowPlan } from './copilot-workflow-plan';
 import { WorkflowPlan } from '@refly/canvas-common';
 import { safeParseJSON } from '@refly/utils/parse';
+import { ProductCard } from './product-card';
+import { ToolsetIcon } from '@refly-packages/ai-workspace-common/components/canvas/common/toolset-icon';
+import { Button } from 'antd';
+import { Spin } from '@refly-packages/ai-workspace-common/components/common/spin';
 
-// SVG icons for the component
-const ExecutingIcon = () => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    width="18"
-    height="18"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    className="w-[18px] h-[18px] text-gray-500 dark:text-gray-400 animate-spin"
-    style={{ animationDuration: '1.1s' }}
-  >
-    <circle cx="12" cy="12" r="10" className="opacity-30" />
-    <path d="M12 2a10 10 0 0 1 10 10" />
-  </svg>
-);
-
-const CompletedIcon = () => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    width="18"
-    height="18"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    className="w-[18px] h-[18px] text-green-500 dark:text-green-400"
-  >
-    <path d="M20 6 9 17l-5-5" />
-  </svg>
-);
+import { ArrowDown, ArrowUp, Checked } from 'refly-icons';
 
 const FailedIcon = () => (
   <svg
@@ -94,47 +64,26 @@ const ToolCall: React.FC<ToolCallProps> = (props) => {
   const [isCollapsed, setIsCollapsed] = useState(true);
 
   // Extract tool name from props
-  const toolName = props['data-tool-name'] || 'unknown';
-  const toolsetKey = props['data-tool-toolset-key'] || 'unknown';
+  const toolName = props['data-tool-name'] ?? 'unknown';
+  const toolsetKey = props['data-tool-toolset-key'] ?? 'unknown';
   const toolCallStatus =
     parseToolCallStatus(props['data-tool-call-status']) ?? ToolCallStatus.EXECUTING;
-
-  const isCopilotGenerateWorkflow = toolsetKey === 'copilot' && toolName === 'generate_workflow';
-  if (isCopilotGenerateWorkflow) {
-    const resultStr = props['data-tool-result'] || '{}';
-    const structuredArgs = safeParseJSON(resultStr)?.data as WorkflowPlan;
-
-    // Handle case when structuredArgs is undefined
-    if (!structuredArgs) {
-      return (
-        <div className="border-t border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 py-2">
-          <div className="rounded-md bg-gray-100 dark:bg-gray-700 px-4 py-3 text-xs font-normal whitespace-pre-wrap text-gray-800 dark:text-gray-200 leading-[22px]">
-            {toolCallStatus === ToolCallStatus.EXECUTING
-              ? t('components.markdown.workflow.generating')
-              : t('components.markdown.workflow.invalidData')}
-          </div>
-        </div>
-      );
-    }
-
-    return <CopilotWorkflowPlan data={structuredArgs} />;
-  }
 
   // Format the content for parameters
   const parametersContent = () => {
     try {
-      const argsStr = props['data-tool-arguments'] || '{}';
+      const argsStr = props['data-tool-arguments'] ?? '{}';
       const args = JSON.parse(argsStr);
       return Object.keys(args).length
         ? JSON.stringify(args, null, 2)
         : t('components.markdown.noParameters', 'No parameters');
     } catch (_e) {
-      return props['data-tool-arguments'] || t('components.markdown.noParameters', 'No parameters');
+      return props['data-tool-arguments'] ?? t('components.markdown.noParameters', 'No parameters');
     }
   };
 
   // Format the content for result
-  const resultContent = props['data-tool-error'] || props['data-tool-result'] || '';
+  const resultContent = props['data-tool-error'] ?? props['data-tool-result'] ?? '';
   // Check if result exists
   const hasResult = !!resultContent || !!props['data-tool-error'];
 
@@ -165,44 +114,61 @@ const ToolCall: React.FC<ToolCallProps> = (props) => {
     return `${minutes}m ${remainSec}s`;
   }, [props['data-tool-created-at'], props['data-tool-updated-at']]);
 
+  const isCopilotGenerateWorkflow = toolsetKey === 'copilot' && toolName === 'generate_workflow';
+  if (isCopilotGenerateWorkflow) {
+    const resultStr = props['data-tool-result'] ?? '{}';
+    const structuredArgs = safeParseJSON(resultStr)?.data as WorkflowPlan;
+
+    // Handle case when structuredArgs is undefined
+    if (!structuredArgs) {
+      return (
+        <div className="border-t border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 py-2">
+          <div className="rounded-md bg-gray-100 dark:bg-gray-700 px-4 py-3 text-xs font-normal whitespace-pre-wrap text-gray-800 dark:text-gray-200 leading-[22px]">
+            {toolCallStatus === ToolCallStatus.EXECUTING
+              ? t('components.markdown.workflow.generating')
+              : t('components.markdown.workflow.invalidData')}
+          </div>
+        </div>
+      );
+    }
+
+    return <CopilotWorkflowPlan data={structuredArgs} />;
+  }
+
+  const resultData = safeParseJSON(resultContent)?.data as Record<string, unknown> | undefined;
+  const filePreviewDriveFile = useMemo<DriveFile | null>(() => {
+    if (!resultData?.fileId) return null;
+    return {
+      fileId: String(resultData.fileId),
+      canvasId: String(resultData.canvasId ?? ''),
+      name: String(resultData.name ?? resultData.fileName ?? 'Drive file'),
+      type: String(resultData.type ?? resultData.mimeType ?? 'application/octet-stream'),
+    };
+  }, [resultData]);
+  const shouldRenderFilePreview = Boolean(filePreviewDriveFile?.fileId);
+
   return (
     <>
-      <div className="my-3 rounded-lg border border-gray-300 dark:border-gray-700 overflow-hidden bg-white dark:bg-gray-800 text-black dark:text-gray-100 font-mono shadow-refly-m">
+      <div className="rounded-lg overflow-hidden bg-refly-bg-control-z0 text-refly-text-0">
         {/* Header bar */}
         <div
-          className="flex items-center px-4 py-2 cursor-pointer select-none bg-gray-50 dark:bg-gray-700 min-h-[44px]"
+          className="flex items-center p-3 gap-2 cursor-pointer select-none min-h-[44px]"
           onClick={() => setIsCollapsed(!isCollapsed)}
-          style={{
-            fontFamily: 'Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
-          }}
         >
-          {/* ToolOutlined now serves as the toggle icon with rotation */}
-          <ToolOutlined
-            className="text-gray-500 dark:text-gray-400"
-            style={{
-              fontSize: '16px',
-              marginRight: '12px', // Adjusted margin for spacing
-              transition: 'transform 0.2s ease-in-out',
-              transform: isCollapsed ? 'rotate(-90deg)' : 'rotate(0deg)',
-            }}
+          <ToolsetIcon
+            toolsetKey={toolsetKey}
+            config={{ size: 16, className: 'flex-shrink-0', builtinClassName: '!w-4 !h-4' }}
           />
-          {/* Tool name displayed as the main text in the header */}
-          <div className="flex-1 text-[15px] font-medium tracking-tight text-gray-900 dark:text-gray-100">
-            {`${toolsetKey} | ${toolName}`}
-          </div>
+          <div className="flex-1 text-sm font-semibold">{`${toolName}`}</div>
           {/* Status indicator */}
           {toolCallStatus === ToolCallStatus.EXECUTING && (
-            <span className="ml-2 text-xs text-gray-500 dark:text-gray-400">
-              <ExecutingIcon />
-            </span>
+            <Spin size="small" className="text-refly-text-2" />
           )}
           {toolCallStatus === ToolCallStatus.COMPLETED && (
-            <span className="ml-2 flex items-center">
-              <CompletedIcon />
+            <span className="flex items-center">
+              <Checked size={14} color="var(--refly-primary-default)" />
               {durationText && (
-                <span className="ml-2 text-xs text-gray-500 dark:text-gray-400">
-                  {durationText}
-                </span>
+                <span className="ml-2 text-xs text-refly-text-2">{durationText}</span>
               )}
             </span>
           )}
@@ -211,29 +177,34 @@ const ToolCall: React.FC<ToolCallProps> = (props) => {
               <FailedIcon />
             </span>
           )}
+
+          <Button
+            type="text"
+            size="small"
+            icon={isCollapsed ? <ArrowDown size={14} /> : <ArrowUp size={14} />}
+            onClick={() => setIsCollapsed(!isCollapsed)}
+          />
         </div>
 
         {/* Content section */}
         {!isCollapsed && (
-          <div className="border-t border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 py-2">
+          <div className="py-2">
             {/* Parameters section always shown */}
-            <div>
-              <div className="px-5 py-1 text-gray-600 dark:text-gray-400 text-[13px] border-b border-gray-300 dark:border-gray-600 font-normal">
-                {t('components.markdown.parameters', 'Parameters:')}
-              </div>
-              {/* Parameter content block with background, rounded corners, margin and padding */}
-              <div className="mx-4 my-2 rounded-md bg-gray-100 dark:bg-gray-700 px-4 py-3 font-mono text-xs font-normal whitespace-pre-wrap text-gray-800 dark:text-gray-200 leading-[22px]">
-                {parametersContent()}
-              </div>
+            <div className="px-5 py-1 text-refly-text-2 text-[13px]">
+              {t('components.markdown.parameters', 'Parameters:')}
+            </div>
+            {/* Parameter content block with background, rounded corners, margin and padding */}
+            <div className="mx-4 my-2 rounded-lg bg-refly-tertiary-hover px-4 py-3 font-mono text-xs font-normal whitespace-pre-wrap text-refly-text-0 leading-[22px]">
+              {parametersContent()}
             </div>
             {/* Result section only if hasResult */}
             {hasResult && (
               <div>
-                <div className="px-5 py-1 text-gray-600 dark:text-gray-400 text-[13px] border-b border-gray-300 dark:border-gray-600 font-normal">
+                <div className="px-5 py-1 text-refly-text-2 text-[13px]">
                   {t('components.markdown.result', 'Result:')}
                 </div>
                 {/* Result content block with background, rounded corners, margin and padding */}
-                <div className="mx-4 my-2 rounded-md bg-gray-100 dark:bg-gray-700 px-4 py-3 font-mono text-xs font-normal whitespace-pre-wrap text-gray-800 dark:text-gray-200 leading-[22px]">
+                <div className="mx-4 my-2 rounded-lg bg-refly-tertiary-hover px-4 py-3 font-mono text-xs font-normal whitespace-pre-wrap text-refly-text-0 leading-[22px]">
                   {resultContent}
                 </div>
               </div>
@@ -241,6 +212,10 @@ const ToolCall: React.FC<ToolCallProps> = (props) => {
           </div>
         )}
       </div>
+
+      {shouldRenderFilePreview && (
+        <ProductCard file={filePreviewDriveFile} source="card" classNames="mt-3" />
+      )}
     </>
   );
 };

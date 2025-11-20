@@ -244,8 +244,8 @@ export class WorkflowService {
       return;
     }
 
-    const { modelInfo, selectedToolsets, contextItems = [] } = metadata;
-    const { context, images } = convertContextItemsToInvokeParams(contextItems, () => []);
+    const { modelInfo, selectedToolsets, contextItems = [], upstreamResultIds } = metadata;
+    const context = convertContextItemsToInvokeParams(contextItems, upstreamResultIds ?? []);
 
     // Prepare the invoke skill request
     const invokeRequest: InvokeSkillRequest = {
@@ -253,7 +253,6 @@ export class WorkflowService {
       input: {
         query: processedQuery, // Use processed query for skill execution
         originalQuery, // Pass original query separately
-        images,
       },
       target: {
         entityType: 'canvas' as const,
@@ -286,7 +285,7 @@ export class WorkflowService {
     nodeExecution: WorkflowNodeExecutionPO,
     nodeBehavior?: 'create' | 'update',
   ): Promise<void> {
-    const { nodeType, nodeData, canvasId, processedQuery, originalQuery } = nodeExecution;
+    const { nodeType, nodeData, canvasId } = nodeExecution;
     const node = safeParseJSON(nodeData) as CanvasNode;
 
     // Check if the node is a skillResponse type
@@ -310,13 +309,9 @@ export class WorkflowService {
           // from: node, // TODO: check if we need to pass the from
           to: {
             data: {
-              title: processedQuery,
               contentPreview: '',
               metadata: {
                 status: 'executing',
-                structuredData: {
-                  query: originalQuery, // Store original query in canvas node structuredData
-                },
               },
             },
           },

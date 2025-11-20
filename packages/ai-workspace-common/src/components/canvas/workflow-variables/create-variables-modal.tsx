@@ -21,7 +21,7 @@ import { useVariableView } from '@refly-packages/ai-workspace-common/hooks/canva
 import './index.scss';
 import { RESOURCE_TYPE } from './constants';
 import { logEvent } from '@refly/telemetry-web';
-import { useFetchResources } from '@refly-packages/ai-workspace-common/hooks/use-fetch-resources';
+import { useFetchDriveFiles } from '@refly-packages/ai-workspace-common/hooks/use-fetch-drive-files';
 
 export const CreateVariablesModal: React.FC<CreateVariablesModalProps> = React.memo(
   ({
@@ -55,7 +55,7 @@ export const CreateVariablesModal: React.FC<CreateVariablesModalProps> = React.m
       return t(`canvas.workflow.variables.${mode === 'create' ? 'addTitle' : 'editTitle'}`);
     }, [t, mode, disableChangeVariableType, variableType]);
 
-    const { refetch: refetchResources } = useFetchResources();
+    const { refetch: refetchFiles } = useFetchDriveFiles();
 
     const variableTypeOptions = useMemo(() => {
       return [
@@ -510,7 +510,7 @@ export const CreateVariablesModal: React.FC<CreateVariablesModalProps> = React.m
           onCancel(false);
 
           if (variableType === 'resource') {
-            refetchResources();
+            refetchFiles();
           }
         }
       } catch (error) {

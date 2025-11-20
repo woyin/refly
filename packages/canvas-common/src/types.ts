@@ -25,6 +25,9 @@ import { IContextItem } from '@refly/common-types';
 
 export type CanvasNodeData<T = Record<string, unknown>> = {
   title: string;
+  /**
+   * @deprecated Use `title` instead.
+   */
   editedTitle?: string; // manually edited title
   entityId: string;
   createdAt?: string;
@@ -91,6 +94,7 @@ export type SkillNodeMeta = {
   query?: string;
   resultId?: string;
   version?: number;
+  upstreamResultIds?: string[];
   selectedSkill?: Skill;
   selectedToolsets?: GenericToolset[];
   modelInfo?: ModelInfo | null;
@@ -138,9 +142,17 @@ export type ToolNodeMeta = {
   originalWidth?: number;
 };
 
+export type AgentConfig = {
+  query?: string;
+  modelInfo?: ModelInfo;
+  selectedToolsets?: GenericToolset[];
+  contextItems?: IContextItem[];
+};
+
 export type ResponseNodeMeta = {
   status?: ActionStatus;
   version?: number;
+  query?: string;
   modelInfo?: ModelInfo | null;
   tokenUsage?: TokenUsageItem[];
   actionMeta?: ActionMeta;
@@ -151,6 +163,7 @@ export type ResponseNodeMeta = {
   selectedSkill?: Skill;
   selectedToolsets?: GenericToolset[];
   contextItems?: IContextItem[];
+  upstreamResultIds?: string[];
   tplConfig?: SkillTemplateConfig;
   runtimeConfig?: SkillRuntimeConfig;
   sizeMode?: 'compact' | 'adaptive';
