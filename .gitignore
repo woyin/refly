@@ -37,3 +37,6 @@ docs/.vitepress/cache/*
 
 # Profile
 .rspack-profile-*/
+
+# AI Task files
+.task
