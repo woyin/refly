@@ -131,7 +131,8 @@
     "y-protocols": "^1.0.6",
     "yjs": "^13.6.8",
     "zod": "^3.25.76",
-    "zod-to-json-schema": "3.24.6"
+    "zod-to-json-schema": "3.24.6",
+    "formdata-node": "^6.0.3"
   },
   "devDependencies": {
     "@golevelup/ts-jest": "^0.6.2",
