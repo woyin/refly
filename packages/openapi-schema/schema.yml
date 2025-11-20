@@ -3199,20 +3199,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/GetCreditUsageByCanvasIdResponse'
-  /invitation/generate:
-    post:
-      tags:
-        - invitation
-      summary: Generate invitation code
-      description: Generate an invitation code
-      operationId: generateInvitationCode
-      responses:
-        '200':
-          description: successful operation
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/BaseResponse'
   /invitation/list:
     get:
       tags:
@@ -6144,6 +6130,7 @@ components:
         - email
         - google
         - github
+        - invitation
     AuthConfigItem:
       type: object
       required:

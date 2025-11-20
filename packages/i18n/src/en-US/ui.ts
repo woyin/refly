@@ -2605,9 +2605,6 @@ const translations = {
 
       // Invitation codes
       invitationCodes: 'Invitation Codes',
-      generateInvitationCodes: 'Generate Codes',
-      generateInvitationCodeSuccess: 'Invitation codes generated successfully!',
-      generateInvitationCodeFailed: 'Failed to generate invitation codes',
       noInvitationCodes: 'No invitation codes yet',
       expiresAt: 'Expires at',
       copy: 'Copy',

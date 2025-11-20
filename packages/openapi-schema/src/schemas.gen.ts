@@ -2862,7 +2862,7 @@ export const UserSettingsSchema = {
 export const AuthProviderSchema = {
   type: 'string',
   description: 'Auth provider',
-  enum: ['email', 'google', 'github'],
+  enum: ['email', 'google', 'github', 'invitation'],
 } as const;
 
 export const AuthConfigItemSchema = {

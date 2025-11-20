@@ -80,6 +80,9 @@ export class AuthService {
     if (this.configService.get('auth.github.enabled')) {
       items.push({ provider: 'github' });
     }
+    if (this.configService.get('auth.invitation.requireInvitationCode')) {
+      items.push({ provider: 'invitation' });
+    }
     return items;
   }
 

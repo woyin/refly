@@ -2575,9 +2575,6 @@ const translations = {
 
       // 邀请码
       invitationCodes: '邀请码',
-      generateInvitationCodes: '生成邀请码',
-      generateInvitationCodeSuccess: '邀请码生成成功！',
-      generateInvitationCodeFailed: '生成邀请码失败',
       noInvitationCodes: '暂无邀请码',
       expiresAt: '过期时间',
       copy: '复制',

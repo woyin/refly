@@ -10,13 +10,6 @@ export class InvitationController {
   constructor(private readonly invitationService: InvitationService) {}
 
   @UseGuards(JwtAuthGuard)
-  @Post('/generate')
-  async generateInvitationCode(@LoginedUser() user: User): Promise<BaseResponse> {
-    await this.invitationService.generateInvitationCodes(user.uid);
-    return buildSuccessResponse();
-  }
-
-  @UseGuards(JwtAuthGuard)
   @Get('/list')
   async listInvitationCodes(@LoginedUser() user: User): Promise<ListInvitationCodesResponse> {
     const invitationCodes = await this.invitationService.listInvitationCodes(user.uid);

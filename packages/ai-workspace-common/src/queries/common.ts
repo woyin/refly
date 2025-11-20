@@ -67,7 +67,6 @@ import {
   exportDocument,
   extractVariables,
   generateAppTemplate,
-  generateInvitationCode,
   generateMedia,
   getActionResult,
   getAuthConfig,
@@ -1320,14 +1319,6 @@ export type ExecuteWorkflowAppMutationResult = Awaited<ReturnType<typeof execute
 export const useExecuteWorkflowAppKey = 'ExecuteWorkflowApp';
 export const UseExecuteWorkflowAppKeyFn = (mutationKey?: Array<unknown>) => [
   useExecuteWorkflowAppKey,
-  ...(mutationKey ?? []),
-];
-export type GenerateInvitationCodeMutationResult = Awaited<
-  ReturnType<typeof generateInvitationCode>
->;
-export const useGenerateInvitationCodeKey = 'GenerateInvitationCode';
-export const UseGenerateInvitationCodeKeyFn = (mutationKey?: Array<unknown>) => [
-  useGenerateInvitationCodeKey,
   ...(mutationKey ?? []),
 ];
 export type ActivateInvitationCodeMutationResult = Awaited<

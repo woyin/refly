@@ -2230,7 +2230,7 @@ export type UserSettings = {
 /**
  * Auth provider
  */
-export type AuthProvider = 'email' | 'google' | 'github';
+export type AuthProvider = 'email' | 'google' | 'github' | 'invitation';
 
 export type AuthConfigItem = {
   /**
@@ -9034,10 +9034,6 @@ export type GetCreditUsageByCanvasIdData = {
 export type GetCreditUsageByCanvasIdResponse2 = GetCreditUsageByCanvasIdResponse;
 
 export type GetCreditUsageByCanvasIdError = unknown;
-
-export type GenerateInvitationCodeResponse = BaseResponse;
-
-export type GenerateInvitationCodeError = unknown;
 
 export type ListInvitationCodesResponse2 = ListInvitationCodesResponse;
 

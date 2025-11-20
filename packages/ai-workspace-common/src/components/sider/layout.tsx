@@ -20,7 +20,7 @@ import { StorageExceededModal } from '@refly-packages/ai-workspace-common/compon
 import { useHandleSiderData } from '@refly-packages/ai-workspace-common/hooks/use-handle-sider-data';
 import { SettingsModalActiveTab, useSiderStoreShallow } from '@refly/stores';
 import { useCreateCanvas } from '@refly-packages/ai-workspace-common/hooks/canvas/use-create-canvas';
-import { useGenerateInvitationCode } from '@refly-packages/ai-workspace-common/queries';
+import { useGetAuthConfig } from '@refly-packages/ai-workspace-common/queries';
 import {
   Account,
   File,
@@ -313,7 +313,8 @@ const SiderLoggedIn = (props: { source: 'sider' | 'popover' }) => {
     setSettingsModalActiveTab: state.setSettingsModalActiveTab,
   }));
 
-  const { mutateAsync: generateInvitationCode } = useGenerateInvitationCode();
+  // Get auth config to determine if invitation feature should be shown
+  const { data: authConfig } = useGetAuthConfig();
 
   useHandleSiderData(true);
 
@@ -346,17 +347,10 @@ const SiderLoggedIn = (props: { source: 'sider' | 'popover' }) => {
     return 'home';
   }, [location.pathname]);
 
-  // Handle invitation button click - generate invitation code first, then show modal
-  const handleInvitationClick = useCallback(async () => {
-    try {
-      await generateInvitationCode({});
-      setShowInvitationModal(true);
-    } catch (error) {
-      console.error('Failed to generate invitation code:', error);
-      // Still show the modal even if generation fails, user can retry or see existing codes
-      setShowInvitationModal(true);
-    }
-  }, [generateInvitationCode, setShowInvitationModal]);
+  // Handle invitation button click - show modal directly, codes will be loaded lazily
+  const handleInvitationClick = useCallback(() => {
+    setShowInvitationModal(true);
+  }, [setShowInvitationModal]);
 
   // Menu items configuration
   const menuItems = useMemo(
@@ -507,22 +501,24 @@ const SiderLoggedIn = (props: { source: 'sider' | 'popover' }) => {
 
         {!!userProfile?.uid && (
           <>
-            <div
-              className="flex items-center justify-between cursor-pointer rounded-[20px] bg-gradient-to-r from-[#02AE8E] to-[#008AA6] px-3 py-3 transition-shadow"
-              onClick={handleInvitationClick}
-              data-cy="invite-friends-menu-item"
-            >
-              <div className="flex items-center gap-1.5">
-                <img src={InviteIcon} alt="Invite" className="w-7 h-7" />
-                <div className="flex flex-col leading-tight">
-                  <span className="text-xs font-semibold text-white">
-                    {t('common.inviteFriends')}
-                  </span>
-                  <span className="text-xs text-white/80">{t('common.inviteRewardText')}</span>
+            {authConfig?.data?.some((item) => item.provider === 'invitation') && (
+              <div
+                className="flex items-center justify-between cursor-pointer rounded-[20px] bg-gradient-to-r from-[#02AE8E] to-[#008AA6] px-3 py-3 transition-shadow"
+                onClick={handleInvitationClick}
+                data-cy="invite-friends-menu-item"
+              >
+                <div className="flex items-center gap-1.5">
+                  <img src={InviteIcon} alt="Invite" className="w-7 h-7" />
+                  <div className="flex flex-col leading-tight">
+                    <span className="text-xs font-semibold text-white">
+                      {t('common.inviteFriends')}
+                    </span>
+                    <span className="text-xs text-white/80">{t('common.inviteRewardText')}</span>
+                  </div>
                 </div>
+                <span className="text-white text-xs font-semibold leading-none">&gt;</span>
               </div>
-              <span className="text-white text-xs font-semibold leading-none">&gt;</span>
-            </div>
+            )}
             <div
               className="flex h-12 items-center justify-between cursor-pointer hover:bg-refly-tertiary-hover rounded-md px-2"
               data-cy="settings-menu-item"

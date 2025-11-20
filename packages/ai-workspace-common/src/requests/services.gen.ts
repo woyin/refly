@@ -388,8 +388,6 @@ import type {
   GetCreditUsageByCanvasIdData,
   GetCreditUsageByCanvasIdError,
   GetCreditUsageByCanvasIdResponse2,
-  GenerateInvitationCodeError,
-  GenerateInvitationCodeResponse,
   ListInvitationCodesError,
   ListInvitationCodesResponse2,
   ActivateInvitationCodeData,
@@ -2581,23 +2579,6 @@ export const getCreditUsageByCanvasId = <ThrowOnError extends boolean = false>(
   >({
     ...options,
     url: '/credit/canvas',
-  });
-};
-
-/**
- * Generate invitation code
- * Generate an invitation code
- */
-export const generateInvitationCode = <ThrowOnError extends boolean = false>(
-  options?: Options<unknown, ThrowOnError>,
-) => {
-  return (options?.client ?? client).post<
-    GenerateInvitationCodeResponse,
-    GenerateInvitationCodeError,
-    ThrowOnError
-  >({
-    ...options,
-    url: '/invitation/generate',
   });
 };
 

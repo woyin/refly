@@ -54,51 +54,41 @@ export class InvitationService {
   }
 
   /**
-   * generate 5 invitation codes for a user
-   * a user can only generate one invitation code
-   */
-  async generateInvitationCodes(uid: string) {
-    // check if the user has already generated invitation codes
-    const existingCodes = await this.prisma.invitationCode.findMany({
-      where: { inviterUid: uid },
-    });
-
-    if (existingCodes?.length > 0) {
-      throw new BadRequestException('User has already generated invitation codes');
-    }
-
-    // generate 5 unique invitation codes
-    const codes: string[] = [];
-    for (let i = 0; i < 5; i++) {
-      const code = await this.generateUniqueCode();
-      codes.push(code);
-    }
-
-    // create the invitation codes in batch
-    const invitationCodes = await Promise.all(
-      codes.map((code) =>
-        this.prisma.invitationCode.create({
-          data: {
-            code,
-            inviterUid: uid,
-            status: 'pending',
-          },
-        }),
-      ),
-    );
-
-    return invitationCodes;
-  }
-
-  /**
-   * list all invitation codes for a user
+   * list the first 5 invitation codes for a user (by creation time), generate 5 codes if none exist
    */
   async listInvitationCodes(uid: string): Promise<InvitationCode[]> {
-    const invitationCodes = await this.prisma.invitationCode.findMany({
+    let invitationCodes = await this.prisma.invitationCode.findMany({
       where: { inviterUid: uid },
+      orderBy: { createdAt: 'asc' },
     });
 
-    return invitationCodes.map((code) => ({
+    // If no invitation codes exist, generate 5 new ones
+    if (!invitationCodes || invitationCodes.length === 0) {
+      // generate 5 unique invitation codes
+      const codes: string[] = [];
+      for (let i = 0; i < 5; i++) {
+        const code = await this.generateUniqueCode();
+        codes.push(code);
+      }
+
+      // create the invitation codes in batch
+      invitationCodes = await Promise.all(
+        codes.map((code) =>
+          this.prisma.invitationCode.create({
+            data: {
+              code,
+              inviterUid: uid,
+              status: 'pending',
+            },
+          }),
+        ),
+      );
+    }
+
+    // Always return only the first 5 codes (by creation time)
+    const codesToReturn = invitationCodes.slice(0, 5);
+
+    return codesToReturn.map((code) => ({
       code: code.code,
       inviterUid: code.inviterUid,
       inviteeUid: code.inviteeUid,
