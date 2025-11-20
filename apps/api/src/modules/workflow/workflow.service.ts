@@ -16,6 +16,7 @@ import {
   sortNodeExecutionsByExecutionOrder,
 } from '@refly/canvas-common';
 import { SkillService } from '../skill/skill.service';
+import { ActionService } from '../action/action.service';
 import { CanvasService } from '../canvas/canvas.service';
 import { CanvasSyncService } from '../canvas-sync/canvas-sync.service';
 import {
@@ -45,6 +46,7 @@ export class WorkflowService {
     private readonly prisma: PrismaService,
     private readonly redis: RedisService,
     private readonly skillService: SkillService,
+    private readonly actionService: ActionService,
     private readonly canvasService: CanvasService,
     private readonly canvasSyncService: CanvasSyncService,
     private readonly creditService: CreditService,
@@ -632,6 +634,85 @@ export class WorkflowService {
         { delay: WORKFLOW_POLL_INTERVAL, removeOnComplete: true },
       );
     }
+  }
+
+  /**
+   * Abort workflow execution - stop all running/waiting nodes
+   * @param user - The user
+   * @param executionId - The workflow execution ID to abort
+   */
+  async abortWorkflowExecution(user: User, executionId: string): Promise<void> {
+    // Verify workflow execution exists and belongs to user
+    const workflowExecution = await this.prisma.workflowExecution.findUnique({
+      where: { executionId, uid: user.uid },
+    });
+
+    if (!workflowExecution) {
+      throw new WorkflowExecutionNotFoundError(`Workflow execution ${executionId} not found`);
+    }
+
+    // Check if workflow is already finished or failed
+    if (workflowExecution.status === 'finish' || workflowExecution.status === 'failed') {
+      this.logger.warn(
+        `Workflow execution ${executionId} is already ${workflowExecution.status}, cannot abort`,
+      );
+      return;
+    }
+
+    // Get all executing and waiting nodes
+    const nodesToAbort = await this.prisma.workflowNodeExecution.findMany({
+      where: {
+        executionId,
+        status: { in: ['waiting', 'executing'] },
+      },
+    });
+
+    this.logger.log(
+      `Aborting workflow ${executionId}: found ${nodesToAbort.length} nodes to abort`,
+    );
+
+    // Abort all executing skillResponse nodes by calling abort action
+    const executingSkillNodes = nodesToAbort.filter(
+      (n) => n.status === 'executing' && n.nodeType === 'skillResponse',
+    );
+
+    // Abort all executing nodes in parallel for better performance
+    const abortResults = await Promise.allSettled(
+      executingSkillNodes.map(async (node) => {
+        try {
+          await this.actionService.abortActionFromReq(
+            user,
+            { resultId: node.entityId },
+            'Workflow aborted by user',
+          );
+          this.logger.log(`Aborted action ${node.entityId} for node ${node.nodeId}`);
+          return { success: true, nodeId: node.nodeId };
+        } catch (error) {
+          this.logger.warn(
+            `Failed to abort action ${node.entityId}: ${(error as any)?.message ?? error}`,
+          );
+          return { success: false, nodeId: node.nodeId, error };
+        }
+      }),
+    );
+
+    const successCount = abortResults.filter((r) => r.status === 'fulfilled').length;
+    this.logger.log(`Aborted ${successCount}/${executingSkillNodes.length} executing skill nodes`);
+
+    // Update all waiting and executing nodes to failed
+    await this.prisma.workflowNodeExecution.updateMany({
+      where: {
+        executionId,
+        status: { in: ['waiting', 'executing'] },
+      },
+      data: {
+        status: 'failed',
+        errorMessage: 'Workflow aborted by user',
+        endTime: new Date(),
+      },
+    });
+
+    this.logger.log(`Workflow execution ${executionId} aborted by user ${user.uid}`);
   }
 
   /**
