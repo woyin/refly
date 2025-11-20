@@ -10,7 +10,7 @@ import { IconError } from '@refly-packages/ai-workspace-common/components/common
 import { X, File, AiChat } from 'refly-icons';
 import { LabelDisplay } from '@refly-packages/ai-workspace-common/components/canvas/common/label-display';
 import { parseMentionsFromQuery, processQueryWithMentions } from '@refly/utils/query-processor';
-import { useAgentConnections } from '@refly-packages/ai-workspace-common/hooks/canvas/use-agent-connections';
+import { useRealtimeUpstreamAgents } from '@refly-packages/ai-workspace-common/hooks/canvas/use-realtime-upstream-agent';
 
 interface SkillResponseContentPreviewProps {
   nodeId: string;
@@ -60,8 +60,7 @@ export const SkillResponseContentPreview = memo(
     const toolsets = metadata?.selectedToolsets ?? [];
     const contextItems = metadata?.contextItems ?? [];
 
-    const { getUpstreamAgentNodes } = useAgentConnections();
-    const upstreamAgentNodes = getUpstreamAgentNodes(nodeId);
+    const upstreamAgentNodes = useRealtimeUpstreamAgents(nodeId);
 
     const files = useMemo(() => {
       return contextItems?.filter((item) => item.type === 'file');
