@@ -9,7 +9,7 @@
       "request": "launch",
       "name": "Launch API (debug)",
       "runtimeExecutable": "pnpm",
-      "runtimeArgs": ["--filter", "api", "dev"],
+      "runtimeArgs": ["-F", "api", "dev:debug"],
       "cwd": "${workspaceFolder}",
       "console": "integratedTerminal",
       "env": {

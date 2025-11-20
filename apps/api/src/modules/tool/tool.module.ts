@@ -25,6 +25,7 @@ import { HeyGenModule } from './media/video/heygen.module';
 import { ToolController } from './tool.controller';
 import { ToolService } from './tool.service';
 import { ResourceHandler } from './utils/resource';
+import { ScaleboxModule } from './sandbox/scalebox.module';
 
 @Module({
   imports: [
@@ -41,6 +42,7 @@ import { ResourceHandler } from './utils/resource';
     CreditModule,
     FishAudioModule,
     HeyGenModule,
+    ScaleboxModule,
     ...(isDesktop() ? [] : [BullModule.registerQueue({ name: QUEUE_SYNC_TOOL_CREDIT_USAGE })]),
   ],
   controllers: [ToolController],
