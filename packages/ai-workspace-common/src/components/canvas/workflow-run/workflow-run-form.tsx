@@ -88,6 +88,7 @@ export const WorkflowRunForm = ({
   workflowApp,
   creditUsage,
 }: WorkflowRunFormProps) => {
+  console.log('[WorkflowRunForm] workflowVariables', workflowVariables);
   const { t } = useTranslation();
   const { isLoggedRef } = useIsLogin();
   const navigate = useNavigate();
