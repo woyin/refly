@@ -32,6 +32,7 @@ import {
   genCodeArtifactID,
   genDocumentID,
   genResourceID,
+  genDriveFileID,
   markdown2StateUpdate,
   pick,
   safeParseJSON,
@@ -706,6 +707,79 @@ export class ShareDuplicationService {
   }
 
   /**
+   * Helper method to duplicate drive files
+   */
+  private createDriveFileDuplicationPromises(
+    user: User,
+    files: SharedCanvasData['files'],
+    _projectId: string | undefined,
+    newCanvasId: string,
+    limit: Limit,
+  ): Promise<void>[] {
+    if (!files || files.length === 0) {
+      return [];
+    }
+
+    return files.map((file) =>
+      limit(async () => {
+        try {
+          const newFileId = genDriveFileID();
+          // storageKey is internal field included for duplication
+          const oldStorageKey = (file as any).storageKey as string | undefined;
+          const newStorageKey = oldStorageKey
+            ? `drive/${user.uid}/${newCanvasId}/${file.name}`
+            : null;
+
+          this.logger.log(
+            `Duplicating drive file ${file.fileId} from ${oldStorageKey} to ${newStorageKey}`,
+          );
+
+          // Copy file content from old storage key to new storage key if exists
+          if (oldStorageKey && newStorageKey) {
+            try {
+              const fileBuffer = await this.miscService.downloadFile({
+                storageKey: oldStorageKey,
+                visibility: 'private',
+              });
+              await this.oss.putObject(newStorageKey, fileBuffer);
+            } catch (error) {
+              this.logger.error(
+                `Failed to copy file ${file.fileId} from ${oldStorageKey} to ${newStorageKey}: ${error.stack}`,
+              );
+            }
+          }
+
+          // Create new drive file record
+          await this.prisma.driveFile.create({
+            data: {
+              fileId: newFileId,
+              uid: user.uid,
+              canvasId: newCanvasId,
+              name: file.name,
+              type: file.type,
+              category: file.category,
+              size: BigInt(file.size || 0),
+              source: file.source || 'manual',
+              scope: file.scope || 'present',
+              storageKey: newStorageKey,
+              summary: file.summary ?? null,
+              variableId: file.variableId ?? null,
+              resultId: file.resultId ?? null,
+              resultVersion: file.resultVersion ?? null,
+            },
+          });
+
+          this.logger.log(
+            `Successfully duplicated drive file ${file.fileId} to ${newFileId} for canvas ${newCanvasId}`,
+          );
+        } catch (error) {
+          this.logger.error(`Failed to duplicate drive file ${file.fileId}: ${error.stack}`);
+        }
+      }),
+    );
+  }
+
+  /**
    * Common canvas duplication logic shared between duplicateSharedCanvas and duplicateSharedWorkflowApp
    */
   private async duplicateCanvasCommon(
@@ -814,7 +888,15 @@ export class ShareDuplicationService {
       limit,
     );
 
-    await Promise.all([...libDupPromises, ...skillDupPromises]);
+    const fileDupPromises = this.createDriveFileDuplicationPromises(
+      user,
+      canvasData.files,
+      projectId,
+      newCanvasId,
+      limit,
+    );
+
+    await Promise.all([...libDupPromises, ...skillDupPromises, ...fileDupPromises]);
 
     // Update canvas state and save
     state.nodes = nodes;

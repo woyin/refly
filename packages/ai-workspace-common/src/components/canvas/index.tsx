@@ -737,10 +737,10 @@ const Flow = memo(({ canvasId, copilotWidth, setCopilotWidth, maxPanelWidth }: F
   // Memoize the node types configuration
   const memoizedNodeTypes = useMemo(() => nodeTypes, []);
 
-  const readonlyNodesChange = useCallback(() => {
-    // No-op function for readonly mode
-    return nodes;
-  }, [nodes]);
+  // const readonlyNodesChange = useCallback(() => {
+  //   // No-op function for readonly mode
+  //   return nodes;
+  // }, [nodes]);
 
   const readonlyEdgesChange = useCallback(() => {
     // No-op function for readonly mode
@@ -991,6 +991,8 @@ const Flow = memo(({ canvasId, copilotWidth, setCopilotWidth, maxPanelWidth }: F
     };
   }, [onNodeContextMenu]);
 
+  console.log('readonly', readonly);
+
   return (
     <Spin
       className="canvas-spin w-full h-full"
@@ -1015,13 +1017,13 @@ const Flow = memo(({ canvasId, copilotWidth, setCopilotWidth, maxPanelWidth }: F
       <div className="w-full h-full relative flex flex-col overflow-hidden shadow-sm rounded-xl border-solid border-[1px] border-refly-Card-Border">
         <div className="flex-grow relative">
           <style>{selectionStyles}</style>
-          {readonly && (
+          {/* {readonly && (
             <style>{`
               .react-flow__node {
                 cursor: not-allowed !important;
               }
             `}</style>
-          )}
+          )} */}
           <DropOverlay />
           <ReactFlow
             {...flowConfig}
@@ -1043,7 +1045,7 @@ const Flow = memo(({ canvasId, copilotWidth, setCopilotWidth, maxPanelWidth }: F
             nodeTypes={memoizedNodeTypes}
             nodes={memoizedNodes}
             edges={memoizedEdges}
-            onNodesChange={readonly ? readonlyNodesChange : onNodesChange}
+            onNodesChange={onNodesChange}
             onEdgesChange={readonly ? readonlyEdgesChange : onEdgesChange}
             onConnect={readonly ? readonlyConnect : onConnect}
             onConnectStart={readonly ? undefined : temporaryEdgeOnConnectStart}
@@ -1057,7 +1059,7 @@ const Flow = memo(({ canvasId, copilotWidth, setCopilotWidth, maxPanelWidth }: F
             nodeDragThreshold={10}
             nodesDraggable={!readonly}
             nodesConnectable={!readonly}
-            elementsSelectable={!readonly}
+            elementsSelectable={true}
             onSelectionContextMenu={readonly ? undefined : onSelectionContextMenu}
             deleteKeyCode={readonly ? null : ['Backspace', 'Delete']}
             multiSelectionKeyCode={readonly ? null : ['Shift', 'Meta']}

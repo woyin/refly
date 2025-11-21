@@ -248,11 +248,11 @@ const SkillResponseNodePreviewComponent = ({
         nodeId={node.id}
         entityId={data.entityId}
         title={title}
-        readonly={readonly}
         source="preview"
         className="!h-14"
         actions={
           <SkillResponseActions
+            readonly={readonly}
             nodeIsExecuting={isExecuting}
             workflowIsRunning={workflowIsRunning}
             variant="preview"
@@ -284,6 +284,7 @@ const SkillResponseNodePreviewComponent = ({
           <div className="flex-1 min-h-0 overflow-y-auto">
             {activeTab === 'configure' && (
               <ConfigureTab
+                readonly={readonly}
                 query={query}
                 version={version}
                 resultId={resultId}

@@ -12,6 +12,7 @@ import { LabelItem } from '@refly-packages/ai-workspace-common/components/canvas
 import { useCanvasNodesStoreShallow } from '@refly/stores';
 
 interface ConfigInfoDisplayProps {
+  readonly?: boolean;
   prompt: string;
   selectedToolsets: GenericToolset[];
   contextItems: IContextItem[];
@@ -42,6 +43,7 @@ SectionTitle.displayName = 'SectionTitle';
 
 export const ConfigInfoDisplay = memo(
   ({
+    readonly = false,
     prompt,
     selectedToolsets,
     contextItems = [],
@@ -125,6 +127,7 @@ export const ConfigInfoDisplay = memo(
           <div className="flex flex-wrap gap-2">
             {variables.map((variable: MentionCommonData, index) => (
               <LabelItem
+                readonly={readonly}
                 key={`${variable.id}-${index}`}
                 icon={<X size={12} className="flex-shrink-0" />}
                 labeltext={variable.name}
@@ -148,6 +151,7 @@ export const ConfigInfoDisplay = memo(
 
               return (
                 <LabelItem
+                  readonly={readonly}
                   key={`${toolset.id || toolset.name}-${index}`}
                   icon={
                     <ToolsetIcon
@@ -175,6 +179,7 @@ export const ConfigInfoDisplay = memo(
           <div className="flex flex-wrap gap-2">
             {files.map((file: any, index) => (
               <LabelItem
+                readonly={readonly}
                 key={`${file.entityId}-${index}`}
                 icon={<File size={12} className="flex-shrink-0" />} // TODO: use file icon for file type
                 labeltext={file.title}
@@ -194,8 +199,9 @@ export const ConfigInfoDisplay = memo(
               const title = node?.data?.title;
               return (
                 <LabelItem
-                  onMouseEnter={() => setHighlightedNodeId(node.id)}
-                  onMouseLeave={() => setHighlightedNodeId(null)}
+                  onMouseEnter={!readonly ? () => setHighlightedNodeId(node.id) : undefined}
+                  onMouseLeave={!readonly ? () => setHighlightedNodeId(null) : undefined}
+                  readonly={readonly}
                   key={`${node.id}-${index}`}
                   icon={<AiChat size={14} className="flex-shrink-0" />}
                   labeltext={title || t('canvas.richChatInput.untitledAgent')}

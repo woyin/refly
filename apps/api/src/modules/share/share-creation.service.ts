@@ -98,6 +98,34 @@ export class ShareCreationService {
       omit(resource.resource, ['content']),
     );
 
+    // Process drive files in parallel
+    const driveFiles = await this.prisma.driveFile.findMany({
+      where: {
+        uid: user.uid,
+        canvasId,
+        scope: 'present',
+      },
+    });
+
+    canvasData.files = driveFiles.map((file) => ({
+      fileId: file.fileId,
+      canvasId: file.canvasId,
+      name: file.name,
+      type: file.type,
+      category: file.category as any,
+      size: Number(file.size),
+      source: file.source as any,
+      scope: file.scope as any,
+      summary: file.summary ?? undefined,
+      variableId: file.variableId ?? undefined,
+      resultId: file.resultId ?? undefined,
+      resultVersion: file.resultVersion ?? undefined,
+      createdAt: file.createdAt.toJSON(),
+      updatedAt: file.updatedAt.toJSON(),
+      // Include internal storageKey for duplication (not in public API)
+      storageKey: file.storageKey ?? undefined,
+    }));
+
     // Find all image video audio nodes
     const mediaNodes =
       canvasData.nodes?.filter(

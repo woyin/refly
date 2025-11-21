@@ -197,6 +197,8 @@ export const SkillResponseNode = memo(
     const { getEdges, setEdges } = useReactFlow();
     const { readonly, canvasId } = useCanvasContext();
 
+    console.log('readonly', readonly);
+
     const { handleMouseEnter: onHoverStart, handleMouseLeave: onHoverEnd } = useNodeHoverEffect(id);
 
     // Handle node hover events
@@ -854,6 +856,7 @@ export const SkillResponseNode = memo(
               source="node"
               actions={
                 <SkillResponseActions
+                  readonly={readonly}
                   nodeIsExecuting={isExecuting}
                   workflowIsRunning={workflowIsRunning}
                   onRerunSingle={handleRerunSingle}
