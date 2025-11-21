@@ -3854,6 +3854,14 @@ const translations = {
       executionIdFailed: 'Failed to get execution ID',
       executeFailed: 'Failed to execute workflow',
       executeError: 'Failed to execute workflow',
+      thinking: 'Thinking...',
+      stop: 'Stop',
+      stopped: 'Workflow stopped',
+      stoppedMessage: 'Workflow stopped, no results generated. You can rerun the template.',
+      stopConfirmTitle: 'Stop Template Run?',
+      stopConfirmContent:
+        'Are you sure you want to stop this template run? The run will be terminated immediately, and credits already consumed will not be refunded.',
+      stopSuccess: 'The template run has been stopped successfully.',
     },
     revenueSharing: {
       title: 'Earn credits by running templates',

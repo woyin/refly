@@ -3586,6 +3586,13 @@ const translations = {
       executionIdFailed: '获取执行 ID 失败',
       executeFailed: '执行工作流失败',
       executeError: '执行工作流失败',
+      thinking: '思考中...',
+      stop: '停止',
+      stopped: '工作流已停止',
+      stoppedMessage: '停止运行，未生成结果，可重新运行模板',
+      stopConfirmTitle: '停止模板运行？',
+      stopConfirmContent: '确定要停止此模板运行吗？运行将立即终止，已消耗的积分不会退还。',
+      stopSuccess: '模板运行已成功停止。',
     },
     revenueSharing: {
       title: '模板被运行可享受积分收益分成',
