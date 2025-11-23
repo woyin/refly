@@ -109,11 +109,12 @@ export class ResourceHandler {
     const processedData = await this.processResourcesField(
       schema as JsonSchema,
       response.data as Record<string, unknown>,
-      async (value) => {
+      async (value, schemaProperty) => {
         // Upload the resource and return fileId reference
-        const result = await this.uploadResource(value, request);
+        const result = await this.uploadResource(value, request, schemaProperty);
         return result ? { fileId: result.fileId } : value;
       },
+      'output', // Output mode: accept any value, not just fileIds
     );
 
     return {
@@ -157,11 +158,13 @@ export class ResourceHandler {
    * Upload a resource value to DriveService
    * @param value - Resource content (Buffer, base64, URL, etc.)
    * @param _request - Original handler request for metadata (unused but kept for signature compatibility)
+   * @param schemaProperty - Schema property with format information (optional)
    * @returns Upload result with fileId
    */
   private async uploadResource(
     value: unknown,
     _request: HandlerRequest,
+    schemaProperty?: SchemaProperty,
   ): Promise<UploadResult | null> {
     try {
       const user = getCurrentUser();
@@ -227,6 +230,40 @@ export class ResourceHandler {
             externalUrl: value,
             source: 'agent',
           });
+          return {
+            fileId: driveFile.fileId,
+            resourceType: this.inferResourceType(driveFile.type),
+            metadata: {
+              size: Number(driveFile.size),
+              mimeType: driveFile.type,
+            },
+          };
+        } else if (schemaProperty?.format === 'base64') {
+          // Pure base64 string (no data: prefix)
+          // This handles cases like Gemini API returning raw base64 image data
+          const mimeType = 'image/png'; // Default for image generation tools
+
+          // Decode base64 string to Buffer
+          const buffer = Buffer.from(value, 'base64');
+
+          // Upload buffer to object storage first
+          const uploadResult = await this.miscService.uploadFile(user, {
+            file: {
+              buffer,
+              mimetype: mimeType,
+              originalname: `resource-${Date.now()}.${mime.getExtension(mimeType) || 'png'}`,
+            },
+            visibility: 'private',
+          });
+
+          // Create DriveFile with the storageKey
+          const driveFile = await this.driveService.createDriveFile(user, {
+            canvasId,
+            name: `resource-${Date.now()}.${mime.getExtension(mimeType) || 'png'}`,
+            storageKey: uploadResult.storageKey,
+            source: 'agent',
+          });
+
           return {
             fileId: driveFile.fileId,
             resourceType: this.inferResourceType(driveFile.type),
@@ -330,8 +367,7 @@ export class ResourceHandler {
 
       case 'base64': {
         const result = await this.driveService.getDriveFileStream(user, fileId);
-        const base64 = result.data.toString('base64');
-        return `data:${result.contentType};base64,${base64}`;
+        return result.data.toString('base64');
       }
 
       case 'text': {
@@ -361,12 +397,14 @@ export class ResourceHandler {
    * @param schema - JSON schema with isResource markers
    * @param data - Data object to process
    * @param processor - Function to process each resource field
+   * @param mode - 'input' for preprocessing (validate fileId), 'output' for postprocessing (accept any value)
    * @returns Processed data
    */
   private async processResourcesField(
     schema: JsonSchema,
     data: Record<string, unknown>,
     processor: (value: unknown, schema: SchemaProperty) => Promise<unknown>,
+    mode: 'input' | 'output' = 'input',
   ): Promise<Record<string, unknown>> {
     const result = { ...data };
 
@@ -407,15 +445,16 @@ export class ResourceHandler {
         const resourceOption = options.find((opt: SchemaProperty) => opt.isResource);
 
         if (resourceOption && dataValue !== undefined && dataValue !== null) {
-          // Check if the value looks like a fileId (starts with 'df-')
-          if (isValidFileId(dataValue)) {
+          // Input mode: check if the value looks like a fileId (starts with 'df-')
+          // Output mode: accept any value
+          if (mode === 'output' || isValidFileId(dataValue)) {
             // Process as resource using the resource option schema
             parent[key] = await processor(dataValue, resourceOption);
             return;
           }
         }
 
-        // If not a fileId or no resource option found, keep original value
+        // If not a fileId (input mode) or no resource option found, keep original value
         parent[key] = dataValue;
         return;
       }
@@ -423,8 +462,9 @@ export class ResourceHandler {
       // Case 1: This field is marked as a resource
       if (schemaProperty.isResource) {
         if (dataValue !== undefined && dataValue !== null) {
-          // Validate fileId format - if invalid, skip processing and keep original value
-          if (!isValidFileId(dataValue)) {
+          // Input mode: validate fileId format - if invalid, skip processing
+          // Output mode: accept any value (base64, URL, Buffer, etc.)
+          if (mode === 'input' && !isValidFileId(dataValue)) {
             // Not a valid fileId format, treat as regular value and skip resource processing
             parent[key] = dataValue;
             return;
@@ -438,11 +478,15 @@ export class ResourceHandler {
       if (schemaProperty.type === 'array' && schemaProperty.items && Array.isArray(dataValue)) {
         // Check if array items are resources
         if (schemaProperty.items.isResource) {
-          // Process each item - skip invalid fileIds
+          // Process each item
           const processed = await Promise.all(
             dataValue.map(async (item) => {
-              // If item is not a valid fileId, keep original value without processing
-              if (item === undefined || item === null || !isValidFileId(item)) {
+              // Input mode: validate fileId format
+              // Output mode: accept any value
+              if (item === undefined || item === null) {
+                return item;
+              }
+              if (mode === 'input' && !isValidFileId(item)) {
                 return item;
               }
               return await processor(item, schemaProperty.items!);
@@ -458,6 +502,7 @@ export class ResourceHandler {
                   { type: 'object', properties: schemaProperty.items!.properties! } as JsonSchema,
                   item as Record<string, unknown>,
                   processor,
+                  mode, // Pass mode to nested processing
                 );
               }
               return item;
