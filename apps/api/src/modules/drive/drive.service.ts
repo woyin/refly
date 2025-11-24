@@ -653,12 +653,7 @@ export class DriveService {
     await this.internalOss.removeObject(driveFile.storageKey, true);
   }
 
-  /**
-   * Duplicate a drive file record (create a new record with same metadata but new fileId)
-   * This is used when duplicating canvases to ensure file independence.
-   * Caller is responsible for actually copying the file content in storage.
-   */
-  async duplicateDriveFileRecord(
+  async duplicateDriveFile(
     user: User,
     sourceFile: DriveFile & { storageKey?: string | null },
     newCanvasId: string,
@@ -666,10 +661,23 @@ export class DriveService {
   ): Promise<DriveFile> {
     const fileId = newFileId ?? genDriveFileID();
 
+    const newStorageKey = this.generateStorageKey(user, {
+      ...sourceFile,
+      canvasId: newCanvasId,
+    });
+
+    try {
+      await this.internalOss.duplicateFile(sourceFile.storageKey, newStorageKey);
+    } catch (error) {
+      this.logger.error(
+        `Failed to copy file ${sourceFile.fileId} from ${sourceFile.storageKey} to ${newStorageKey}: ${error.stack}`,
+      );
+    }
+
     // Create new drive file record with same metadata but new IDs
     const duplicatedFile = await this.prisma.driveFile.create({
       data: {
-        fileId,
+        fileId: fileId,
         uid: user.uid,
         canvasId: newCanvasId,
         name: sourceFile.name,
@@ -678,7 +686,7 @@ export class DriveService {
         size: BigInt(sourceFile.size || 0),
         source: sourceFile.source,
         scope: sourceFile.scope,
-        storageKey: sourceFile.storageKey ?? null,
+        storageKey: newStorageKey,
         summary: sourceFile.summary ?? null,
         variableId: sourceFile.variableId ?? null,
         resultId: sourceFile.resultId ?? null,
@@ -715,17 +723,17 @@ export class DriveService {
       });
 
       // Verify the share exists and is not deleted
-      // const shareRecord = await this.prisma.shareRecord.findFirst({
-      //   where: { shareId: driveFile.canvasId, deletedAt: null },
-      // });
+      const shareRecord = await this.prisma.shareRecord.findFirst({
+        where: { shareId: driveFile.canvasId, deletedAt: null },
+      });
 
-      // if (!shareRecord) {
-      //   throw new NotFoundException(`Shared file not found: ${fileId}`);
-      // }
+      if (!shareRecord) {
+        throw new NotFoundException(`Shared file not found: ${fileId}`);
+      }
 
-      // this.logger.log(
-      //   `Serving shared file ${fileId} from share ${driveFile.canvasId} to user ${user.uid}`,
-      // );
+      this.logger.log(
+        `Serving shared file ${fileId} from share ${driveFile.canvasId} to user ${user.uid}`,
+      );
     }
 
     // Generate drive storage path

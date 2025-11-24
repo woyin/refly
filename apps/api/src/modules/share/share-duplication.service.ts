@@ -32,7 +32,6 @@ import {
   genCodeArtifactID,
   genDocumentID,
   genResourceID,
-  genDriveFileID,
   markdown2StateUpdate,
   pick,
   safeParseJSON,
@@ -707,87 +706,6 @@ export class ShareDuplicationService {
   }
 
   /**
-   * Helper method to duplicate drive files from canvasData.files
-   * Uses files from shared canvas data (already duplicated when share was created)
-   */
-  private async createDriveFileDuplicationPromises(
-    user: User,
-    files: SharedCanvasData['files'],
-    newCanvasId: string,
-    limit: Limit,
-  ): Promise<Map<string, string>> {
-    if (!files || files.length === 0) {
-      return new Map();
-    }
-
-    // Map to track old fileId -> new fileId
-    const fileIdMap = new Map<string, string>();
-
-    const promises = files.map((file) =>
-      limit(async () => {
-        try {
-          const newFileId = genDriveFileID();
-          // storageKey is included in shared canvas data
-          const oldStorageKey = (file as any).storageKey as string | undefined;
-          const newStorageKey = oldStorageKey
-            ? `drive/${user.uid}/${newCanvasId}/${file.name}`
-            : null;
-
-          this.logger.log(
-            `Duplicating drive file ${file.fileId} from ${oldStorageKey} to ${newStorageKey}`,
-          );
-
-          // Copy file content from old storage key to new storage key if exists
-          if (oldStorageKey && newStorageKey) {
-            try {
-              await this.oss.duplicateFile(oldStorageKey, newStorageKey);
-              this.logger.log(
-                `Copied file ${file.fileId} from ${oldStorageKey} to ${newStorageKey}`,
-              );
-            } catch (error) {
-              this.logger.error(
-                `Failed to copy file ${file.fileId} from ${oldStorageKey} to ${newStorageKey}: ${error.stack}`,
-              );
-            }
-          }
-
-          // Create new drive file record
-          await this.prisma.driveFile.create({
-            data: {
-              fileId: newFileId,
-              uid: user.uid,
-              canvasId: newCanvasId,
-              name: file.name,
-              type: file.type,
-              category: file.category,
-              size: BigInt(file.size || 0),
-              source: file.source,
-              scope: file.scope,
-              storageKey: newStorageKey,
-              summary: file.summary ?? null,
-              variableId: file.variableId ?? null,
-              resultId: file.resultId ?? null,
-              resultVersion: file.resultVersion ?? null,
-            },
-          });
-
-          // Track the mapping
-          fileIdMap.set(file.fileId, newFileId);
-
-          this.logger.log(
-            `Successfully duplicated drive file ${file.fileId} to ${newFileId} for canvas ${newCanvasId}`,
-          );
-        } catch (error) {
-          this.logger.error(`Failed to duplicate drive file ${file.fileId}: ${error.stack}`);
-        }
-      }),
-    );
-
-    await Promise.all(promises);
-    return fileIdMap;
-  }
-
-  /**
    * Common canvas duplication logic shared between duplicateSharedCanvas and duplicateSharedWorkflowApp
    */
   private async duplicateCanvasCommon(
@@ -853,12 +771,10 @@ export class ShareDuplicationService {
     );
 
     // Duplicate drive files first to get the fileId mapping
-    const limit = pLimit(10);
-    const fileIdMap = await this.createDriveFileDuplicationPromises(
+    const { fileIdMap } = await this.shareCommonService.duplicateDriveFilesForShare(
       user,
       canvasData.files,
       newCanvasId,
-      limit,
     );
 
     // Merge fileIdMap into replaceEntityMap for consistent entity replacement
@@ -890,6 +806,8 @@ export class ShareDuplicationService {
     // Convert toolsets
     const { replaceToolsetMap } = await this.toolService.importToolsetsFromNodes(user, nodes);
     this.logger.log(`Replace toolsets map: ${JSON.stringify(replaceToolsetMap)}`);
+
+    const limit = pLimit(10);
 
     // Prepare duplication tasks in parallel
     const libDupPromises = this.createLibEntityDuplicationPromises(

@@ -1,4 +1,4 @@
-import { Injectable, Logger, Inject, Optional } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../common/prisma.service';
 import { MiscService } from '../misc/misc.service';
 import {
@@ -11,8 +11,8 @@ import {
 import { ShareNotFoundError } from '@refly/errors';
 import { RAGService } from '../rag/rag.service';
 import { ShareRateLimitService } from './share-rate-limit.service';
-import { safeParseJSON, genDriveFileID } from '@refly/utils';
-import { ObjectStorageService, OSS_INTERNAL } from '../common/object-storage';
+import { safeParseJSON } from '@refly/utils';
+import { DriveService } from '../drive/drive.service';
 import pLimit from 'p-limit';
 
 @Injectable()
@@ -24,7 +24,7 @@ export class ShareCommonService {
     private readonly ragService: RAGService,
     private readonly miscService: MiscService,
     private readonly shareRateLimitService: ShareRateLimitService,
-    @Optional() @Inject(OSS_INTERNAL) private readonly oss?: ObjectStorageService,
+    private readonly driveService: DriveService,
   ) {}
 
   async storeVector(
@@ -148,54 +148,6 @@ export class ShareCommonService {
   }
 
   /**
-   * Update file references in canvas nodes
-   * Replaces old fileIds with new fileIds in node metadata (e.g., contextItems)
-   */
-  updateFileReferencesInNodes(nodes: any[], fileIdMap: Map<string, string>): void {
-    if (!nodes || nodes.length === 0 || fileIdMap.size === 0) {
-      return;
-    }
-
-    for (const node of nodes) {
-      // Check skillResponse nodes for contextItems
-      if (node.type === 'skillResponse' && node.data?.metadata?.contextItems) {
-        const contextItems = node.data.metadata.contextItems;
-        for (const item of contextItems) {
-          if (item.type === 'file' && item.entityId) {
-            const newFileId = fileIdMap.get(item.entityId);
-            if (newFileId) {
-              item.entityId = newFileId;
-              this.logger.debug(
-                `Updated file reference in node ${node.id}: ${item.entityId} -> ${newFileId}`,
-              );
-            }
-          }
-        }
-      }
-
-      // Check for query string that might contain file references
-      if (node.data?.metadata?.query && typeof node.data.metadata.query === 'string') {
-        let query = node.data.metadata.query;
-        let updated = false;
-
-        // Replace file references in query string (format: @{type=file,id=df-xxx,...})
-        for (const [oldId, newId] of fileIdMap.entries()) {
-          const oldPattern = new RegExp(`id=${oldId}`, 'g');
-          if (oldPattern.test(query)) {
-            query = query.replace(oldPattern, `id=${newId}`);
-            updated = true;
-          }
-        }
-
-        if (updated) {
-          node.data.metadata.query = query;
-          this.logger.debug(`Updated file references in query for node ${node.id}`);
-        }
-      }
-    }
-  }
-
-  /**
    * Handle file duplication and cleanup for share creation/update
    * This is the main entry point for processing files when creating or updating shares
    */
@@ -238,6 +190,51 @@ export class ShareCommonService {
       // No files in current canvas, clear files array
       canvasData.files = [];
     }
+  }
+
+  /**
+   * Duplicate drive files for share to make it independent from original canvas
+   * This ensures that deleting original files won't affect the shared content
+   */
+  async duplicateDriveFilesForShare(
+    user: User,
+    files: SharedCanvasData['files'],
+    shareId: string,
+  ): Promise<{
+    storageKeyMap: Map<string, string>;
+    fileIdMap: Map<string, string>;
+  }> {
+    if (!files || files.length === 0) {
+      return {
+        storageKeyMap: new Map(),
+        fileIdMap: new Map(),
+      };
+    }
+
+    const storageKeyMap = new Map<string, string>();
+    const fileIdMap = new Map<string, string>();
+    const limit = pLimit(10);
+
+    const promises = files.map((file) =>
+      limit(async () => {
+        try {
+          const { storageKey: newStorageKey, fileId: newFileId } =
+            (await this.driveService.duplicateDriveFile(user, file, shareId)) as any;
+
+          fileIdMap.set(file.fileId, newFileId);
+          storageKeyMap.set(file.fileId, newStorageKey);
+
+          this.logger.log(
+            `Successfully duplicated drive file ${file.fileId} to ${newFileId} for share ${shareId}`,
+          );
+        } catch (error) {
+          this.logger.error(`Failed to duplicate drive file ${file.fileId}: ${error.stack}`);
+        }
+      }),
+    );
+
+    await Promise.all(promises);
+    return { fileIdMap, storageKeyMap };
   }
 
   /**
@@ -286,85 +283,50 @@ export class ShareCommonService {
   }
 
   /**
-   * Duplicate drive files for share to make it independent from original canvas
-   * This ensures that deleting original files won't affect the shared content
+   * Update file references in canvas nodes
+   * Replaces old fileIds with new fileIds in node metadata (e.g., contextItems)
    */
-  private async duplicateDriveFilesForShare(
-    user: User,
-    files: SharedCanvasData['files'],
-    shareId: string,
-  ): Promise<{
-    storageKeyMap: Map<string, string>;
-    fileIdMap: Map<string, string>;
-  }> {
-    if (!files || files.length === 0) {
-      return {
-        storageKeyMap: new Map(),
-        fileIdMap: new Map(),
-      };
+  private updateFileReferencesInNodes(nodes: any[], fileIdMap: Map<string, string>): void {
+    if (!nodes || nodes.length === 0 || fileIdMap.size === 0) {
+      return;
     }
 
-    const storageKeyMap = new Map<string, string>();
-    const fileIdMap = new Map<string, string>();
-    const limit = pLimit(10);
-
-    const promises = files.map((file) =>
-      limit(async () => {
-        try {
-          const newFileId = genDriveFileID();
-          const oldStorageKey = (file as any).storageKey as string | undefined;
-          const newStorageKey = oldStorageKey
-            ? `drive-share/${user.uid}/${shareId}/${file.name}`
-            : null;
-
-          this.logger.log(
-            `Duplicating drive file ${file.fileId} for share ${shareId}: ${oldStorageKey} -> ${newStorageKey}`,
-          );
-
-          // Copy file content from old storage key to new storage key if exists
-          if (oldStorageKey && newStorageKey && this.oss) {
-            try {
-              await this.oss.duplicateFile(oldStorageKey, newStorageKey);
-            } catch (error) {
-              this.logger.error(
-                `Failed to copy file ${file.fileId} from ${oldStorageKey} to ${newStorageKey}: ${error.stack}`,
+    for (const node of nodes) {
+      // Check skillResponse nodes for contextItems
+      if (node.type === 'skillResponse' && node.data?.metadata?.contextItems) {
+        const contextItems = node.data.metadata.contextItems;
+        for (const item of contextItems) {
+          if (item.type === 'file' && item.entityId) {
+            const newFileId = fileIdMap.get(item.entityId);
+            if (newFileId) {
+              item.entityId = newFileId;
+              this.logger.debug(
+                `Updated file reference in node ${node.id}: ${item.entityId} -> ${newFileId}`,
               );
             }
           }
-
-          // Create new drive file record with shareId as canvasId
-          await this.prisma.driveFile.create({
-            data: {
-              fileId: newFileId,
-              uid: user.uid,
-              canvasId: shareId, // Use shareId as canvasId for shared files
-              name: file.name,
-              type: file.type,
-              category: file.category as any,
-              size: BigInt(file.size || 0),
-              source: file.source as any,
-              scope: file.scope as any,
-              storageKey: newStorageKey,
-              summary: file.summary ?? null,
-              variableId: file.variableId ?? null,
-              resultId: file.resultId ?? null,
-              resultVersion: file.resultVersion ?? null,
-            },
-          });
-
-          fileIdMap.set(file.fileId, newFileId);
-          storageKeyMap.set(file.fileId, newStorageKey);
-
-          this.logger.log(
-            `Successfully duplicated drive file ${file.fileId} to ${newFileId} for share ${shareId}`,
-          );
-        } catch (error) {
-          this.logger.error(`Failed to duplicate drive file ${file.fileId}: ${error.stack}`);
         }
-      }),
-    );
+      }
 
-    await Promise.all(promises);
-    return { fileIdMap, storageKeyMap };
+      // Check for query string that might contain file references
+      if (node.data?.metadata?.query && typeof node.data.metadata.query === 'string') {
+        let query = node.data.metadata.query;
+        let updated = false;
+
+        // Replace file references in query string (format: @{type=file,id=df-xxx,...})
+        for (const [oldId, newId] of fileIdMap.entries()) {
+          const oldPattern = new RegExp(`id=${oldId}`, 'g');
+          if (oldPattern.test(query)) {
+            query = query.replace(oldPattern, `id=${newId}`);
+            updated = true;
+          }
+        }
+
+        if (updated) {
+          node.data.metadata.query = query;
+          this.logger.debug(`Updated file references in query for node ${node.id}`);
+        }
+      }
+    }
   }
 }
