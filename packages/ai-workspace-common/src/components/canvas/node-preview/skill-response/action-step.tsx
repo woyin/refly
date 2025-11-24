@@ -117,7 +117,7 @@ const ReasoningContent = memo(
 
     // Auto-collapse when step status changes from executing to finish
     useEffect(() => {
-      if (status === 'executing') {
+      if (['executing', 'waiting'].includes(status)) {
         setCollapsed(false);
       } else {
         setCollapsed(true);

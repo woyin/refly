@@ -1,16 +1,14 @@
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
-import { actionEmitter } from '@refly-packages/ai-workspace-common/events/action';
 import { useNodeData } from '@refly-packages/ai-workspace-common/hooks/canvas';
 import { useActionPolling } from '@refly-packages/ai-workspace-common/hooks/canvas/use-action-polling';
 import { useFetchActionResult } from '@refly-packages/ai-workspace-common/hooks/canvas/use-fetch-action-result';
 import { useInvokeAction } from '@refly-packages/ai-workspace-common/hooks/canvas/use-invoke-action';
 import { useFetchShareData } from '@refly-packages/ai-workspace-common/hooks/use-fetch-share-data';
 import { CanvasNode, convertResultContextToItems, ResponseNodeMeta } from '@refly/canvas-common';
-import { ActionResult } from '@refly/openapi-schema';
 import { useActionResultStoreShallow, type ResultActiveTab } from '@refly/stores';
 import { sortSteps } from '@refly/utils/step';
 import { Segmented, Button } from 'antd';
-import { memo, useCallback, useEffect, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import EmptyImage from '@refly-packages/ai-workspace-common/assets/noResource.svg';
 import { SkillResponseNodeHeader } from '@refly-packages/ai-workspace-common/components/canvas/nodes/shared/skill-response-node-header';
@@ -73,58 +71,6 @@ const SkillResponseNodePreviewComponent = ({
   const loading = fetchActionResultLoading || shareDataLoading;
 
   const [statusText, setStatusText] = useState('');
-  const previewContainerRef = useRef<HTMLDivElement | null>(null);
-  const lastScrollTopRef = useRef(0);
-  const isAtBottomRef = useRef(true);
-
-  const getPreviewContainer = useCallback(() => {
-    if (previewContainerRef.current && document.body?.contains(previewContainerRef.current)) {
-      return previewContainerRef.current;
-    }
-    const container = document.body?.querySelector<HTMLDivElement>('.preview-container') ?? null;
-    previewContainerRef.current = container;
-    return container;
-  }, []);
-
-  const isScrolledToBottom = useCallback((container: HTMLElement) => {
-    const threshold = 50;
-    return container.scrollHeight - container.scrollTop - container.clientHeight < threshold;
-  }, []);
-
-  const handleContainerScroll = useCallback(() => {
-    const container = getPreviewContainer();
-    if (!container) {
-      return;
-    }
-
-    const currentScrollTop = container.scrollTop;
-    const atBottom = isScrolledToBottom(container);
-
-    if (currentScrollTop < lastScrollTopRef.current) {
-      isAtBottomRef.current = false;
-    }
-
-    if (atBottom) {
-      isAtBottomRef.current = true;
-    }
-
-    lastScrollTopRef.current = currentScrollTop;
-  }, [getPreviewContainer, isScrolledToBottom]);
-
-  useEffect(() => {
-    const container = getPreviewContainer();
-    if (!container) {
-      return;
-    }
-
-    container.addEventListener('scroll', handleContainerScroll);
-    lastScrollTopRef.current = container.scrollTop;
-    isAtBottomRef.current = isScrolledToBottom(container);
-
-    return () => {
-      container.removeEventListener('scroll', handleContainerScroll);
-    };
-  }, [getPreviewContainer, handleContainerScroll, isScrolledToBottom]);
 
   useEffect(() => {
     if (shareData && !result && shareData?.resultId === resultId) {
@@ -142,39 +88,6 @@ const SkillResponseNodePreviewComponent = ({
       fetchActionResult(resultId, { silent: !!result, nodeToUpdate: node });
     }
   }, [resultId, shareId, isStreaming, shareData, nodeStatus]);
-
-  const handleUpdateResult = useCallback(
-    (event: { resultId: string; payload: ActionResult }) => {
-      if (event.resultId !== resultId) {
-        return;
-      }
-
-      if (!isAtBottomRef.current) {
-        return;
-      }
-
-      const container = getPreviewContainer();
-      if (!container) {
-        return;
-      }
-
-      window.requestAnimationFrame(() => {
-        const { scrollHeight, clientHeight } = container;
-        container.scroll({
-          behavior: 'smooth',
-          top: scrollHeight - clientHeight + 50,
-        });
-      });
-    },
-    [resultId, getPreviewContainer],
-  );
-
-  useEffect(() => {
-    actionEmitter.on('updateResult', handleUpdateResult);
-    return () => {
-      actionEmitter.off('updateResult', handleUpdateResult);
-    };
-  }, [handleUpdateResult]);
 
   const { data } = node;
 
@@ -359,6 +272,7 @@ const SkillResponseNodePreviewComponent = ({
               <LastRunTab
                 loading={loading}
                 isStreaming={isStreaming}
+                resultId={resultId}
                 result={result}
                 outputStep={outputStep}
                 statusText={statusText}
