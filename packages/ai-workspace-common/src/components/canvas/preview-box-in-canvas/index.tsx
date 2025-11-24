@@ -60,15 +60,16 @@ export const PreviewBoxInCanvas = memo(
     }, [isResizing]);
 
     useEffect(() => {
-      if (isResizing) {
-        document.addEventListener('mousemove', handleResizeMove);
-        document.addEventListener('mouseup', handleResizeEnd);
-        return () => {
-          document.removeEventListener('mousemove', handleResizeMove);
-          document.removeEventListener('mouseup', handleResizeEnd);
-        };
-      }
-      return undefined;
+      if (!isResizing) return;
+
+      document.addEventListener('mousemove', handleResizeMove);
+      document.addEventListener('mouseup', handleResizeEnd);
+      return () => {
+        document.removeEventListener('mousemove', handleResizeMove);
+        document.removeEventListener('mouseup', handleResizeEnd);
+        document.body.style.cursor = '';
+        document.body.style.userSelect = '';
+      };
     }, [isResizing, handleResizeEnd, handleResizeMove]);
 
     if (!showPreview) return null;
