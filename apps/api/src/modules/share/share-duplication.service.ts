@@ -740,11 +740,10 @@ export class ShareDuplicationService {
           // Copy file content from old storage key to new storage key if exists
           if (oldStorageKey && newStorageKey) {
             try {
-              const fileBuffer = await this.miscService.downloadFile({
-                storageKey: oldStorageKey,
-                visibility: 'private',
-              });
-              await this.oss.putObject(newStorageKey, fileBuffer);
+              await this.oss.duplicateFile(oldStorageKey, newStorageKey);
+              this.logger.log(
+                `Copied file ${file.fileId} from ${oldStorageKey} to ${newStorageKey}`,
+              );
             } catch (error) {
               this.logger.error(
                 `Failed to copy file ${file.fileId} from ${oldStorageKey} to ${newStorageKey}: ${error.stack}`,

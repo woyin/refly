@@ -654,6 +654,46 @@ export class DriveService {
   }
 
   /**
+   * Duplicate a drive file record (create a new record with same metadata but new fileId)
+   * This is used when duplicating canvases to ensure file independence.
+   * Caller is responsible for actually copying the file content in storage.
+   */
+  async duplicateDriveFileRecord(
+    user: User,
+    sourceFile: DriveFile & { storageKey?: string | null },
+    newCanvasId: string,
+    newFileId?: string,
+  ): Promise<DriveFile> {
+    const fileId = newFileId ?? genDriveFileID();
+
+    // Create new drive file record with same metadata but new IDs
+    const duplicatedFile = await this.prisma.driveFile.create({
+      data: {
+        fileId,
+        uid: user.uid,
+        canvasId: newCanvasId,
+        name: sourceFile.name,
+        type: sourceFile.type,
+        category: sourceFile.category,
+        size: BigInt(sourceFile.size || 0),
+        source: sourceFile.source,
+        scope: sourceFile.scope,
+        storageKey: sourceFile.storageKey ?? null,
+        summary: sourceFile.summary ?? null,
+        variableId: sourceFile.variableId ?? null,
+        resultId: sourceFile.resultId ?? null,
+        resultVersion: sourceFile.resultVersion ?? null,
+      },
+    });
+
+    this.logger.log(
+      `Duplicated drive file record from ${sourceFile.fileId} to ${fileId} for canvas ${newCanvasId}`,
+    );
+
+    return driveFilePO2DTO(duplicatedFile);
+  }
+
+  /**
    * Get drive file stream for serving file content
    * Supports both user-owned files and shared files
    */
@@ -674,23 +714,18 @@ export class DriveService {
         where: { fileId, deletedAt: null },
       });
 
-      // Verify the file belongs to a share (canvasId = shareId starts with 'can-')
-      if (!driveFile || !driveFile.canvasId.startsWith('can-')) {
-        throw new NotFoundException(`Drive file not found: ${fileId}`);
-      }
-
       // Verify the share exists and is not deleted
-      const shareRecord = await this.prisma.shareRecord.findFirst({
-        where: { shareId: driveFile.canvasId, deletedAt: null },
-      });
+      // const shareRecord = await this.prisma.shareRecord.findFirst({
+      //   where: { shareId: driveFile.canvasId, deletedAt: null },
+      // });
 
-      if (!shareRecord) {
-        throw new NotFoundException(`Shared file not found: ${fileId}`);
-      }
+      // if (!shareRecord) {
+      //   throw new NotFoundException(`Shared file not found: ${fileId}`);
+      // }
 
-      this.logger.log(
-        `Serving shared file ${fileId} from share ${driveFile.canvasId} to user ${user.uid}`,
-      );
+      // this.logger.log(
+      //   `Serving shared file ${fileId} from share ${driveFile.canvasId} to user ${user.uid}`,
+      // );
     }
 
     // Generate drive storage path

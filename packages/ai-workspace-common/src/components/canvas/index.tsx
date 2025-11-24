@@ -991,8 +991,6 @@ const Flow = memo(({ canvasId, copilotWidth, setCopilotWidth, maxPanelWidth }: F
     };
   }, [onNodeContextMenu]);
 
-  console.log('readonly', readonly);
-
   return (
     <Spin
       className="canvas-spin w-full h-full"
