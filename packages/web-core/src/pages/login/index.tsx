@@ -175,23 +175,6 @@ const LoginPage = () => {
       className="min-h-screen w-full flex flex-col lg:flex-row"
       style={{ backgroundColor: 'var(--refly-bg-login-page)' }}
     >
-      {/* Mobile: Introduction image at top */}
-      <div className="flex lg:hidden items-center justify-center px-4 pt-6 pb-4">
-        <div
-          className="rounded-xl overflow-hidden w-full max-w-[320px]"
-          style={{
-            aspectRatio: '323/322',
-            backgroundColor: 'var(--refly-bg-content-z2)',
-          }}
-        >
-          <img
-            src={isDarkMode ? loginDarkImage : loginImage}
-            alt="Welcome to Refly"
-            className="w-full h-full object-cover"
-          />
-        </div>
-      </div>
-
       {/* Desktop: Left side - Introduction section */}
       <div className="hidden lg:flex lg:w-1/2 items-center justify-center px-16 py-12">
         <div className="flex items-center justify-center">
