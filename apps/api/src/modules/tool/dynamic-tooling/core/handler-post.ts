@@ -10,9 +10,9 @@ import type {
   HandlerRequest,
   HandlerResponse,
 } from '@refly/openapi-schema';
-import { calculateCredits, ResourceHandler } from '../../../utils';
-import type { CreditService } from '../../../../credit/credit.service';
-import type { SyncToolCreditUsageJobData } from '../../../../credit/credit.dto';
+import { calculateCredits, ResourceHandler } from '../../utils';
+import type { CreditService } from '../../../credit/credit.service';
+import type { SyncToolCreditUsageJobData } from '../../../credit/credit.dto';
 
 /**
  * Configuration for base post-handler
