@@ -737,11 +737,6 @@ const Flow = memo(({ canvasId, copilotWidth, setCopilotWidth, maxPanelWidth }: F
   // Memoize the node types configuration
   const memoizedNodeTypes = useMemo(() => nodeTypes, []);
 
-  // const readonlyNodesChange = useCallback(() => {
-  //   // No-op function for readonly mode
-  //   return nodes;
-  // }, [nodes]);
-
   const readonlyEdgesChange = useCallback(() => {
     // No-op function for readonly mode
     return edges;
