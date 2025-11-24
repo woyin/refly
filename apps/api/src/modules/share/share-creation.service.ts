@@ -1,4 +1,4 @@
-import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
+import { Injectable, Logger, Optional } from '@nestjs/common';
 import { createId } from '@paralleldrive/cuid2';
 import { PrismaService } from '../common/prisma.service';
 import { MiscService } from '../misc/misc.service';
@@ -28,7 +28,6 @@ import { safeParseJSON } from '@refly/utils';
 import { generateCoverUrl } from '../workflow-app/workflow-app.dto';
 import { omit } from '../../utils';
 import { ConfigService } from '@nestjs/config';
-import { ObjectStorageService, OSS_INTERNAL } from '../common/object-storage';
 
 function genShareId(entityType: keyof typeof SHARE_CODE_PREFIX): string {
   return SHARE_CODE_PREFIX[entityType] + createId();
@@ -50,7 +49,6 @@ export class ShareCreationService {
     private readonly shareCommonService: ShareCommonService,
     private readonly shareRateLimitService: ShareRateLimitService,
     private readonly configService: ConfigService,
-    @Inject(OSS_INTERNAL) private readonly oss: ObjectStorageService,
     @Optional()
     @InjectQueue(QUEUE_CREATE_SHARE)
     private readonly createShareQueue?: Queue<CreateShareJobData>,

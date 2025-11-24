@@ -653,6 +653,9 @@ export class DriveService {
     await this.internalOss.removeObject(driveFile.storageKey, true);
   }
 
+  /**
+   * Duplicate a drive file to a new canvas
+   */
   async duplicateDriveFile(
     user: User,
     sourceFile: DriveFile & { storageKey?: string | null },
@@ -715,7 +718,7 @@ export class DriveService {
       where: { fileId, uid: user.uid, deletedAt: null },
     });
 
-    // If not found, check if it's a shared file (canvasId starts with 'can-' which is shareId prefix)
+    // If not found, check if it's a shared file
     if (!driveFile) {
       driveFile = await this.prisma.driveFile.findFirst({
         select: { uid: true, canvasId: true, name: true, type: true, storageKey: true },

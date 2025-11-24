@@ -1015,13 +1015,6 @@ const Flow = memo(({ canvasId, copilotWidth, setCopilotWidth, maxPanelWidth }: F
       <div className="w-full h-full relative flex flex-col overflow-hidden shadow-sm rounded-xl border-solid border-[1px] border-refly-Card-Border">
         <div className="flex-grow relative">
           <style>{selectionStyles}</style>
-          {/* {readonly && (
-            <style>{`
-              .react-flow__node {
-                cursor: not-allowed !important;
-              }
-            `}</style>
-          )} */}
           <DropOverlay />
           <ReactFlow
             {...flowConfig}
