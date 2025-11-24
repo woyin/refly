@@ -29,17 +29,10 @@ const LastRunTabComponent = ({
   statusText,
   query,
   title,
-  // nodeId,
-  // selectedToolsets,
   handleRetry,
 }: LastRunTabProps) => {
   const { t } = useTranslation();
   const displayQuery = useMemo(() => query ?? title ?? '', [query, title]);
-
-  // const initSelectedToolsets = useMemo(
-  //   () => (selectedToolsets?.length ? selectedToolsets : []),
-  //   [selectedToolsets],
-  // );
 
   if (!result && !loading) {
     return (
@@ -52,7 +45,7 @@ const LastRunTabComponent = ({
 
   return (
     <div className="h-full w-full flex flex-col mb-4">
-      <div className="flex-1 overflow-auto preview-container transition-opacity duration-500">
+      <div className="flex-1 overflow-auto preview-container transition-opacity duration-500 px-4">
         {loading && !isStreaming && <Skeleton className="mt-1" active paragraph={{ rows: 5 }} />}
         {(result?.status === 'executing' || result?.status === 'waiting') &&
           !outputStep &&
@@ -77,15 +70,6 @@ const LastRunTabComponent = ({
           <FailureNotice result={result} handleRetry={handleRetry} />
         )}
       </div>
-
-      {/* {outputStep && result?.status === 'finish' && (
-        <ActionContainer
-          result={result}
-          step={outputStep}
-          nodeId={nodeId}
-          initSelectedToolsets={initSelectedToolsets ?? []}
-        />
-      )} */}
     </div>
   );
 };

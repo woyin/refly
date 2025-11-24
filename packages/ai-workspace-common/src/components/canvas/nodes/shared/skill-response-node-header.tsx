@@ -2,6 +2,7 @@ import { memo, useCallback } from 'react';
 import { useUpdateNodeTitle } from '@refly-packages/ai-workspace-common/hooks/use-update-node-title';
 import { NodeHeader } from './node-header';
 import { useTranslation } from 'react-i18next';
+import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
 
 interface SkillResponseNodeHeaderProps {
   nodeId: string;
