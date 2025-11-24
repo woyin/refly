@@ -675,6 +675,7 @@ export class DriveService {
       this.logger.error(
         `Failed to copy file ${sourceFile.fileId} from ${sourceFile.storageKey} to ${newStorageKey}: ${error.stack}`,
       );
+      throw error;
     }
 
     // Create new drive file record with same metadata but new IDs
