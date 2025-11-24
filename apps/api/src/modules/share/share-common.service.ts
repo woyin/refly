@@ -137,4 +137,52 @@ export class ShareCommonService {
       throw new ShareNotFoundError();
     }
   }
+
+  /**
+   * Update file references in canvas nodes
+   * Replaces old fileIds with new fileIds in node metadata (e.g., contextItems)
+   */
+  updateFileReferencesInNodes(nodes: any[], fileIdMap: Map<string, string>): void {
+    if (!nodes || nodes.length === 0 || fileIdMap.size === 0) {
+      return;
+    }
+
+    for (const node of nodes) {
+      // Check skillResponse nodes for contextItems
+      if (node.type === 'skillResponse' && node.data?.metadata?.contextItems) {
+        const contextItems = node.data.metadata.contextItems;
+        for (const item of contextItems) {
+          if (item.type === 'file' && item.entityId) {
+            const newFileId = fileIdMap.get(item.entityId);
+            if (newFileId) {
+              item.entityId = newFileId;
+              this.logger.debug(
+                `Updated file reference in node ${node.id}: ${item.entityId} -> ${newFileId}`,
+              );
+            }
+          }
+        }
+      }
+
+      // Check for query string that might contain file references
+      if (node.data?.metadata?.query && typeof node.data.metadata.query === 'string') {
+        let query = node.data.metadata.query;
+        let updated = false;
+
+        // Replace file references in query string (format: @{type=file,id=df-xxx,...})
+        for (const [oldId, newId] of fileIdMap.entries()) {
+          const oldPattern = new RegExp(`id=${oldId}`, 'g');
+          if (oldPattern.test(query)) {
+            query = query.replace(oldPattern, `id=${newId}`);
+            updated = true;
+          }
+        }
+
+        if (updated) {
+          node.data.metadata.query = query;
+          this.logger.debug(`Updated file references in query for node ${node.id}`);
+        }
+      }
+    }
+  }
 }

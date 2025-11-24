@@ -655,18 +655,42 @@ export class DriveService {
 
   /**
    * Get drive file stream for serving file content
+   * Supports both user-owned files and shared files
    */
   async getDriveFileStream(
     user: User,
     fileId: string,
   ): Promise<{ data: Buffer; contentType: string; filename: string }> {
-    const driveFile = await this.prisma.driveFile.findFirst({
+    // First try to find the file owned by the current user
+    let driveFile = await this.prisma.driveFile.findFirst({
       select: { uid: true, canvasId: true, name: true, type: true, storageKey: true },
       where: { fileId, uid: user.uid, deletedAt: null },
     });
 
+    // If not found, check if it's a shared file (canvasId starts with 'can-' which is shareId prefix)
     if (!driveFile) {
-      throw new NotFoundException(`Drive file not found: ${fileId}`);
+      driveFile = await this.prisma.driveFile.findFirst({
+        select: { uid: true, canvasId: true, name: true, type: true, storageKey: true },
+        where: { fileId, deletedAt: null },
+      });
+
+      // Verify the file belongs to a share (canvasId = shareId starts with 'can-')
+      if (!driveFile || !driveFile.canvasId.startsWith('can-')) {
+        throw new NotFoundException(`Drive file not found: ${fileId}`);
+      }
+
+      // Verify the share exists and is not deleted
+      const shareRecord = await this.prisma.shareRecord.findFirst({
+        where: { shareId: driveFile.canvasId, deletedAt: null },
+      });
+
+      if (!shareRecord) {
+        throw new NotFoundException(`Shared file not found: ${fileId}`);
+      }
+
+      this.logger.log(
+        `Serving shared file ${fileId} from share ${driveFile.canvasId} to user ${user.uid}`,
+      );
     }
 
     // Generate drive storage path

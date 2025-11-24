@@ -1,4 +1,4 @@
-import { Injectable, Logger, Optional } from '@nestjs/common';
+import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
 import { createId } from '@paralleldrive/cuid2';
 import { PrismaService } from '../common/prisma.service';
 import { MiscService } from '../misc/misc.service';
@@ -24,10 +24,11 @@ import { ShareCommonService } from './share-common.service';
 import { ShareRateLimitService } from './share-rate-limit.service';
 import { ShareExtraData } from './share.dto';
 import { SHARE_CODE_PREFIX } from './const';
-import { safeParseJSON } from '@refly/utils';
+import { safeParseJSON, genDriveFileID } from '@refly/utils';
 import { generateCoverUrl } from '../workflow-app/workflow-app.dto';
 import { omit } from '../../utils';
 import { ConfigService } from '@nestjs/config';
+import { ObjectStorageService, OSS_INTERNAL } from '../common/object-storage';
 
 function genShareId(entityType: keyof typeof SHARE_CODE_PREFIX): string {
   return SHARE_CODE_PREFIX[entityType] + createId();
@@ -49,6 +50,7 @@ export class ShareCreationService {
     private readonly shareCommonService: ShareCommonService,
     private readonly shareRateLimitService: ShareRateLimitService,
     private readonly configService: ConfigService,
+    @Inject(OSS_INTERNAL) private readonly oss: ObjectStorageService,
     @Optional()
     @InjectQueue(QUEUE_CREATE_SHARE)
     private readonly createShareQueue?: Queue<CreateShareJobData>,
@@ -335,6 +337,27 @@ export class ShareCreationService {
       allowDuplication,
       title,
     );
+
+    // Duplicate drive files for the share to make it independent from original canvas
+    if (canvasData.files && canvasData.files.length > 0) {
+      const fileIdMap = await this.duplicateDriveFilesForShare(user, canvasData.files, shareId);
+
+      // Update canvasData.files with new fileIds
+      canvasData.files = canvasData.files.map((file) => ({
+        ...file,
+        fileId: fileIdMap.get(file.fileId) ?? file.fileId,
+        canvasId: shareId, // Use shareId as the logical canvasId for shared files
+      }));
+
+      // Update file references in nodes (e.g., contextItems in skillResponse nodes)
+      if (canvasData.nodes) {
+        this.shareCommonService.updateFileReferencesInNodes(canvasData.nodes, fileIdMap);
+      }
+
+      this.logger.log(
+        `Duplicated ${canvasData.files.length} files for share ${shareId}. FileId mappings: ${JSON.stringify(Array.from(fileIdMap.entries()))}`,
+      );
+    }
 
     // Publish minimap
     if (canvas.minimapStorageKey) {
@@ -1342,5 +1365,84 @@ export class ShareCreationService {
       default:
         throw new ParamsError(`Unsupported entity type ${req.entityType} for sharing`);
     }
+  }
+
+  /**
+   * Duplicate drive files for share to make it independent from original canvas
+   * This ensures that deleting original files won't affect the shared content
+   */
+  private async duplicateDriveFilesForShare(
+    user: User,
+    files: SharedCanvasData['files'],
+    shareId: string,
+  ): Promise<Map<string, string>> {
+    if (!files || files.length === 0) {
+      return new Map();
+    }
+
+    const fileIdMap = new Map<string, string>();
+    const limit = pLimit(10);
+
+    const promises = files.map((file) =>
+      limit(async () => {
+        try {
+          const newFileId = genDriveFileID();
+          const oldStorageKey = (file as any).storageKey as string | undefined;
+          const newStorageKey = oldStorageKey
+            ? `drive-share/${user.uid}/${shareId}/${file.name}`
+            : null;
+
+          this.logger.log(
+            `Duplicating drive file ${file.fileId} for share ${shareId}: ${oldStorageKey} -> ${newStorageKey}`,
+          );
+
+          // Copy file content from old storage key to new storage key if exists
+          if (oldStorageKey && newStorageKey) {
+            try {
+              const fileBuffer = await this.miscService.downloadFile({
+                storageKey: oldStorageKey,
+                visibility: 'private',
+              });
+              await this.oss.putObject(newStorageKey, fileBuffer);
+            } catch (error) {
+              this.logger.error(
+                `Failed to copy file ${file.fileId} from ${oldStorageKey} to ${newStorageKey}: ${error.stack}`,
+              );
+            }
+          }
+
+          // Create new drive file record with shareId as canvasId
+          await this.prisma.driveFile.create({
+            data: {
+              fileId: newFileId,
+              uid: user.uid,
+              canvasId: shareId, // Use shareId as canvasId for shared files
+              name: file.name,
+              type: file.type,
+              category: file.category as any,
+              size: BigInt(file.size || 0),
+              source: file.source as any,
+              scope: file.scope as any,
+              storageKey: newStorageKey,
+              summary: file.summary ?? null,
+              variableId: file.variableId ?? null,
+              resultId: file.resultId ?? null,
+              resultVersion: file.resultVersion ?? null,
+            },
+          });
+
+          fileIdMap.set(file.fileId, newFileId);
+
+          this.logger.log(
+            `Successfully duplicated drive file ${file.fileId} to ${newFileId} for share ${shareId}`,
+          );
+        } catch (error) {
+          this.logger.error(`Failed to duplicate drive file ${file.fileId}: ${error.stack}`);
+        }
+      }),
+    );
+
+    await Promise.all(promises);
+    return fileIdMap;
   }
 }

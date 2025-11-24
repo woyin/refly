@@ -707,24 +707,27 @@ export class ShareDuplicationService {
   }
 
   /**
-   * Helper method to duplicate drive files
+   * Helper method to duplicate drive files from canvasData.files
+   * Uses files from shared canvas data (already duplicated when share was created)
    */
-  private createDriveFileDuplicationPromises(
+  private async createDriveFileDuplicationPromises(
     user: User,
     files: SharedCanvasData['files'],
-    _projectId: string | undefined,
     newCanvasId: string,
     limit: Limit,
-  ): Promise<void>[] {
+  ): Promise<Map<string, string>> {
     if (!files || files.length === 0) {
-      return [];
+      return new Map();
     }
 
-    return files.map((file) =>
+    // Map to track old fileId -> new fileId
+    const fileIdMap = new Map<string, string>();
+
+    const promises = files.map((file) =>
       limit(async () => {
         try {
           const newFileId = genDriveFileID();
-          // storageKey is internal field included for duplication
+          // storageKey is included in shared canvas data
           const oldStorageKey = (file as any).storageKey as string | undefined;
           const newStorageKey = oldStorageKey
             ? `drive/${user.uid}/${newCanvasId}/${file.name}`
@@ -759,8 +762,8 @@ export class ShareDuplicationService {
               type: file.type,
               category: file.category,
               size: BigInt(file.size || 0),
-              source: file.source || 'manual',
-              scope: file.scope || 'present',
+              source: file.source,
+              scope: file.scope,
               storageKey: newStorageKey,
               summary: file.summary ?? null,
               variableId: file.variableId ?? null,
@@ -768,6 +771,9 @@ export class ShareDuplicationService {
               resultVersion: file.resultVersion ?? null,
             },
           });
+
+          // Track the mapping
+          fileIdMap.set(file.fileId, newFileId);
 
           this.logger.log(
             `Successfully duplicated drive file ${file.fileId} to ${newFileId} for canvas ${newCanvasId}`,
@@ -777,6 +783,9 @@ export class ShareDuplicationService {
         }
       }),
     );
+
+    await Promise.all(promises);
+    return fileIdMap;
   }
 
   /**
@@ -844,6 +853,24 @@ export class ShareDuplicationService {
       newCanvasId,
     );
 
+    // Duplicate drive files first to get the fileId mapping
+    const limit = pLimit(10);
+    const fileIdMap = await this.createDriveFileDuplicationPromises(
+      user,
+      canvasData.files,
+      newCanvasId,
+      limit,
+    );
+
+    // Merge fileIdMap into replaceEntityMap for consistent entity replacement
+    for (const [oldId, newId] of fileIdMap.entries()) {
+      replaceEntityMap[oldId] = newId;
+    }
+
+    this.logger.log(
+      `File duplication completed. New canvasId: ${newCanvasId}, FileId mappings: ${JSON.stringify(Array.from(fileIdMap.entries()))}`,
+    );
+
     // Replace resource variables with new entity ids
     const updatedVariables = canvasData.variables?.map((variable) => {
       if (variable.variableType !== 'resource') {
@@ -865,9 +892,6 @@ export class ShareDuplicationService {
     const { replaceToolsetMap } = await this.toolService.importToolsetsFromNodes(user, nodes);
     this.logger.log(`Replace toolsets map: ${JSON.stringify(replaceToolsetMap)}`);
 
-    // Duplicate entities with higher concurrency
-    const limit = pLimit(10);
-
     // Prepare duplication tasks in parallel
     const libDupPromises = this.createLibEntityDuplicationPromises(
       user,
@@ -888,15 +912,7 @@ export class ShareDuplicationService {
       limit,
     );
 
-    const fileDupPromises = this.createDriveFileDuplicationPromises(
-      user,
-      canvasData.files,
-      projectId,
-      newCanvasId,
-      limit,
-    );
-
-    await Promise.all([...libDupPromises, ...skillDupPromises, ...fileDupPromises]);
+    await Promise.all([...libDupPromises, ...skillDupPromises]);
 
     // Update canvas state and save
     state.nodes = nodes;
