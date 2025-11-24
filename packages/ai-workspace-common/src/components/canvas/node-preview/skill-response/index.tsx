@@ -250,6 +250,7 @@ const SkillResponseNodePreviewComponent = ({
         title={title}
         source="preview"
         className="!h-14"
+        canEdit={!readonly}
         actions={
           <SkillResponseActions
             readonly={readonly}
