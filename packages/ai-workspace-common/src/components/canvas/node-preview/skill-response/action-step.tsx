@@ -180,7 +180,7 @@ const ActualContent = memo(
     if (!content) return null;
 
     return (
-      <div className="my-3 text-base">
+      <div className="my-3 text-base px-4">
         <div className={`skill-response-content-${resultId}-${step.name}`}>
           <Markdown content={content} sources={sources} resultId={resultId} />
         </div>

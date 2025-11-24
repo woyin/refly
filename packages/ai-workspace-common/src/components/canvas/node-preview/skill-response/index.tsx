@@ -267,8 +267,8 @@ const SkillResponseNodePreviewComponent = ({
       {currentFile ? (
         <ProductCard file={currentFile} classNames="w-full flex-1" source="preview" />
       ) : (
-        <div className="flex-1 flex flex-col min-h-0 px-4">
-          <div className="py-3">
+        <div className="flex-1 flex flex-col min-h-0">
+          <div className="py-3 px-4">
             <Segmented
               options={[
                 { label: t('agent.configure'), value: 'configure' },
@@ -282,7 +282,7 @@ const SkillResponseNodePreviewComponent = ({
             />
           </div>
 
-          <div className="flex-1 min-h-0 overflow-y-auto">
+          <div className="flex-1 min-h-0">
             {activeTab === 'configure' && (
               <ConfigureTab
                 readonly={readonly}
