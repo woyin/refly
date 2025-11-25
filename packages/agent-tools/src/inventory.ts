@@ -13,9 +13,9 @@ import {
 } from './builtin';
 import { AgentBaseToolset } from './base';
 import { BrowserUseToolset, BrowserUseToolsetDefinition } from './browser-use';
-import { FalAudioToolset, FalAudioToolsetDefinition } from './fal-audio';
-import { FalImageToolset, FalImageToolsetDefinition } from './fal-image';
-import { FalVideoToolset, FalVideoToolsetDefinition } from './fal-video';
+// import { FalAudioToolset, FalAudioToolsetDefinition } from './fal-audio';
+// import { FalImageToolset, FalImageToolsetDefinition } from './fal-image';
+// import { FalVideoToolset, FalVideoToolsetDefinition } from './fal-video';
 import { FirecrawlToolset, FirecrawlToolsetDefinition } from './firecrawl';
 // DEPRECATED: FishAudio and HeyGen are now loaded from configuration
 // import { FishAudioToolset, FishAudioToolsetDefinition } from './fish-audio';
@@ -116,27 +116,18 @@ export const toolsetInventory: Record<
     class: NotionToolset,
     definition: NotionToolsetDefinition,
   },
-  [FalAudioToolsetDefinition.key]: {
-    class: FalAudioToolset,
-    definition: FalAudioToolsetDefinition,
-  },
-  // DEPRECATED: FishAudio and HeyGen are now loaded from configuration
-  // [FishAudioToolsetDefinition.key]: {
-  //   class: FishAudioToolset,
-  //   definition: FishAudioToolsetDefinition,
+  // [FalAudioToolsetDefinition.key]: {
+  //   class: FalAudioToolset,
+  //   definition: FalAudioToolsetDefinition,
   // },
-  // [HeyGenToolsetDefinition.key]: {
-  //   class: HeyGenToolset,
-  //   definition: HeyGenToolsetDefinition,
+  // [FalImageToolsetDefinition.key]: {
+  //   class: FalImageToolset,
+  //   definition: FalImageToolsetDefinition,
   // },
-  [FalImageToolsetDefinition.key]: {
-    class: FalImageToolset,
-    definition: FalImageToolsetDefinition,
-  },
-  [FalVideoToolsetDefinition.key]: {
-    class: FalVideoToolset,
-    definition: FalVideoToolsetDefinition,
-  },
+  // [FalVideoToolsetDefinition.key]: {
+  //   class: FalVideoToolset,
+  //   definition: FalVideoToolsetDefinition,
+  // },
   [PerplexityToolsetDefinition.key]: {
     class: PerplexityToolset,
     definition: PerplexityToolsetDefinition,
