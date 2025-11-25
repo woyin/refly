@@ -59,7 +59,6 @@ import {
   NodeDragCreateInfo,
   nodeOperationsEmitter,
 } from '@refly-packages/ai-workspace-common/events/nodeOperations';
-import { WorkflowRun } from './workflow-run';
 import { CanvasDrive, CanvasResourcesWidescreenModal } from './canvas-resources';
 import { ToolbarButtons } from './top-toolbar/toolbar-buttons';
 import { CanvasControlButtons } from './top-toolbar/canvas-control-buttons';
@@ -250,6 +249,11 @@ const Flow = memo(({ canvasId, copilotWidth, setCopilotWidth, maxPanelWidth }: F
 
   const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null);
   const [lastClickTime, setLastClickTime] = useState(0);
+  const [previewWidth, setPreviewWidth] = useState(400);
+
+  const handlePreviewWidthChange = useCallback((width: number) => {
+    setPreviewWidth(width);
+  }, []);
 
   // Handle selection state to prevent text selection outside canvas
   useEffect(() => {
@@ -1065,8 +1069,13 @@ const Flow = memo(({ canvasId, copilotWidth, setCopilotWidth, maxPanelWidth }: F
         {readonly && shareNotFound && <NotFoundOverlay />}
         {!sidePanelVisible && <CanvasControlButtons />}
         <ToolbarButtons canvasId={canvasId} />
-        <PreviewBoxInCanvas node={selectedNode} />
-        <WorkflowRun />
+        <PreviewBoxInCanvas
+          node={selectedNode}
+          previewWidth={previewWidth}
+          setPreviewWidth={handlePreviewWidthChange}
+          maxPanelWidth={maxPanelWidth}
+        />
+
         <CopilotContainer
           copilotWidth={copilotWidth}
           setCopilotWidth={handleSetCopilotWidth}

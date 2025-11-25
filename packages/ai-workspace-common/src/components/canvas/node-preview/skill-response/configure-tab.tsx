@@ -116,7 +116,7 @@ const ConfigureTabComponent = ({
   }, []);
 
   return (
-    <div className="h-full flex flex-col gap-4">
+    <div className="h-full flex flex-col gap-4 px-4 overflow-y-auto">
       <div>
         <div
           className="text-xs font-semibold leading-4 mb-2 flex items-center gap-1"

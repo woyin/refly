@@ -43,7 +43,7 @@ export const CustomHandle = React.memo(
           source: 'handle',
         });
       },
-      [nodeId, id, nodeType],
+      [nodeId, id, nodeType, readonly],
     );
 
     // Only show plus icon on right handle when node is hovered
@@ -102,7 +102,7 @@ export const CustomHandle = React.memo(
                 type={type}
                 position={position}
                 style={showPlusIconStyle}
-                isConnectable={true}
+                isConnectable={!readonly}
                 onClick={handlePlusClick}
               >
                 <div className="flex items-center justify-center w-[14px] h-[14px] bg-refly-bg-body-z0 border-solid border-[1.5px] border-refly-bg-dark rounded-full pointer-events-none">

@@ -1504,7 +1504,7 @@ const translations = {
       pilotRecoveryStarted: 'Pilot恢复已成功启动',
       pilotRecoveryFailed: 'Pilot恢复失败',
       resultNotFound: '抱歉，执行结果似乎已丢失。',
-      reasoningContent: 'AI 思考过程',
+      reasoningContent: 'Refly 思考过程',
       shareLoading: '正在加载共享技能响应...',
       notFound: '技能响应未找到',
       notFoundDesc: '您查找的技能响应不存在或已被删除。',
