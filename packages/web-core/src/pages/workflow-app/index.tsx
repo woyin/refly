@@ -836,25 +836,35 @@ const WorkflowAppPage: React.FC = () => {
                   {logs.length > 0 && (
                     <>
                       {/* Tabs */}
-                      {products.length > 0 && (
-                        <div className="text-center text-[var(--refly-text-0)] dark:text-[var(--refly-text-StaticWhite)] mb-[15px] mt-[40px] font-['PingFang_SC'] font-semibold text-[14px] leading-[1.4285714285714286em]">
-                          {!!executionCreditUsage && executionCreditUsage > 0
+                      <div
+                        className={`text-center text-[var(--refly-text-0)] dark:text-[var(--refly-text-StaticWhite)] font-['PingFang_SC'] font-semibold text-[14px] leading-[1.4285714285714286em] transition-all duration-300 ease-in-out overflow-hidden ${
+                          products.length > 0
+                            ? 'mt-10 mb-[15px] opacity-100'
+                            : 'mt-0 mb-0 opacity-0 h-0 max-h-0'
+                        }`}
+                        style={{
+                          maxHeight: products.length > 0 ? '200px' : '0px',
+                        }}
+                      >
+                        {products.length > 0 &&
+                          (!!executionCreditUsage && executionCreditUsage > 0
                             ? t('workflowApp.productsGeneratedWithCost', {
                                 count: products.length,
                                 executionCost: executionCreditUsage ?? 0,
                               })
-                            : t('workflowApp.productsGenerated', { count: products.length })}
-                        </div>
-                      )}
+                            : t('workflowApp.productsGenerated', { count: products.length }))}
+                      </div>
 
                       {/* Content Area */}
-                      <div className="bg-[var(--refly-bg-float-z3)] rounded-lg border border-[var(--refly-Card-Border)] dark:bg-[var(--bg---refly-bg-body-z0,#0E0E0E)] relative z-20">
-                        {activeTab === 'products' ? (
-                          <WorkflowAppProducts products={products || []} />
-                        ) : activeTab ===
-                          'runLogs' ? // <WorkflowAppRunLogs nodeExecutions={logs || []} />
+                      <div className="bg-[var(--refly-bg-float-z3)] rounded-lg border border-[var(--refly-Card-Border)] dark:bg-[var(--bg---refly-bg-body-z0,#0E0E0E)] relative z-20 transition-all duration-300 ease-in-out">
+                        <div className="transition-opacity duration-300 ease-in-out">
+                          {activeTab === 'products' ? (
+                            <WorkflowAppProducts products={products || []} />
+                          ) : activeTab ===
+                            'runLogs' ? // <WorkflowAppRunLogs nodeExecutions={logs || []} />
 
-                        null : null}
+                          null : null}
+                        </div>
                       </div>
                     </>
                   )}
