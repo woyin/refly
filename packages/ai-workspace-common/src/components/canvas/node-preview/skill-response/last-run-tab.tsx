@@ -39,16 +39,13 @@ const LastRunTabComponent = ({
   const previewContainerRef = useRef<HTMLDivElement | null>(null);
   const lastScrollTopRef = useRef(0);
   const isAtBottomRef = useRef(true);
-  const container = useMemo(
-    () => previewContainerRef.current as HTMLElement | null,
-    [previewContainerRef.current],
-  );
   const isScrolledToBottom = useCallback((container: HTMLElement) => {
     const threshold = 50;
     return container.scrollHeight - container.scrollTop - container.clientHeight < threshold;
   }, []);
 
   const handleContainerScroll = useCallback(() => {
+    const container = previewContainerRef.current;
     if (!container) {
       return;
     }
@@ -65,9 +62,10 @@ const LastRunTabComponent = ({
     }
 
     lastScrollTopRef.current = currentScrollTop;
-  }, [isScrolledToBottom, container]);
+  }, [isScrolledToBottom]);
 
   useEffect(() => {
+    const container = previewContainerRef.current;
     if (!container) {
       return;
     }
@@ -79,7 +77,7 @@ const LastRunTabComponent = ({
     return () => {
       container.removeEventListener('scroll', handleContainerScroll);
     };
-  }, [resultId, container, handleContainerScroll, isScrolledToBottom]);
+  }, [resultId, handleContainerScroll, isScrolledToBottom]);
 
   const handleUpdateResult = useCallback(
     (event: { resultId: string; payload: ActionResult }) => {
@@ -91,6 +89,7 @@ const LastRunTabComponent = ({
         return;
       }
 
+      const container = previewContainerRef.current;
       if (!container) {
         return;
       }
@@ -103,7 +102,7 @@ const LastRunTabComponent = ({
         });
       });
     },
-    [resultId, container, isAtBottomRef.current],
+    [resultId],
   );
 
   useEffect(() => {
