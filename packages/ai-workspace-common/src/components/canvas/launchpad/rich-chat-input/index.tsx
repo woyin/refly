@@ -8,7 +8,7 @@ import { useAgentNodeManagement } from '@refly-packages/ai-workspace-common/hook
 import { useFetchDriveFiles } from '@refly-packages/ai-workspace-common/hooks/use-fetch-drive-files';
 import type { IContextItem } from '@refly/common-types';
 import type { CanvasNodeType, GenericToolset } from '@refly/openapi-schema';
-import { useSearchStoreShallow, useUserStoreShallow } from '@refly/stores';
+import { useSearchStoreShallow, useUserStoreShallow, useToolStoreShallow } from '@refly/stores';
 import { cn } from '@refly/utils/cn';
 import Placeholder from '@tiptap/extension-placeholder';
 import { EditorContent, useEditor } from '@tiptap/react';
@@ -81,6 +81,9 @@ const RichChatInputComponent = forwardRef<RichChatInputRef, RichChatInputProps>(
     const { data: files } = useFetchDriveFiles();
     const searchStore = useSearchStoreShallow((state) => ({
       setIsSearchOpen: state.setIsSearchOpen,
+    }));
+    const { setToolStoreModalOpen } = useToolStoreShallow((state) => ({
+      setToolStoreModalOpen: state.setToolStoreModalOpen,
     }));
     const { query, setQuery, setContextItems, setSelectedToolsets } =
       useAgentNodeManagement(nodeId);
@@ -167,6 +170,15 @@ const RichChatInputComponent = forwardRef<RichChatInputRef, RichChatInputProps>(
     const handleCommand = useCallback(
       ({ editor, range, props }: { editor: any; range: any; props: MentionItem }) => {
         const item = props;
+
+        // If tool/toolset is not installed, open tool store modal to browse and install
+        if ((item.source === 'toolsets' || item.source === 'tools') && item.isInstalled === false) {
+          setToolStoreModalOpen(true);
+          // Optionally pre-select the tool if we want to open install modal directly
+          // setCurrentToolDefinition(item.toolDefinition);
+          // setToolInstallModalOpen(true);
+          return;
+        }
 
         // For step and result records, add to context instead of inserting text
         if (item.source === 'agents' || item.source === 'files') {
@@ -258,7 +270,14 @@ const RichChatInputComponent = forwardRef<RichChatInputRef, RichChatInputProps>(
           });
         }
       },
-      [addToContextItems, addToSelectedToolsets, insertMention, files],
+      [
+        addToContextItems,
+        addToSelectedToolsets,
+        insertMention,
+        files,
+        setToolStoreModalOpen,
+        addToUpstreamAgents,
+      ],
     );
 
     // Create mention extension with custom suggestion

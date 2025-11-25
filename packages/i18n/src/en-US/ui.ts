@@ -1905,6 +1905,7 @@ const translations = {
       loadingUserInput: 'Loading user input...',
       defaultPlaceholder: 'Describe what you want to generate...',
       createUserInput: 'Create user input "{{userInputName}}"',
+      unauthorized: 'Auth',
     },
     toolsDepencency: {
       title: 'Tool Dependencies',
@@ -2560,6 +2561,8 @@ const translations = {
       noSearchResults: 'No tools found matching your search',
       noTools: 'No tools',
       searchPlaceholder: 'Search tools...',
+      installedTools: 'Installed Tools',
+      availableTools: 'Available Tools',
       install: {
         installTitle: 'Install Tool',
         updateTitle: 'Update Tool',

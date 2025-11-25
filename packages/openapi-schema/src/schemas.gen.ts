@@ -9310,6 +9310,63 @@ export const ListToolsResponseSchema = {
   ],
 } as const;
 
+export const ListUserToolsResponseSchema = {
+  allOf: [
+    {
+      $ref: '#/components/schemas/BaseResponse',
+    },
+    {
+      type: 'object',
+      properties: {
+        data: {
+          type: 'array',
+          items: {
+            $ref: '#/components/schemas/UserTool',
+          },
+        },
+      },
+    },
+  ],
+} as const;
+
+export const UserToolSchema = {
+  type: 'object',
+  properties: {
+    toolsetId: {
+      type: 'string',
+      description: 'Toolset ID (toolsetId for installed, key for uninstalled)',
+    },
+    key: {
+      type: 'string',
+      description: 'Toolset key',
+    },
+    name: {
+      type: 'string',
+      description: 'Tool name',
+    },
+    description: {
+      type: 'string',
+      description: 'Tool description',
+    },
+    authorized: {
+      type: 'boolean',
+      description: 'Whether the tool is authorized/installed',
+    },
+    domain: {
+      type: 'string',
+      description: 'Tool domain for favicon',
+    },
+    toolset: {
+      $ref: '#/components/schemas/GenericToolset',
+      description: 'Full toolset data (only for authorized tools)',
+    },
+    definition: {
+      $ref: '#/components/schemas/ToolsetDefinition',
+      description: 'Toolset definition (for unauthorized tools)',
+    },
+  },
+} as const;
+
 export const DeleteToolsetRequestSchema = {
   type: 'object',
   required: ['toolsetId'],

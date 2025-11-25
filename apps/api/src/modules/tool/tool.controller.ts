@@ -12,6 +12,7 @@ import {
   UpsertToolsetResponse,
   UpsertToolsetRequest,
   ListToolsetInventoryResponse,
+  ListUserToolsResponse,
 } from '@refly/openapi-schema';
 import { toolsetPO2DTO } from './tool.dto';
 
@@ -33,6 +34,19 @@ export class ToolController {
     // Populate toolsets with definition from inventory
     const populatedTools = await this.toolService.populateToolsetsWithDefinition(tools);
     return buildSuccessResponse(populatedTools);
+  }
+
+  /**
+   * List all tools including UnAuthorized tools for the user
+   * @param user
+   * @returns
+   */
+
+  @UseGuards(JwtAuthGuard)
+  @Get('/user/list')
+  async listUserTools(@LoginedUser() user: UserModel): Promise<ListUserToolsResponse> {
+    const userTools = await this.toolService.listUserTools(user);
+    return buildSuccessResponse(userTools);
   }
 
   @UseGuards(JwtAuthGuard)
