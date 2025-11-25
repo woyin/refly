@@ -1890,7 +1890,8 @@ const translations = {
       loadingEditor: '加载编辑器中...',
       loadingUserInput: '加载用户输入中...',
       defaultPlaceholder: '描述你想要生成的内容...',
-      createUserInput: '创建输入项 “{{userInputName}}”',
+      createUserInput: '创建输入项 "{{userInputName}}"',
+      unauthorized: '未授权',
     },
     toolsDepencency: {
       title: '工具依赖',
@@ -2526,6 +2527,8 @@ const translations = {
       noSearchResults: '没有找到相关工具',
       noTools: '暂无工具',
       searchPlaceholder: '搜索工具...',
+      installedTools: '已安装工具',
+      availableTools: '可用工具',
       install: {
         installTitle: '安装工具',
         updateTitle: '更新工具',
