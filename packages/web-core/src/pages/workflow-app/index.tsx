@@ -218,6 +218,7 @@ const WorkflowAppPage: React.FC = () => {
       setExecutionId(null);
       // Reset running state on error
       setIsRunning(false);
+      // Keep execution credit usage and products state to preserve the scene
     },
   });
 
@@ -398,6 +399,11 @@ const WorkflowAppPage: React.FC = () => {
       try {
         setIsRunning(true);
         setIsStopped(false);
+        // Reset execution credit usage when starting a new run
+        setExecutionCreditUsage(null);
+        // Reset products state when starting a new run
+        setFinalNodeExecutions([]);
+        setRuntimeDriveFiles([]);
 
         const { data, error } = await getClient().executeWorkflowApp({
           body: {
@@ -410,6 +416,7 @@ const WorkflowAppPage: React.FC = () => {
           message.error(t('workflowApp.run.executeError'));
           // Reset running state on error
           setIsRunning(false);
+          // Keep execution credit usage and products state to preserve the scene
           return;
         }
 
@@ -425,12 +432,14 @@ const WorkflowAppPage: React.FC = () => {
           message.error(t('workflowApp.run.executionIdFailed'));
           // Reset running state on failure
           setIsRunning(false);
+          // Keep execution credit usage and products state to preserve the scene
         }
       } catch (error) {
         console.error('Error executing workflow app:', error);
         message.error(t('workflowApp.run.executeFailed'));
         // Reset running state on error
         setIsRunning(false);
+        // Keep execution credit usage and products state to preserve the scene
       }
     },
     [shareId, isLoggedRef, navigate],
@@ -526,6 +535,9 @@ const WorkflowAppPage: React.FC = () => {
         setExecutionId(null);
         setIsRunning(false);
         setIsStopped(true);
+        setExecutionCreditUsage(null);
+        setFinalNodeExecutions([]);
+        setRuntimeDriveFiles([]);
         stopPolling();
         message.success(t('workflowApp.run.stopSuccess'));
       },
