@@ -1,7 +1,7 @@
 import { Button, Input, Form } from 'antd';
 import { Link } from '@refly-packages/ai-workspace-common/utils/router';
 import { useCallback, useMemo, useState, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, Navigate } from 'react-router-dom';
 
 import { OAuthButton } from '../../components/login-modal/oauth-button';
 
@@ -11,11 +11,15 @@ import { useAuthStoreShallow } from '@refly/stores';
 import { serverOrigin } from '@refly/ui-kit';
 import { useGetAuthConfig } from '@refly-packages/ai-workspace-common/queries';
 import { usePublicAccessPage } from '@refly-packages/ai-workspace-common/hooks/use-is-share-page';
+import { useIsLogin } from '@refly-packages/ai-workspace-common/hooks/use-is-login';
 import { Logo } from '@refly-packages/ai-workspace-common/components/common/logo';
 import { logEvent } from '@refly/telemetry-web';
+import { useCookie } from 'react-use';
+import { UID_COOKIE } from '@refly/utils/cookie';
 import loginImage from '../../assets/login.png';
 import loginDarkImage from '../../assets/login-dark.png';
 import './index.css';
+import { useUserStoreShallow } from '@refly/stores';
 
 interface FormValues {
   email: string;
@@ -27,6 +31,11 @@ const LoginPage = () => {
   const [searchParams] = useSearchParams();
   const [isEmailFormExpanded, setIsEmailFormExpanded] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(false);
+  const { getLoginStatus } = useIsLogin();
+  const { isLogin, isCheckingLoginStatus } = useUserStoreShallow((state) => ({
+    isLogin: state.isLogin,
+    isCheckingLoginStatus: state.isCheckingLoginStatus,
+  }));
 
   // Detect dark mode
   useEffect(() => {
@@ -66,6 +75,24 @@ const LoginPage = () => {
   const { t } = useTranslation();
 
   const { data: authConfig, isLoading: isAuthConfigLoading } = useGetAuthConfig();
+
+  // If already logged in, redirect to /workspace
+  const [uid] = useCookie(UID_COOKIE);
+  const hasLoginCredentials = !!uid;
+  const isLoggedIn = useMemo(() => {
+    return getLoginStatus() || isLogin;
+  }, [getLoginStatus, isLogin]);
+
+  // Wait only when explicitly checking to avoid flicker; do not block on undefined
+  if (isCheckingLoginStatus === true) {
+    return null;
+  }
+
+  // Avoid redirect loop: only use cookie-based fast path when there is no returnUrl
+  const hasReturnUrl = !!searchParams.get('returnUrl');
+  if (isLoggedIn || (hasLoginCredentials && !hasReturnUrl)) {
+    return <Navigate to="/workspace" replace />;
+  }
 
   // Provide default values if config is not loaded
   const { isGithubEnabled, isGoogleEnabled, isEmailEnabled } = useMemo(() => {
