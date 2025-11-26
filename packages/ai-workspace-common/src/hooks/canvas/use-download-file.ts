@@ -54,7 +54,6 @@ export const useDownloadFile = () => {
 
       try {
         const file = currentFile as DriveFile;
-
         // Use async getFileUrl which handles publicURL fetching automatically
         const { fileUrl } = getDriveFileUrl(file, isSharePage);
 
