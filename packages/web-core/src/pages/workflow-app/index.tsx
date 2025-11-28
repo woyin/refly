@@ -14,6 +14,7 @@ import { mapDriveFilesToCanvasNodes, mapDriveFilesToWorkflowNodeExecutions } fro
 import { GithubStar } from '@refly-packages/ai-workspace-common/components/common/github-star';
 import { Logo } from '@refly-packages/ai-workspace-common/components/common/logo';
 import { WorkflowAppProducts } from '@refly-packages/ai-workspace-common/components/workflow-app/products';
+import { PublicFileUrlProvider } from '@refly-packages/ai-workspace-common/context/public-file-url';
 import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
 import { useWorkflowExecutionPolling } from '@refly-packages/ai-workspace-common/hooks/use-workflow-execution-polling';
 import { ReactFlowProvider } from '@refly-packages/ai-workspace-common/components/canvas';
@@ -282,6 +283,55 @@ const WorkflowAppPage: React.FC = () => {
     }
   }, [canvasId, isRunning, executionId, finalNodeExecutions.length]);
 
+  const canvasFilesById = useMemo(() => {
+    const map = new Map<string, DriveFile>();
+    const files = workflowApp?.canvasData?.files ?? [];
+    for (const file of files) {
+      map.set(file.fileId, file);
+    }
+    return map;
+  }, [workflowApp?.canvasData?.files]);
+
+  const canvasNodesByResultId = useMemo(() => {
+    const map = new Map<string, string>();
+    const nodes = workflowApp?.canvasData?.nodes ?? [];
+    for (const node of nodes as CanvasNode[]) {
+      const resultId = node?.data?.entityId;
+      if (resultId) {
+        map.set(resultId, node.id);
+      }
+    }
+    return map;
+  }, [workflowApp?.canvasData?.nodes]);
+
+  const parsedNodeExecutions = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const execution of nodeExecutions) {
+      if (!execution?.nodeData) return;
+      try {
+        const parsed = JSON.parse(execution.nodeData);
+        const resultId = parsed?.data?.entityId;
+        if (resultId) {
+          map.set(resultId, execution.nodeId);
+        }
+      } catch (error) {
+        console.warn('Failed to parse nodeData for execution', execution.nodeId, error);
+      }
+    }
+    return map;
+  }, [nodeExecutions]);
+
+  const sourceDriveFiles = useMemo(() => {
+    const ids = (workflowApp?.resultNodeIds as string[]) ?? [];
+    const nodeIds = ids
+      .filter((nodeId) => nodeId.startsWith('df-'))
+      .map((fileId) => canvasFilesById.get(fileId)?.resultId)
+      .filter((resultId): resultId is string => Boolean(resultId))
+      .map((resultId) => canvasNodesByResultId.get(resultId))
+      .filter((nodeId): nodeId is string => Boolean(nodeId));
+    return new Set(nodeIds);
+  }, [workflowApp?.resultNodeIds, canvasFilesById, canvasNodesByResultId]);
+
   const products = useMemo(() => {
     // Legacy product node executions (document, codeArtifact, image, video, audio)
     // These are old product nodes that may still exist before migration to drive_files
@@ -304,7 +354,15 @@ const WorkflowAppPage: React.FC = () => {
 
     // Map drive files to pseudo WorkflowNodeExecutions
     const serverOrigin = window.location.origin;
-    const driveProducts = mapDriveFilesToWorkflowNodeExecutions(runtimeDriveFiles, serverOrigin);
+
+    const driveProducts = mapDriveFilesToWorkflowNodeExecutions(
+      runtimeDriveFiles,
+      serverOrigin,
+    ).filter((nodeExecution: WorkflowNodeExecution) => {
+      if (!nodeExecution.entityId) return false;
+      const parentNodeId = parsedNodeExecutions?.get(nodeExecution.entityId);
+      return parentNodeId ? sourceDriveFiles.has(parentNodeId) : false;
+    });
 
     // Merge: priority order is legacyNodeProducts > legacySkillProducts > driveProducts
     // This ensures existing node executions take precedence over drive files
@@ -318,7 +376,7 @@ const WorkflowAppPage: React.FC = () => {
     }
 
     return Array.from(uniqueMap.values());
-  }, [nodeExecutions, runtimeDriveFiles, workflowApp?.resultNodeIds]);
+  }, [nodeExecutions, runtimeDriveFiles, sourceDriveFiles, parsedNodeExecutions]);
 
   useEffect(() => {
     products.length > 0 && setActiveTab('products');
@@ -824,7 +882,9 @@ const WorkflowAppPage: React.FC = () => {
                       <div className="bg-[var(--refly-bg-float-z3)] rounded-lg border border-[var(--refly-Card-Border)] dark:bg-[var(--bg---refly-bg-body-z0,#0E0E0E)] relative z-20 transition-all duration-300 ease-in-out">
                         <div className="transition-opacity duration-300 ease-in-out">
                           {activeTab === 'products' ? (
-                            <WorkflowAppProducts products={products || []} />
+                            <PublicFileUrlProvider value={false}>
+                              <WorkflowAppProducts products={products || []} />
+                            </PublicFileUrlProvider>
                           ) : activeTab ===
                             'runLogs' ? // <WorkflowAppRunLogs nodeExecutions={logs || []} />
 
@@ -845,12 +905,14 @@ const WorkflowAppPage: React.FC = () => {
                 <div className="text-center z-10 text-[var(--refly-text-0)] dark:text-[var(--refly-text-StaticWhite)] font-['PingFang_SC'] font-semibold text-[14px] leading-[1.4285714285714286em]">
                   {t('workflowApp.resultPreview')}
                 </div>
-                <SelectedResultsGrid
-                  fillRow
-                  bordered
-                  selectedResults={workflowApp?.resultNodeIds ?? []}
-                  options={previewOptions}
-                />
+                <PublicFileUrlProvider>
+                  <SelectedResultsGrid
+                    fillRow
+                    bordered
+                    selectedResults={workflowApp?.resultNodeIds ?? []}
+                    options={previewOptions}
+                  />
+                </PublicFileUrlProvider>
               </div>
             )}
           </div>
