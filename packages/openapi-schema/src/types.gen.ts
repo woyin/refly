@@ -5214,6 +5214,18 @@ export type GetCreditUsageByCanvasIdResponse = BaseResponse & {
   };
 };
 
+export type GetCanvasCommissionByCanvasIdResponse = BaseResponse & {
+  /**
+   * Canvas commission by canvas ID
+   */
+  data?: {
+    /**
+     * Total canvas commission by canvas ID
+     */
+    total?: number;
+  };
+};
+
 export type InvitationCode = {
   /**
    * Invitation code
@@ -5953,13 +5965,17 @@ export type ProviderItemConfig =
  */
 export type CreditBilling = {
   /**
-   * Credit consumption per unit usage
-   */
-  unitCost: number;
-  /**
    * Measurement unit (e.g., token, product, second)
    */
   unit: string;
+  /**
+   * Credit consumption per unit for input tokens
+   */
+  inputCost: number;
+  /**
+   * Credit consumption per unit for output tokens
+   */
+  outputCost: number;
   /**
    * Minimum credit charge per request
    */
@@ -7124,6 +7140,14 @@ export type WorkflowApp = {
    * Cover image URL
    */
   coverUrl?: string;
+  /**
+   * Whether to publish this app to the community
+   */
+  publishToCommunity?: boolean;
+  /**
+   * Community publish review status
+   */
+  publishReviewStatus?: string;
   /**
    * Workflow app creation timestamp
    */
@@ -10342,6 +10366,19 @@ export type GetCreditUsageByCanvasIdData = {
 export type GetCreditUsageByCanvasIdResponse2 = GetCreditUsageByCanvasIdResponse;
 
 export type GetCreditUsageByCanvasIdError = unknown;
+
+export type GetCanvasCommissionByCanvasIdData = {
+  query: {
+    /**
+     * Canvas ID
+     */
+    canvasId: string;
+  };
+};
+
+export type GetCanvasCommissionByCanvasIdResponse2 = GetCanvasCommissionByCanvasIdResponse;
+
+export type GetCanvasCommissionByCanvasIdError = unknown;
 
 export type ListInvitationCodesResponse2 = ListInvitationCodesResponse;
 

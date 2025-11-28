@@ -14,7 +14,7 @@ import { SelectedResultsGrid } from './selected-results-grid';
 import BannerSvg from './banner.svg';
 import { useRealtimeCanvasData } from '@refly-packages/ai-workspace-common/hooks/canvas/use-realtime-canvas-data';
 import { CanvasNode, DriveFile } from '@refly/openapi-schema';
-import { useGetCreditUsageByCanvasId } from '../../queries/queries';
+import { useGetCanvasCommissionByCanvasId } from '../../queries/queries';
 import { mapDriveFilesToCanvasNodes } from '@refly/utils';
 import { useVariablesManagement } from '@refly-packages/ai-workspace-common/hooks/use-variables-management';
 
@@ -141,7 +141,7 @@ export const CreateWorkflowAppModal = ({
   const { forceSyncState } = useCanvasContext();
 
   // Fetch credit usage data when modal is visible
-  const { data: creditUsageData } = useGetCreditUsageByCanvasId(
+  const { data: creditUsageData } = useGetCanvasCommissionByCanvasId(
     {
       query: { canvasId },
     },
@@ -232,9 +232,7 @@ export const CreateWorkflowAppModal = ({
     ];
 
     // Deduplicate by node ID
-    // Also check for potential duplicates by resultId to handle migration cases
     const uniqueMap = new Map<string, any>();
-    const resultIdMap = new Map<string, any>();
 
     for (const node of allNodes) {
       if (!node?.id) continue;
@@ -242,26 +240,7 @@ export const CreateWorkflowAppModal = ({
       // Skip if already added by node ID
       if (uniqueMap.has(node.id as string)) continue;
 
-      // Check for duplicate by resultId + resultVersion (for migration compatibility)
-      // This prevents showing the same result twice during migration period
-      const resultId = (node.data?.metadata?.resultId ||
-        node.data?.metadata?.parentResultId) as string;
-      const resultVersion = node.data?.metadata?.resultVersion;
-
-      // Use resultId-v{version} as key, default version to 0 for legacy nodes
-      // This ensures old nodes (no resultVersion) and new drive files (resultVersion: 0) are treated as same version
-      const resultKey = resultId ? `${resultId}-v${resultVersion ?? 0}` : null;
-
-      if (resultKey && resultIdMap.has(resultKey)) {
-        // Already have a node with this resultId+version combination
-        // Skip to avoid showing duplicate during migration
-        continue;
-      }
-
       uniqueMap.set(node.id as string, node);
-      if (resultKey) {
-        resultIdMap.set(resultKey, node);
-      }
     }
 
     return Array.from(uniqueMap.values()) as CanvasNode[];
@@ -577,6 +556,20 @@ export const CreateWorkflowAppModal = ({
     return coverUploading || coverFileList.some((file) => file.status === 'uploading');
   }, [coverUploading, coverFileList]);
 
+  // Determine if this is an update (existing app) or new publish
+  const isUpdate = useMemo(() => {
+    return !!appId || !!appData;
+  }, [appId, appData]);
+
+  // Get title and button text based on whether it's an update or new publish
+  const modalTitle = useMemo(() => {
+    return isUpdate ? t('workflowApp.updatePublish') : t('workflowApp.publish');
+  }, [isUpdate, t]);
+
+  const okButtonText = useMemo(() => {
+    return isUpdate ? t('workflowApp.updatePublish') : t('workflowApp.publish');
+  }, [isUpdate, t]);
+
   return (
     <Modal
       centered
@@ -584,9 +577,9 @@ export const CreateWorkflowAppModal = ({
       onCancel={() => setVisible(false)}
       onOk={onSubmit}
       confirmLoading={confirmLoading}
-      okText={t('common.confirm')}
+      okText={okButtonText}
       cancelText={t('common.cancel')}
-      title={t('workflowApp.publish')}
+      title={modalTitle}
       okButtonProps={{ disabled: isUploading }}
       styles={{
         body: {

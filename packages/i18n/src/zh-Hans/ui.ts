@@ -3555,6 +3555,7 @@ const translations = {
     titlePlaceholder: '请输入名称',
     descriptionPlaceholder: '请输入描述',
     publish: '发布',
+    updatePublish: '更新发布',
     edit: '编辑应用',
     publishSuccess: '发布成功',
     alreadyPublished: '已发布',
@@ -4053,9 +4054,9 @@ const translations = {
     deleteConfirm: '确定要撤销模版{{title}}吗',
     reviewStatus: {
       reviewing: '审核中',
-      reviewingTooltip: '模板已发布到社区',
+      reviewingTooltip: '模板正在审核中,但仍可正常使用',
       published: '已发布',
-      publishedTooltip: '模板正在审核中,但仍可正常使用',
+      publishedTooltip: '模板已发布到社区',
     },
   },
   whyChooseRefly: {

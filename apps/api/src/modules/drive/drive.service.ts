@@ -730,12 +730,17 @@ export class DriveService {
    * @param files - Array of drive files to generate URLs for
    * @returns Array of URLs (either base64 data URLs or signed URLs depending on config)
    */
-  async generateDriveFileUrls(user: User, files: DriveFile[]): Promise<string[]> {
+  async generateDriveFileUrls(
+    user: User,
+    files: DriveFile[],
+    modeOverride?: 'base64' | 'url',
+  ): Promise<string[]> {
     if (!Array.isArray(files) || files.length === 0) {
       return [];
     }
 
-    let fileMode = this.config.get('drive.payloadMode');
+    const configuredMode = this.config.get<string>('drive.payloadMode');
+    let fileMode = modeOverride ?? configuredMode ?? 'url';
     if (fileMode === 'url' && !this.config.get('static.private.endpoint')) {
       this.logger.warn('Private static endpoint is not configured, fallback to base64 mode');
       fileMode = 'base64';
@@ -813,9 +818,7 @@ export class DriveService {
       return [];
     }
 
-    const processedRequests = await this.batchProcessDriveFileRequests(user, canvasId, files, {
-      archiveFiles: true,
-    });
+    const processedRequests = await this.batchProcessDriveFileRequests(user, canvasId, files);
 
     // Process each file to prepare data for bulk creation
     const driveFilesData: Prisma.DriveFileCreateManyInput[] = processedRequests.map((req) => {
@@ -856,9 +859,7 @@ export class DriveService {
       throw new ParamsError('Canvas ID is required for create operation');
     }
 
-    const processedResults = await this.batchProcessDriveFileRequests(user, canvasId, [request], {
-      archiveFiles: true,
-    });
+    const processedResults = await this.batchProcessDriveFileRequests(user, canvasId, [request]);
     const processedReq = processedResults[0];
 
     if (!processedReq) {
