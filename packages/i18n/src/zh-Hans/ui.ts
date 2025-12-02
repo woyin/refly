@@ -252,6 +252,7 @@ const translations = {
     newDocument: '新文档',
     docs: '文档',
     skill: '技能',
+    thinking: 'Refly AI 思考中',
     thread: '会话',
     meta: '元信息',
     project: '知识库',
@@ -3382,6 +3383,13 @@ const translations = {
       installSkillHintTitle: '添加助手',
       openCanvas: '打开画布',
     },
+    abortConfirmModal: {
+      title: '停止执行',
+      content: '确定要停止当前执行吗？已消耗的积分将不会返还。',
+      confirm: '停止执行',
+      cancel: '取消',
+    },
+    abortSuccess: '已停止执行',
     recommendQuestions: {
       title: '推荐问题',
       refresh: '换一批',
