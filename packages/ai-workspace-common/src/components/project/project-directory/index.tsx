@@ -11,9 +11,6 @@ import './index.scss';
 import { useHandleSiderData } from '@refly-packages/ai-workspace-common/hooks/use-handle-sider-data';
 import { useGetProjectCanvasId } from '@refly-packages/ai-workspace-common/hooks/use-get-project-canvasId';
 import { useNavigate } from 'react-router-dom';
-import { ProjectKnowledgeToggle } from '@refly-packages/ai-workspace-common/components/project/project-knowledge-toggle';
-import { useProjectSelectorStoreShallow } from '@refly/stores';
-import { useCanvasStore, useCanvasStoreShallow } from '@refly/stores';
 import { IconHome } from '@refly-packages/ai-workspace-common/components/common/icon';
 import { useTranslation } from 'react-i18next';
 
@@ -52,23 +49,12 @@ export const ProjectDirectory = ({ projectId, source }: ProjectDirectoryProps) =
     collapse: state.collapse,
     setCollapse: state.setCollapse,
   }));
-  const { setShowLinearThread } = useCanvasStoreShallow((state) => ({
-    setShowLinearThread: state.setShowLinearThread,
-  }));
 
   const { data: projectDetail } = useGetProjectDetail({ query: { projectId } }, undefined, {
     enabled: !!projectId,
   });
   const data = projectDetail?.data;
   const [projectData, setProjectData] = useState(data);
-
-  // Update global store when project ID changes
-  const { setSelectedProjectId } = useProjectSelectorStoreShallow((state) => ({
-    setSelectedProjectId: state.setSelectedProjectId,
-  }));
-
-  // Internal project ID state - initialized from props
-  const [internalProjectId, setInternalProjectId] = useState(projectId);
 
   const handleRemoveCanvases = useCallback(
     async (canvasIds: string[]) => {
@@ -103,56 +89,16 @@ export const ProjectDirectory = ({ projectId, source }: ProjectDirectoryProps) =
     getSourceList();
   }, [projectId]);
 
-  // Update internal state when prop changes
-  useEffect(() => {
-    if (projectId !== internalProjectId) {
-      setInternalProjectId(projectId);
-    }
-  }, [projectId]);
-
-  // Update global store when project ID changes
-  useEffect(() => {
-    if (internalProjectId) {
-      setSelectedProjectId(internalProjectId);
-    }
-  }, [internalProjectId, setSelectedProjectId]);
-
-  // Handle project change from knowledge toggle
-  const handleProjectChange = useCallback(
-    (newProjectId: string) => {
-      if (newProjectId === internalProjectId) return;
-
-      setInternalProjectId(newProjectId);
-      navigate(`/project/${newProjectId}`);
-    },
-    [internalProjectId, navigate],
-  );
-
-  const handleSwitchChange = useCallback(
-    (checked: boolean) => {
-      if (!canvasId) return;
-
-      const { config, showLinearThread } = useCanvasStore.getState();
-      const hasNodePreviews =
-        config?.[canvasId]?.nodePreviews?.filter((item) => item?.type === 'skillResponse')?.length >
-        0;
-
-      if (checked) {
-        if (!showLinearThread && !hasNodePreviews) {
-          setShowLinearThread(true);
-        }
-      }
-    },
-    [canvasId],
-  );
-
   return (
     <Layout.Sider
       width={source === 'sider' ? (collapse ? 0 : 248) : 248}
       className={cn(
         'border border-solid border-gray-100 bg-white shadow-sm relative dark:border-gray-800 dark:bg-gray-900',
-        source === 'sider' ? 'h-[calc(100vh)]' : 'h-[calc(100vh-16px)] rounded-r-lg',
+        source === 'sider' ? '' : 'rounded-r-lg',
       )}
+      style={{
+        height: source === 'sider' ? 'var(--screen-height)' : 'calc(var(--screen-height) - 16px)',
+      }}
     >
       <div className="project-directory flex h-full flex-col py-3 pb-0 overflow-y-auto overflow-x-hidden">
         {projectData && (
@@ -205,19 +151,6 @@ export const ProjectDirectory = ({ projectId, source }: ProjectDirectoryProps) =
             getSourceList();
           }}
         />
-
-        {/* Combined Project Knowledge Base Toggle */}
-        {internalProjectId ? (
-          <ProjectKnowledgeToggle
-            currentProjectId={internalProjectId}
-            projectSelectorClassName="max-w-[80px]"
-            enableSelectProject={false}
-            className="px-3"
-            enableProjectSelector={false}
-            onProjectChange={handleProjectChange}
-            onSwitchChange={handleSwitchChange}
-          />
-        ) : null}
       </div>
     </Layout.Sider>
   );

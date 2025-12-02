@@ -37,7 +37,7 @@ import {
 } from '@refly/errors';
 import { FileObject } from '../misc/misc.dto';
 import { createId } from '@paralleldrive/cuid2';
-import { StaticFile } from '../../generated/client';
+import { StaticFile } from '@prisma/client';
 import { PandocParser } from '../knowledge/parsers/pandoc.parser';
 import pLimit from 'p-limit';
 import { isDesktop } from '../../utils/runtime';
@@ -60,6 +60,22 @@ export class MiscService implements OnModuleInit {
   async onModuleInit() {
     if (this.cleanStaticFilesQueue) {
       await this.setupCleanStaticFilesCronjob();
+    }
+  }
+
+  async fileStorageExists(
+    storageKey: string,
+    visibility: FileVisibility = 'public',
+  ): Promise<boolean> {
+    if (!storageKey) {
+      return false;
+    }
+    try {
+      const minio = this.minioClient(visibility);
+      await minio.statObject(storageKey);
+      return true;
+    } catch {
+      return false;
     }
   }
 
@@ -476,6 +492,7 @@ export class MiscService implements OnModuleInit {
       existingFile = await this.prisma.staticFile.findFirst({
         where: {
           storageKey: param.storageKey,
+          uid: user.uid,
           deletedAt: null,
         },
       });
@@ -522,15 +539,25 @@ export class MiscService implements OnModuleInit {
     await this.minioClient(visibility).putObject(storageKey, file.buffer, {
       'Content-Type': contentType,
     });
-
     // Resize and convert to webp if it's an image
     if (contentType.startsWith('image/')) {
       await this.imageQueue?.add('resizeAndConvert', { storageKey, visibility });
     }
 
+    // For private files, generate a temporary signed URL if static endpoint is not configured
+    let url = this.generateFileURL({ visibility, storageKey });
+    if (visibility === 'private') {
+      const privateEndpoint = this.config.get<string>('static.private.endpoint');
+      if (!privateEndpoint || privateEndpoint === '') {
+        // Fallback to presigned URL if static endpoint is not configured
+        url = await this.generateTempPublicURL(storageKey, 7 * 24 * 60 * 60); // 7 days
+        this.logger.debug(`Generated presigned URL for private file: ${storageKey}`);
+      }
+    }
+
     return {
       storageKey,
-      url: this.generateFileURL({ visibility, storageKey }),
+      url,
     };
   }
 
@@ -735,20 +762,47 @@ export class MiscService implements OnModuleInit {
     }
   }
 
-  async getInternalFileStream(
+  async getInternalFileMetadata(
     user: User,
     storageKey: string,
-  ): Promise<{ data: Buffer; contentType: string }> {
+  ): Promise<{ contentType: string; lastModified: Date; visibility: FileVisibility }> {
     const file = await this.prisma.staticFile.findFirst({
-      select: { uid: true, visibility: true, entityId: true, entityType: true, contentType: true },
-      where: { storageKey, deletedAt: null },
+      select: {
+        visibility: true,
+        contentType: true,
+        updatedAt: true,
+      },
+      where: { storageKey, uid: user.uid, deletedAt: null },
     });
 
     if (!file) {
       throw new NotFoundException();
     }
 
-    if (!isDesktop() && file.uid !== user.uid) {
+    return {
+      contentType: file.contentType,
+      lastModified: new Date(file.updatedAt),
+      visibility: file.visibility as FileVisibility,
+    };
+  }
+
+  async getInternalFileStream(
+    user: User,
+    storageKey: string,
+  ): Promise<{ data: Buffer; contentType: string; lastModified: Date }> {
+    const file = await this.prisma.staticFile.findFirst({
+      select: {
+        uid: true,
+        visibility: true,
+        entityId: true,
+        entityType: true,
+        contentType: true,
+        updatedAt: true,
+      },
+      where: { storageKey, uid: user.uid, deletedAt: null },
+    });
+
+    if (!file) {
       throw new NotFoundException();
     }
 
@@ -757,20 +811,44 @@ export class MiscService implements OnModuleInit {
     );
     const data = await streamToBuffer(readable);
 
-    return { data, contentType: file.contentType };
+    return { data, contentType: file.contentType, lastModified: new Date(file.updatedAt) };
   }
 
-  async getExternalFileStream(storageKey: string): Promise<{ data: Buffer; contentType: string }> {
+  async getExternalFileMetadata(
+    storageKey: string,
+  ): Promise<{ contentType: string; lastModified: Date }> {
+    const stat = await this.prisma.staticFile.findFirst({
+      select: { contentType: true, updatedAt: true },
+      where: { storageKey, deletedAt: null },
+    });
+
+    if (!stat) {
+      throw new NotFoundException(`File with key ${storageKey} not found`);
+    }
+
+    return {
+      contentType: stat.contentType ?? 'application/octet-stream',
+      lastModified: new Date(stat.updatedAt),
+    };
+  }
+
+  async getExternalFileStream(
+    storageKey: string,
+  ): Promise<{ data: Buffer; contentType: string; lastModified: Date }> {
     try {
       const [readable, stat] = await Promise.all([
         this.minioClient('public').getObject(storageKey),
         this.prisma.staticFile.findFirst({
-          select: { contentType: true },
+          select: { contentType: true, updatedAt: true },
           where: { storageKey, deletedAt: null },
         }),
       ]);
       const data = await streamToBuffer(readable);
-      return { data, contentType: stat?.contentType ?? 'application/octet-stream' };
+      return {
+        data,
+        contentType: stat?.contentType ?? 'application/octet-stream',
+        lastModified: stat?.updatedAt ? new Date(stat.updatedAt) : new Date(),
+      };
     } catch (error) {
       // Check if it's the Minio S3Error for key not found
       if (
@@ -813,6 +891,7 @@ export class MiscService implements OnModuleInit {
       where: {
         uid: user.uid,
         storageKey: { in: storageKeys },
+        deletedAt: null,
       },
     });
 
@@ -1241,8 +1320,8 @@ export class MiscService implements OnModuleInit {
       this.logger.log(`Successfully fetched and cached favicon for domain: ${domain}`);
       return { data: buffer, contentType };
     } catch (error) {
-      this.logger.error(`Failed to get favicon for domain ${domain}: ${error.stack}`);
-      throw new Error(`Unable to retrieve favicon for domain: ${domain}`);
+      this.logger.warn(`Failed to get favicon for domain ${domain}: ${error?.stack}`);
+      throw new NotFoundException(`Unable to retrieve favicon for domain: ${domain}`);
     }
   }
 }

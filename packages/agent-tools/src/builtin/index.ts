@@ -1,10 +1,12 @@
 import { z } from 'zod/v3';
 import { AgentBaseTool, AgentBaseToolset } from '../base';
+import { BuiltinExecuteCode } from './sandbox';
 
 import type { RunnableConfig } from '@langchain/core/runnables';
 import type { ToolsetDefinition, User } from '@refly/openapi-schema';
 import type { AgentToolConstructor, ToolCallResult } from '../base';
 import type { ReflyService } from './interface';
+
 export const BuiltinToolsetDefinition: ToolsetDefinition = {
   key: 'builtin',
   domain: 'https://refly.ai',
@@ -18,18 +20,19 @@ export const BuiltinToolsetDefinition: ToolsetDefinition = {
   },
   tools: [
     {
-      name: 'library_search',
-      descriptionDict: {
-        en: 'Search within Refly knowledge base, documents, and resources.',
-        'zh-CN': '在 Refly 知识库、文档和资源中搜索。',
-      },
-    },
-    {
       name: 'web_search',
       descriptionDict: {
         en: 'Search the web for current information and news.',
         'zh-CN': '在网络上搜索最新信息和新闻。',
       },
+    },
+    {
+      name: 'read_file',
+      descriptionDict: {
+        en: 'Read content from a file.',
+        'zh-CN': '读取文件内容。',
+      },
+      modelOnly: true,
     },
     {
       name: 'generate_doc',
@@ -59,6 +62,13 @@ export const BuiltinToolsetDefinition: ToolsetDefinition = {
         'zh-CN': '获取当前日期和时间信息。',
       },
     },
+    {
+      name: 'execute_code',
+      descriptionDict: {
+        en: 'Execute code in a secure sandbox environment.',
+        'zh-CN': '在安全的沙箱环境中执行代码。',
+      },
+    },
   ],
 };
 
@@ -67,9 +77,105 @@ interface BuiltinToolParams {
   reflyService: ReflyService;
 }
 
+export const BuiltinLibrarySearchDefinition: ToolsetDefinition = {
+  key: 'library_search',
+  labelDict: {
+    en: 'Library Search',
+    'zh-CN': '知识库搜索',
+  },
+  descriptionDict: {
+    en: 'Search within Refly knowledge base, documents, and resources.',
+    'zh-CN': '在 Refly 知识库、文档和资源中搜索。',
+  },
+};
+
+export const BuiltinWebSearchDefinition: ToolsetDefinition = {
+  key: 'web_search',
+  labelDict: {
+    en: 'Web Search',
+    'zh-CN': '网络搜索',
+  },
+  descriptionDict: {
+    en: 'Search the web for current information and news.',
+    'zh-CN': '在网络上搜索最新信息和新闻。',
+  },
+};
+
+export const BuiltinGenerateDocDefinition: ToolsetDefinition = {
+  key: 'generate_doc',
+  labelDict: {
+    en: 'Generate Document',
+    'zh-CN': '生成文档',
+  },
+  descriptionDict: {
+    en: 'Generate a new document based on a title and content.',
+    'zh-CN': '基于标题和内容生成新文档。',
+  },
+};
+
+export const BuiltinGenerateCodeArtifactDefinition: ToolsetDefinition = {
+  key: 'generate_code_artifact',
+  labelDict: {
+    en: 'Generate Code Artifact',
+    'zh-CN': '生成代码组件',
+  },
+  descriptionDict: {
+    en: 'Generate a new code artifact based on title, type, and content.',
+    'zh-CN': '基于标题、类型和内容生成新的代码组件。',
+  },
+};
+
+export const BuiltinSendEmailDefinition: ToolsetDefinition = {
+  key: 'send_email',
+  labelDict: {
+    en: 'Send Email',
+    'zh-CN': '发送邮件',
+  },
+  descriptionDict: {
+    en: 'Send an email to a specified recipient with subject and HTML content.',
+    'zh-CN': '向指定收件人发送带有主题和HTML内容的电子邮件。',
+  },
+};
+
+export const BuiltinGetTimeDefinition: ToolsetDefinition = {
+  key: 'get_time',
+  labelDict: {
+    en: 'Get Time',
+    'zh-CN': '获取时间',
+  },
+  descriptionDict: {
+    en: 'Get the current date and time information.',
+    'zh-CN': '获取当前日期和时间信息。',
+  },
+};
+
+export const BuiltinReadFileDefinition: ToolsetDefinition = {
+  key: 'read_file',
+  labelDict: {
+    en: 'Read File',
+    'zh-CN': '读取文件',
+  },
+  descriptionDict: {
+    en: 'Read content from a file.',
+    'zh-CN': '读取文件内容。',
+  },
+};
+
+export const BuiltinExecuteCodeDefinition: ToolsetDefinition = {
+  key: 'execute_code',
+  labelDict: {
+    en: 'Execute Code',
+    'zh-CN': '执行代码',
+  },
+  descriptionDict: {
+    en: 'Execute code in a secure sandbox environment.',
+    'zh-CN': '在安全的沙箱环境中执行代码。',
+  },
+};
+
 export class BuiltinLibrarySearch extends AgentBaseTool<BuiltinToolParams> {
   name = 'library_search';
-  toolsetKey = BuiltinToolsetDefinition.key;
+  toolsetKey = 'library_search';
 
   schema = z.object({
     query: z.string().describe('The search query to execute'),
@@ -130,7 +236,7 @@ export class BuiltinLibrarySearch extends AgentBaseTool<BuiltinToolParams> {
 
 export class BuiltinWebSearch extends AgentBaseTool<BuiltinToolParams> {
   name = 'web_search';
-  toolsetKey = BuiltinToolsetDefinition.key;
+  toolsetKey = 'web_search';
 
   schema = z.object({
     query: z.string().describe('The search query to execute'),
@@ -177,7 +283,7 @@ export class BuiltinWebSearch extends AgentBaseTool<BuiltinToolParams> {
 
 export class BuiltinGenerateDoc extends AgentBaseTool<BuiltinToolParams> {
   name = 'generate_doc';
-  toolsetKey = BuiltinToolsetDefinition.key;
+  toolsetKey = 'generate_doc';
 
   schema = z.object({
     title: z.string().describe('Title of the document to generate'),
@@ -200,16 +306,19 @@ export class BuiltinGenerateDoc extends AgentBaseTool<BuiltinToolParams> {
   ): Promise<ToolCallResult> {
     try {
       const { reflyService, user } = this.params;
-      const document = await reflyService.createDocument(user, {
-        title: input.title,
-        initialContent: input.content,
+      const file = await reflyService.writeFile(user, {
+        name: input.title,
+        content: input.content,
+        type: 'text/plain',
+        canvasId: config.configurable?.canvasId,
         resultId: config.configurable?.resultId,
+        resultVersion: config.configurable?.version,
       });
 
       return {
         status: 'success',
-        data: document,
-        summary: `Successfully generated document: "${input.title}" with ID: ${document.docId}`,
+        data: file,
+        summary: `Successfully generated document: "${input.title}" with ID: ${file.fileId}`,
       };
     } catch (error) {
       return {
@@ -226,21 +335,12 @@ export class BuiltinGenerateDoc extends AgentBaseTool<BuiltinToolParams> {
 
 export class BuiltinGenerateCodeArtifact extends AgentBaseTool<BuiltinToolParams> {
   name = 'generate_code_artifact';
-  toolsetKey = BuiltinToolsetDefinition.key;
+  toolsetKey = 'generate_code_artifact';
 
   schema = z.object({
-    title: z.string().describe('Title of the code artifact to generate'),
-    type: z
-      .enum([
-        'application/refly.artifacts.react',
-        'image/svg+xml',
-        'application/refly.artifacts.mermaid',
-        'text/markdown',
-        'application/refly.artifacts.code',
-        'text/html',
-        'application/refly.artifacts.mindmap',
-      ])
-      .describe('Type of code artifact'),
+    filename: z
+      .string()
+      .describe('Name of the code file to generate, should contain valid file extension'),
     content: z.string().describe('Actual code content'),
   });
 
@@ -260,17 +360,19 @@ export class BuiltinGenerateCodeArtifact extends AgentBaseTool<BuiltinToolParams
   ): Promise<ToolCallResult> {
     try {
       const { reflyService, user } = this.params;
-      const result = await reflyService.createCodeArtifact(user, {
-        title: input.title,
-        type: input.type,
+      const file = await reflyService.writeFile(user, {
+        name: input.filename,
+        type: 'text/plain',
         content: input.content,
+        canvasId: config.configurable?.canvasId,
         resultId: config.configurable?.resultId,
+        resultVersion: config.configurable?.version,
       });
 
       return {
         status: 'success',
-        data: result,
-        summary: `Successfully generated code artifact: "${input.title}" with ID: ${result.artifactId}`,
+        data: file,
+        summary: `Successfully generated code artifact: "${input.filename}" with file ID: ${file.fileId}`,
       };
     } catch (error) {
       return {
@@ -287,11 +389,15 @@ export class BuiltinGenerateCodeArtifact extends AgentBaseTool<BuiltinToolParams
 
 export class BuiltinSendEmail extends AgentBaseTool<BuiltinToolParams> {
   name = 'send_email';
-  toolsetKey = BuiltinToolsetDefinition.key;
+  toolsetKey = 'send_email';
 
   schema = z.object({
     subject: z.string().describe('The subject of the email'),
-    html: z.string().describe('The HTML content of the email'),
+    html: z
+      .string()
+      .describe(
+        "The HTML content of the email. When embedding files, reference them using placeholders like 'file://df-<fileId>' (e.g., 'file://df-xa4ieer0xx9jod9zcfsu8nnf'). CRITICAL: Use the fileId string directly (format: 'df-' followed by alphanumeric), NOT base64-encoded data. This field expects a file reference ID from the system, not actual image bytes. DO NOT encode to base64 - just use the fileId as-is.",
+      ),
     to: z
       .string()
       .describe(
@@ -301,7 +407,8 @@ export class BuiltinSendEmail extends AgentBaseTool<BuiltinToolParams> {
     attachments: z.array(z.string()).describe('The URLs of the attachments').optional(),
   });
 
-  description = 'Send an email to a specified recipient with subject and HTML content.';
+  description =
+    'Send an email to a specified recipient with subject and HTML content. When referencing Drive files in HTML, use file://df-<fileId> placeholders (e.g., file://df-xa4ieer0xx9jod9zcfsu8nnf).';
 
   protected params: BuiltinToolParams;
 
@@ -313,9 +420,10 @@ export class BuiltinSendEmail extends AgentBaseTool<BuiltinToolParams> {
   async _call(input: z.infer<typeof this.schema>): Promise<ToolCallResult> {
     try {
       const { reflyService, user } = this.params;
+      const htmlWithResolvedFiles = await this.replaceFilePlaceholders(input.html);
       const result = await reflyService.sendEmail(user, {
         subject: input.subject,
-        html: input.html,
+        html: htmlWithResolvedFiles,
         to: input.to,
         attachments: input.attachments,
       });
@@ -338,11 +446,61 @@ export class BuiltinSendEmail extends AgentBaseTool<BuiltinToolParams> {
       };
     }
   }
+
+  private async replaceFilePlaceholders(html: string): Promise<string> {
+    if (!html || !html.includes('file://df-')) {
+      return html;
+    }
+
+    const matchPattern = /file:\/\/(df-[a-zA-Z0-9]+)/g;
+    const matches = Array.from(html.matchAll(matchPattern));
+    if (matches.length === 0) {
+      return html;
+    }
+
+    const { reflyService, user } = this.params;
+    const uniqueFileIds = Array.from(new Set(matches.map(([, fileId]) => fileId)));
+    const driveFiles = await Promise.all(
+      uniqueFileIds.map(async (fileId) => {
+        const file = await reflyService.readFile(user, fileId);
+        if (!file) {
+          throw new Error(`Drive file not found: ${fileId}`);
+        }
+        return file;
+      }),
+    );
+
+    const urls = await Promise.all(
+      driveFiles.map(async (file) => {
+        const { url } = await reflyService.createShareForDriveFile(user, file.fileId);
+        return url;
+      }),
+    );
+
+    if (!urls || urls.length !== driveFiles.length) {
+      throw new Error('Failed to resolve drive file links for email HTML content');
+    }
+
+    const resolvedMap = new Map<string, string>();
+    driveFiles.forEach((file, index) => {
+      const url = urls[index];
+      if (!url) {
+        throw new Error(`Failed to generate URL for drive file: ${file.fileId}`);
+      }
+      resolvedMap.set(file.fileId, url);
+    });
+
+    const replacePattern = /file:\/\/(df-[a-zA-Z0-9]+)/g;
+    return html.replace(
+      replacePattern,
+      (match, fileId: string) => resolvedMap.get(fileId) ?? match,
+    );
+  }
 }
 
 export class BuiltinGetTime extends AgentBaseTool<BuiltinToolParams> {
   name = 'get_time';
-  toolsetKey = BuiltinToolsetDefinition.key;
+  toolsetKey = 'get_time';
 
   schema = z.object({});
 
@@ -383,14 +541,95 @@ export class BuiltinGetTime extends AgentBaseTool<BuiltinToolParams> {
   }
 }
 
+export class BuiltinReadFile extends AgentBaseTool<BuiltinToolParams> {
+  name = 'read_file';
+  toolsetKey = 'read_file';
+
+  schema = z.object({
+    fileId: z.string().describe('The ID of the file to read'),
+  });
+
+  description = 'Read content from a drive file.';
+
+  protected params: BuiltinToolParams;
+
+  constructor(params: BuiltinToolParams) {
+    super(params);
+    this.params = params;
+  }
+
+  async _call(input: z.infer<typeof this.schema>): Promise<ToolCallResult> {
+    try {
+      const { reflyService, user } = this.params;
+      const file = await reflyService.readFile(user, input.fileId);
+
+      return {
+        status: 'success',
+        data: file,
+        summary: `Successfully read file: "${file.name}" with file ID: ${file.fileId}`,
+      };
+    } catch (error) {
+      return {
+        status: 'error',
+        error: 'Error reading file',
+        summary:
+          error instanceof Error ? error.message : 'Unknown error occurred while reading file',
+      };
+    }
+  }
+}
+
+export class BuiltinLibrarySearchToolset extends AgentBaseToolset<BuiltinToolParams> {
+  toolsetKey = BuiltinLibrarySearchDefinition.key;
+  tools = [BuiltinLibrarySearch] satisfies readonly AgentToolConstructor<BuiltinToolParams>[];
+}
+
+export class BuiltinWebSearchToolset extends AgentBaseToolset<BuiltinToolParams> {
+  toolsetKey = BuiltinWebSearchDefinition.key;
+  tools = [BuiltinWebSearch] satisfies readonly AgentToolConstructor<BuiltinToolParams>[];
+}
+
+export class BuiltinGenerateDocToolset extends AgentBaseToolset<BuiltinToolParams> {
+  toolsetKey = BuiltinGenerateDocDefinition.key;
+  tools = [BuiltinGenerateDoc] satisfies readonly AgentToolConstructor<BuiltinToolParams>[];
+}
+
+export class BuiltinGenerateCodeArtifactToolset extends AgentBaseToolset<BuiltinToolParams> {
+  toolsetKey = BuiltinGenerateCodeArtifactDefinition.key;
+  tools = [
+    BuiltinGenerateCodeArtifact,
+  ] satisfies readonly AgentToolConstructor<BuiltinToolParams>[];
+}
+
+export class BuiltinSendEmailToolset extends AgentBaseToolset<BuiltinToolParams> {
+  toolsetKey = BuiltinSendEmailDefinition.key;
+  tools = [BuiltinSendEmail] satisfies readonly AgentToolConstructor<BuiltinToolParams>[];
+}
+
+export class BuiltinGetTimeToolset extends AgentBaseToolset<BuiltinToolParams> {
+  toolsetKey = BuiltinGetTimeDefinition.key;
+  tools = [BuiltinGetTime] satisfies readonly AgentToolConstructor<BuiltinToolParams>[];
+}
+
+export class BuiltinReadFileToolset extends AgentBaseToolset<BuiltinToolParams> {
+  toolsetKey = BuiltinReadFileDefinition.key;
+  tools = [BuiltinReadFile] satisfies readonly AgentToolConstructor<BuiltinToolParams>[];
+}
+
+export class BuiltinExecuteCodeToolset extends AgentBaseToolset<BuiltinToolParams> {
+  toolsetKey = BuiltinExecuteCodeDefinition.key;
+  tools = [BuiltinExecuteCode] satisfies readonly AgentToolConstructor<BuiltinToolParams>[];
+}
+
 export class BuiltinToolset extends AgentBaseToolset<BuiltinToolParams> {
   toolsetKey = BuiltinToolsetDefinition.key;
   tools = [
-    BuiltinLibrarySearch,
     BuiltinWebSearch,
     BuiltinGenerateDoc,
     BuiltinGenerateCodeArtifact,
     BuiltinSendEmail,
     BuiltinGetTime,
+    BuiltinReadFile,
+    BuiltinExecuteCode,
   ] satisfies readonly AgentToolConstructor<BuiltinToolParams>[];
 }

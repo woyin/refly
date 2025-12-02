@@ -16,7 +16,7 @@ import {
 } from '@refly/errors';
 import { genCodeArtifactID, safeParseJSON } from '@refly/utils';
 import { OSS_INTERNAL, ObjectStorageService } from '../common/object-storage';
-import { CodeArtifact as CodeArtifactModel } from '../../generated/client';
+import { CodeArtifact as CodeArtifactModel } from '@prisma/client';
 import { CanvasSyncService } from '../canvas-sync/canvas-sync.service';
 
 @Injectable()
@@ -81,23 +81,27 @@ export class CodeArtifactService {
     }
 
     if (resultId && canvasId) {
-      await this.canvasSyncService.addNodeToCanvas(
+      await this.canvasSyncService.addNodesToCanvas(
         user,
         canvasId,
-        {
-          type: 'codeArtifact',
-          data: {
-            title,
-            entityId: codeArtifact.artifactId,
-            metadata: {
-              status: 'finish',
-              parentResultId: param.resultId,
+        [
+          {
+            node: {
+              type: 'codeArtifact',
+              data: {
+                title,
+                entityId: codeArtifact.artifactId,
+                metadata: {
+                  status: 'finish',
+                  parentResultId: param.resultId,
+                },
+                // Use the first 10 lines of content for preview
+                contentPreview: (content?.split(/\r?\n/) ?? []).slice(0, 10).join('\n'),
+              },
             },
-            // Use the first 10 lines of content for preview
-            contentPreview: (content?.split(/\r?\n/) ?? []).slice(0, 10).join('\n'),
+            connectTo: [{ type: 'skillResponse', entityId: param.resultId }],
           },
-        },
-        [{ type: 'skillResponse', entityId: param.resultId }],
+        ],
         { autoLayout: true },
       );
     }

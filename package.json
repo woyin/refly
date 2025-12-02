@@ -13,14 +13,12 @@
   },
   "scripts": {
     "commit": "cz",
-    "dev": "turbo run dev --filter='!refly-desktop' --filter='!@refly/extension'",
-    "dev:electron": "turbo run dev:electron",
+    "dev": "turbo run dev",
     "start": "turbo run start",
     "build": "turbo run build",
     "build:api": "turbo run build --filter=@refly/api",
     "build:api:fast": "turbo run build:fast --filter=@refly/api",
     "build:web": "turbo run build --filter=@refly/web",
-    "build:extension": "turbo run build --filter=@refly/extension",
     "copy-package-dist": "node scripts/copy-package-dist.js",
     "copy-env": "turbo run copy-env",
     "copy-env:develop": "turbo run copy-env:develop",
@@ -78,7 +76,7 @@
     }
   },
   "dependencies": {
-    "@composio/core": "^0.2.2",
+    "@composio/core": "^0.2.4",
     "browser-use-sdk": "^2.0.4"
   }
 }

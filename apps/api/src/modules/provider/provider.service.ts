@@ -21,10 +21,7 @@ import {
   UserPreferences,
   MediaGenerationModelConfig,
 } from '@refly/openapi-schema';
-import {
-  Provider as ProviderModel,
-  ProviderItem as ProviderItemModel,
-} from '../../generated/client';
+import { Provider as ProviderModel, ProviderItem as ProviderItemModel } from '@prisma/client';
 import { genProviderItemID, genProviderID, providerInfoList, safeParseJSON } from '@refly/utils';
 import {
   ProviderNotFoundError,
@@ -81,7 +78,7 @@ export class ProviderService implements OnModuleInit {
       const langfuseConfig = {
         publicKey: this.configService.get('langfuse.publicKey'),
         secretKey: this.configService.get('langfuse.secretKey'),
-        baseUrl: this.configService.get('langfuse.host'),
+        baseUrl: this.configService.get('langfuse.baseUrl'),
         enabled: !!(
           this.configService.get('langfuse.publicKey') &&
           this.configService.get('langfuse.secretKey')

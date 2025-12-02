@@ -1,11 +1,10 @@
 import type { WorkflowVariable, WorkflowExecutionStatus } from '@refly/openapi-schema';
 import { useTranslation } from 'react-i18next';
 import { Button, Input, Select, Form, Typography, message } from 'antd';
-import { Play, Copy } from 'refly-icons';
-import { IconShare } from '@refly-packages/ai-workspace-common/components/common/icon';
+import { Play, StopCircle } from 'refly-icons';
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import type { UploadFile } from 'antd/es/upload/interface';
-
+import { useAbortWorkflow } from '@refly-packages/ai-workspace-common/hooks/use-abort-workflow';
 import cn from 'classnames';
 import EmptyImage from '@refly-packages/ai-workspace-common/assets/noResource.svg';
 import { useIsLogin } from '@refly-packages/ai-workspace-common/hooks/use-is-login';
@@ -47,8 +46,8 @@ const FormItemLabel = ({ name, required }: { name: string; required: boolean }) 
   return (
     <div className="flex items-center gap-2 min-w-0">
       <Typography.Paragraph
-        ellipsis={{ rows: 1, tooltip: true }}
-        className="!m-0 text-xs font-semibold text-refly-text-0 leading-4"
+        ellipsis={{ rows: 1, tooltip: <div className="max-h-[200px] overflow-y-auto">{name}</div> }}
+        className="!m-0 text-xs font-semibold text-refly-text-0 leading-4 max-w-[100px]"
       >
         {name}
       </Typography.Paragraph>
@@ -61,8 +60,6 @@ const FormItemLabel = ({ name, required }: { name: string; required: boolean }) 
 interface WorkflowRunFormProps {
   workflowVariables: WorkflowVariable[];
   onSubmitVariables: (variables: WorkflowVariable[]) => Promise<void>;
-  onCopyWorkflow?: () => void;
-  onCopyShareLink?: () => void;
   loading: boolean;
   executionId?: string | null;
   workflowStatus?: WorkflowExecutionStatus | null;
@@ -70,24 +67,28 @@ interface WorkflowRunFormProps {
   pollingError?: any;
   isRunning?: boolean;
   onRunningChange?: (isRunning: boolean) => void;
+  canvasId?: string;
   className?: string;
   templateContent?: string;
   workflowApp?: any;
+  creditUsage?: number | null;
 }
 
 export const WorkflowRunForm = ({
   workflowVariables,
   onSubmitVariables,
-  onCopyWorkflow,
-  onCopyShareLink,
   loading,
+  executionId,
   isPolling,
   isRunning: externalIsRunning,
   onRunningChange,
+  canvasId,
   className,
   templateContent,
   workflowApp,
+  creditUsage,
 }: WorkflowRunFormProps) => {
+  console.log('[WorkflowRunForm] workflowVariables', workflowVariables);
   const { t } = useTranslation();
   const { isLoggedRef } = useIsLogin();
   const navigate = useNavigate();
@@ -96,6 +97,20 @@ export const WorkflowRunForm = ({
 
   // Use external isRunning if provided, otherwise use internal state
   const isRunning = externalIsRunning ?? internalIsRunning;
+
+  // Abort workflow with optimistic UI update (immediately marks nodes as 'failed')
+  const { handleAbort } = useAbortWorkflow({
+    executionId,
+    canvasId,
+    onSuccess: () => {
+      // Reset running state after successful abort
+      if (onRunningChange) {
+        onRunningChange(false);
+      } else {
+        setInternalIsRunning(false);
+      }
+    },
+  });
   const [form] = Form.useForm();
   const [variableValues, setVariableValues] = useState<Record<string, any>>({});
   const [templateVariables, setTemplateVariables] = useState<WorkflowVariable[]>([]);
@@ -534,6 +549,8 @@ export const WorkflowRunForm = ({
     setTemplateVariables(variables);
   }, []);
 
+  const workflowIsRunning = isRunning || isPolling;
+
   return (
     <div className={cn('w-full h-full gap-3 flex flex-col rounded-2xl', className)}>
       {
@@ -586,47 +603,34 @@ export const WorkflowRunForm = ({
             </div>
           )}
 
-          <div className="p-3 sm:p-4 border-t border-refly-Card-Border bg-refly-bg-control-z0 rounded-b-lg">
-            <div className="flex gap-2">
-              <Button
-                className={cn(
-                  'flex-1 h-9 sm:h-10 text-sm sm:text-base',
-                  (!isFormValid || isPolling) &&
-                    'bg-refly-bg-control-z1 hover:!bg-refly-tertiary-hover !text-refly-text-3 font-semibold',
-                )}
-                type="primary"
-                icon={<Play size={14} className="sm:w-4 sm:h-4" />}
-                onClick={handleRun}
-                loading={loading || isRunning || isPolling}
-                disabled={loading || isRunning || isPolling}
-              >
-                {isPolling
-                  ? t('canvas.workflow.run.executing') || 'Executing...'
-                  : t('canvas.workflow.run.run') || 'Run'}
-              </Button>
-
-              {onCopyWorkflow && workflowApp?.remixEnabled && (
-                <Button
-                  className="h-9 sm:h-10 text-sm sm:text-base"
-                  type="default"
-                  icon={<Copy size={14} className="sm:w-4 sm:h-4" />}
-                  onClick={onCopyWorkflow}
-                >
-                  {t('canvas.workflow.run.copyWorkflow') || 'Copy Workflow'}
-                </Button>
-              )}
-
-              {onCopyShareLink && (
-                <Button
-                  className="h-9 sm:h-10 text-sm sm:text-base"
-                  type="default"
-                  icon={<IconShare size={14} className="sm:w-4 sm:h-4" />}
-                  onClick={onCopyShareLink}
-                >
-                  {t('canvas.workflow.run.copyShareLink') || 'Copy Share Link'}
-                </Button>
-              )}
-            </div>
+          <div className="p-3 border-t-[1px] border-x-0 border-b-0 border-solid border-refly-Card-Border bg-refly-bg-body-z0 rounded-b-lg flex flex-col gap-2">
+            {creditUsage !== null && creditUsage !== undefined && (
+              <div className="text-xs leading-4 text-refly-primary-default text-center">
+                {t('canvas.workflow.run.creditUsage', { count: creditUsage })}
+              </div>
+            )}
+            <Button
+              className="w-full h-8 text-sm"
+              {...(workflowIsRunning ? { color: 'primary' } : { type: 'primary' })}
+              icon={
+                workflowIsRunning ? (
+                  <StopCircle size={16} className="translate-y-[1px]" />
+                ) : (
+                  <Play size={16} className="translate-y-[1px]" />
+                )
+              }
+              onClick={workflowIsRunning ? handleAbort : handleRun}
+              loading={loading}
+              disabled={
+                loading ||
+                (workflowIsRunning && !executionId) ||
+                (!workflowIsRunning && !isFormValid)
+              }
+            >
+              {workflowIsRunning
+                ? t('canvas.workflow.run.abort.abortButton') || 'Abort'
+                : t('canvas.workflow.run.run') || 'Run'}
+            </Button>
           </div>
         </>
       }

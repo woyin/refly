@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from 'react';
-import { message, notification } from 'antd';
+import { message } from 'antd';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
@@ -8,9 +8,12 @@ import { useHandleSiderData } from '@refly-packages/ai-workspace-common/hooks/us
 import { useWorkflowExecutionPolling } from './use-workflow-execution-polling';
 import { useCanvasStoreShallow } from '@refly/stores';
 import { InitializeWorkflowRequest } from '@refly/openapi-schema';
-import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
+import { useVariablesManagement } from '@refly-packages/ai-workspace-common/hooks/use-variables-management';
 
-export const useInitializeWorkflow = (canvasId?: string) => {
+export const useInitializeWorkflow = (
+  canvasId: string,
+  forceSyncState: ({ syncRemote }: { syncRemote?: boolean }) => Promise<void>,
+) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
@@ -18,24 +21,23 @@ export const useInitializeWorkflow = (canvasId?: string) => {
   const { getCanvasList } = useHandleSiderData();
 
   const { executionId, setCanvasExecutionId } = useCanvasStoreShallow((state) => ({
-    executionId: canvasId ? state.canvasExecutionId[canvasId] || null : null,
+    executionId: state.canvasExecutionId[canvasId],
     setCanvasExecutionId: state.setCanvasExecutionId,
   }));
-
-  const { forceSyncState } = useCanvasContext();
+  const { data: workflowVariables } = useVariablesManagement(canvasId);
 
   // Memoize callbacks to avoid recreating them on every render
   const handleComplete = useMemo(
-    () => (status: string, _data: any) => {
+    () => (status: string, data: any) => {
       if (status === 'finish') {
-        notification.success({
-          message:
-            t('canvas.workflow.run.completed') || 'Workflow execution completed successfully',
-        });
+        message.success(
+          t('canvas.workflow.run.completed') || 'Workflow execution completed successfully',
+        );
       } else if (status === 'failed') {
-        notification.error({
-          message: t('canvas.workflow.run.failed') || 'Workflow execution failed',
-        });
+        // Only show error notification if NOT aborted by user
+        if (!data?.data?.abortedByUser) {
+          message.error(t('canvas.workflow.run.failed') || 'Workflow execution failed');
+        }
       }
     },
     [t],
@@ -43,9 +45,7 @@ export const useInitializeWorkflow = (canvasId?: string) => {
 
   const handleError = useMemo(
     () => (_error: any) => {
-      notification.error({
-        message: t('canvas.workflow.run.error') || 'Error monitoring workflow execution',
-      });
+      message.error(t('canvas.workflow.run.error') || 'Error monitoring workflow execution');
     },
     [t],
   );
@@ -74,7 +74,10 @@ export const useInitializeWorkflow = (canvasId?: string) => {
         await forceSyncState({ syncRemote: true });
 
         const { data, error } = await getClient().initializeWorkflow({
-          body: param,
+          body: {
+            variables: workflowVariables,
+            ...param,
+          },
         });
 
         if (error) {
@@ -96,7 +99,7 @@ export const useInitializeWorkflow = (canvasId?: string) => {
         setLoading(false);
       }
     },
-    [t, canvasId, setCanvasExecutionId, forceSyncState],
+    [t, canvasId, setCanvasExecutionId, forceSyncState, workflowVariables],
   );
 
   const initializeWorkflowInNewCanvas = useCallback(
@@ -109,8 +112,8 @@ export const useInitializeWorkflow = (canvasId?: string) => {
 
         const { error } = await getClient().initializeWorkflow({
           body: {
-            canvasId,
-            newCanvasId,
+            canvasId: newCanvasId,
+            sourceCanvasId: canvasId,
           },
         });
 
@@ -145,7 +148,7 @@ export const useInitializeWorkflow = (canvasId?: string) => {
   return {
     initializeWorkflow,
     initializeWorkflowInNewCanvas,
-    loading,
+    isInitializing: loading,
     newModeLoading,
     // Workflow execution polling state
     executionId,

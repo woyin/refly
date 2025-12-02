@@ -62,6 +62,7 @@ const createToolsetWithSensitiveData = (
       config: { safe: 'config data' },
       definition: {
         key: 'test-toolset',
+        labelDict: { en: 'Test toolset' },
         descriptionDict: { en: 'Test toolset description' },
         tools: [],
       },

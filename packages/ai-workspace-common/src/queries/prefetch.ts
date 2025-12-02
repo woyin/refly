@@ -9,6 +9,7 @@ import {
   exportDocument,
   getActionResult,
   getAuthConfig,
+  getCanvasCommissionByCanvasId,
   getCanvasData,
   getCanvasDetail,
   getCanvasState,
@@ -16,6 +17,7 @@ import {
   getCodeArtifactDetail,
   getCollabToken,
   getComposioConnectionStatus,
+  getCopilotSessionDetail,
   getCreditBalance,
   getCreditRecharge,
   getCreditUsage,
@@ -31,16 +33,21 @@ import {
   getSettings,
   getSubscriptionPlans,
   getSubscriptionUsage,
+  getToolCallResult,
   getWorkflowAppDetail,
   getWorkflowDetail,
   getWorkflowVariables,
+  hasBeenInvited,
   listAccounts,
   listActions,
   listCanvases,
   listCanvasTemplateCategories,
   listCanvasTemplates,
   listCodeArtifacts,
+  listCopilotSessions,
   listDocuments,
+  listDriveFiles,
+  listInvitationCodes,
   listLabelClasses,
   listLabelInstances,
   listMcpServers,
@@ -59,6 +66,7 @@ import {
   listTools,
   listToolsetInventory,
   listToolsets,
+  listUserTools,
   listWorkflowApps,
   serveStatic,
 } from '../requests/services.gen';
@@ -68,12 +76,14 @@ import {
   ExportCanvasData,
   ExportDocumentData,
   GetActionResultData,
+  GetCanvasCommissionByCanvasIdData,
   GetCanvasDataData,
   GetCanvasDetailData,
   GetCanvasStateData,
   GetCanvasTransactionsData,
   GetCodeArtifactDetailData,
   GetComposioConnectionStatusData,
+  GetCopilotSessionDetailData,
   GetCreditRechargeData,
   GetCreditUsageByCanvasIdData,
   GetCreditUsageByExecutionIdData,
@@ -85,6 +95,7 @@ import {
   GetPilotSessionDetailData,
   GetProjectDetailData,
   GetResourceDetailData,
+  GetToolCallResultData,
   GetWorkflowAppDetailData,
   GetWorkflowDetailData,
   GetWorkflowVariablesData,
@@ -92,7 +103,9 @@ import {
   ListCanvasesData,
   ListCanvasTemplatesData,
   ListCodeArtifactsData,
+  ListCopilotSessionsData,
   ListDocumentsData,
+  ListDriveFilesData,
   ListLabelClassesData,
   ListLabelInstancesData,
   ListMcpServersData,
@@ -230,6 +243,14 @@ export const prefetchUseGetWorkflowVariables = (
   queryClient.prefetchQuery({
     queryKey: Common.UseGetWorkflowVariablesKeyFn(clientOptions),
     queryFn: () => getWorkflowVariables({ ...clientOptions }).then((response) => response.data),
+  });
+export const prefetchUseListDriveFiles = (
+  queryClient: QueryClient,
+  clientOptions: Options<ListDriveFilesData, true>,
+) =>
+  queryClient.prefetchQuery({
+    queryKey: Common.UseListDriveFilesKeyFn(clientOptions),
+    queryFn: () => listDriveFiles({ ...clientOptions }).then((response) => response.data),
   });
 export const prefetchUseListCanvasTemplates = (
   queryClient: QueryClient,
@@ -400,6 +421,22 @@ export const prefetchUseGetPilotSessionDetail = (
     queryKey: Common.UseGetPilotSessionDetailKeyFn(clientOptions),
     queryFn: () => getPilotSessionDetail({ ...clientOptions }).then((response) => response.data),
   });
+export const prefetchUseListCopilotSessions = (
+  queryClient: QueryClient,
+  clientOptions: Options<ListCopilotSessionsData, true> = {},
+) =>
+  queryClient.prefetchQuery({
+    queryKey: Common.UseListCopilotSessionsKeyFn(clientOptions),
+    queryFn: () => listCopilotSessions({ ...clientOptions }).then((response) => response.data),
+  });
+export const prefetchUseGetCopilotSessionDetail = (
+  queryClient: QueryClient,
+  clientOptions: Options<GetCopilotSessionDetailData, true>,
+) =>
+  queryClient.prefetchQuery({
+    queryKey: Common.UseGetCopilotSessionDetailKeyFn(clientOptions),
+    queryFn: () => getCopilotSessionDetail({ ...clientOptions }).then((response) => response.data),
+  });
 export const prefetchUseGetWorkflowDetail = (
   queryClient: QueryClient,
   clientOptions: Options<GetWorkflowDetailData, true>,
@@ -489,6 +526,31 @@ export const prefetchUseGetCreditUsageByCanvasId = (
     queryKey: Common.UseGetCreditUsageByCanvasIdKeyFn(clientOptions),
     queryFn: () => getCreditUsageByCanvasId({ ...clientOptions }).then((response) => response.data),
   });
+export const prefetchUseGetCanvasCommissionByCanvasId = (
+  queryClient: QueryClient,
+  clientOptions: Options<GetCanvasCommissionByCanvasIdData, true>,
+) =>
+  queryClient.prefetchQuery({
+    queryKey: Common.UseGetCanvasCommissionByCanvasIdKeyFn(clientOptions),
+    queryFn: () =>
+      getCanvasCommissionByCanvasId({ ...clientOptions }).then((response) => response.data),
+  });
+export const prefetchUseListInvitationCodes = (
+  queryClient: QueryClient,
+  clientOptions: Options<unknown, true> = {},
+) =>
+  queryClient.prefetchQuery({
+    queryKey: Common.UseListInvitationCodesKeyFn(clientOptions),
+    queryFn: () => listInvitationCodes({ ...clientOptions }).then((response) => response.data),
+  });
+export const prefetchUseHasBeenInvited = (
+  queryClient: QueryClient,
+  clientOptions: Options<unknown, true> = {},
+) =>
+  queryClient.prefetchQuery({
+    queryKey: Common.UseHasBeenInvitedKeyFn(clientOptions),
+    queryFn: () => hasBeenInvited({ ...clientOptions }).then((response) => response.data),
+  });
 export const prefetchUseGetSubscriptionPlans = (
   queryClient: QueryClient,
   clientOptions: Options<unknown, true> = {},
@@ -545,6 +607,14 @@ export const prefetchUseListTools = (
     queryKey: Common.UseListToolsKeyFn(clientOptions),
     queryFn: () => listTools({ ...clientOptions }).then((response) => response.data),
   });
+export const prefetchUseListUserTools = (
+  queryClient: QueryClient,
+  clientOptions: Options<unknown, true> = {},
+) =>
+  queryClient.prefetchQuery({
+    queryKey: Common.UseListUserToolsKeyFn(clientOptions),
+    queryFn: () => listUserTools({ ...clientOptions }).then((response) => response.data),
+  });
 export const prefetchUseListToolsetInventory = (
   queryClient: QueryClient,
   clientOptions: Options<unknown, true> = {},
@@ -560,6 +630,14 @@ export const prefetchUseListToolsets = (
   queryClient.prefetchQuery({
     queryKey: Common.UseListToolsetsKeyFn(clientOptions),
     queryFn: () => listToolsets({ ...clientOptions }).then((response) => response.data),
+  });
+export const prefetchUseGetToolCallResult = (
+  queryClient: QueryClient,
+  clientOptions: Options<GetToolCallResultData, true>,
+) =>
+  queryClient.prefetchQuery({
+    queryKey: Common.UseGetToolCallResultKeyFn(clientOptions),
+    queryFn: () => getToolCallResult({ ...clientOptions }).then((response) => response.data),
   });
 export const prefetchUseGetComposioConnectionStatus = (
   queryClient: QueryClient,

@@ -1,16 +1,19 @@
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
 import { memo, useMemo, useState, useCallback, useEffect } from 'react';
-import { Divider, Button, Popconfirm, message } from 'antd';
+import { useVariablesManagement } from '@refly-packages/ai-workspace-common/hooks/use-variables-management';
+import { Divider, Button, Popconfirm, message, Typography } from 'antd';
 import { Add, Edit, Delete, Image, Doc2, Video, Audio } from 'refly-icons';
-import { BiText } from 'react-icons/bi';
 import type { WorkflowVariable } from '@refly/openapi-schema';
 import { Spin } from '@refly-packages/ai-workspace-common/components/common/spin';
-import { VARIABLE_TYPE_ICON_MAP } from '../nodes/start';
 import { useTranslation } from 'react-i18next';
 import SVGX from '../../../assets/x.svg';
 import { CreateVariablesModal } from '../workflow-variables';
-import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
 import { locateToVariableEmitter } from '@refly-packages/ai-workspace-common/events/locateToVariable';
+import { StartNodeHeader } from '@refly-packages/ai-workspace-common/components/canvas/nodes/shared/start-node-header';
+import { BiText } from 'react-icons/bi';
+import { VARIABLE_TYPE_ICON_MAP } from '../nodes/start';
+import { useCanvasStoreShallow } from '@refly/stores';
+const { Paragraph } = Typography;
 
 type VariableType = 'string' | 'option' | 'resource';
 export const MAX_VARIABLE_LENGTH = {
@@ -30,7 +33,6 @@ const VariableItem = memo(
   ({
     canvasId,
     totalVariables,
-    refetchWorkflowVariables,
     variable,
     onEdit,
     readonly,
@@ -38,7 +40,6 @@ const VariableItem = memo(
   }: {
     canvasId: string;
     totalVariables: WorkflowVariable[];
-    refetchWorkflowVariables: () => void;
     variable: WorkflowVariable;
     onEdit?: (variable: WorkflowVariable) => void;
     readonly: boolean;
@@ -48,23 +49,16 @@ const VariableItem = memo(
     const { t } = useTranslation();
     const [isPopconfirmOpen, setIsPopconfirmOpen] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
+    const { setVariables } = useVariablesManagement(canvasId);
 
     const handleDeleteVariable = async (variable: WorkflowVariable) => {
       const newVariables = totalVariables.filter((v) => v.variableId !== variable.variableId);
       try {
         setIsDeleting(true);
-        const { data } = await getClient().updateWorkflowVariables({
-          body: {
-            canvasId: canvasId,
-            variables: newVariables,
-          },
-        });
-        if (data?.success) {
-          message.success(
-            t('canvas.workflow.variables.deleteSuccess') || 'Variable deleted successfully',
-          );
-          refetchWorkflowVariables();
-        }
+        setVariables(newVariables);
+        message.success(
+          t('canvas.workflow.variables.deleteSuccess') || 'Variable deleted successfully',
+        );
       } catch (error) {
         console.error('Failed to delete variable:', error);
       } finally {
@@ -109,7 +103,7 @@ const VariableItem = memo(
 
         {!readonly && (
           <div
-            className={`items-center gap-1 flex-shrik-0 ${
+            className={`items-center gap-1 flex-shrink-0 ${
               isPopconfirmOpen ? 'flex' : 'hidden group-hover:flex'
             }`}
           >
@@ -120,12 +114,35 @@ const VariableItem = memo(
               onClick={() => onEdit?.(variable)}
             />
             <Popconfirm
-              title={t('canvas.workflow.variables.deleteConfirm') || 'Delete this variable?'}
+              icon={null}
+              title={
+                <Paragraph
+                  className="!m-0 text-[16px] font-semibold leading-[26px] p-3 max-w-[400px]"
+                  ellipsis={{
+                    rows: 1,
+                    tooltip: (
+                      <div className="max-h-[200px] overflow-y-auto">
+                        {t('canvas.workflow.variables.deleteUserInput', { value: name })}
+                      </div>
+                    ),
+                  }}
+                >
+                  {t('canvas.workflow.variables.deleteUserInput', { value: name })}
+                </Paragraph>
+              }
+              description={
+                <div className="w-[400px] leading-5 px-3 pt-1 pb-2">
+                  {t('canvas.workflow.variables.deleteConfirm')}
+                </div>
+              }
+              arrow={false}
               onConfirm={() => handleDeleteVariable(variable)}
               okText={t('common.confirm')}
               cancelText={t('common.cancel')}
               onOpenChange={setIsPopconfirmOpen}
-              okButtonProps={{ loading: isDeleting }}
+              okButtonProps={{ loading: isDeleting, className: 'w-20 h-8 mb-3 mr-3' }}
+              cancelButtonProps={{ className: 'w-20 h-8 mb-3' }}
+              placement="topRight"
             >
               <Button
                 type="text"
@@ -147,7 +164,6 @@ const VariableTypeSection = ({
   type,
   variables,
   totalVariables,
-  refetchWorkflowVariables,
   readonly,
   highlightedVariableId,
 }: {
@@ -155,7 +171,6 @@ const VariableTypeSection = ({
   type: VariableType;
   variables: WorkflowVariable[];
   totalVariables: WorkflowVariable[];
-  refetchWorkflowVariables: () => void;
   readonly: boolean;
   highlightedVariableId?: string;
 }) => {
@@ -182,9 +197,9 @@ const VariableTypeSection = ({
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-1.5 text-refly-text-0">
+        <div className="flex items-center gap-1.5">
           <Icon size={18} color="var(--refly-text-0)" className="flex-shrink-0" />
-          <div className="text-sm font-semibold leading-6">
+          <div className="text-sm font-semibold text-refly-text-0 leading-6">
             {t(`canvas.workflow.variables.${type}`)}
           </div>
         </div>
@@ -209,7 +224,6 @@ const VariableTypeSection = ({
               canvasId={canvasId}
               totalVariables={totalVariables}
               variable={variable}
-              refetchWorkflowVariables={refetchWorkflowVariables}
               onEdit={handleEditVariable}
               readonly={readonly}
               isHighlighted={highlightedVariableId === variable.variableId}
@@ -219,7 +233,7 @@ const VariableTypeSection = ({
       ) : (
         <div className="px-3 py-6 gap-0.5 flex items-center justify-center bg-refly-bg-control-z0 rounded-lg">
           <div className="text-[13px] text-refly-text-1 leading-5">
-            {t('canvas.workflow.variables.empty') || 'No variables defined'}
+            {t('canvas.workflow.variables.empty')}
           </div>
           {!readonly && (
             <Button
@@ -247,11 +261,17 @@ const VariableTypeSection = ({
 };
 
 export const StartNodePreview = () => {
-  const { workflow, canvasId, readonly } = useCanvasContext();
-  const { workflowVariables, workflowVariablesLoading, refetchWorkflowVariables } = workflow;
+  const { canvasId, shareLoading, shareData, readonly } = useCanvasContext();
+  const { data: variables, isLoading: variablesLoading } = useVariablesManagement(canvasId);
+  const { setNodePreview } = useCanvasStoreShallow((state) => ({
+    setNodePreview: state.setNodePreview,
+  }));
+
+  const workflowVariables = shareData?.variables ?? variables;
+  const workflowVariablesLoading = shareLoading || variablesLoading;
+
   const [highlightedVariableId, setHighlightedVariableId] = useState<string | undefined>();
 
-  // Listen for variable highlight events
   useEffect(() => {
     const handleLocateToVariable = (event: {
       canvasId: string;
@@ -310,6 +330,10 @@ export const StartNodePreview = () => {
     return groups;
   }, [workflowVariables]);
 
+  const handleClose = useCallback(() => {
+    setNodePreview(canvasId, null);
+  }, [canvasId, setNodePreview]);
+
   if (workflowVariablesLoading) {
     return (
       <div className="h-full flex flex-col items-center justify-center">
@@ -319,34 +343,33 @@ export const StartNodePreview = () => {
   }
 
   return (
-    <div className="w-full h-full overflow-y-auto p-4">
-      <div className="space-y-6">
+    <div className="w-full h-full flex flex-col overflow-hidden">
+      <StartNodeHeader source="preview" onClose={handleClose} className="!h-14" />
+
+      <div className="space-y-5 flex-1 overflow-y-auto p-4">
         <VariableTypeSection
           canvasId={canvasId}
           type="string"
           variables={groupedVariables.string}
           totalVariables={workflowVariables}
-          refetchWorkflowVariables={refetchWorkflowVariables}
           readonly={readonly}
           highlightedVariableId={highlightedVariableId}
         />
 
-        <VariableTypeSection
+        {/* <VariableTypeSection
           canvasId={canvasId}
           type="resource"
           variables={groupedVariables.resource}
           totalVariables={workflowVariables}
-          refetchWorkflowVariables={refetchWorkflowVariables}
           readonly={readonly}
           highlightedVariableId={highlightedVariableId}
-        />
+        /> */}
 
         <VariableTypeSection
           canvasId={canvasId}
           type="option"
           variables={groupedVariables.option}
           totalVariables={workflowVariables}
-          refetchWorkflowVariables={refetchWorkflowVariables}
           readonly={readonly}
           highlightedVariableId={highlightedVariableId}
         />

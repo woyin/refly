@@ -1,4 +1,11 @@
-import { START, END, StateGraphArgs, StateGraph, MessagesAnnotation } from '@langchain/langgraph';
+import {
+  START,
+  END,
+  StateGraphArgs,
+  StateGraph,
+  MessagesAnnotation,
+  GraphRecursionError,
+} from '@langchain/langgraph';
 import { ToolNode } from '@langchain/langgraph/prebuilt';
 import { z } from 'zod';
 import { BaseSkill, BaseSkillState, SkillRunnableConfig, baseStateGraphArgs } from '../base';
@@ -7,54 +14,24 @@ import { Icon, SkillTemplateConfigDefinition, User } from '@refly/openapi-schema
 // types
 import { GraphState } from '../scheduler/types';
 // utils
-import { buildFinalRequestMessages, SkillPromptModule } from '../scheduler/utils/message';
+import { buildFinalRequestMessages } from '../scheduler/utils/message';
 
 // prompts
-import * as commonQnA from '../scheduler/module/commonQnA';
-import { buildSystemPrompt } from '../mcp/core/prompt';
-import { ITool, ToolInputSchema } from '../mcp/core/prompt';
-import { zodToJsonSchema } from 'zod-to-json-schema';
+import { buildNodeAgentSystemPrompt } from '../prompts/node-agent';
+import { buildUserPrompt } from '../prompts/user-prompt';
+import { buildWorkflowCopilotPrompt } from '../prompts/copilot-agent';
 
 import { AIMessage, ToolMessage } from '@langchain/core/messages';
 import type { BaseMessage } from '@langchain/core/messages';
 import type { Runnable } from '@langchain/core/runnables';
 import { type StructuredToolInterface } from '@langchain/core/tools';
 
-/**
- * Converts LangChain StructuredToolInterface array to ITool array.
- * This is used to prepare tools for the system prompt, matching the ITool interface.
- */
-function convertToTools(langchainTools: StructuredToolInterface[]): ITool[] {
-  return langchainTools.map((tool) => {
-    // tool.schema is expected to be a Zod schema object
-    const zodSchema = tool.schema;
-    // Convert Zod schema to JSON schema.
-    // The `as any` is used because zodToJsonSchema returns a generic JSONSchema7Type,
-    // and we need to access properties like title, description, etc., which might not be strictly typed.
-    const jsonSchema = zodToJsonSchema(zodSchema as any) as any;
-
-    const properties = (jsonSchema?.properties ?? {}) as Record<string, object>;
-    const propertyKeys = Object.keys(properties);
-
-    const inputSchema: ToolInputSchema = {
-      type: jsonSchema.type || 'object',
-      title: jsonSchema.title || tool.name,
-      description: jsonSchema.description || tool.description || '',
-      properties,
-      // Azure OpenAI requires `required` to list every key in properties when present
-      required: propertyKeys,
-    };
-
-    return {
-      id: tool.name,
-      serverId: '',
-      serverName: '',
-      name: tool.name,
-      description: tool.description || '',
-      inputSchema,
-    };
-  });
-}
+// Constants for recursion control
+const MAX_TOOL_ITERATIONS = 25;
+// Formula: 2 * maxIterations + 1 (each iteration = LLM + tools nodes)
+const DEFAULT_RECURSION_LIMIT = 2 * MAX_TOOL_ITERATIONS + 1;
+// Max consecutive identical tool calls to detect infinite loops
+const MAX_IDENTICAL_TOOL_CALLS = 3;
 
 // Define a more specific type for the compiled graph
 type CompiledGraphApp = {
@@ -90,42 +67,38 @@ export class Agent extends BaseSkill {
     ...baseStateGraphArgs,
   };
 
-  commonPreprocess = async (
-    state: GraphState,
-    config: SkillRunnableConfig,
-    module: SkillPromptModule,
-    customInstructions?: string,
-  ) => {
-    const { query, messages = [], images = [] } = state;
-    const { locale = 'auto', preprocessResult } = config.configurable;
-    const { optimizedQuery, rewrittenQueries, context, sources, usedChatHistory } =
-      preprocessResult;
+  commonPreprocess = async (state: GraphState, config: SkillRunnableConfig) => {
+    const { messages = [], images = [] } = state;
+    const { preprocessResult, mode = 'node_agent' } = config.configurable;
+    const { optimizedQuery, context, sources, usedChatHistory } = preprocessResult;
+
+    const systemPrompt =
+      mode === 'copilot_agent'
+        ? buildWorkflowCopilotPrompt({
+            installedToolsets: config.configurable.installedToolsets ?? [],
+          })
+        : buildNodeAgentSystemPrompt();
+
+    const userPrompt = buildUserPrompt(optimizedQuery, context);
 
     const requestMessages = buildFinalRequestMessages({
-      module,
-      locale,
+      systemPrompt,
+      userPrompt,
       chatHistory: usedChatHistory,
       messages,
-      context,
       images,
-      originalQuery: query,
-      optimizedQuery,
-      rewrittenQueries,
       modelInfo: config?.configurable?.modelConfigMap.chat,
-      customInstructions,
     });
 
     return { requestMessages, sources };
   };
 
   private async initializeAgentComponents(
-    user: User,
+    _user: User,
     config?: SkillRunnableConfig,
   ): Promise<AgentComponents> {
-    const userId = user?.uid ?? user?.email ?? JSON.stringify(user);
     const { selectedTools = [] } = config?.configurable ?? {};
 
-    this.engine.logger.log(`Initializing new agent components for user ${userId}`);
     let actualToolNodeInstance: ToolNode<typeof MessagesAnnotation.State> | null = null;
     let availableToolsForNode: StructuredToolInterface[] = [];
 
@@ -140,7 +113,7 @@ export class Agent extends BaseSkill {
       );
 
       if (validTools.length > 0) {
-        this.engine.logger.log(
+        this.engine.logger.info(
           `Binding ${validTools.length} valid tools to LLM with tool_choice="auto"`,
         );
         // Use tool_choice="auto" to force LLM to decide when to use tools
@@ -153,7 +126,7 @@ export class Agent extends BaseSkill {
         llmForGraph = baseLlm;
       }
     } else {
-      this.engine.logger.log('No tools selected, using base LLM without tools');
+      this.engine.logger.info('No tools selected, using base LLM without tools');
       llmForGraph = baseLlm;
     }
 
@@ -161,17 +134,6 @@ export class Agent extends BaseSkill {
       try {
         // Use llmForGraph, which is the (potentially tool-bound) LLM instance for the graph
         const response = await llmForGraph.invoke(nodeState.messages);
-
-        this.engine.logger.log('LLM response received:', {
-          hasToolCalls: !!response.tool_calls,
-          toolCallsCount: response.tool_calls?.length || 0,
-          toolCalls: response.tool_calls,
-          content:
-            typeof response.content === 'string'
-              ? response.content.substring(0, 100)
-              : 'Non-string content',
-        });
-
         return { messages: [response] };
       } catch (error) {
         this.engine.logger.error(`LLM node execution failed: ${error.stack}`);
@@ -195,14 +157,14 @@ export class Agent extends BaseSkill {
       // Enhanced tool node with strict sequential execution of tool calls
       const enhancedToolNode = async (toolState: typeof MessagesAnnotation.State) => {
         try {
-          this.engine.logger.log('Executing tool node with strict sequential tool calls');
+          this.engine.logger.info('Executing tool node with strict sequential tool calls');
 
           const priorMessages = toolState.messages ?? [];
           const lastMessage = priorMessages[priorMessages.length - 1] as AIMessage | undefined;
           const toolCalls = lastMessage?.tool_calls ?? [];
 
           if (!toolCalls || toolCalls.length === 0) {
-            this.engine.logger.log('No tool calls to execute');
+            this.engine.logger.info('No tool calls to execute');
             return { messages: priorMessages };
           }
 
@@ -240,6 +202,11 @@ export class Agent extends BaseSkill {
             }
 
             try {
+              // Log tool arguments before invocation
+              this.engine.logger.info(
+                `Invoking tool '${toolName}' with args:\n${JSON.stringify(toolArgs, null, 2)}`,
+              );
+
               // Each invocation awaited to ensure strict serial execution
               const rawResult = await matchedTool.invoke(toolArgs);
               const stringified =
@@ -255,7 +222,7 @@ export class Agent extends BaseSkill {
                 }),
               );
 
-              this.engine.logger.log(`Tool '${toolName}' executed successfully`);
+              this.engine.logger.info(`Tool '${toolName}' executed successfully`);
             } catch (toolError) {
               const errMsg =
                 (toolError as Error)?.message ?? String(toolError ?? 'Unknown tool error');
@@ -282,6 +249,9 @@ export class Agent extends BaseSkill {
       // @ts-ignore - Suppressing persistent type error with addEdge and node name mismatch
       workflow = workflow.addEdge('tools', 'llm'); // Output of tools goes back to LLM
 
+      // Track tool call history for loop detection
+      let toolCallHistory: string[] = [];
+
       // addConditionalEdges does not return the graph instance, so no 'as typeof workflow' needed here
       // if the 'workflow' variable already has the correct comprehensive type.
       // @ts-ignore - Suppressing persistent type error with addConditionalEdges and node name mismatch
@@ -289,18 +259,43 @@ export class Agent extends BaseSkill {
         const lastMessage = graphState.messages[graphState.messages.length - 1] as AIMessage;
 
         if (lastMessage?.tool_calls && lastMessage?.tool_calls?.length > 0) {
-          this.engine.logger.log(
+          // Create a signature for the current tool calls to detect loops
+          const currentToolSignature = lastMessage.tool_calls
+            .map((tc) => `${tc?.name ?? ''}:${JSON.stringify(tc?.args ?? {})}`)
+            .sort()
+            .join('|');
+
+          // Check for repeated identical tool calls (potential infinite loop)
+          toolCallHistory.push(currentToolSignature);
+          const recentCalls = toolCallHistory.slice(-MAX_IDENTICAL_TOOL_CALLS);
+          const allIdentical =
+            recentCalls.length === MAX_IDENTICAL_TOOL_CALLS &&
+            recentCalls.every((call) => call === currentToolSignature);
+
+          if (allIdentical) {
+            this.engine.logger.warn(
+              `Detected ${MAX_IDENTICAL_TOOL_CALLS} identical consecutive tool calls, breaking potential infinite loop`,
+              { toolSignature: currentToolSignature },
+            );
+            // Reset history and route to END to prevent infinite loop
+            toolCallHistory = [];
+            return END;
+          }
+
+          this.engine.logger.info(
             `Tool calls detected (${lastMessage.tool_calls.length} calls), routing to tools node`,
-            { toolCalls: lastMessage.tool_calls },
+            { toolCalls: lastMessage.tool_calls, iterationCount: toolCallHistory.length },
           );
           return 'tools';
         }
 
-        this.engine.logger.log('No tool calls detected, routing to END');
+        this.engine.logger.info('No tool calls detected, routing to END');
+        // Reset tool call history when conversation ends naturally
+        toolCallHistory = [];
         return END;
       });
     } else {
-      this.engine.logger.log(
+      this.engine.logger.info(
         'No tools initialized or available. LLM output will directly go to END.',
       );
       // @ts-ignore - Suppressing persistent type error with addEdge and node name mismatch
@@ -316,7 +311,6 @@ export class Agent extends BaseSkill {
       toolsAvailable: selectedTools.length > 0,
     };
 
-    this.engine.logger.log(`Agent components initialized and cached for user ${userId}`);
     return components;
   }
 
@@ -325,45 +319,21 @@ export class Agent extends BaseSkill {
     config: SkillRunnableConfig,
   ): Promise<Partial<GraphState>> => {
     const { currentSkill, user } = config.configurable;
-    const { locale = 'auto' } = config.configurable;
-
-    const project = config.configurable?.project as
-      | { projectId: string; customInstructions?: string }
-      | undefined;
-    const customInstructions = project?.projectId ? project?.customInstructions : undefined;
-
     const { compiledLangGraphApp, toolsAvailable, tools } = await this.initializeAgentComponents(
       user,
       config,
     );
 
-    const module: SkillPromptModule = {
-      buildSystemPrompt: toolsAvailable
-        ? () => {
-            return buildSystemPrompt(convertToTools(tools), locale);
-          }
-        : commonQnA.buildCommonQnASystemPrompt,
-      buildContextUserPrompt: commonQnA.buildCommonQnAContextUserPrompt,
-      buildUserPrompt: commonQnA.buildCommonQnAUserPrompt,
-    };
-
-    const { requestMessages } = await this.commonPreprocess(
-      state,
-      config,
-      module,
-      customInstructions,
-    );
+    const { requestMessages } = await this.commonPreprocess(state, config);
 
     config.metadata.step = { name: 'answerQuestion' };
 
     try {
-      this.engine.logger.log('Starting agent execution with messages:', requestMessages.length);
-
       const result = await compiledLangGraphApp.invoke(
         { messages: requestMessages },
         {
           ...config,
-          recursionLimit: 20,
+          recursionLimit: DEFAULT_RECURSION_LIMIT,
           metadata: {
             ...config.metadata,
             ...currentSkill,
@@ -373,35 +343,37 @@ export class Agent extends BaseSkill {
         },
       );
 
-      this.engine.logger.log('Agent execution completed:', {
-        messagesCount: result.messages?.length || 0,
-        toolCallCount:
-          result.messages?.filter((msg) => (msg as AIMessage).tool_calls?.length > 0).length || 0,
-        toolsAvailable,
-        toolCount: tools?.length || 0,
-      });
+      this.engine.logger.info(
+        `Agent execution completed: ${JSON.stringify({
+          messagesCount: result.messages?.length || 0,
+          toolCallCount:
+            result.messages?.filter((msg) => (msg as AIMessage).tool_calls?.length > 0).length || 0,
+          toolsAvailable,
+          toolCount: tools?.length || 0,
+        })}`,
+      );
 
       return { messages: result.messages };
     } catch (error) {
-      this.engine.logger.error(`Agent execution failed: ${error.stack}`);
+      // Handle recursion limit error gracefully
+      if (error instanceof GraphRecursionError) {
+        this.engine.logger.warn(
+          `Agent reached recursion limit (${DEFAULT_RECURSION_LIMIT} steps, ~${MAX_TOOL_ITERATIONS} iterations). Returning partial result.`,
+        );
 
-      const errorMessage = new AIMessage(`
-I encountered technical difficulties while processing your request. Here's what happened:
+        // Create a message explaining the situation to the user
+        const limitReachedMessage = new AIMessage({
+          content:
+            'I apologize, but I have reached the maximum number of iterations while working on this task. ' +
+            'Here is a summary of what I was able to accomplish. ' +
+            'If you need further assistance, please try breaking down the task into smaller steps or provide more specific instructions.',
+        });
 
-**Error Details**: ${error.message}
+        return { messages: [limitReachedMessage] };
+      }
 
-**Next Steps**:
-1. Try rephrasing your request in simpler terms
-2. Break down complex tasks into smaller steps
-3. Try again - this might be a temporary issue
-4. Provide more context about what you're trying to achieve
-
-I'll do my best to help you find a solution!
-      `);
-
-      return { messages: [errorMessage] };
-    } finally {
-      this.engine.logger.log('Agent execution finished.');
+      // Re-throw other errors
+      throw error;
     }
   };
 

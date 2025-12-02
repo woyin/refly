@@ -1,4 +1,4 @@
-import { useEffect, useState, memo } from 'react';
+import { useEffect, useState, memo, useCallback } from 'react';
 import { Button, Dropdown, DropdownProps, MenuProps } from 'antd';
 import {
   IconPlayOutline,
@@ -8,6 +8,8 @@ import { More, Delete, Copy, Edit } from 'refly-icons';
 import { useTranslation } from 'react-i18next';
 import { useCanvasOperationStoreShallow } from '@refly/stores';
 import './index.scss';
+import { useDuplicateCanvas } from '@refly-packages/ai-workspace-common/hooks/use-duplicate-canvas';
+import { Spin } from '@refly-packages/ai-workspace-common/components/common/spin';
 
 interface CanvasActionDropdown {
   canvasId: string;
@@ -30,18 +32,27 @@ export const CanvasActionDropdown = memo((props: CanvasActionDropdown) => {
     updateShowStatus,
     handleUseCanvas,
     handleRemoveFromProject,
+    afterDelete,
     children,
     offset,
   } = props;
   const [popupVisible, setPopupVisible] = useState(false);
   const { t } = useTranslation();
-  const { openRenameModal, openDeleteModal, openDuplicateModal } = useCanvasOperationStoreShallow(
-    (state) => ({
-      openRenameModal: state.openRenameModal,
-      openDeleteModal: state.openDeleteModal,
-      openDuplicateModal: state.openDuplicateModal,
-    }),
-  );
+  const { openRenameModal, openDeleteModal } = useCanvasOperationStoreShallow((state) => ({
+    openRenameModal: state.openRenameModal,
+    openDeleteModal: state.openDeleteModal,
+  }));
+  const showRemix = false;
+
+  const { duplicateCanvas, loading: duplicateLoading } = useDuplicateCanvas();
+
+  const hideDropdown = useCallback(() => {
+    setPopupVisible(false);
+  }, [setPopupVisible]);
+
+  const handleDuplicate = useCallback(() => {
+    duplicateCanvas({ canvasId, title: canvasName, isCopy: true, onSuccess: hideDropdown });
+  }, [canvasId, canvasName, duplicateCanvas, hideDropdown]);
 
   const items: MenuProps['items'] = [
     handleUseCanvas && {
@@ -76,22 +87,27 @@ export const CanvasActionDropdown = memo((props: CanvasActionDropdown) => {
       ),
       key: 'rename',
     },
-    {
-      label: (
-        <div
-          className="flex items-center gap-1"
-          onClick={(e) => {
-            e.stopPropagation();
-            openDuplicateModal(canvasId, canvasName);
-            setPopupVisible(false);
-          }}
-        >
-          <Copy size={18} />
-          {t('canvas.toolbar.duplicate')}
-        </div>
-      ),
-      key: 'duplicate',
-    },
+    ...(showRemix
+      ? [
+          {
+            label: (
+              <div
+                className="flex items-center gap-1"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleDuplicate();
+                }}
+              >
+                <Copy size={18} />
+                {t('canvas.toolbar.duplicate')}
+                <Spin spinning={duplicateLoading} size="small" className="text-refly-text-3" />
+              </div>
+            ),
+            key: 'duplicate',
+            disabled: duplicateLoading,
+          },
+        ]
+      : []),
     handleRemoveFromProject && {
       label: (
         <div
@@ -114,7 +130,7 @@ export const CanvasActionDropdown = memo((props: CanvasActionDropdown) => {
           className="flex items-center text-refly-func-danger-default gap-1"
           onClick={(e) => {
             e.stopPropagation();
-            openDeleteModal(canvasId, canvasName);
+            openDeleteModal(canvasId, canvasName, afterDelete);
             setPopupVisible(false);
           }}
         >

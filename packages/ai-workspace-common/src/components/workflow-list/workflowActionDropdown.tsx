@@ -1,102 +1,105 @@
 import { memo, useState, useCallback } from 'react';
-import { Button, Dropdown, DropdownProps, MenuProps, message } from 'antd';
+import { Button, Dropdown, DropdownProps, MenuProps, message, Tooltip } from 'antd';
 import { More } from 'refly-icons';
 import { useTranslation } from 'react-i18next';
 import { useCanvasOperationStoreShallow } from '@refly/stores';
-import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
 import { getShareLink } from '@refly-packages/ai-workspace-common/utils/share';
 import { Spin } from '@refly-packages/ai-workspace-common/components/common/spin';
 import './index.scss';
 import { Canvas } from '@refly/openapi-schema';
+import { useDuplicateCanvas } from '@refly-packages/ai-workspace-common/hooks/use-duplicate-canvas';
 
 interface WorkflowActionDropdown {
   workflow: Canvas;
   children?: React.ReactNode;
   onRenameSuccess?: (workflow: Canvas) => void;
   onDeleteSuccess?: (workflow: Canvas) => void;
-  onShareSuccess?: () => void;
 }
 
 export const WorkflowActionDropdown = memo((props: WorkflowActionDropdown) => {
-  const { workflow, children, onRenameSuccess, onDeleteSuccess, onShareSuccess } = props;
+  const showRemix = false;
+  const { workflow, children, onRenameSuccess, onDeleteSuccess } = props;
   const { t } = useTranslation();
   const [popupVisible, setPopupVisible] = useState(false);
-  const [shareLoading, setShareLoading] = useState(false);
+  const [copyLinkLoading, setCopyLinkLoading] = useState(false);
+  const [copyTemplateLinkLoading, setCopyTemplateLinkLoading] = useState(false);
 
-  const { openRenameModal, openDeleteModal, openDuplicateModal } = useCanvasOperationStoreShallow(
-    (state) => ({
-      openRenameModal: state.openRenameModal,
-      openDeleteModal: state.openDeleteModal,
-      openDuplicateModal: state.openDuplicateModal,
-    }),
-  );
+  const { duplicateCanvas, loading: duplicateLoading } = useDuplicateCanvas();
+
+  const { openRenameModal, openDeleteModal } = useCanvasOperationStoreShallow((state) => ({
+    openRenameModal: state.openRenameModal,
+    openDeleteModal: state.openDeleteModal,
+  }));
 
   // Check if workflow is shared
   const isShared = workflow.shareRecord?.shareId;
 
-  // Handle share workflow
-  const handleShare = useCallback(async () => {
-    try {
-      setShareLoading(true);
-      const { data } = await getClient().createShare({
-        body: {
-          entityId: workflow.canvasId,
-          entityType: 'canvas',
-          allowDuplication: true,
-        },
-      });
+  // Get workflow app info directly from canvas
+  const workflowAppLink = workflow.workflowApp?.shareId
+    ? getShareLink('workflowApp', workflow.workflowApp.shareId)
+    : '';
+  const isTemplatePublished = !!workflow.workflowApp?.shareId;
 
-      if (data?.success) {
-        const shareLink = getShareLink('canvas', data.data?.shareId ?? '');
-        await navigator.clipboard.writeText(shareLink);
-        message.success(t('workflowList.shareSuccess', { title: workflow.title }));
-        onShareSuccess?.();
-      } else {
-        message.error(data?.errMsg || t('workflowList.shareFailed', { title: workflow.title }));
-      }
-    } catch (error) {
-      console.error('Failed to share workflow:', error);
-      message.error(t('workflowList.shareFailed', { title: workflow.title }));
-    } finally {
-      setShareLoading(false);
-    }
-    setPopupVisible(false);
-  }, [workflow, t, onShareSuccess]);
-
-  // Handle unshare workflow
-  const handleUnshare = useCallback(async () => {
+  // Handle copy link
+  const handleCopyLink = useCallback(async () => {
     try {
-      setShareLoading(true);
+      setCopyLinkLoading(true);
       const shareId = workflow.shareRecord?.shareId;
       if (!shareId) {
-        message.error(t('workflowList.unshareFailed', { title: workflow.title }));
+        message.error(t('workflowList.copyLinkFailed', { title: workflow.title }));
         return;
       }
 
-      const { data } = await getClient().deleteShare({
-        body: { shareId },
-      });
-
-      if (data?.success) {
-        message.success(t('workflowList.unshareSuccess', { title: workflow.title }));
-        onShareSuccess?.();
-      } else {
-        message.error(data?.errMsg || t('workflowList.unshareFailed', { title: workflow.title }));
-      }
+      const shareLink = getShareLink('canvas', shareId);
+      await navigator.clipboard.writeText(shareLink);
+      message.success(t('workflowList.copyLinkSuccess'));
     } catch (error) {
-      console.error('Failed to unshare workflow:', error);
-      message.error(t('workflowList.unshareFailed', { title: workflow.title }));
+      console.error('Failed to copy link:', error);
+      message.error(t('workflowList.copyLinkFailed', { title: workflow.title }));
     } finally {
-      setShareLoading(false);
+      setCopyLinkLoading(false);
     }
     setPopupVisible(false);
-  }, [workflow, t, onShareSuccess]);
+  }, [workflow, t]);
+
+  // Handle copy template link
+  const handleCopyTemplateLink = useCallback(async () => {
+    try {
+      setCopyTemplateLinkLoading(true);
+      if (!workflowAppLink) {
+        message.error(t('workflowList.templateLinkFailed', { title: workflow.title }));
+        return;
+      }
+
+      await navigator.clipboard.writeText(workflowAppLink);
+      message.success(t('workflowList.templateLinkCopied'));
+    } catch (error) {
+      console.error('Failed to copy template link:', error);
+      message.error(t('workflowList.templateLinkFailed', { title: workflow.title }));
+    } finally {
+      setCopyTemplateLinkLoading(false);
+    }
+    setPopupVisible(false);
+  }, [workflowAppLink, workflow.title, t]);
+
+  const hideDropdown = useCallback(() => {
+    setPopupVisible(false);
+  }, [setPopupVisible]);
+
+  const handleDuplicate = useCallback(() => {
+    duplicateCanvas({
+      canvasId: workflow.canvasId,
+      title: workflow.title,
+      isCopy: true,
+      onSuccess: hideDropdown,
+    });
+  }, [workflow.canvasId, workflow.title, duplicateCanvas, hideDropdown]);
 
   const items: MenuProps['items'] = [
     {
       label: (
         <div
-          className="flex items-center gap-1 w-28"
+          className="flex items-center gap-1 min-w-28"
           onClick={(e) => {
             e.stopPropagation();
             openRenameModal(workflow.canvasId, workflow.title, onRenameSuccess);
@@ -108,60 +111,75 @@ export const WorkflowActionDropdown = memo((props: WorkflowActionDropdown) => {
       ),
       key: 'rename',
     },
-    {
-      label: (
-        <div
-          className="flex items-center gap-1 w-28"
-          onClick={(e) => {
-            e.stopPropagation();
-            openDuplicateModal(workflow.canvasId, workflow.title);
-            setPopupVisible(false);
-          }}
-        >
-          {t('canvas.toolbar.duplicate')}
-        </div>
-      ),
-      key: 'duplicate',
-    },
-    ...(isShared
+    ...(showRemix
       ? [
           {
             label: (
               <div
-                className="flex items-center gap-1 w-28"
+                className="flex items-center gap-1 min-w-28"
                 onClick={(e) => {
                   e.stopPropagation();
-                  handleUnshare();
+                  handleDuplicate();
                 }}
               >
-                <Spin spinning={shareLoading} size="small" className="text-refly-text-3" />
-                {t('workflowList.unshare')}
+                {t('canvas.toolbar.duplicate')}
+                <Spin spinning={duplicateLoading} size="small" className="text-refly-text-3" />
               </div>
             ),
-            key: 'unshare',
+            key: 'duplicate',
+            disabled: duplicateLoading,
           },
-        ]
-      : [
           {
             label: (
-              <div
-                className="flex items-center gap-1 w-28"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleShare();
-                }}
+              <Tooltip
+                title={!isShared ? t('workflowList.copyLinkTooltip') : undefined}
+                placement="right"
               >
-                <Spin spinning={shareLoading} size="small" className="text-refly-text-3" />
-                {t('workflowList.share')}
-              </div>
+                <div
+                  className={`flex items-center gap-1 min-w-28 ${!isShared ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (!isShared) return;
+                    handleCopyLink();
+                  }}
+                >
+                  <Spin spinning={copyLinkLoading} size="small" className="text-refly-text-3" />
+                  {t('workflowList.copyLink')}
+                </div>
+              </Tooltip>
             ),
-            key: 'share',
+            key: 'copyLink',
+            disabled: !isShared || copyLinkLoading,
           },
-        ]),
+        ]
+      : []),
+
+    {
+      label: (
+        <Tooltip
+          title={!isTemplatePublished ? t('workflowList.templateNotPublishedTooltip') : undefined}
+          placement="right"
+        >
+          <div
+            className={`flex items-center gap-1 min-w-28 ${!isTemplatePublished ? 'opacity-50 cursor-not-allowed' : ''}`}
+            onClick={(e) => {
+              e.stopPropagation();
+              if (!isTemplatePublished) return;
+              handleCopyTemplateLink();
+            }}
+          >
+            <Spin spinning={copyTemplateLinkLoading} size="small" className="text-refly-text-3" />
+            {t('workflowList.templateLink')}
+          </div>
+        </Tooltip>
+      ),
+      key: 'copyTemplateLink',
+      disabled: !isTemplatePublished || copyTemplateLinkLoading,
+    },
     {
       label: (
         <div
-          className="flex items-center text-refly-func-danger-default gap-1 w-28"
+          className="flex items-center text-refly-func-danger-default gap-1 min-w-28"
           onClick={(e) => {
             e.stopPropagation();
             openDeleteModal(workflow.canvasId, workflow.title, onDeleteSuccess);

@@ -312,6 +312,22 @@ export class WorkflowAppNotFoundError extends BaseError {
   };
 }
 
+export class CopilotSessionNotFoundError extends BaseError {
+  code = 'E1023';
+  messageDict = {
+    en: 'Copilot session not found, please refresh',
+    'zh-CN': 'Copilot 会话不存在，请刷新重试',
+  };
+}
+
+export class DriveFileNotFoundError extends BaseError {
+  code = 'E1024';
+  messageDict = {
+    en: 'Drive file not found, please refresh',
+    'zh-CN': '云盘文件不存在，请刷新重试',
+  };
+}
+
 export class StorageQuotaExceeded extends BaseError {
   code = 'E2001';
   messageDict = {
@@ -433,6 +449,8 @@ const errorMap = {
   E1020: ToolsetNotFoundError,
   E1021: WorkflowExecutionNotFoundError,
   E1022: WorkflowAppNotFoundError,
+  E1023: CopilotSessionNotFoundError,
+  E1024: DriveFileNotFoundError,
   E2001: StorageQuotaExceeded,
   E2002: ModelUsageQuotaExceeded,
   E2003: ModelNotSupportedError,

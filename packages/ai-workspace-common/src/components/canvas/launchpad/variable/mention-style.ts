@@ -11,8 +11,7 @@ export const mentionStyles = `
     padding: 0;
     margin: 0;
     resize: none;
-    min-height: 2.5rem;
-    max-height: 12rem;
+    height: 100%;
     overflow-y: auto;
   }
 
@@ -44,7 +43,6 @@ export const mentionStyles = `
   }
   
   [data-cy="rich-chat-input"] .mention {
-    background-color: var(--refly-tertiary-default);
     border-radius: 4px;
     padding: 2px 4px 2px;
     border: 1px solid var(--refly-Card-Border);

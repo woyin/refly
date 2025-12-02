@@ -1,4 +1,4 @@
-import { IconError, IconLoading } from '@refly-packages/ai-workspace-common/components/common/icon';
+import { ArrowDown, Cancelled } from 'refly-icons';
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
 import {
   cleanupNodeEvents,
@@ -6,130 +6,184 @@ import {
   nodeActionEmitter,
 } from '@refly-packages/ai-workspace-common/events/nodeActions';
 import { useAddNode } from '@refly-packages/ai-workspace-common/hooks/canvas/use-add-node';
-import { useAddToContext } from '@refly-packages/ai-workspace-common/hooks/canvas/use-add-to-context';
-import { useCreateDocument } from '@refly-packages/ai-workspace-common/hooks/canvas/use-create-document';
 import { useDeleteNode } from '@refly-packages/ai-workspace-common/hooks/canvas/use-delete-node';
-import { useInsertToDocument } from '@refly-packages/ai-workspace-common/hooks/canvas/use-insert-to-document';
+import { useDuplicateNode } from '@refly-packages/ai-workspace-common/hooks/canvas/use-duplicate-node';
+import { useSkillResponseActions } from '@refly-packages/ai-workspace-common/hooks/canvas/use-skill-response-actions';
 import { useInvokeAction } from '@refly-packages/ai-workspace-common/hooks/canvas/use-invoke-action';
-import { useNodeHoverEffect } from '@refly-packages/ai-workspace-common/hooks/canvas/use-node-hover';
-import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
-import { time } from '@refly-packages/ai-workspace-common/utils/time';
 import { CanvasNode, purgeToolsets } from '@refly/canvas-common';
-import { LOCALE } from '@refly/common-types';
 import { CanvasNodeType } from '@refly/openapi-schema';
 import { useActionResultStore, useActionResultStoreShallow } from '@refly/stores';
-import { genSkillID } from '@refly/utils/id';
+import { genNodeEntityId } from '@refly/utils/id';
 import { Position, useReactFlow } from '@xyflow/react';
-import type { InputRef } from 'antd';
-import { Input, message } from 'antd';
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { message, Typography } from 'antd';
+import { memo, useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { CustomHandle } from './shared/custom-handle';
 import { getNodeCommonStyles } from './shared/styles';
 import { SkillResponseNodeProps } from './shared/types';
 
-import { ModelIcon } from '@lobehub/icons';
 import { NodeDragCreateInfo } from '@refly-packages/ai-workspace-common/events/nodeOperations';
 import {
   useNodeData,
   useNodeExecutionFocus,
-  useNodeExecutionStatus,
 } from '@refly-packages/ai-workspace-common/hooks/canvas';
 import { useActionPolling } from '@refly-packages/ai-workspace-common/hooks/canvas/use-action-polling';
 import { useGetNodeConnectFromDragCreateInfo } from '@refly-packages/ai-workspace-common/hooks/canvas/use-get-node-connect';
 import { useSelectedNodeZIndex } from '@refly-packages/ai-workspace-common/hooks/canvas/use-selected-node-zIndex';
 import { usePilotRecovery } from '@refly-packages/ai-workspace-common/hooks/pilot/use-pilot-recovery';
-import { useSkillError } from '@refly-packages/ai-workspace-common/hooks/use-skill-error';
-import { useUpdateNodeTitle } from '@refly-packages/ai-workspace-common/hooks/use-update-node-title';
-import { useGetPilotSessionDetail } from '@refly-packages/ai-workspace-common/queries/queries';
 import {
-  processContentPreview,
-  truncateContent,
-} from '@refly-packages/ai-workspace-common/utils/content';
-import { usePilotStoreShallow } from '@refly/stores';
+  useGetCreditUsageByResultId,
+  useGetPilotSessionDetail,
+} from '@refly-packages/ai-workspace-common/queries/queries';
+import { processContentPreview } from '@refly-packages/ai-workspace-common/utils/content';
+import {
+  usePilotStoreShallow,
+  useCanvasNodesStoreShallow,
+  useCanvasStoreShallow,
+} from '@refly/stores';
 import cn from 'classnames';
-import { NodeActionButtons } from './shared/node-action-buttons';
-import { NodeExecutionStatus } from './shared/node-execution-status';
 
-import { MultimodalContentPreview } from '@refly-packages/ai-workspace-common/components/canvas/nodes/shared/multimodal-content-preview';
-import { NodeIcon } from '@refly-packages/ai-workspace-common/components/canvas/nodes/shared/node-icon';
+import { SkillResponseContentPreview } from '@refly-packages/ai-workspace-common/components/canvas/nodes/shared/skill-response-content-preview';
+import { SkillResponseNodeHeader } from '@refly-packages/ai-workspace-common/components/canvas/nodes/shared/skill-response-node-header';
 import { logEvent } from '@refly/telemetry-web';
-import { removeToolUseTags } from '@refly-packages/ai-workspace-common/utils';
+import { SkillResponseActions } from '@refly-packages/ai-workspace-common/components/canvas/nodes/shared/skill-response-actions';
+import { Subscription } from 'refly-icons';
+import { IoCheckmarkCircle } from 'react-icons/io5';
+import './shared/executing-glow-effect.scss';
+import { useNodeHoverEffect } from '@refly-packages/ai-workspace-common/hooks/canvas/use-node-hover';
+import { useConnection } from '@xyflow/react';
+import { processQueryWithMentions } from '@refly/utils/query-processor';
+import { useVariablesManagement } from '@refly-packages/ai-workspace-common/hooks/use-variables-management';
+
+const { Paragraph } = Typography;
 
 const NODE_WIDTH = 320;
-const NODE_SIDE_CONFIG = { width: NODE_WIDTH, height: 'auto', maxHeight: 214 };
+const NODE_SIDE_CONFIG = { width: NODE_WIDTH, height: 'auto', maxHeight: 300 };
 
-export const NodeHeader = memo(
+const NodeStatusBar = memo(
   ({
-    query,
-    disabled,
-    showIcon,
-    updateTitle,
-    source,
+    resultId,
+    status,
+    errorType,
+    executionTime,
+    errors,
+    version,
   }: {
-    query: string;
-    disabled: boolean;
-    showIcon?: boolean;
-    updateTitle: (title: string) => void;
-    className?: string;
-    source?: string;
+    resultId: string;
+    status: string;
+    errorType?: string;
+    executionTime?: number;
+    errors?: string[];
+    version?: number;
   }) => {
+    // Query credit usage when skill is completed
+    const { data: creditUsage } = useGetCreditUsageByResultId(
+      {
+        query: {
+          resultId: resultId ?? '',
+          version: version?.toString(),
+        },
+      },
+      undefined,
+      {
+        enabled: (status === 'finish' || status === 'failed') && !!resultId,
+      },
+    );
     const { t } = useTranslation();
-    const [editTitle, setEditTitle] = useState(query);
-    const inputRef = useRef<InputRef>(null);
-    const [isEditing, setIsEditing] = useState(false);
+    const [isExpanded, setIsExpanded] = useState(false);
 
-    useEffect(() => {
-      setEditTitle(query);
-    }, [query]);
+    // Default to systemError if undefined
+    const effectiveErrorType = errorType || 'systemError';
+    const isUserAbort = effectiveErrorType === 'userAbort';
 
-    useEffect(() => {
-      if (isEditing && inputRef.current) {
-        inputRef.current.focus();
+    const getStatusIcon = () => {
+      switch (status) {
+        case 'finish':
+          return <IoCheckmarkCircle className="w-3 h-3 text-green-500" />;
+        case 'failed':
+          return <Cancelled color="red" className="w-3 h-3" />;
+        case 'executing':
+        case 'waiting':
+          return <div className="w-3 h-3 rounded-full bg-blue-500 animate-pulse" />;
+        default:
+          return null;
       }
-    }, [isEditing]);
-
-    const handleBlur = () => {
-      setIsEditing(false);
     };
 
-    const handleChange = useCallback(
-      (e: React.ChangeEvent<HTMLInputElement>) => {
-        setEditTitle(e.target.value);
-        updateTitle(e.target.value);
-      },
-      [setEditTitle, updateTitle],
-    );
+    const statusText = useMemo<string>(() => {
+      return t(`canvas.skillResponse.status.${status}`);
+    }, [status, t]);
+
+    if (status === 'waiting' || status === 'executing') {
+      return null;
+    }
+
+    const hasErrors = status === 'failed' && errors && errors.length > 0;
 
     return (
-      <div
-        data-cy="skill-response-node-header"
-        className={`flex-shrink-0 w-full ${source === 'skillResponsePreview' ? 'mb-0' : 'mb-3'}`}
-      >
-        <div className="flex items-center gap-2">
-          {showIcon && <NodeIcon type="skillResponse" />}
-          {isEditing ? (
-            <Input
-              ref={inputRef}
-              className={`${
-                source === 'skillResponsePreview' ? 'text-lg' : ''
-              } !border-transparent rounded-md font-bold focus:!bg-refly-tertiary-hover px-0.5 py-0 !bg-refly-tertiary-hover !text-refly-text-0`}
-              value={editTitle}
-              data-cy="skill-response-node-header-input"
-              onBlur={handleBlur}
-              onChange={handleChange}
-            />
-          ) : (
-            <div
-              className={`flex-1 rounded-md h-6 px-0.5 box-border font-bold leading-6 truncate block hover:bg-refly-tertiary-hover ${
-                source === 'skillResponsePreview' ? 'text-lg' : 'text-sm'
-              }`}
-              title={editTitle}
-              onClick={() => {
-                !disabled && setIsEditing(true);
-              }}
-            >
-              {editTitle || t('common.untitled')}
+      <div className="flex flex-col mt-2 w-full">
+        <div
+          className={`px-2 py-1 border-[0.5px] border-solid border-refly-Card-Border rounded-2xl bg-refly-bg-body-z0 ${hasErrors ? 'cursor-pointer' : ''}`}
+          onClick={() => hasErrors && setIsExpanded(!isExpanded)}
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-1 flex-1 min-w-0">
+              {getStatusIcon()}
+              <span className="text-xs text-refly-text-1 leading-4">{statusText}</span>
+            </div>
+
+            <div className="flex items-center gap-3 text-xs text-gray-500 dark:text-gray-500 flex-shrink-0">
+              {creditUsage?.data?.total !== undefined && (
+                <div className="flex items-center gap-1">
+                  <Subscription className="w-3 h-3" />
+                  <span>{creditUsage?.data?.total}</span>
+                </div>
+              )}
+
+              {executionTime !== undefined && (
+                <div className="flex items-center gap-1">
+                  <span>{executionTime}s</span>
+                </div>
+              )}
+
+              {hasErrors && (
+                <ArrowDown
+                  size={12}
+                  className={cn('transition-transform', isExpanded ? 'rotate-180' : '')}
+                />
+              )}
+            </div>
+          </div>
+          {hasErrors && isExpanded && (
+            <div className="min-w-0 mt-[10px] mb-1">
+              {status === 'failed' && isUserAbort ? (
+                <Paragraph
+                  className="!m-0 !p-0 text-refly-func-danger-default text-xs leading-4"
+                  ellipsis={{
+                    rows: 8,
+                    tooltip: (
+                      <div className="max-h-[300px] overflow-y-auto">
+                        {t('canvas.skillResponse.userAbort.description')}
+                      </div>
+                    ),
+                  }}
+                >
+                  {t('canvas.skillResponse.userAbort.description')}
+                </Paragraph>
+              ) : (
+                errors?.map((error, index) => (
+                  <Paragraph
+                    key={index}
+                    className="!m-0 !p-0 text-refly-func-danger-default text-xs leading-4"
+                    ellipsis={{
+                      rows: 8,
+                      tooltip: <div className="max-h-[300px] overflow-y-auto">{error}</div>,
+                    }}
+                  >
+                    {error}
+                  </Paragraph>
+                ))
+              )}
             </div>
           )}
         </div>
@@ -138,66 +192,51 @@ export const NodeHeader = memo(
   },
 );
 
-const NodeFooter = memo(
-  ({
-    model,
-    modelInfo,
-    createdAt,
-    language,
-  }: {
-    model: string;
-    modelInfo: any;
-    createdAt: string;
-    language: string;
-    resultId?: string;
-  }) => {
-    return (
-      <div className="flex-shrink-0 mt-2 flex flex-wrap justify-between items-center text-[10px] text-gray-400 relative z-20 gap-1 dark:text-gray-500 w-full">
-        <div className="flex flex-wrap items-center gap-1 max-w-[70%]">
-          {model && (
-            <div className="flex items-center gap-1 overflow-hidden">
-              <ModelIcon model={modelInfo?.name} size={16} type={'color'} />
-              <span className="truncate">{model}</span>
-            </div>
-          )}
-        </div>
-        <div className="flex-shrink-0">
-          {time(createdAt, language as LOCALE)
-            ?.utc()
-            ?.fromNow()}
-        </div>
-      </div>
-    );
-  },
-  (prevProps, nextProps) => {
-    return (
-      prevProps.model === nextProps.model &&
-      prevProps.createdAt === nextProps.createdAt &&
-      prevProps.language === nextProps.language &&
-      JSON.stringify(prevProps.modelInfo) === JSON.stringify(nextProps.modelInfo)
-    );
-  },
-);
-
-NodeFooter.displayName = 'NodeFooter';
+NodeStatusBar.displayName = 'NodeStatusBar';
 
 export const SkillResponseNode = memo(
-  ({
-    data,
-    selected,
-    id,
-    isPreview = false,
-    hideHandles = false,
-    onNodeClick,
-  }: SkillResponseNodeProps) => {
+  ({ data, id, isPreview = false, hideHandles = false, onNodeClick }: SkillResponseNodeProps) => {
     const [isHovered, setIsHovered] = useState(false);
+    const { readonly, canvasId } = useCanvasContext();
+
+    const { nodePreviewId } = useCanvasStoreShallow((state) => ({
+      nodePreviewId: state.config[canvasId]?.nodePreviewId,
+    }));
+    const selected = useMemo(() => {
+      return nodePreviewId === id;
+    }, [nodePreviewId, id]);
+
+    const { highlightedNodeId } = useCanvasNodesStoreShallow((state) => ({
+      highlightedNodeId: state.highlightedNodeId,
+    }));
+
+    const shouldHighlight = highlightedNodeId === id;
+
+    const connection = useConnection();
+    const isConnectingTarget = useMemo(
+      () =>
+        connection?.inProgress &&
+        connection?.fromNode?.id !== id &&
+        (connection?.toNode?.id === id || isHovered),
+      [connection, id, isHovered],
+    );
     useSelectedNodeZIndex(id, selected);
 
     const { setNodeData, setNodeStyle } = useNodeData();
-    const { getEdges } = useReactFlow();
-    const updateNodeTitle = useUpdateNodeTitle();
+    const { getEdges, setEdges } = useReactFlow();
+
     const { handleMouseEnter: onHoverStart, handleMouseLeave: onHoverEnd } = useNodeHoverEffect(id);
-    const { readonly, canvasId } = useCanvasContext();
+
+    // Handle node hover events
+    const handleMouseEnter = useCallback(() => {
+      setIsHovered(true);
+      onHoverStart();
+    }, [onHoverStart]);
+
+    const handleMouseLeave = useCallback(() => {
+      setIsHovered(false);
+      onHoverEnd();
+    }, [onHoverEnd]);
 
     // Get current pilot session info
     const activeSessionId = usePilotStoreShallow(
@@ -215,11 +254,8 @@ export const SkillResponseNode = memo(
       },
     );
 
-    // Get node execution status
-    const { status: executionStatus, isExecuting } = useNodeExecutionStatus({
-      canvasId: canvasId || '',
-      nodeId: id,
-    });
+    const isExecuting =
+      data.metadata?.status === 'executing' || data.metadata?.status === 'waiting';
 
     // Auto-focus on node when executing
     useNodeExecutionFocus({
@@ -232,18 +268,9 @@ export const SkillResponseNode = memo(
       [isPreview],
     );
 
-    const { t, i18n } = useTranslation();
-    const language = i18n.languages?.[0];
+    const { t } = useTranslation();
 
-    const {
-      title,
-      editedTitle,
-      contentPreview: content,
-      metadata,
-      createdAt,
-      entityId,
-    } = data ?? {};
-    const { errMsg } = useSkillError(metadata?.errors?.[0]);
+    const { title, metadata, entityId } = data ?? {};
 
     // Find current node's corresponding pilot step
     const currentPilotStep = useMemo(() => {
@@ -253,25 +280,26 @@ export const SkillResponseNode = memo(
     }, [sessionData, entityId]);
 
     const { getConnectionInfo } = useGetNodeConnectFromDragCreateInfo();
+    const { data: variables } = useVariablesManagement(canvasId);
 
-    const {
-      status,
-      currentLog: log,
-      modelInfo,
-      structuredData,
-      selectedSkill,
-      actionMeta,
-      version,
-      shareId,
-    } = metadata ?? {};
+    const { status, errorType, selectedSkill, actionMeta, version, shareId } = metadata ?? {};
     const currentSkill = actionMeta || selectedSkill;
 
     const { startPolling, resetFailedState } = useActionPolling();
-    const { result, isStreaming, removeStreamResult } = useActionResultStoreShallow((state) => ({
-      result: state.resultMap[entityId],
-      isStreaming: !!state.streamResults[entityId],
-      removeStreamResult: state.removeStreamResult,
-    }));
+    const { result, isStreaming, removeStreamResult, removeActionResult } =
+      useActionResultStoreShallow((state) => ({
+        result: state.resultMap[entityId],
+        isStreaming: !!state.streamResults[entityId],
+        removeStreamResult: state.removeStreamResult,
+        removeActionResult: state.removeActionResult,
+      }));
+    // Get skill response actions
+    const { workflowIsRunning, handleRerunSingle, handleRerunFromHere, handleStop } =
+      useSkillResponseActions({
+        nodeId: id,
+        entityId: data.entityId,
+        canvasId,
+      });
 
     // Sync node status with action result status
     useEffect(() => {
@@ -282,19 +310,38 @@ export const SkillResponseNode = memo(
 
       const needsStatusUpdate = result.status !== data.metadata?.status;
       const needsPreviewUpdate = nodePreview !== resultPreview;
+      const needsVersionUpdate =
+        result.version !== undefined && result.version !== data.metadata?.version;
 
-      if (needsStatusUpdate || needsPreviewUpdate) {
-        setNodeData(id, {
-          ...data,
-          ...(needsStatusUpdate && {
-            metadata: { ...data.metadata, status: result.status },
-          }),
-          ...(needsPreviewUpdate && {
-            contentPreview: resultPreview,
-          }),
-        });
+      if (needsStatusUpdate || needsPreviewUpdate || needsVersionUpdate) {
+        const updates: any = { ...data };
+
+        // Update metadata if needed
+        if (needsStatusUpdate || needsVersionUpdate) {
+          updates.metadata = {
+            ...data.metadata,
+            ...(needsStatusUpdate && { status: result.status }),
+            ...(needsVersionUpdate && { version: result.version }),
+          };
+        }
+
+        // Update content preview if needed
+        if (needsPreviewUpdate) {
+          updates.contentPreview = resultPreview;
+        }
+
+        setNodeData(id, updates);
       }
     }, [result, data, id, setNodeData]);
+
+    useEffect(() => {
+      if (data?.editedTitle) {
+        setNodeData(id, {
+          title: data?.editedTitle,
+          editedTitle: null,
+        });
+      }
+    }, [id, data?.editedTitle]);
 
     // Use pilot recovery hook for pilot steps
     const { recoverSteps } = usePilotRecovery({
@@ -305,6 +352,9 @@ export const SkillResponseNode = memo(
     useEffect(() => {
       if (!isStreaming) {
         if (['executing', 'waiting'].includes(status) && !shareId) {
+          // Reset failed state and start polling for new execution
+          resetFailedState(entityId);
+          removeActionResult(entityId);
           startPolling(entityId, version);
         }
       } else {
@@ -323,7 +373,16 @@ export const SkillResponseNode = memo(
           return () => clearTimeout(timeoutId);
         }
       }
-    }, [isStreaming, status, startPolling, entityId, shareId, version, removeStreamResult]);
+    }, [
+      isStreaming,
+      status,
+      startPolling,
+      resetFailedState,
+      entityId,
+      shareId,
+      version,
+      removeStreamResult,
+    ]);
 
     // Listen to pilot step status changes and sync with node status
     useEffect(() => {
@@ -342,47 +401,15 @@ export const SkillResponseNode = memo(
       }
     }, [currentPilotStep?.status, data, id, setNodeData]);
 
-    const sources = Array.isArray(structuredData?.sources) ? structuredData?.sources : [];
-
-    const logTitle = log
-      ? t(`${log.key}.title`, {
-          ...log.titleArgs,
-          ns: 'skillLog',
-          defaultValue: log.key,
-        })
-      : '';
-    const logDescription = log
-      ? t(`${log.key}.description`, {
-          ...log.descriptionArgs,
-          ns: 'skillLog',
-          defaultValue: '',
-        })
-      : '';
-
     const skill = {
       name: currentSkill?.name || 'commonQnA',
       icon: currentSkill?.icon,
     };
-    const model = modelInfo?.label;
-
-    // Get query and response content from result
-    const query = editedTitle || title;
 
     // Check if node has any connections
     const edges = getEdges();
     const isTargetConnected = edges?.some((edge) => edge.target === id);
     const isSourceConnected = edges?.some((edge) => edge.source === id);
-
-    // Handle node hover events
-    const handleMouseEnter = useCallback(() => {
-      setIsHovered(true);
-      onHoverStart();
-    }, [onHoverStart]);
-
-    const handleMouseLeave = useCallback(() => {
-      setIsHovered(false);
-      onHoverEnd();
-    }, [onHoverEnd]);
 
     const { invokeAction } = useInvokeAction({ source: 'skill-response-node' });
 
@@ -440,23 +467,29 @@ export const SkillResponseNode = memo(
       const nextVersion = (data?.metadata?.version || 0) + 1;
 
       setNodeData(id, {
-        ...data,
         contentPreview: '',
         metadata: {
-          ...data?.metadata,
           status: 'waiting',
           version: nextVersion,
         },
       });
 
+      const query = data?.metadata?.query ?? '';
+      const { processedQuery } = processQueryWithMentions(query, {
+        replaceVars: true,
+        variables,
+      });
+
       invokeAction(
         {
+          nodeId: id,
+          title: title ?? query,
           resultId: entityId,
-          query: title,
-          selectedSkill: skill,
+          query: processedQuery,
           contextItems: data?.metadata?.contextItems,
           selectedToolsets: purgeToolsets(data?.metadata?.selectedToolsets),
           version: nextVersion,
+          modelInfo: data?.metadata?.modelInfo,
         },
         {
           entityType: 'canvas',
@@ -464,16 +497,17 @@ export const SkillResponseNode = memo(
         },
       );
     }, [
-      data,
+      data?.metadata,
       entityId,
       canvasId,
-      id,
       title,
+      id,
       invokeAction,
       setNodeData,
       resetFailedState,
       setNodeStyle,
       skill,
+      variables,
       t,
     ]);
 
@@ -512,15 +546,8 @@ export const SkillResponseNode = memo(
       id,
     ]);
 
-    const insertToDoc = useInsertToDocument(entityId);
-    const handleInsertToDoc = useCallback(
-      async (content: string) => {
-        await insertToDoc('insertBelow', content);
-      },
-      [insertToDoc],
-    );
-
     const { deleteNode } = useDeleteNode();
+    const { duplicateNode } = useDuplicateNode();
 
     const handleDelete = useCallback(() => {
       logEvent('delete_node_ask_ai', null, {
@@ -536,71 +563,17 @@ export const SkillResponseNode = memo(
       } as CanvasNode);
     }, [id, data, deleteNode, canvasId]);
 
-    const { debouncedCreateDocument } = useCreateDocument();
-
-    const handleCreateDocument = useCallback(
-      async (event?: {
-        dragCreateInfo?: NodeDragCreateInfo;
-      }) => {
-        try {
-          // Fetch complete action result from server to get full content
-          const { data, error } = await getClient().getActionResult({
-            query: { resultId: entityId },
-          });
-
-          if (error || !data?.success) {
-            message.error(t('canvas.skillResponse.fetchContentFailed'));
-            return;
-          }
-
-          // Extract full content from all steps and remove tool_use tags
-          const fullContent = removeToolUseTags(
-            (data.data?.steps || [])
-              ?.map((step) => step?.content || '')
-              .filter(Boolean)
-              .join('\n\n')
-              .trim(),
-          )?.trim();
-
-          const { position, connectTo } = getConnectionInfo(
-            { entityId, type: 'skillResponse' },
-            event?.dragCreateInfo,
-          );
-
-          // Create document with full content
-          await debouncedCreateDocument(title ?? '', fullContent || content, {
-            sourceNodeId: connectTo.find((c) => c.handleType === 'source')?.entityId,
-            targetNodeId: connectTo.find((c) => c.handleType === 'target')?.entityId,
-            position,
-            addToCanvas: true,
-            sourceType: 'skillResponse',
-          });
-        } catch (err) {
-          console.error('Failed to create document:', err);
-          message.error(t('canvas.skillResponse.createDocumentFailed'));
-        } finally {
-          nodeActionEmitter.emit(createNodeEventName(id, 'createDocument.completed'));
-        }
-      },
-      [debouncedCreateDocument, entityId, title, content, t, id, getConnectionInfo],
-    );
-
-    const { addToContext } = useAddToContext();
-
-    const handleAddToContext = useCallback(() => {
-      logEvent('add_to_context_ask_ai', null, {
+    const handleDuplicate = useCallback(() => {
+      duplicateNode(
+        {
+          id,
+          type: 'skillResponse',
+          data,
+          position: { x: 0, y: 0 },
+        } as CanvasNode,
         canvasId,
-        entityId,
-        nodeId: id,
-      });
-
-      addToContext({
-        type: 'skillResponse',
-        title: title,
-        entityId: entityId,
-        metadata: data?.metadata,
-      });
-    }, [data, entityId, title, addToContext, canvasId, id]);
+      );
+    }, [id, data, canvasId, duplicateNode]);
 
     const { addNode } = useAddNode();
 
@@ -609,13 +582,7 @@ export const SkillResponseNode = memo(
         dragCreateInfo?: NodeDragCreateInfo;
       }) => {
         const { metadata } = data;
-        const {
-          selectedSkill,
-          actionMeta,
-          modelInfo,
-          // contextItems: responseContextItems = [],
-          tplConfig,
-        } = metadata;
+        const { selectedSkill, actionMeta, modelInfo } = metadata;
 
         const currentSkill = actionMeta || selectedSkill;
 
@@ -629,25 +596,11 @@ export const SkillResponseNode = memo(
               withHistory: true,
             },
           },
-          // // Include the original context items from the response
-          // ...responseContextItems.map((item) => ({
-          //   ...item,
-          //   metadata: {
-          //     ...item.metadata,
-          //     withHistory: undefined,
-          //   },
-          // })),
         ];
 
         // Create node connect filters - include both the response and its context items
         const connectFilters = [
           { type: 'skillResponse' as CanvasNodeType, entityId: data.entityId },
-          // ...responseContextItems
-          //   .filter((item) => item.type !== 'skillResponse')
-          //   .map((item) => ({
-          //     type: item.type as CanvasNodeType,
-          //     entityId: item.entityId,
-          //   })),
         ];
 
         const { position, connectTo } = getConnectionInfo(
@@ -663,77 +616,29 @@ export const SkillResponseNode = memo(
         setTimeout(() => {
           addNode(
             {
-              type: 'skill',
+              type: 'skillResponse',
               data: {
-                title: 'Skill',
-                entityId: genSkillID(),
+                title: '',
+                entityId: genNodeEntityId('skillResponse') as string,
                 metadata: {
                   ...metadata,
                   query: '',
                   contextItems: mergedContextItems,
                   selectedSkill: currentSkill,
                   modelInfo,
-                  tplConfig,
+                  status: 'init',
                 },
               },
               position,
             },
             [...connectTo, ...connectFilters],
-            false,
+            true,
             true,
           );
         }, 10);
       },
       [data, addNode, getConnectionInfo, canvasId],
     );
-
-    const handleCloneAskAI = useCallback(async () => {
-      const { contextItems, modelInfo, selectedSkill, tplConfig, structuredData } =
-        data?.metadata || {};
-      const currentSkill = actionMeta || selectedSkill;
-
-      // Create new skill node with context, similar to group node implementation
-      const connectTo = contextItems?.map((item) => ({
-        type: item.type as CanvasNodeType,
-        entityId: item.entityId,
-      }));
-
-      logEvent('clone_ask_ai', null, {
-        canvasId,
-        sourceEntityId: data.entityId,
-        sourceNodeId: id,
-      });
-
-      // Create new skill node
-      addNode(
-        {
-          type: 'skill',
-          data: {
-            title: t('canvas.nodeActions.cloneAskAI'),
-            entityId: genSkillID(),
-            metadata: {
-              contextItems,
-              query: structuredData?.query || title,
-              modelInfo,
-              selectedSkill: currentSkill,
-              tplConfig,
-            },
-          },
-        },
-        connectTo,
-        false,
-        true,
-      );
-
-      nodeActionEmitter.emit(createNodeEventName(id, 'cloneAskAI.completed'));
-    }, [id, data?.entityId, addNode, t, canvasId]);
-
-    const onTitleChange = (newTitle: string) => {
-      if (newTitle === query) {
-        return;
-      }
-      updateNodeTitle(newTitle, data.entityId, id, 'skillResponse');
-    };
 
     useEffect(() => {
       setNodeStyle(id, NODE_SIDE_CONFIG);
@@ -743,161 +648,129 @@ export const SkillResponseNode = memo(
     useEffect(() => {
       // Create node-specific event handlers
       const handleNodeRerun = () => handleRerun();
-      const handleNodeAddToContext = () => handleAddToContext();
-      const handleNodeInsertToDoc = (event: { content: string }) =>
-        handleInsertToDoc(event.content);
-      const handleNodeCreateDocument = (event?: {
-        dragCreateInfo?: NodeDragCreateInfo;
-      }) => handleCreateDocument(event);
       const handleNodeDelete = () => handleDelete();
+      const handleNodeDuplicate = () => handleDuplicate();
       const handleNodeAskAI = (event?: {
         dragCreateInfo?: NodeDragCreateInfo;
       }) => handleAskAI(event);
-      const handleNodeCloneAskAI = () => handleCloneAskAI();
 
       // Register events with node ID
       nodeActionEmitter.on(createNodeEventName(id, 'askAI'), handleNodeAskAI);
-      nodeActionEmitter.on(createNodeEventName(id, 'cloneAskAI'), handleNodeCloneAskAI);
       nodeActionEmitter.on(createNodeEventName(id, 'rerun'), handleNodeRerun);
-      nodeActionEmitter.on(createNodeEventName(id, 'addToContext'), handleNodeAddToContext);
-      nodeActionEmitter.on(createNodeEventName(id, 'insertToDoc'), handleNodeInsertToDoc);
-      nodeActionEmitter.on(createNodeEventName(id, 'createDocument'), handleNodeCreateDocument);
       nodeActionEmitter.on(createNodeEventName(id, 'delete'), handleNodeDelete);
+      nodeActionEmitter.on(createNodeEventName(id, 'duplicate'), handleNodeDuplicate);
 
       return () => {
         // Cleanup events when component unmounts
         nodeActionEmitter.off(createNodeEventName(id, 'askAI'), handleNodeAskAI);
-        nodeActionEmitter.off(createNodeEventName(id, 'cloneAskAI'), handleNodeCloneAskAI);
         nodeActionEmitter.off(createNodeEventName(id, 'rerun'), handleNodeRerun);
-        nodeActionEmitter.off(createNodeEventName(id, 'addToContext'), handleNodeAddToContext);
-        nodeActionEmitter.off(createNodeEventName(id, 'insertToDoc'), handleNodeInsertToDoc);
-        nodeActionEmitter.off(createNodeEventName(id, 'createDocument'), handleNodeCreateDocument);
         nodeActionEmitter.off(createNodeEventName(id, 'delete'), handleNodeDelete);
+        nodeActionEmitter.off(createNodeEventName(id, 'duplicate'), handleNodeDuplicate);
 
         // Clean up all node events
         cleanupNodeEvents(id);
       };
-    }, [
-      id,
-      handleRerun,
-      handleAddToContext,
-      handleInsertToDoc,
-      handleCreateDocument,
-      handleDelete,
-      handleAskAI,
-      handleCloneAskAI,
-    ]);
+    }, [id, handleRerun, handleDelete, handleDuplicate, handleAskAI]);
+
+    useEffect(() => {
+      setEdges((edges) =>
+        edges.map((edge) => {
+          if (edge.source === id || edge.target === id) {
+            return { ...edge, data: { ...edge.data, executionStatus: status } };
+          }
+          return edge;
+        }),
+      );
+    }, [id, status, setEdges]);
 
     return (
-      <div
-        onMouseEnter={handleMouseEnter}
-        onMouseLeave={handleMouseLeave}
-        className="rounded-2xl relative"
-        data-cy="skill-response-node"
-        onClick={onNodeClick}
-      >
-        {!isPreview && !readonly && (
-          <NodeActionButtons
-            nodeId={id}
-            nodeType="skillResponse"
-            isNodeHovered={isHovered}
-            isSelected={selected}
-          />
-        )}
-
-        {!isPreview && !hideHandles && (
-          <>
-            <CustomHandle
-              id={`${id}-target`}
-              nodeId={id}
-              type="target"
-              position={Position.Left}
-              isConnected={isTargetConnected}
-              isNodeHovered={isHovered}
-              nodeType="skillResponse"
-            />
-            <CustomHandle
-              id={`${id}-source`}
-              nodeId={id}
-              type="source"
-              position={Position.Right}
-              isConnected={isSourceConnected}
-              isNodeHovered={isHovered}
-              nodeType="skillResponse"
-            />
-          </>
-        )}
-
+      <>
         <div
-          style={nodeStyle}
           className={cn(
-            'h-full flex flex-col relative z-1 p-4 box-border',
-            getNodeCommonStyles({ selected, isHovered }),
-            'flex max-h-60 flex-col items-start gap-2 self-stretch px-4 py-3 rounded-2xl border-solid',
-            // Apply error styles only when there's an error
-            status === 'failed'
-              ? 'border border-refly-func-danger-default bg-refly-bg-content-z2 shadow-[0_2px_20px_4px_rgba(0,0,0,0.04)]'
-              : 'border border-gray-200 bg-refly-bg-content-z2',
+            'rounded-2xl relative',
+            // Apply executing/waiting glow effect on outer container
+            status === 'executing' || status === 'waiting' ? 'executing-glow-effect' : '',
+            isConnectingTarget ? 'connecting-target-glow-effect' : '',
           )}
+          data-cy="skill-response-node"
+          onClick={onNodeClick}
+          onMouseEnter={!isPreview ? handleMouseEnter : undefined}
+          onMouseLeave={!isPreview ? handleMouseLeave : undefined}
         >
-          {/* Node execution status badge */}
-          <NodeExecutionStatus status={executionStatus} />
+          {!isPreview && !hideHandles && (
+            <>
+              <CustomHandle
+                id={`${id}-target`}
+                nodeId={id}
+                type="target"
+                position={Position.Left}
+                isConnected={isTargetConnected}
+                isNodeHovered={isHovered}
+                nodeType="skillResponse"
+              />
+              <CustomHandle
+                id={`${id}-source`}
+                nodeId={id}
+                type="source"
+                position={Position.Right}
+                isConnected={isSourceConnected}
+                isNodeHovered={isHovered || selected}
+                nodeType="skillResponse"
+              />
+            </>
+          )}
 
-          <NodeHeader showIcon disabled={readonly} query={query} updateTitle={onTitleChange} />
-
-          <div className={'relative flex-grow overflow-y-auto pr-2 -mr-2 w-full'}>
-            <div className="flex flex-col gap-3">
-              {status === 'failed' && (
-                <div
-                  className={cn(
-                    'flex items-center justify-center gap-1 mt-1 hover:bg-gray-50 rounded-md p-2 dark:hover:bg-gray-900',
-                    readonly ? 'cursor-not-allowed' : 'cursor-pointer',
-                  )}
-                  onClick={() => handleRerun()}
-                >
-                  <IconError className="h-4 w-4 text-red-500" />
-                  <span className="text-xs text-red-500 w-full truncate">
-                    {errMsg || t('canvas.skillResponse.executionFailed')}
-                  </span>
-                </div>
-              )}
-
-              {(status === 'waiting' || status === 'executing') && (
-                <div className="flex items-center gap-2 bg-gray-100 rounded-md p-2 dark:bg-gray-800">
-                  <IconLoading className="h-3 w-3 animate-spin text-green-500" />
-                  <span className="text-xs text-gray-500 w-full truncate">
-                    {log ? (
-                      <>
-                        <span className="text-green-500 font-medium">{`${logTitle} `}</span>
-                        <span className="text-gray-500">{logDescription}</span>
-                      </>
-                    ) : (
-                      t('canvas.skillResponse.aiThinking')
-                    )}
-                  </span>
-                </div>
-              )}
-
-              {status !== 'failed' && content && (
-                <MultimodalContentPreview
-                  resultId={entityId}
-                  content={truncateContent(content)}
-                  sources={sources}
-                  metadata={metadata as any}
+          <div
+            style={nodeStyle}
+            className={cn(
+              'h-full flex flex-col relative z-1 p-0 box-border',
+              getNodeCommonStyles({ selected, isHovered, shouldHighlight }),
+              'flex max-h-60 flex-col items-start self-stretch rounded-2xl border-solid bg-refly-bg-content-z2',
+              // Apply error styles only when there's an error
+              status === 'failed'
+                ? '!border-refly-func-danger-default'
+                : 'border-refly-Card-Border',
+            )}
+          >
+            {shouldHighlight && (
+              <div className="absolute inset-0 bg-refly-node-run opacity-[0.14]" />
+            )}
+            <SkillResponseNodeHeader
+              nodeId={id}
+              entityId={data.entityId}
+              title={data.title ?? t('canvas.nodeTypes.agent')}
+              source="node"
+              canEdit={!readonly}
+              actions={
+                <SkillResponseActions
+                  readonly={readonly}
+                  nodeIsExecuting={isExecuting}
+                  workflowIsRunning={workflowIsRunning}
+                  onRerunSingle={handleRerunSingle}
+                  onRerunFromHere={handleRerunFromHere}
+                  onStop={handleStop}
                 />
-              )}
+              }
+            />
+
+            <div className={'relative flex-grow overflow-y-auto w-full'}>
+              {/* Always show content preview, use prompt/query as fallback when content is empty */}
+              <SkillResponseContentPreview className="p-3" nodeId={id} metadata={metadata} />
             </div>
           </div>
-
-          <NodeFooter
-            model={model}
-            modelInfo={modelInfo}
-            createdAt={createdAt}
-            language={language}
-            resultId={entityId}
-          />
         </div>
-      </div>
+
+        {!isPreview && status !== 'init' && (
+          <NodeStatusBar
+            resultId={entityId}
+            status={status}
+            errorType={errorType}
+            executionTime={metadata?.executionTime}
+            errors={result?.errors}
+            version={version}
+          />
+        )}
+      </>
     );
   },
   (prevProps, nextProps) => {
@@ -915,6 +788,7 @@ export const SkillResponseNode = memo(
       prevProps.data?.title === nextProps.data?.title &&
       prevProps.data?.contentPreview === nextProps.data?.contentPreview &&
       prevProps.data?.createdAt === nextProps.data?.createdAt &&
+      prevProps.onNodeClick === nextProps.onNodeClick &&
       JSON.stringify(prevProps.data?.metadata) === JSON.stringify(nextProps.data?.metadata) &&
       styleEqual
     );

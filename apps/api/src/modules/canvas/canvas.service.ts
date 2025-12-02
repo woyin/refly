@@ -23,9 +23,20 @@ import {
   WorkflowVariable,
   ResourceType,
   VariableValue,
+  CanvasNode,
+  GenericToolset,
 } from '@refly/openapi-schema';
-import { Prisma } from '../../generated/client';
-import { genCanvasID, genTransactionId, safeParseJSON } from '@refly/utils';
+import { Prisma } from '@prisma/client';
+import {
+  genCanvasID,
+  genTransactionId,
+  safeParseJSON,
+  genActionResultID,
+  genDocumentID,
+  genResourceID,
+  genCodeArtifactID,
+  batchReplaceRegex,
+} from '@refly/utils';
 import { DeleteKnowledgeEntityJobData } from '../knowledge/knowledge.dto';
 import { QUEUE_DELETE_KNOWLEDGE_ENTITY, QUEUE_POST_DELETE_CANVAS } from '../../utils/const';
 import { AutoNameCanvasJobData, CanvasDetailModel, DeleteCanvasJobData } from './canvas.dto';
@@ -42,6 +53,7 @@ import { isDesktop } from '../../utils/runtime';
 import { CanvasSyncService } from '../canvas-sync/canvas-sync.service';
 import { initEmptyCanvasState, mirrorCanvasData } from '@refly/canvas-common';
 import { ToolService } from '../tool/tool.service';
+import { DriveService } from '../drive/drive.service';
 
 @Injectable()
 export class CanvasService {
@@ -59,6 +71,7 @@ export class CanvasService {
     private providerService: ProviderService,
     private codeArtifactService: CodeArtifactService,
     private subscriptionService: SubscriptionService,
+    private readonly driveService: DriveService,
     @Inject(OSS_INTERNAL) private oss: ObjectStorageService,
     @Inject(FULLTEXT_SEARCH) private fts: FulltextSearchService,
     @Optional()
@@ -70,7 +83,7 @@ export class CanvasService {
   ) {}
 
   async listCanvases(user: User, param: ListCanvasesData['query']): Promise<CanvasDetailModel[]> {
-    const { page = 1, pageSize = 10, projectId, order = 'updationDesc', keyword } = param;
+    const { page = 1, pageSize = 10, order = 'updationDesc', keyword } = param;
 
     // Build orderBy based on order parameter
     let orderBy: Prisma.CanvasOrderByWithRelationInput = { updatedAt: 'desc' as const };
@@ -96,7 +109,6 @@ export class CanvasService {
     const where: Prisma.CanvasWhereInput = {
       uid: user.uid,
       deletedAt: null,
-      projectId: projectId || null,
       visibility: true,
     };
 
@@ -145,10 +157,26 @@ export class CanvasService {
       }
     }
 
+    const workflowApps = await this.prisma.workflowApp.findMany({
+      where: {
+        canvasId: { in: canvasIds },
+        deletedAt: null,
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    const workflowAppMap = new Map<string, (typeof workflowApps)[0] & { owner: typeof owner }>();
+    for (const app of workflowApps) {
+      if (!workflowAppMap.has(app.canvasId)) {
+        workflowAppMap.set(app.canvasId, { ...app, owner });
+      }
+    }
+
     return canvases.map((canvas) => ({
       ...canvas,
       owner,
       shareRecord: shareRecordMap.get(canvas.canvasId) || null,
+      workflowApp: workflowAppMap.get(canvas.canvasId) || null,
       minimapUrl: canvas.minimapStorageKey
         ? this.miscService.generateFileURL({ storageKey: canvas.minimapStorageKey })
         : undefined,
@@ -172,12 +200,16 @@ export class CanvasService {
     };
   }
 
-  async getCanvasRawData(user: User, canvasId: string): Promise<RawCanvasData> {
+  async getCanvasRawData(
+    user: User,
+    canvasId: string,
+    options?: { checkOwnership?: boolean },
+  ): Promise<RawCanvasData> {
     const canvas = await this.prisma.canvas.findFirst({
       where: {
         canvasId,
-        uid: user.uid,
         deletedAt: null,
+        ...(options?.checkOwnership ? { uid: user.uid } : {}),
       },
     });
 
@@ -205,6 +237,7 @@ export class CanvasService {
         name: userPo?.name,
         nickname: userPo?.nickname,
         avatar: userPo?.avatar,
+        createdAt: canvas.createdAt.toJSON(),
       },
       minimapUrl: canvas.minimapStorageKey
         ? this.miscService.generateFileURL({ storageKey: canvas.minimapStorageKey })
@@ -218,7 +251,7 @@ export class CanvasService {
     param: DuplicateCanvasRequest,
     options?: { checkOwnership?: boolean },
   ) {
-    const { title, canvasId, projectId, duplicateEntities } = param;
+    const { title, canvasId, projectId, duplicateEntities = true } = param;
 
     const canvas = await this.prisma.canvas.findFirst({
       where: { canvasId, deletedAt: null, uid: options?.checkOwnership ? user.uid : undefined },
@@ -230,7 +263,30 @@ export class CanvasService {
 
     const { nodes, edges } = await this.canvasSyncService.getCanvasData(user, { canvasId }, canvas);
 
-    const libEntityNodes = nodes.filter((node) =>
+    const resources = await this.prisma.resource.findMany({
+      select: { resourceId: true, title: true },
+      where: { canvasId, uid: user.uid, deletedAt: null },
+    });
+
+    // Get workflow variables to identify resources that need duplication
+    const workflowVariables = await this.getWorkflowVariables(user, { canvasId });
+
+    // Create fake nodes for workflow resources to properly duplicate them
+    const nodesWithResources = [
+      ...nodes,
+      ...(resources.map((resource) => ({
+        id: resource.resourceId,
+        type: 'resource' as const,
+        position: { x: 0, y: 0 },
+        data: {
+          entityId: resource.resourceId,
+          title: resource.title,
+          metadata: {},
+        },
+      })) as CanvasNode[]),
+    ];
+
+    const libEntityNodes = nodesWithResources.filter((node) =>
       ['document', 'resource', 'codeArtifact'].includes(node.type),
     );
 
@@ -246,6 +302,10 @@ export class CanvasService {
     const newTitle = title || canvas.title;
     this.logger.log(`Duplicating canvas ${canvasId} to ${newCanvasId} with ${newTitle}`);
 
+    // Pre-generate all new entity IDs upfront for better performance
+    const replaceEntityMap = this.preGenerateEntityIds(nodesWithResources, canvasId, newCanvasId);
+    const { replaceToolsetMap } = await this.toolService.importToolsetsFromNodes(user, nodes);
+
     // Create a temporary canvas record first to satisfy foreign key constraints
     // This will be updated later in the transaction
     await this.prisma.canvas.create({
@@ -260,14 +320,41 @@ export class CanvasService {
       },
     });
 
-    // This is used to trace the replacement of entities
-    // Key is the original entity id, value is the duplicated entity id
-    const replaceEntityMap: Record<string, string> = {};
-
     try {
+      // Duplicate drive files
+      const driveFiles = await this.prisma.driveFile.findMany({
+        where: {
+          canvasId,
+          deletedAt: null,
+        },
+      });
+      const fileIdMap = new Map<string, string>();
+      const limit = pLimit(10);
+
+      const promises = driveFiles.map((file: any) =>
+        limit(async () => {
+          try {
+            const { fileId: newFileId } = (await this.driveService.duplicateDriveFile(
+              user,
+              file,
+              newCanvasId,
+            )) as any;
+
+            fileIdMap.set(file.fileId, newFileId);
+
+            this.logger.log(
+              `Successfully duplicated drive file ${file.fileId} to ${newFileId} for share ${newCanvasId}`,
+            );
+          } catch (error) {
+            this.logger.error(`Failed to duplicate drive file ${file.fileId}: ${error.stack}`);
+          }
+        }),
+      );
+      await Promise.all(promises);
+
       // Duplicate resources and documents if needed
       if (duplicateEntities) {
-        const limit = pLimit(5); // Limit concurrent operations
+        const limit = pLimit(10); // Higher concurrency for better performance
 
         await Promise.all(
           libEntityNodes.map((node) =>
@@ -318,6 +405,36 @@ export class CanvasService {
         );
       }
 
+      // Process workflow variables to update entity IDs
+      if (workflowVariables && workflowVariables.length > 0) {
+        const updatedWorkflowVariables = workflowVariables.map((variable) => ({
+          ...variable,
+          value: (variable.value ?? []).map((value) => {
+            if (
+              value.type === 'resource' &&
+              value.resource?.entityId &&
+              replaceEntityMap[value.resource.entityId]
+            ) {
+              return {
+                ...value,
+                resource: {
+                  ...value.resource,
+                  entityId: replaceEntityMap[value.resource.entityId],
+                },
+              };
+            }
+            return value;
+          }),
+        }));
+
+        // Update the canvas workflow with processed variables
+        const workflowObj = { variables: updatedWorkflowVariables };
+        await this.prisma.canvas.update({
+          where: { canvasId: newCanvasId },
+          data: { workflow: JSON.stringify(workflowObj) },
+        });
+      }
+
       // Action results must be duplicated
       const actionResultIds = nodes
         .filter((node) => node.type === 'skillResponse')
@@ -338,13 +455,23 @@ export class CanvasService {
         if (entityId) {
           node.data.entityId = replaceEntityMap[entityId];
         }
-        if (Array.isArray(metadata.contextItems)) {
-          metadata.contextItems = metadata.contextItems.map((item) => {
-            if (item.entityId && replaceEntityMap[item.entityId]) {
-              item.entityId = replaceEntityMap[item.entityId];
-            }
-            return item;
-          });
+
+        if (metadata.contextItems) {
+          metadata.contextItems = safeParseJSON(
+            batchReplaceRegex(JSON.stringify(metadata.contextItems), replaceEntityMap),
+          );
+        }
+
+        if (metadata.structuredData) {
+          metadata.structuredData = safeParseJSON(
+            batchReplaceRegex(JSON.stringify(metadata.structuredData), replaceEntityMap),
+          );
+        }
+
+        if (metadata.selectedToolsets) {
+          metadata.selectedToolsets = (metadata.selectedToolsets as GenericToolset[]).map(
+            (toolset) => replaceToolsetMap[toolset.id] || toolset,
+          );
         }
       }
 
@@ -528,7 +655,7 @@ export class CanvasService {
 
   async deleteCanvas(user: User, param: DeleteCanvasRequest) {
     const { uid } = user;
-    const { canvasId } = param;
+    const { canvasId, deleteAllFiles = true } = param;
 
     const canvas = await this.prisma.canvas.findFirst({
       where: { canvasId, uid, deletedAt: null },
@@ -550,7 +677,7 @@ export class CanvasService {
         {
           uid,
           canvasId,
-          deleteAllFiles: param.deleteAllFiles,
+          deleteAllFiles,
         },
         {
           jobId: `canvas-cleanup-${canvasId}`,
@@ -568,13 +695,13 @@ export class CanvasService {
       await this.postDeleteCanvas({
         uid,
         canvasId,
-        deleteAllFiles: param.deleteAllFiles,
+        deleteAllFiles,
       });
     }
   }
 
   async postDeleteCanvas(jobData: DeleteCanvasJobData) {
-    const { uid, canvasId, deleteAllFiles } = jobData;
+    const { uid, canvasId, deleteAllFiles = true } = jobData;
     this.logger.log(`Processing canvas cleanup for ${canvasId}, deleteAllFiles: ${deleteAllFiles}`);
 
     const canvas = await this.prisma.canvas.findFirst({
@@ -1058,7 +1185,7 @@ export class CanvasService {
 
   async exportCanvas(user: User, canvasId: string): Promise<string> {
     // Get the canvas raw data
-    const canvasData = await this.getCanvasRawData(user, canvasId);
+    const canvasData = await this.getCanvasRawData(user, canvasId, { checkOwnership: true });
 
     // Convert to JSON string
     const jsonData = JSON.stringify(canvasData, null, 2);
@@ -1098,7 +1225,7 @@ export class CanvasService {
    * @param canvasId - The target canvas ID
    * @returns Processed variables with updated resource information
    */
-  private async processResourceVariables(
+  async processResourceVariables(
     user: User,
     canvasId: string,
     variables: WorkflowVariable[],
@@ -1108,7 +1235,7 @@ export class CanvasService {
     const processedVariables = await Promise.all(
       variables.map(async (variable) => {
         const processedValues = await Promise.all(
-          variable.value.map(async (value) => {
+          (variable.value ?? []).map(async (value) => {
             if (value.type === 'resource' && value.resource) {
               return await this.processResourceValue(user, canvasId, value);
             }
@@ -1230,6 +1357,47 @@ export class CanvasService {
     }
 
     return value;
+  }
+
+  /**
+   * Helper method to pre-generate entity IDs for canvas nodes
+   */
+  private preGenerateEntityIds(
+    nodes: CanvasNode[],
+    originalCanvasId: string,
+    newCanvasId: string,
+  ): Record<string, string> {
+    const skillResponseNodes = nodes.filter((node) => node.type === 'skillResponse');
+    const libEntityNodes = nodes.filter((node) =>
+      ['document', 'resource', 'codeArtifact'].includes(node.type),
+    );
+
+    const preGeneratedActionResultIds: Record<string, string> = {};
+    const preGeneratedLibIds: Record<string, string> = {};
+
+    // Pre-generate IDs for all skill responses
+    for (const node of skillResponseNodes) {
+      preGeneratedActionResultIds[node.data.entityId] = genActionResultID();
+    }
+
+    // Pre-generate IDs for library entities (document/resource/codeArtifact)
+    for (const node of libEntityNodes) {
+      const oldId = node?.data?.entityId;
+      if (!oldId) continue;
+      if (node.type === 'document') {
+        preGeneratedLibIds[oldId] = genDocumentID();
+      } else if (node.type === 'resource') {
+        preGeneratedLibIds[oldId] = genResourceID();
+      } else if (node.type === 'codeArtifact') {
+        preGeneratedLibIds[oldId] = genCodeArtifactID();
+      }
+    }
+
+    return {
+      [originalCanvasId]: newCanvasId,
+      ...preGeneratedActionResultIds,
+      ...preGeneratedLibIds,
+    };
   }
 
   /**

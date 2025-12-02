@@ -3,7 +3,12 @@ import { useReactFlow, useStoreApi, XYPosition } from '@xyflow/react';
 import { CanvasNode as SchemaCanvasNode } from '@refly/openapi-schema';
 import { message } from 'antd';
 import { useTranslation } from 'react-i18next';
-import { CanvasNode, CanvasNodeFilter, prepareAddNode } from '@refly/canvas-common';
+import {
+  CanvasNode,
+  CanvasNodeFilter,
+  prepareAddNode,
+  deduplicateEdges,
+} from '@refly/canvas-common';
 import { useEdgeStyles } from '../../components/canvas/constants';
 import { useNodeSelection } from './use-node-selection';
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
@@ -11,6 +16,7 @@ import { useNodePosition } from './use-node-position';
 import { useNodePreviewControl } from '@refly-packages/ai-workspace-common/hooks/canvas';
 import { adoptUserNodes } from '@xyflow/system';
 import { useCanvasStore } from '@refly/stores';
+import { useFetchProviderItems } from '@refly-packages/ai-workspace-common/hooks/use-fetch-provider-items';
 
 // Define the maximum number of nodes allowed in a canvas
 const MAX_NODES_PER_CANVAS = 500;
@@ -30,14 +36,6 @@ const deduplicateNodes = (nodes: any[]) => {
   return Array.from(uniqueNodesMap.values());
 };
 
-const deduplicateEdges = (edges: any[]) => {
-  const uniqueEdgesMap = new Map();
-  for (const edge of edges) {
-    uniqueEdgesMap.set(edge.id, edge);
-  }
-  return Array.from(uniqueEdgesMap.values());
-};
-
 export const useAddNode = () => {
   const { t } = useTranslation();
   const edgeStyles = useEdgeStyles();
@@ -54,6 +52,11 @@ export const useAddNode = () => {
     setEdges((edges) => edges.filter((edge) => !edge.id.startsWith('temp-edge-')));
   };
 
+  const { defaultChatModel } = useFetchProviderItems({
+    category: 'llm',
+    enabled: true,
+  });
+
   const addNode = useCallback(
     (
       node: Partial<CanvasNode>,
@@ -61,6 +64,7 @@ export const useAddNode = () => {
       shouldPreview = true,
       needSetCenter = false,
       retryCount = 0,
+      skipPurgeToolsets = false,
     ): XYPosition | undefined => {
       const { canvasInitialized } = useCanvasStore.getState();
 
@@ -77,7 +81,7 @@ export const useAddNode = () => {
         const delay = Math.min(INITIAL_RETRY_DELAY * 2 ** retryCount, MAX_RETRY_DELAY);
 
         setTimeout(() => {
-          addNode(node, connectTo, shouldPreview, needSetCenter, retryCount + 1);
+          addNode(node, connectTo, shouldPreview, needSetCenter, retryCount + 1, skipPurgeToolsets);
         }, delay);
         return undefined;
       }
@@ -89,6 +93,10 @@ export const useAddNode = () => {
         handleCleanGhost();
         return undefined;
       }
+
+      // Set default model info if not provided
+      node.data.metadata ??= {};
+      node.data.metadata.modelInfo ??= defaultChatModel;
 
       // Check for node limit
       const nodeCount = nodes?.length ?? 0;
@@ -136,6 +144,7 @@ export const useAddNode = () => {
         connectTo,
         nodes,
         edges,
+        skipPurgeToolsets,
       });
 
       const updatedNodes = deduplicateNodes([...nodes, newNode]);
@@ -161,26 +170,22 @@ export const useAddNode = () => {
         }
       }, 10);
 
-      if (
-        [
-          'document',
-          'resource',
-          'website',
-          'skillResponse',
-          'codeArtifact',
-          'image',
-          'video',
-          'audio',
-        ].includes(newNode.type) &&
-        shouldPreview
-      ) {
+      if (['skillResponse'].includes(newNode.type) && shouldPreview) {
         previewNode(newNode as unknown as CanvasNode);
       }
 
       // Return the calculated position
       return newNode.position;
     },
-    [canvasId, edgeStyles, setNodeCenter, previewNode, t, layoutBranchAndUpdatePositions],
+    [
+      canvasId,
+      edgeStyles,
+      setNodeCenter,
+      previewNode,
+      t,
+      layoutBranchAndUpdatePositions,
+      defaultChatModel,
+    ],
   );
 
   return { addNode };

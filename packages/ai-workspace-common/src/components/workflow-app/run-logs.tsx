@@ -8,11 +8,10 @@ import { Empty, Skeleton } from 'antd';
 import { NodeIcon } from '@refly-packages/ai-workspace-common/components/canvas/nodes/shared/node-icon';
 import { useState, useCallback, useEffect } from 'react';
 import { ActionStepCard } from '@refly-packages/ai-workspace-common/components/canvas/node-preview/skill-response/action-step';
-import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
 import { useActionResultStoreShallow } from '@refly/stores';
-import { useUserStore } from '@refly/stores';
 import { ReactFlowProvider } from '@xyflow/react';
 import { CanvasProvider } from '@refly-packages/ai-workspace-common/context/canvas';
+import { useFetchActionResult } from '@refly-packages/ai-workspace-common/hooks/canvas/use-fetch-action-result';
 
 // Using a simple SVG icon instead of heroicons
 const ChevronUpIcon = ({ className }: { className?: string }) => (
@@ -29,39 +28,11 @@ const ChevronUpIcon = ({ className }: { className?: string }) => (
 
 // Custom hook to fetch ActionResult for a node execution
 const useActionResult = (nodeExecution: WorkflowNodeExecution) => {
-  const [loading, setLoading] = useState(false);
-  const { result, updateActionResult } = useActionResultStoreShallow((state) => ({
+  const { result } = useActionResultStoreShallow((state) => ({
     result: nodeExecution.entityId ? state.resultMap[nodeExecution.entityId] : undefined,
-    updateActionResult: state.updateActionResult,
   }));
 
-  const fetchActionResult = useCallback(
-    async (entityId: string) => {
-      const { isLogin } = useUserStore.getState();
-      if (!isLogin) {
-        return;
-      }
-
-      setLoading(true);
-      try {
-        const { data, error } = await getClient().getActionResult({
-          query: { resultId: entityId },
-        });
-
-        if (error || !data?.success) {
-          console.error('Failed to fetch action result:', error);
-          return;
-        }
-
-        updateActionResult(entityId, data.data!);
-      } catch (error) {
-        console.error('Error fetching action result:', error);
-      } finally {
-        setLoading(false);
-      }
-    },
-    [updateActionResult],
-  );
+  const { fetchActionResult, loading } = useFetchActionResult();
 
   useEffect(() => {
     if (
@@ -127,8 +98,8 @@ const NodeExecutionResult = ({ nodeExecution }: { nodeExecution: WorkflowNodeExe
   return (
     <div className="p-3">
       {/* Provide necessary context providers for ActionStepCard */}
-      {/* ReactFlowProvider: Required for useReactFlow hooks in SelectionContext */}
-      {/* CanvasProvider: Required for useCanvasContext in ActionStepCard and SelectionContext */}
+      {/* ReactFlowProvider: Required for useReactFlow hooks */}
+      {/* CanvasProvider: Required for useCanvasContext in ActionStepCard */}
       <ReactFlowProvider>
         <CanvasProvider canvasId={nodeExecution.nodeId} readonly={true}>
           <ActionStepCard

@@ -22,6 +22,8 @@ import {
   Provider,
   LLMModelConfig,
   MediaGenerationModelConfig,
+  AgentMode,
+  GenericToolset,
 } from '@refly/openapi-schema';
 import { EventEmitter } from 'node:stream';
 import { preprocess, PreprocessResult } from './scheduler/utils/preprocess';
@@ -267,6 +269,8 @@ export interface SkillEventMap {
   token_usage: [data: SkillEvent];
   invoke_skill: [data: SkillEvent];
   tool_call_start: [data: SkillEvent];
+  tool_call_end: [data: SkillEvent];
+  tool_call_error: [data: SkillEvent];
   tool_call_stream: [data: SkillEvent];
   error: [data: SkillEvent];
 }
@@ -295,6 +299,7 @@ export interface SkillRunnableConfig extends RunnableConfig {
       video?: MediaGenerationModelConfig;
       audio?: MediaGenerationModelConfig;
     };
+    mode?: AgentMode;
     provider?: Provider;
     project?: Project;
     currentSkill?: SkillMeta;
@@ -304,6 +309,7 @@ export interface SkillRunnableConfig extends RunnableConfig {
     runtimeConfig?: SkillRuntimeConfig;
     emitter?: EventEmitter<SkillEventMap>;
     selectedTools?: StructuredToolInterface[];
+    installedToolsets?: GenericToolset[];
     preprocessResult?: PreprocessResult;
   };
   metadata?: SkillRunnableMeta;

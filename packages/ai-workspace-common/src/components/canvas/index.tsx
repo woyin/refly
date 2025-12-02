@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useEffect, useState, useRef, memo } from 'react';
-import { Modal, Result, message, Splitter, Popover } from 'antd';
+import { Modal, Result, message, Button } from 'antd';
 import { useTranslation } from 'react-i18next';
 import {
   ReactFlow,
@@ -18,6 +18,7 @@ import { TopToolbar } from './top-toolbar';
 import { useNodeOperations } from '@refly-packages/ai-workspace-common/hooks/canvas/use-node-operations';
 import { useNodeSelection } from '@refly-packages/ai-workspace-common/hooks/canvas/use-node-selection';
 import { useAddNode } from '@refly-packages/ai-workspace-common/hooks/canvas/use-add-node';
+import { useCopyPasteSkillResponseNode } from '@refly-packages/ai-workspace-common/hooks/canvas/use-copy-paste-skill-response-node';
 import {
   CanvasProvider,
   useCanvasContext,
@@ -27,12 +28,12 @@ import {
   useCanvasStore,
   useCanvasStoreShallow,
   useCanvasNodesStore,
-  useUserStore,
-  useUserStoreShallow,
   useCanvasResourcesPanelStoreShallow,
+  useUserStoreShallow,
+  useCopilotStoreShallow,
+  useToolStoreShallow,
 } from '@refly/stores';
 import { Spin } from '@refly-packages/ai-workspace-common/components/common/spin';
-import { locateToNodePreviewEmitter } from '@refly-packages/ai-workspace-common/events/locateToNodePreview';
 import { UnifiedContextMenu } from './unified-context-menu';
 import { useNodePreviewControl } from '@refly-packages/ai-workspace-common/hooks/canvas/use-node-preview-control';
 import {
@@ -41,7 +42,6 @@ import {
 } from '@refly-packages/ai-workspace-common/context/editor-performance';
 import { CanvasNodeType } from '@refly/openapi-schema';
 import { useEdgeOperations } from '@refly-packages/ai-workspace-common/hooks/canvas/use-edge-operations';
-import { MultiSelectionMenus } from './multi-selection-menu';
 import { CustomEdge } from './edges/custom-edge';
 import NotFoundOverlay from './NotFoundOverlay';
 import { useDragToCreateNode } from '@refly-packages/ai-workspace-common/hooks/canvas/use-drag-create-node';
@@ -49,26 +49,28 @@ import { useDragDropPaste } from '@refly-packages/ai-workspace-common/hooks/canv
 
 import '@xyflow/react/dist/style.css';
 import './index.scss';
-import { useUpdateSettings } from '@refly-packages/ai-workspace-common/queries';
 import { EmptyGuide } from './empty-guide';
 import { useLinearThreadReset } from '@refly-packages/ai-workspace-common/hooks/canvas/use-linear-thread-reset';
 import HelperLines from './common/helper-line/index';
 import { useListenNodeOperationEvents } from '@refly-packages/ai-workspace-common/hooks/canvas/use-listen-node-events';
 import { runtime } from '@refly/ui-kit';
-import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
 import {
   NodeContextMenuSource,
   NodeDragCreateInfo,
   nodeOperationsEmitter,
 } from '@refly-packages/ai-workspace-common/events/nodeOperations';
-import { useCanvasInitialActions } from '@refly-packages/ai-workspace-common/hooks/use-canvas-initial-actions';
-import { CanvasResources, CanvasResourcesWidescreenModal } from './canvas-resources';
-import { ResourceOverview } from './canvas-resources/share/resource-overview';
-import { NodePreviewContainer } from '@refly-packages/ai-workspace-common/components/canvas/node-preview';
+import { CanvasDrive, CanvasResourcesWidescreenModal } from './canvas-resources';
+import { ToolbarButtons } from './top-toolbar/toolbar-buttons';
+import { CanvasControlButtons } from './top-toolbar/canvas-control-buttons';
+import { ToggleCopilotPanel } from './top-toolbar/toggle-copilot-panel';
 import { useHandleOrphanNode } from '@refly-packages/ai-workspace-common/hooks/use-handle-orphan-node';
-import { WorkflowRun } from './workflow-run';
-import { useMatch } from '@refly-packages/ai-workspace-common/utils/router';
 import { UploadNotification } from '@refly-packages/ai-workspace-common/components/common/upload-notification';
+import { useCanvasLayout } from '@refly-packages/ai-workspace-common/hooks/canvas/use-canvas-layout';
+import { PreviewBoxInCanvas } from './preview-box-in-canvas';
+import { CopilotContainer } from './copilot-container';
+import { cn } from '@refly/utils/cn';
+import { ToolStore } from '../settings/tools-config/tools/tool-store';
+import { Close } from 'refly-icons';
 
 const GRID_SIZE = 10;
 
@@ -112,13 +114,27 @@ interface ContextMenuState {
 // Add new memoized components
 const MemoizedBackground = memo(Background);
 
-const Flow = memo(({ canvasId }: { canvasId: string }) => {
+interface FlowProps {
+  canvasId: string;
+  copilotWidth: number;
+  setCopilotWidth: (width: number | null) => void;
+  maxPanelWidth: number;
+}
+
+const Flow = memo(({ canvasId, copilotWidth, setCopilotWidth, maxPanelWidth }: FlowProps) => {
   const { t } = useTranslation();
 
-  useHandleOrphanNode();
+  // Wrap setCopilotWidth to handle null values
+  const handleSetCopilotWidth = useCallback(
+    (width: number) => {
+      if (width !== null && width !== undefined) {
+        setCopilotWidth(width);
+      }
+    },
+    [setCopilotWidth],
+  );
 
-  useCanvasInitialActions(canvasId);
-  // useFollowPilotSteps();
+  useHandleOrphanNode();
 
   const { addNode } = useAddNode();
   const { nodes, edges } = useStore(
@@ -127,21 +143,6 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
       edges: state.edges,
     })),
   );
-  const selectedNodes = nodes.filter((node) => node.selected) || [];
-
-  const getPageByCanvasId = useCallback(async () => {
-    if (!canvasId) return;
-
-    const res = await getClient().getPageByCanvasId({
-      path: { canvasId },
-    });
-    if (res?.data?.success) {
-      const pageData = res.data.data;
-      if (pageData?.page?.pageId) {
-        setCanvasPage(canvasId, pageData.page.pageId);
-      }
-    }
-  }, [canvasId]);
 
   const {
     onNodesChange,
@@ -166,61 +167,35 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
 
   const { pendingNode, clearPendingNode } = useCanvasNodesStore();
   const { loading, readonly, shareNotFound, shareLoading, undo, redo } = useCanvasContext();
+  const { onLayout } = useCanvasLayout();
+
+  // Use copy paste hook for skillResponse nodes
+  useCopyPasteSkillResponseNode({ canvasId, readonly });
 
   const {
+    nodePreviewId,
     canvasInitialized,
     operatingNodeId,
     setOperatingNodeId,
     setInitialFitViewCompleted,
-    setCanvasPage,
-    showSlideshow,
-    setShowSlideshow,
     setContextMenuOpenedCanvasId,
   } = useCanvasStoreShallow((state) => ({
+    nodePreviewId: state.config[canvasId]?.nodePreviewId,
     canvasInitialized: state.canvasInitialized[canvasId],
     operatingNodeId: state.operatingNodeId,
     setOperatingNodeId: state.setOperatingNodeId,
     setInitialFitViewCompleted: state.setInitialFitViewCompleted,
-    setCanvasPage: state.setCanvasPage,
-    showSlideshow: state.showSlideshow,
-    setShowSlideshow: state.setShowSlideshow,
     setContextMenuOpenedCanvasId: state.setContextMenuOpenedCanvasId,
   }));
 
-  const { showWorkflowRun, setShowWorkflowRun } = useCanvasResourcesPanelStoreShallow((state) => ({
-    setShowWorkflowRun: state.setShowWorkflowRun,
-    showWorkflowRun: state.showWorkflowRun,
-  }));
+  const { showWorkflowRun, setShowWorkflowRun, sidePanelVisible } =
+    useCanvasResourcesPanelStoreShallow((state) => ({
+      setShowWorkflowRun: state.setShowWorkflowRun,
+      showWorkflowRun: state.showWorkflowRun,
+      sidePanelVisible: state.sidePanelVisible,
+    }));
 
-  const { handleNodePreview } = useNodePreviewControl({ canvasId });
-
-  const interactionMode = useUserStore.getState().localSettings.canvasMode;
-  const { isLogin, setLocalSettings } = useUserStoreShallow((state) => ({
-    isLogin: state.isLogin,
-    setLocalSettings: state.setLocalSettings,
-  }));
-  const { mutate: updateSettings } = useUpdateSettings();
-
-  const toggleInteractionMode = useCallback(
-    (mode: 'mouse' | 'touchpad') => {
-      const { localSettings } = useUserStore.getState();
-      setLocalSettings({
-        ...localSettings,
-        canvasMode: mode,
-      });
-      if (isLogin) {
-        updateSettings({
-          body: {
-            preferences: {
-              operationMode: mode,
-            },
-          },
-        });
-      }
-      message.success(t(`canvas.toolbar.modeChangeSuccess.${mode}`));
-    },
-    [setLocalSettings, isLogin, updateSettings],
-  );
+  const { previewNode } = useNodePreviewControl({ canvasId });
 
   // Use the reset hook to handle canvas ID changes
   useLinearThreadReset(canvasId);
@@ -278,6 +253,11 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
 
   const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null);
   const [lastClickTime, setLastClickTime] = useState(0);
+  const [previewWidth, setPreviewWidth] = useState(400);
+
+  const handlePreviewWidthChange = useCallback((width: number) => {
+    setPreviewWidth(width);
+  }, []);
 
   // Handle selection state to prevent text selection outside canvas
   useEffect(() => {
@@ -369,33 +349,19 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
   }, []);
 
   const { onConnectEnd: temporaryEdgeOnConnectEnd, onConnectStart: temporaryEdgeOnConnectStart } =
-    useDragToCreateNode();
-
-  const cleanupTemporaryEdges = useCallback(() => {
-    const rfInstance = reactFlowInstance;
-    rfInstance.setNodes((nodes) => nodes.filter((node) => node.type !== 'temporaryEdge'));
-    rfInstance.setEdges((edges) => {
-      // Get the current nodes to check if source/target is a temporary node
-      const currentNodes = rfInstance.getNodes();
-      const isTemporaryNode = (id: string) =>
-        currentNodes.some((node) => node.id === id && node.type === 'temporaryEdge');
-
-      return edges.filter((edge) => !isTemporaryNode(edge.source) && !isTemporaryNode(edge.target));
-    });
-  }, [reactFlowInstance]);
+    useDragToCreateNode(onConnect);
 
   const handlePanelClick = useCallback(
     (event: React.MouseEvent) => {
       setOperatingNodeId(null);
+      previewNode(null);
       setContextMenu((prev) => ({ ...prev, open: false }));
-
-      // Clean up temporary nodes when clicking on canvas
-      cleanupTemporaryEdges();
 
       // Reset edge selection when clicking on canvas
       if (selectedEdgeId) {
         setSelectedEdgeId(null);
       }
+      setShowWorkflowRun(false);
 
       // Handle double click detection
       const currentTime = new Date().getTime();
@@ -421,8 +387,9 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
       setOperatingNodeId,
       reactFlowInstance,
       selectedEdgeId,
-      cleanupTemporaryEdges,
       readonly,
+      setShowWorkflowRun,
+      previewNode,
     ],
   );
 
@@ -519,39 +486,9 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
   }, [loading]);
 
   useEffect(() => {
-    if (!readonly) {
-      getPageByCanvasId();
-    }
-
-    if (showSlideshow) {
-      setShowSlideshow(false);
-    }
-
     if (showWorkflowRun) {
       setShowWorkflowRun(false);
     }
-
-    const unsubscribe = locateToNodePreviewEmitter.on(
-      'locateToNodePreview',
-      ({ canvasId: emittedCanvasId, id }) => {
-        if (emittedCanvasId === canvasId) {
-          requestAnimationFrame(() => {
-            const previewContainer = document.querySelector('.preview-container');
-            const targetPreview = document.querySelector(`[data-preview-id="${id}"]`);
-
-            if (previewContainer && targetPreview) {
-              targetPreview?.scrollIntoView?.({
-                behavior: 'smooth',
-                block: 'nearest',
-                inline: 'center',
-              });
-            }
-          });
-        }
-      },
-    );
-
-    return unsubscribe;
   }, [canvasId]);
 
   const [contextMenu, setContextMenu] = useState<ContextMenuState>({
@@ -654,9 +591,6 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
         case 'skill':
           menuNodeType = 'skill';
           break;
-        case 'memo':
-          menuNodeType = 'memo';
-          break;
         case 'group':
           menuNodeType = 'group';
           break;
@@ -723,6 +657,7 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
         console.warn('Invalid node clicked');
         return;
       }
+      setShowWorkflowRun(false);
 
       if (node.selected && node.id === operatingNodeId) {
         // Already in operating mode, do nothing
@@ -738,41 +673,28 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
       }
 
       // Memo nodes are not previewable
-      if (
-        [
-          'memo',
-          'skill',
-          'group',
-          'image',
-          'mediaSkill',
-          'video',
-          'audio',
-          'mediaSkillResponse',
-        ].includes(node.type)
-      ) {
+      if (!['start', 'skillResponse'].includes(node.type)) {
         return;
       }
 
-      // Handle preview if enabled
-      handleNodePreview(node);
+      previewNode(node);
     },
-    [handleNodePreview, setOperatingNodeId, setSelectedNode],
+    [previewNode, setOperatingNodeId, setSelectedNode, setShowWorkflowRun],
   );
 
   // Memoize nodes and edges
   const memoizedNodes = useMemo(() => nodes, [nodes]);
   const memoizedEdges = useMemo(() => edges, [edges]);
+  const selectedNode = useMemo(
+    () => nodes.find((node) => node.id === nodePreviewId) as CanvasNode,
+    [nodes, nodePreviewId],
+  );
 
   // Memoize the Background component
   const memoizedBackground = useMemo(() => <MemoizedBackground />, []);
 
   // Memoize the node types configuration
   const memoizedNodeTypes = useMemo(() => nodeTypes, []);
-
-  const readonlyNodesChange = useCallback(() => {
-    // No-op function for readonly mode
-    return nodes;
-  }, [nodes]);
 
   const readonlyEdgesChange = useCallback(() => {
     // No-op function for readonly mode
@@ -915,6 +837,18 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
         reactFlowInstance.zoomOut();
       }
 
+      // Fit view (Cmd/Ctrl + 0)
+      if (isModKey && e.key === '0') {
+        e.preventDefault();
+        reactFlowInstance?.fitView?.();
+      }
+
+      // Auto layout (Cmd/Ctrl + Shift + L)
+      if (isModKey && e.shiftKey && e.key.toLowerCase() === 'l') {
+        e.preventDefault();
+        onLayout?.('LR');
+      }
+
       // Handle edge deletion
       if ((e.key === 'Delete' || e.key === 'Backspace') && selectedEdgeId) {
         e.preventDefault();
@@ -923,7 +857,7 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
         setSelectedEdgeId(null);
       }
     },
-    [selectedEdgeId, reactFlowInstance, undo, redo, readonly],
+    [selectedEdgeId, reactFlowInstance, undo, redo, readonly, onLayout],
   );
 
   // Handle edge click for delete button
@@ -1013,7 +947,7 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
 
   return (
     <Spin
-      className="w-full h-full"
+      className="canvas-spin w-full h-full"
       style={{ maxHeight: '100%' }}
       spinning={(readonly && shareLoading) || loading}
       tip={connectionTimeout ? t('common.connectionFailed') : t('common.loading')}
@@ -1032,17 +966,9 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
           extra={t('canvas.connectionTimeout.extra')}
         />
       </Modal>
-      <div className="w-full h-[calc(100vh-16px)] relative flex flex-col overflow-hidden border-[1px] border-solid border-refly-Card-Border rounded-xl shadow-sm">
-        <TopToolbar canvasId={canvasId} mode={interactionMode} changeMode={toggleInteractionMode} />
+      <div className="w-full h-full relative flex flex-col overflow-hidden shadow-sm rounded-xl border-solid border-[1px] border-refly-Card-Border">
         <div className="flex-grow relative">
           <style>{selectionStyles}</style>
-          {readonly && (
-            <style>{`
-              .react-flow__node {
-                cursor: not-allowed !important;
-              }
-            `}</style>
-          )}
           <DropOverlay />
           <ReactFlow
             {...flowConfig}
@@ -1064,7 +990,7 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
             nodeTypes={memoizedNodeTypes}
             nodes={memoizedNodes}
             edges={memoizedEdges}
-            onNodesChange={readonly ? readonlyNodesChange : onNodesChange}
+            onNodesChange={onNodesChange}
             onEdgesChange={readonly ? readonlyEdgesChange : onEdgesChange}
             onConnect={readonly ? readonlyConnect : onConnect}
             onConnectStart={readonly ? undefined : temporaryEdgeOnConnectStart}
@@ -1078,7 +1004,7 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
             nodeDragThreshold={10}
             nodesDraggable={!readonly}
             nodesConnectable={!readonly}
-            elementsSelectable={!readonly}
+            elementsSelectable={true}
             onSelectionContextMenu={readonly ? undefined : onSelectionContextMenu}
             deleteKeyCode={readonly ? null : ['Backspace', 'Delete']}
             multiSelectionKeyCode={readonly ? null : ['Shift', 'Meta']}
@@ -1097,21 +1023,23 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
             <HelperLines horizontal={helperLineHorizontal} vertical={helperLineVertical} />
           </ReactFlow>
         </div>
-
         {/* Display the not found overlay when shareNotFound is true */}
         {readonly && shareNotFound && <NotFoundOverlay />}
+        {!sidePanelVisible && <CanvasControlButtons />}
+        <ToolbarButtons canvasId={canvasId} />
+        <PreviewBoxInCanvas
+          node={selectedNode}
+          previewWidth={previewWidth}
+          setPreviewWidth={handlePreviewWidthChange}
+          maxPanelWidth={maxPanelWidth}
+        />
 
-        <div
-          className="absolute top-[64px] bottom-0 right-2 overflow-x-auto preview-container z-20"
-          style={{
-            maxWidth: 'calc(100% - 12px)',
-          }}
-        >
-          <div className="relative h-full overflow-y-hidden">
-            <NodePreviewContainer canvasId={canvasId} />
-          </div>
-        </div>
-
+        <CopilotContainer
+          copilotWidth={copilotWidth}
+          setCopilotWidth={handleSetCopilotWidth}
+          maxPanelWidth={maxPanelWidth}
+        />
+        <ToggleCopilotPanel copilotWidth={copilotWidth} setCopilotWidth={setCopilotWidth} />
         <UnifiedContextMenu
           open={contextMenu.open}
           position={contextMenu.position}
@@ -1125,35 +1053,60 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
           }}
           setOpen={(open) => setContextMenu((prev) => ({ ...prev, open }))}
         />
-
-        {selectedNodes.length > 0 && <MultiSelectionMenus />}
       </div>
     </Spin>
   );
 });
 
 export const Canvas = (props: { canvasId: string; readonly?: boolean }) => {
-  const isPreviewCanvas = useMatch('/preview/canvas/:shareId');
   const { canvasId, readonly } = props;
+  const { t } = useTranslation();
   const setCurrentCanvasId = useCanvasStoreShallow((state) => state.setCurrentCanvasId);
 
-  const {
-    sidePanelVisible,
-    resourcesPanelWidth,
-    setResourcesPanelWidth,
-    showLeftOverview,
-    setShowLeftOverview,
-    showWorkflowRun,
-  } = useCanvasResourcesPanelStoreShallow((state) => ({
-    sidePanelVisible: state.sidePanelVisible,
-    resourcesPanelWidth: state.panelWidth,
-    setResourcesPanelWidth: state.setPanelWidth,
-    showLeftOverview: state.showLeftOverview,
-    setShowLeftOverview: state.setShowLeftOverview,
-    showWorkflowRun: state.showWorkflowRun,
+  const { sidePanelVisible, setSidePanelVisible, resetState } = useCanvasResourcesPanelStoreShallow(
+    (state) => ({
+      sidePanelVisible: state.sidePanelVisible,
+      setSidePanelVisible: state.setSidePanelVisible,
+      resetState: state.resetState,
+    }),
+  );
+
+  const { canvasCopilotWidth, setCanvasCopilotWidth } = useCopilotStoreShallow((state) => ({
+    canvasCopilotWidth: state.canvasCopilotWidth[canvasId] ?? 400,
+    setCanvasCopilotWidth: state.setCanvasCopilotWidth,
+  }));
+  const isLogin = useUserStoreShallow((state) => state.isLogin);
+
+  const { toolStoreModalOpen, setToolStoreModalOpen } = useToolStoreShallow((state) => ({
+    toolStoreModalOpen: state.toolStoreModalOpen,
+    setToolStoreModalOpen: state.setToolStoreModalOpen,
   }));
 
+  const [copilotWidth, setCopilotWidth] = useState(!readonly && isLogin ? 400 : 0);
+
+  const handleSetCopilotWidth = useCallback(
+    (width: number) => {
+      setCopilotWidth(width);
+      setCanvasCopilotWidth(canvasId, width);
+    },
+    [canvasId, setCanvasCopilotWidth, setCopilotWidth],
+  );
+
   useEffect(() => {
+    if (readonly || !isLogin) {
+      handleSetCopilotWidth(0);
+      return;
+    }
+    if (!canvasCopilotWidth && canvasCopilotWidth !== 0) {
+      handleSetCopilotWidth(400);
+    } else {
+      setCopilotWidth(canvasCopilotWidth);
+    }
+  }, [canvasCopilotWidth, canvasId]);
+
+  useEffect(() => {
+    setSidePanelVisible(false);
+
     if (readonly) {
       return;
     }
@@ -1169,24 +1122,14 @@ export const Canvas = (props: { canvasId: string; readonly?: boolean }) => {
     };
   }, [canvasId, setCurrentCanvasId]);
 
-  // Handle panel resize
-  const handlePanelResize = useCallback(
-    (sizes: number[]) => {
-      if (sizes.length >= 2) {
-        setResourcesPanelWidth(sizes[1]);
-      }
-    },
-    [setResourcesPanelWidth],
-  );
-
   // Calculate max width as 50% of parent container
   const [maxPanelWidth, setMaxPanelWidth] = useState(800);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const updateMaxWidth = () => {
-      const canvasContainer = document.querySelector('.canvas-splitter');
-      if (canvasContainer) {
-        setMaxPanelWidth(Math.floor(canvasContainer.clientWidth * 0.5));
+      if (containerRef.current) {
+        setMaxPanelWidth(Math.floor(containerRef.current.clientWidth * 0.5));
       }
     };
 
@@ -1195,9 +1138,8 @@ export const Canvas = (props: { canvasId: string; readonly?: boolean }) => {
 
     // Listen for window resize events
     const resizeObserver = new ResizeObserver(updateMaxWidth);
-    const canvasContainer = document.querySelector('.canvas-splitter');
-    if (canvasContainer) {
-      resizeObserver.observe(canvasContainer);
+    if (containerRef.current) {
+      resizeObserver.observe(containerRef.current);
     }
 
     return () => {
@@ -1205,79 +1147,63 @@ export const Canvas = (props: { canvasId: string; readonly?: boolean }) => {
     };
   }, []);
 
-  // Close resources overview popover when clicking outside
-  const handleClickOutsideResourcesPopover = useCallback(
-    (event: MouseEvent) => {
-      if (!showLeftOverview) {
-        return;
-      }
-
-      const targetEl = event.target as HTMLElement | null;
-      const isInside = targetEl?.closest?.('[data-refly-resources-popover="true"]');
-      if (isInside) return;
-
-      setShowLeftOverview(false);
-    },
-    [showLeftOverview, setShowLeftOverview],
-  );
-
   useEffect(() => {
-    if (!showLeftOverview) {
-      return;
-    }
-
-    // Use capture phase to ensure we catch early
-    document.addEventListener('mousedown', handleClickOutsideResourcesPopover, true);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutsideResourcesPopover, true);
-    };
-  }, [showLeftOverview, handleClickOutsideResourcesPopover]);
+    resetState();
+  }, [canvasId]);
 
   return (
     <EditorPerformanceProvider>
       <ReactFlowProvider>
         <CanvasProvider readonly={readonly} canvasId={canvasId}>
           <UploadNotification />
+          <TopToolbar canvasId={canvasId} />
 
-          <Splitter
-            className="canvas-splitter w-full h-[calc(100vh-16px)]"
-            onResize={handlePanelResize}
+          <div
+            ref={containerRef}
+            className={cn(
+              'canvas-container flex w-full h-full flex-grow overflow-hidden',
+              !sidePanelVisible ? 'gap-0' : 'gap-2',
+            )}
           >
-            <Splitter.Panel>
-              <Flow canvasId={canvasId} />
-            </Splitter.Panel>
-
-            <Splitter.Panel
-              size={sidePanelVisible ? resourcesPanelWidth : 0}
-              min={480}
-              max={maxPanelWidth}
-            >
-              {showWorkflowRun && !readonly && !isPreviewCanvas ? (
-                <WorkflowRun />
-              ) : (
-                <Popover
-                  classNames={{
-                    root: 'resources-panel-popover',
-                  }}
-                  open={showLeftOverview}
-                  onOpenChange={setShowLeftOverview}
-                  arrow={false}
-                  content={
-                    <div className="flex w-[360px] h-full" data-refly-resources-popover="true">
-                      <ResourceOverview />
-                    </div>
-                  }
-                  placement="left"
-                  align={{
-                    offset: [0, 0],
-                  }}
-                >
-                  <CanvasResources />
-                </Popover>
-              )}
-            </Splitter.Panel>
-          </Splitter>
+            <Flow
+              canvasId={canvasId}
+              copilotWidth={copilotWidth}
+              setCopilotWidth={handleSetCopilotWidth}
+              maxPanelWidth={maxPanelWidth}
+            />
+            <CanvasDrive className={!sidePanelVisible ? 'hidden' : ''} />
+          </div>
           <CanvasResourcesWidescreenModal />
+
+          {/* Tool Store Modal */}
+          <Modal
+            open={toolStoreModalOpen}
+            onCancel={() => setToolStoreModalOpen(false)}
+            title={null}
+            footer={null}
+            className="provider-store-modal"
+            width="calc(100vw - 80px)"
+            style={{ height: 'calc(var(--screen-height) - 80px)' }}
+            centered
+            closable={false}
+            destroyOnClose
+            zIndex={10001}
+          >
+            <div className="h-full w-full overflow-hidden flex flex-col">
+              <div className="flex items-center justify-between p-5 border-solid border-[1px] border-x-0 border-t-0 border-refly-Card-Border">
+                <div className="text-lg font-semibold text-refly-text-0 leading-7">
+                  {t('settings.toolStore.title')}
+                </div>
+                <Button
+                  type="text"
+                  icon={<Close size={24} />}
+                  onClick={() => setToolStoreModalOpen(false)}
+                />
+              </div>
+
+              <ToolStore />
+            </div>
+          </Modal>
         </CanvasProvider>
       </ReactFlowProvider>
     </EditorPerformanceProvider>

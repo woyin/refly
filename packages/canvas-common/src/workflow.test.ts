@@ -160,13 +160,13 @@ describe('prepareNodeExecutions', () => {
     });
   });
 
-  it('computes start nodes automatically and marks subtree nodes as waiting (isNewCanvas=false)', () => {
+  it('computes start nodes automatically and marks subtree nodes as waiting (nodeBehavior=update)', () => {
     const canvas = buildCanvas();
     const { nodeExecutions, startNodes } = prepareNodeExecutions({
       executionId: 'exec1',
       canvasData: canvas,
       variables,
-      isNewCanvas: false,
+      nodeBehavior: 'update',
     });
 
     expect(startNodes).toEqual(['S']);
@@ -178,7 +178,7 @@ describe('prepareNodeExecutions', () => {
         childNodeIds: ['A'],
         parentNodeIds: [],
         connectTo: [],
-        status: 'waiting',
+        status: 'finish',
         title: 'Start',
         node: {
           type: 'start',
@@ -219,6 +219,7 @@ describe('prepareNodeExecutions', () => {
             entityId: 'entityA',
             metadata: {
               contextItems: [],
+              query: 'Hello @{type=var,id=v-topic,name=topic} world',
               structuredData: {
                 query: 'Hello @{type=var,id=v-topic,name=topic} world',
               },
@@ -302,6 +303,7 @@ describe('prepareNodeExecutions', () => {
           data: {
             entityId: 'entityC',
             metadata: {
+              query: 'Analyze @{type=resource,id=resource1,name=test2.pdf} please',
               structuredData: {
                 query: 'Analyze @{type=resource,id=resource1,name=test2.pdf} please',
               },
@@ -345,39 +347,39 @@ describe('prepareNodeExecutions', () => {
     ] as WorkflowNode[]);
   });
 
-  it('uses provided startNodes when isNewCanvas=false', () => {
+  it('uses provided startNodes when nodeBehavior=update', () => {
     const canvas = buildCanvas();
     const { startNodes } = prepareNodeExecutions({
       executionId: 'exec3',
       canvasData: canvas,
       variables,
-      startNodes: ['C'], // This should be used when isNewCanvas=false
-      isNewCanvas: false,
+      startNodes: ['C'], // This should be used when nodeBehavior=update
+      nodeBehavior: 'update',
     });
 
     expect(startNodes).toEqual(['C']);
   });
 
-  it('ignores provided startNodes and auto-detects root nodes when isNewCanvas=true', () => {
+  it('ignores provided startNodes and auto-detects root nodes when nodeBehavior=create', () => {
     const canvas = buildCanvas();
     const { nodeExecutions, startNodes } = prepareNodeExecutions({
       executionId: 'exec2',
       canvasData: canvas,
       variables,
-      startNodes: ['B'], // This should be ignored when isNewCanvas=true
-      isNewCanvas: true,
+      startNodes: ['B'], // This should be ignored when nodeBehavior=create
+      nodeBehavior: 'create',
     });
 
-    // startNodes should be auto-detected (node A has no parents), mapped to new id N1
-    expect(startNodes).toEqual(['N1']);
+    // startNodes should be auto-detected (node S has no parents)
+    expect(startNodes).toEqual(['S']);
     expect(nodeExecutions).toEqual([
       {
-        nodeId: 'N1',
+        nodeId: 'S',
         nodeType: 'start',
         title: 'Start',
         parentNodeIds: [],
-        status: 'waiting',
-        childNodeIds: ['N2'],
+        status: 'finish',
+        childNodeIds: ['A'],
         connectTo: [],
         entityId: 'E1',
         node: {
@@ -389,7 +391,7 @@ describe('prepareNodeExecutions', () => {
             },
             title: 'Start',
           },
-          id: 'N1',
+          id: 'S',
           position: {
             x: 0,
             y: 0,
@@ -398,15 +400,15 @@ describe('prepareNodeExecutions', () => {
         },
       },
       {
-        nodeId: 'N2',
+        nodeId: 'A',
         nodeType: 'skillResponse',
         title: 'Hello TypeScript world',
         originalQuery: 'Hello @{type=var,id=v-topic,name=topic} world',
-        parentNodeIds: ['N1'],
+        parentNodeIds: ['S'],
         processedQuery: 'Hello TypeScript world',
         resultHistory: [],
         status: 'waiting',
-        childNodeIds: ['N3', 'N4'],
+        childNodeIds: ['B', 'C'],
         entityId: 'E2',
         connectTo: [
           {
@@ -429,13 +431,14 @@ describe('prepareNodeExecutions', () => {
                 provider: 'openai',
                 providerItemId: 'pi-1',
               },
+              query: 'Hello @{type=var,id=v-topic,name=topic} world',
               structuredData: {
                 query: 'Hello @{type=var,id=v-topic,name=topic} world',
               },
             },
             title: 'Hello TypeScript world',
           },
-          id: 'N2',
+          id: 'A',
           position: {
             x: 0,
             y: 0,
@@ -444,12 +447,12 @@ describe('prepareNodeExecutions', () => {
         },
       },
       {
-        nodeId: 'N3',
+        nodeId: 'B',
         nodeType: 'document',
-        parentNodeIds: ['N2'],
+        parentNodeIds: ['A'],
         status: 'waiting',
         title: 'Test Document',
-        childNodeIds: ['N4'],
+        childNodeIds: ['C'],
         connectTo: [
           {
             entityId: 'E2',
@@ -464,7 +467,7 @@ describe('prepareNodeExecutions', () => {
             title: 'Test Document',
             contentPreview: '',
           },
-          id: 'N3',
+          id: 'B',
           position: {
             x: 0,
             y: 0,
@@ -473,10 +476,10 @@ describe('prepareNodeExecutions', () => {
         },
       },
       {
-        nodeId: 'N4',
+        nodeId: 'C',
         nodeType: 'skillResponse',
         originalQuery: 'Analyze @{type=resource,id=resource1,name=test2.pdf} please',
-        parentNodeIds: ['N3', 'N2'],
+        parentNodeIds: ['B', 'A'],
         processedQuery: 'Analyze @test2.pdf please',
         resultHistory: [
           {
@@ -531,13 +534,14 @@ describe('prepareNodeExecutions', () => {
                 provider: 'openai',
                 providerItemId: 'pi-2',
               },
+              query: 'Analyze @{type=resource,id=resource1,name=test2.pdf} please',
               structuredData: {
                 query: 'Analyze @{type=resource,id=resource1,name=test2.pdf} please',
               },
             },
             title: 'Analyze @test2.pdf please',
           },
-          id: 'N4',
+          id: 'C',
           position: {
             x: 0,
             y: 0,
@@ -548,7 +552,7 @@ describe('prepareNodeExecutions', () => {
     ] as WorkflowNode[]);
   });
 
-  it('marks skill nodes as finished regardless of subtree membership (isNewCanvas=false)', () => {
+  it('marks skill nodes as finished regardless of subtree membership (nodeBehavior=update)', () => {
     setMockSequences({
       nodeIds: ['N1', 'N2', 'N3', 'N4'],
       entityIds: ['E1', 'E2', 'E3', 'E4'],
@@ -618,7 +622,7 @@ describe('prepareNodeExecutions', () => {
       executionId: 'exec-skill',
       canvasData: canvasWithSkill,
       variables,
-      isNewCanvas: false,
+      nodeBehavior: 'update',
     });
 
     expect(startNodes).toEqual(['S']);
@@ -634,11 +638,11 @@ describe('prepareNodeExecutions', () => {
     const startNode = nodeExecutions.find((n) => n.nodeId === 'S');
     const responseNode = nodeExecutions.find((n) => n.nodeId === 'A');
 
-    expect(startNode?.status).toBe('waiting');
+    expect(startNode?.status).toBe('finish');
     expect(responseNode?.status).toBe('waiting');
   });
 
-  it('marks skill nodes as finished in isNewCanvas=true mode', () => {
+  it('marks skill nodes as finished in nodeBehavior=create mode', () => {
     setMockSequences({
       nodeIds: ['N1', 'N2', 'N3', 'N4'],
       entityIds: ['E1', 'E2', 'E3', 'E4'],
@@ -684,10 +688,10 @@ describe('prepareNodeExecutions', () => {
       executionId: 'exec-skill-new-canvas',
       canvasData: canvasWithSkill,
       variables,
-      isNewCanvas: true,
+      nodeBehavior: 'create',
     });
 
-    expect(startNodes).toEqual(['N5']); // SKILL1 becomes N5
+    expect(startNodes).toEqual(['SKILL1']); // SKILL1 remains SKILL1
 
     // Verify skill node gets 'finish' status even in new canvas mode
     const skillNode = nodeExecutions.find((n) => n.nodeType === 'skill');

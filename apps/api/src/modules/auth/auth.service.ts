@@ -6,11 +6,7 @@ import { Profile } from 'passport';
 import { CookieOptions, Response } from 'express';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
-import {
-  User as UserModel,
-  VerificationSession,
-  Account as AccountModel,
-} from '../../generated/client';
+import { User as UserModel, VerificationSession, Account as AccountModel } from '@prisma/client';
 import { TokenData } from './auth.dto';
 import {
   ACCESS_TOKEN_COOKIE,
@@ -44,6 +40,7 @@ import {
 import { ProviderService } from '../provider/provider.service';
 import { logEvent } from '@refly/telemetry-node';
 import { NotificationService } from '../notification/notification.service';
+import { CreditService } from '../credit/credit.service';
 
 @Injectable()
 export class AuthService {
@@ -56,7 +53,17 @@ export class AuthService {
     private miscService: MiscService,
     private providerService: ProviderService,
     private notificationService: NotificationService,
+    private creditService: CreditService,
   ) {}
+
+  private getUserPreferences(): string {
+    const requireInvitationCode =
+      this.configService.get('auth.invitation.requireInvitationCode') ?? false;
+    return JSON.stringify({
+      requireInvitationCode,
+      hasBeenInvited: false,
+    });
+  }
 
   getAuthConfig(): AuthConfigItem[] {
     const items: AuthConfigItem[] = [];
@@ -68,6 +75,9 @@ export class AuthService {
     }
     if (this.configService.get('auth.github.enabled')) {
       items.push({ provider: 'github' });
+    }
+    if (this.configService.get('auth.invitation.requireInvitationCode')) {
+      items.push({ provider: 'invitation' });
     }
     return items;
   }
@@ -420,6 +430,7 @@ export class AuthService {
           avatar,
           emailVerified: new Date(),
           outputLocale: 'auto',
+          preferences: this.getUserPreferences(),
         },
       });
       await this.postCreateUser(newUser);
@@ -481,6 +492,7 @@ export class AuthService {
             nickname: name,
             emailVerified: new Date(),
             outputLocale: 'auto',
+            preferences: this.getUserPreferences(),
           },
         }),
         this.prisma.account.create({
@@ -503,6 +515,7 @@ export class AuthService {
 
   private async postCreateUser(user: User) {
     await this.providerService.prepareGlobalProviderItemsForUser(user);
+    await this.creditService.createRegistrationCreditRecharge(user.uid);
   }
 
   async emailLogin(email: string, password: string) {
@@ -606,6 +619,7 @@ export class AuthService {
             nickname: name,
             emailVerified: new Date(),
             outputLocale: 'auto',
+            preferences: this.getUserPreferences(),
           },
         }),
         this.prisma.account.create({

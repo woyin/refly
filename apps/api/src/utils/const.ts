@@ -19,6 +19,9 @@ export const QUEUE_SYNC_PILOT_STEP = 'syncPilotStep';
 export const QUEUE_RUN_WORKFLOW = 'runWorkflow';
 export const QUEUE_POLL_WORKFLOW = 'pollWorkflow';
 export const QUEUE_CREATE_SHARE = 'createShare';
+export const QUEUE_SCALEBOX_EXECUTE = 'scaleboxExecute';
+export const QUEUE_SCALEBOX_PAUSE = 'scaleboxPause';
+export const QUEUE_SCALEBOX_KILL = 'scaleboxKill';
 
 export const QUEUE_CHECK_CANCELED_SUBSCRIPTIONS = 'checkCanceledSubscriptions';
 export const QUEUE_EXPIRE_AND_RECHARGE_CREDITS = 'expireAndRechargeCredits';
@@ -26,3 +29,6 @@ export const QUEUE_SYNC_REQUEST_USAGE = 'syncRequestUsage';
 export const QUEUE_IMAGE_PROCESSING = 'imageProcessing';
 export const QUEUE_CLEAN_STATIC_FILES = 'cleanStaticFiles';
 export const QUEUE_CHECK_STUCK_ACTIONS = 'checkStuckActions';
+export const SUCCESS_STATUS = 'success';
+export const FAILED_STATUS = 'failed';
+export const QUEUE_WORKFLOW_APP_TEMPLATE = 'workflowAppTemplate';

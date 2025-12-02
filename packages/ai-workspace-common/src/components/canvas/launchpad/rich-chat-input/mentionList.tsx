@@ -15,14 +15,13 @@ import {
 import { ArrowRight, X } from 'refly-icons';
 import { getStartNodeIcon } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/variable/getVariableIcon';
 import { NodeIcon } from '@refly-packages/ai-workspace-common/components/canvas/nodes/shared/node-icon';
-import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
 import { Button, message } from 'antd';
 import { cn, genVariableID } from '@refly/utils';
-import { Spin } from '@refly-packages/ai-workspace-common/components/common/spin';
 import { useVariableView } from '@refly-packages/ai-workspace-common/hooks/canvas';
+import { useVariablesManagement } from '@refly-packages/ai-workspace-common/hooks/use-variables-management';
 import { logEvent } from '@refly/telemetry-web';
 import { ToolsetIcon } from '@refly-packages/ai-workspace-common/components/canvas/common/toolset-icon';
-import { type MentionItemSource } from './const';
+import type { MentionItemSource } from './const';
 
 export interface MentionItem {
   name: string;
@@ -36,6 +35,8 @@ export interface MentionItem {
   categoryLabel?: string;
   toolset?: GenericToolset;
   toolsetId?: string;
+  toolDefinition?: any; // ToolsetDefinition type
+  isInstalled?: boolean;
   metadata?: {
     imageUrl?: string | undefined;
     videoUrl?: string | undefined;
@@ -58,8 +59,10 @@ export const MentionList = ({
   isMentionListVisible?: boolean;
   query?: string;
 }) => {
-  const { t } = useTranslation();
-  const [hoveredCategory, setHoveredCategory] = useState<string | null>('variables');
+  const { t, i18n } = useTranslation();
+  const currentLanguage = i18n.languages?.[0] || 'en';
+  const [hoveredCategory, setHoveredCategory] = useState<MentionItemSource | null>('variables');
+
   // Keyboard navigation states
   const [focusLevel, setFocusLevel] = useState<'first' | 'second'>('first');
   const [firstLevelIndex, setFirstLevelIndex] = useState<number>(0);
@@ -67,16 +70,14 @@ export const MentionList = ({
   // Height tracking states
   const [firstLevelHeight, setFirstLevelHeight] = useState<number>(0);
   const [secondLevelHeight, setSecondLevelHeight] = useState<number>(0);
-  const { workflow, canvasId } = useCanvasContext();
-  const {
-    workflowVariablesLoading: isLoadingVariables,
-    refetchWorkflowVariables,
-    workflowVariables,
-  } = workflow || {};
-
-  const [isAddingVariable, setIsAddingVariable] = useState(false);
+  const { canvasId } = useCanvasContext();
 
   const { handleVariableView } = useVariableView(canvasId);
+  const {
+    data: workflowVariables,
+    isLoading: isLoadingVariables,
+    setVariables,
+  } = useVariablesManagement(canvasId);
 
   const handleAddVariable = useCallback(async () => {
     const isDuplicate = workflowVariables.some((variable) => variable.name === query);
@@ -102,52 +103,34 @@ export const MentionList = ({
       variable: newItem,
     });
 
-    try {
-      setIsAddingVariable(true);
-      const { data } = await getClient().updateWorkflowVariables({
-        body: {
-          canvasId: canvasId,
-          variables: newWorkflowVariables,
-        },
-      });
+    // Immediately update UI
+    const newMentionItem: MentionItem = { ...newItem, source: 'variables' } as MentionItem;
+    command(newMentionItem);
 
-      if (data?.success) {
-        message.success(
-          <div className="flex items-center gap-2">
-            <span>
-              {t('canvas.workflow.variables.saveSuccess') || 'Variable created successfully'}
-            </span>
-            <Button
-              type="link"
-              size="small"
-              className="p-0 h-auto !text-refly-primary-default hover:!text-refly-primary-default"
-              onClick={() => handleVariableView(newItem)}
-            >
-              {t('canvas.workflow.variables.viewAndEdit') || 'View'}
-            </Button>
-          </div>,
-          5, // Show for 5 seconds
-        );
-        refetchWorkflowVariables();
-        const newMentionItem: MentionItem = { ...newItem, source: 'variables' } as MentionItem;
-        command(newMentionItem);
-      } else {
-        message.error(t('canvas.workflow.variables.saveError'));
-      }
-    } catch {
+    try {
+      setVariables(newWorkflowVariables);
+      message.success(
+        <div className="flex items-center gap-2">
+          <span>
+            {t('canvas.workflow.variables.saveSuccess') || 'Variable created successfully'}
+          </span>
+          <Button
+            type="link"
+            size="small"
+            className="p-0 h-auto !text-refly-primary-default hover:!text-refly-primary-default"
+            onClick={() => handleVariableView(newItem)}
+          >
+            {t('canvas.workflow.variables.viewAndEdit') || 'View'}
+          </Button>
+        </div>,
+        5, // Show for 5 seconds
+      );
+    } catch (error) {
+      // Rollback optimistic update on failure
+      console.error('Failed to create variable:', error);
       message.error(t('canvas.workflow.variables.saveError'));
-    } finally {
-      setIsAddingVariable(false);
     }
-  }, [
-    refetchWorkflowVariables,
-    query,
-    canvasId,
-    workflowVariables,
-    command,
-    t,
-    setIsAddingVariable,
-  ]);
+  }, [query, canvasId, workflowVariables, command, t, handleVariableView]);
 
   // Refs for measuring panel heights
   const firstLevelRef = useRef<HTMLDivElement>(null);
@@ -202,7 +185,7 @@ export const MentionList = ({
 
   const secondLevelClasses = useMemo(() => {
     const baseClasses =
-      'w-60 p-2 max-h-60 flex box-border overflow-y-auto bg-refly-bg-body-z0 border-[1px] border-solid border-refly-Card-Border';
+      'w-[180px] p-2 max-h-60 flex box-border overflow-y-auto bg-refly-bg-body-z0 border-[1px] border-solid border-refly-Card-Border';
 
     if (placement === 'top') {
       if (isSecondLevelTaller) {
@@ -224,36 +207,41 @@ export const MentionList = ({
     }
   }, [isSecondLevelTaller, placement]);
 
-  const firstLevels = useMemo(
+  const firstLevels: {
+    key: string;
+    name: string;
+    source: MentionItemSource;
+    onMouseEnter: () => void;
+  }[] = useMemo(
     () => [
       {
         key: 'variables',
-        name: t('canvas.richChatInput.variables'),
-        source: 'variables' as const,
+        name: t('canvas.richChatInput.userInput'),
+        source: 'variables',
         onMouseEnter: () => setHoveredCategory('variables'),
       },
       {
-        key: 'resourceLibrary',
-        name: t('canvas.richChatInput.resourceLibrary'),
-        source: 'resourceLibrary' as const,
-        onMouseEnter: () => {
-          setHoveredCategory('resourceLibrary');
-        },
-      },
-      {
-        key: 'runningRecord',
-        name: t('canvas.richChatInput.runningRecord'),
-        source: 'runningRecord' as const,
-        onMouseEnter: () => {
-          setHoveredCategory('runningRecord');
-        },
-      },
-      {
-        key: 'tools',
+        key: 'toolsets',
         name: t('canvas.richChatInput.tools'),
-        source: 'tools' as const,
+        source: 'toolsets',
         onMouseEnter: () => {
-          setHoveredCategory('tools');
+          setHoveredCategory('toolsets');
+        },
+      },
+      {
+        key: 'files',
+        name: t('canvas.richChatInput.files'),
+        source: 'files',
+        onMouseEnter: () => {
+          setHoveredCategory('files');
+        },
+      },
+      {
+        key: 'agents',
+        name: t('canvas.richChatInput.agents'),
+        source: 'agents',
+        onMouseEnter: () => {
+          setHoveredCategory('agents');
         },
       },
     ],
@@ -263,24 +251,24 @@ export const MentionList = ({
   // Group items by source and create canvas-based items
   const groupedItems = useMemo(() => {
     const variableItems = items.filter((item) => item.source === 'variables');
-    const myUploadItems = items.filter((item) => item.source === 'myUpload');
-    const stepRecordItems = items.filter((item) => item.source === 'stepRecord');
-    const resultRecordItems = items.filter((item) => item.source === 'resultRecord');
+    const fileItems = items.filter((item) => item.source === 'files');
+    const agentItems = items.filter((item) => item.source === 'agents');
     const toolsetItems = items.filter((item) => item.source === 'toolsets');
     const toolItems = items.filter((item) => item.source === 'tools');
 
-    // Running record combines step records and result records
-    const runningRecordItems = [...stepRecordItems, ...resultRecordItems];
+    const agentsItems = [...agentItems];
 
     // Apply filtering based on query
-    return {
+    const result = {
       variables: filterItems(variableItems, query) || [],
-      resourceLibrary: filterItems(myUploadItems, query) || [],
-      runningRecord: filterItems(runningRecordItems, query) || [],
+      files: filterItems(fileItems, query) || [],
+      agents: filterItems(agentsItems, query) || [],
       toolsets: filterItems(toolsetItems, query) || [],
-      // Only show individual tools if user has typed a query
-      ...(query ? { tools: filterItems(toolItems, query) || [] } : {}),
+      // Show individual tools both in query mode and when hovering tools category
+      tools: filterItems(toolItems, query) || [],
     };
+
+    return result;
   }, [items, filterItems, query]);
 
   // When there's a query, create grouped items with headers
@@ -293,45 +281,45 @@ export const MentionList = ({
     if (groupedItems.variables.length > 0) {
       items.push({
         type: 'header',
-        label: t('canvas.richChatInput.variables'),
+        label: t('canvas.richChatInput.userInput'),
         source: 'variables' as const,
       });
       items.push(
         ...groupedItems.variables.map((item) => ({
           ...item,
-          categoryLabel: t('canvas.richChatInput.variables'),
+          categoryLabel: t('canvas.richChatInput.userInput'),
           type: 'item' as const,
         })),
       );
     }
 
-    // Add resourceLibrary group
-    if (groupedItems.resourceLibrary.length > 0) {
+    // Add files group
+    if (groupedItems.files.length > 0) {
       items.push({
         type: 'header',
-        label: t('canvas.richChatInput.resourceLibrary'),
-        source: 'resourceLibrary' as const,
+        label: t('canvas.richChatInput.files'),
+        source: 'files' as const,
       });
       items.push(
-        ...groupedItems.resourceLibrary.map((item) => ({
+        ...groupedItems.files.map((item) => ({
           ...item,
-          categoryLabel: t('canvas.richChatInput.resourceLibrary'),
+          categoryLabel: t('canvas.richChatInput.files'),
           type: 'item' as const,
         })),
       );
     }
 
-    // Add runningRecord group
-    if (groupedItems.runningRecord.length > 0) {
+    // Add agents group
+    if (groupedItems.agents.length > 0) {
       items.push({
         type: 'header',
-        label: t('canvas.richChatInput.runningRecord'),
-        source: 'runningRecord' as const,
+        label: t('canvas.richChatInput.agents'),
+        source: 'agents' as const,
       });
       items.push(
-        ...groupedItems.runningRecord.map((item) => ({
+        ...groupedItems.agents.map((item) => ({
           ...item,
-          categoryLabel: t('canvas.richChatInput.runningRecord'),
+          categoryLabel: t('canvas.richChatInput.agents'),
           type: 'item' as const,
         })),
       );
@@ -371,7 +359,7 @@ export const MentionList = ({
         source: 'variables' as const,
         variableType: 'string',
         variableId: 'create-variable',
-        categoryLabel: t('canvas.richChatInput.createVariable', { variableName: query }),
+        categoryLabel: t('canvas.richChatInput.createUserInput', { userInputName: query }),
       });
     }
 
@@ -426,13 +414,13 @@ export const MentionList = ({
     if (hoveredCategory === 'variables') {
       return groupedItems.variables ?? [];
     }
-    if (hoveredCategory === 'resourceLibrary') {
-      return groupedItems.resourceLibrary ?? [];
+    if (hoveredCategory === 'files') {
+      return groupedItems.files ?? [];
     }
-    if (hoveredCategory === 'runningRecord') {
-      return groupedItems.runningRecord ?? [];
+    if (hoveredCategory === 'agents') {
+      return groupedItems.agents ?? [];
     }
-    if (hoveredCategory === 'tools') {
+    if (hoveredCategory === 'toolsets') {
       return groupedItems.toolsets ?? [];
     }
     return [];
@@ -462,15 +450,9 @@ export const MentionList = ({
 
   // Sync first level index with hoveredCategory
   useEffect(() => {
-    let idx = 0;
-    if (hoveredCategory === 'variables') {
-      idx = 0;
-    } else if (hoveredCategory === 'resourceLibrary') {
-      idx = 1;
-    } else if (hoveredCategory === 'runningRecord') {
-      idx = 2;
-    } else if (hoveredCategory === 'tools') {
-      idx = 3;
+    const idx = firstLevels.findIndex((item) => item.source === hoveredCategory);
+    if (idx === -1) {
+      return;
     }
     setFirstLevelIndex(idx);
     // Reset second-level index when category changes
@@ -503,21 +485,20 @@ export const MentionList = ({
   const categoryConfigs = useMemo(
     () => ({
       variables: {
-        emptyStateKey: 'noVariables',
+        emptyStateKey: 'noUserInput',
       },
-      resourceLibrary: {
+      files: {
         nodeIconProps: (item: MentionItem) => ({
-          type: item.variableType as CanvasNodeType,
+          type: 'file' as const,
           small: true,
-          url: item.variableType === 'image' ? item.metadata?.imageUrl : undefined,
-          resourceType: item.metadata?.resourceType,
-          resourceMeta: item.metadata?.resourceMeta,
+          filename: item.name,
+          filled: false,
         }),
-        emptyStateKey: 'noUploadFiles',
+        emptyStateKey: 'noFiles',
       },
-      runningRecord: {
+      agents: {
         nodeIconProps: (item: MentionItem) => {
-          if (item.source === 'stepRecord') {
+          if (item.source === 'agents') {
             return {
               type: 'skillResponse' as CanvasNodeType,
               small: true,
@@ -532,7 +513,7 @@ export const MentionList = ({
             };
           }
         },
-        emptyStateKey: 'noRunningRecords',
+        emptyStateKey: 'noAgents',
       },
       tools: {
         emptyStateKey: 'noTools',
@@ -562,8 +543,8 @@ export const MentionList = ({
       // Map item source to category config key
       const getCategoryKey = (source: string) => {
         if (source === 'variables') return 'variables';
-        if (source === 'myUpload') return 'resourceLibrary';
-        if (source === 'stepRecord' || source === 'resultRecord') return 'runningRecord';
+        if (source === 'myUpload') return 'files';
+        if (source === 'stepRecord' || source === 'resultRecord') return 'agents';
         if (source === 'toolsets' || source === 'tools') return 'toolsets';
         return source;
       };
@@ -592,9 +573,6 @@ export const MentionList = ({
               <div className="flex-1 text-sm text-refly-text-0 leading-5 truncate">
                 {item.categoryLabel}
               </div>
-              {isAddingVariable && (
-                <Spin size="small" className="text-refly-text-3" spinning={isAddingVariable} />
-              )}
             </div>
           ) : item.source === 'variables' ? (
             <>
@@ -613,17 +591,27 @@ export const MentionList = ({
             <>
               <ToolsetIcon
                 toolset={item.toolset}
-                isBuiltin={item.toolset?.builtin}
+                toolsetKey={item.isInstalled === false ? item.toolsetId : undefined}
                 config={{
                   size: 16,
                   className: 'flex-shrink-0',
                   builtinClassName: '!w-4 !h-4',
                 }}
               />
-              <div className="flex-1 text-sm text-refly-text-0 leading-5 truncate">{item.name}</div>
-              {item.toolset?.uninstalled && (
-                <div className="text-xs text-refly-text-2 px-1.5 py-0.5 rounded bg-refly-fill-hover">
-                  {t('canvas.toolsDepencency.uninstalled')}
+              <div
+                className={cn(
+                  'flex-1 text-sm leading-5 truncate min-w-0',
+                  item.isInstalled === false ? 'text-refly-text-2' : 'text-refly-text-0',
+                )}
+              >
+                {item.toolset?.builtin
+                  ? ((item.toolset?.toolset?.definition?.labelDict?.[currentLanguage] as string) ??
+                    item.name)
+                  : item.name}
+              </div>
+              {(item.toolset?.uninstalled || item.isInstalled === false) && (
+                <div className="text-xs text-amber-600 px-1.5 py-0.5 rounded flex items-center justify-center bg-amber-50 flex-shrink-0 font-medium">
+                  {t('canvas.richChatInput.unauthorized')}
                 </div>
               )}
             </>
@@ -636,7 +624,7 @@ export const MentionList = ({
         </div>
       );
     },
-    [categoryConfigs, query, isAddingVariable, formatVariableValue],
+    [categoryConfigs, query, formatVariableValue, currentLanguage, t],
   );
 
   // Generic function to render empty state
@@ -668,7 +656,7 @@ export const MentionList = ({
       if (total > 0) {
         const next = (firstLevelIndex + total - 1) % total;
         setFirstLevelIndex(next);
-        const nextKey = (firstLevels?.[next] as any)?.key ?? 'variables';
+        const nextKey = firstLevels?.[next]?.source ?? 'variables';
         setHoveredCategory(nextKey);
       }
     } else {
@@ -691,7 +679,7 @@ export const MentionList = ({
       if (total > 0) {
         const next = (firstLevelIndex + 1) % total;
         setFirstLevelIndex(next);
-        const nextKey = (firstLevels?.[next] as any)?.key ?? 'variables';
+        const nextKey = firstLevels?.[next]?.source ?? 'variables';
         setHoveredCategory(nextKey);
       }
     } else {
@@ -845,11 +833,11 @@ export const MentionList = ({
                 key={item.key}
                 className={cn(
                   'h-8 p-1.5 cursor-pointer transition-colors hover:bg-refly-fill-hover rounded-md flex items-center gap-2',
-                  hoveredCategory === item.key && 'bg-refly-fill-hover',
+                  hoveredCategory === item.source && 'bg-refly-fill-hover',
                 )}
                 onMouseEnter={item.onMouseEnter}
                 onClick={() => {
-                  setHoveredCategory(item.key);
+                  setHoveredCategory(item.source);
                   setFirstLevelIndex(idx);
                   setFocusLevel('second');
                 }}
@@ -884,17 +872,17 @@ export const MentionList = ({
                   </div>
                 ) : (
                   <div className="px-4 py-8 text-center text-refly-text-2 text-sm">
-                    {t('canvas.richChatInput.noVariables')}
+                    {t('canvas.richChatInput.noUserInput')}
                   </div>
                 )}
               </div>
             )}
 
-            {hoveredCategory === 'resourceLibrary' && (
+            {hoveredCategory === 'files' && (
               <div className="flex-1 w-full">
-                {groupedItems.resourceLibrary?.length > 0 ? (
+                {groupedItems.files?.length > 0 ? (
                   <div className="flex flex-col gap-1">
-                    {groupedItems.resourceLibrary.map((item, idx) =>
+                    {groupedItems.files.map((item, idx) =>
                       renderListItem(
                         item,
                         idx,
@@ -903,16 +891,16 @@ export const MentionList = ({
                     )}
                   </div>
                 ) : (
-                  renderEmptyState(categoryConfigs.resourceLibrary.emptyStateKey)
+                  renderEmptyState(categoryConfigs.files.emptyStateKey)
                 )}
               </div>
             )}
 
-            {hoveredCategory === 'runningRecord' && (
+            {hoveredCategory === 'agents' && (
               <div className="flex-1 w-full">
-                {groupedItems.runningRecord?.length > 0 ? (
+                {groupedItems.agents?.length > 0 ? (
                   <div className="flex flex-col gap-1">
-                    {groupedItems.runningRecord.map((item, idx) =>
+                    {groupedItems.agents.map((item, idx) =>
                       renderListItem(
                         item,
                         idx,
@@ -921,12 +909,12 @@ export const MentionList = ({
                     )}
                   </div>
                 ) : (
-                  renderEmptyState(categoryConfigs.runningRecord.emptyStateKey)
+                  renderEmptyState(categoryConfigs.agents.emptyStateKey)
                 )}
               </div>
             )}
 
-            {hoveredCategory === 'tools' && (
+            {hoveredCategory === 'toolsets' && (
               <div className="flex-1 w-full">
                 {groupedItems.toolsets?.length > 0 ? (
                   <div className="flex flex-col gap-1">

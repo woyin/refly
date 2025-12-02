@@ -2,39 +2,89 @@ import { memo, useState, useRef, useEffect, useCallback } from 'react';
 import { Input } from 'antd';
 import type { InputRef } from 'antd';
 import cn from 'classnames';
+import { useTranslation } from 'react-i18next';
 import { CanvasNodeType, ResourceType, ResourceMeta } from '@refly/openapi-schema';
 import { NodeIcon } from './node-icon';
 
 interface NodeHeaderProps {
+  // Node identification
+  nodeId?: string;
+  nodeType?: CanvasNodeType;
+
+  // Title props (legacy support)
   fixedTitle?: string;
   title: string;
-  type?: CanvasNodeType;
+  type?: CanvasNodeType; // alias for nodeType for backward compatibility
+  placeholder?: string; // Placeholder to display when it is empty
+
+  // Resource props (for resource nodes)
   resourceType?: ResourceType;
   resourceMeta?: ResourceMeta;
+
+  // Edit behavior
   canEdit?: boolean;
-  source?: 'preview' | 'node';
   updateTitle?: (title: string) => void;
+
+  // Visual customization
+  showIcon?: boolean;
+  iconColor?: string;
+  iconFilled?: boolean;
+  backgroundColor?: string; // Override background color
+
+  // Action buttons - render prop for custom actions
+  actions?: React.ReactNode;
+
+  // Additional props
+  source?: 'preview' | 'node' | 'skillResponsePreview';
+  className?: string;
+  maxLength?: number;
+  iconSize?: number;
 }
 
+// Background color classes for different node types
+const NODE_TYPE_BG_CLASSES: Partial<Record<CanvasNodeType, string>> = {
+  skillResponse: 'bg-refly-node-fill-1',
+  start: 'bg-refly-node-fill-2',
+};
+
+/**
+ * Generic node header component that can be used by different node types
+ * Supports title editing, action buttons, and customizable styling
+ */
 export const NodeHeader = memo(
   ({
+    nodeType,
     fixedTitle,
     title,
-    type,
-    resourceType,
-    resourceMeta,
+    placeholder,
+    type, // backward compatibility
     canEdit = false,
     updateTitle,
+    showIcon = true,
+    iconColor = 'black',
+    iconFilled = false,
+    backgroundColor,
+    actions,
     source = 'node',
+    className = '',
+    maxLength,
+    iconSize = 16,
   }: NodeHeaderProps) => {
+    const { t } = useTranslation();
     const [editTitle, setEditTitle] = useState(title);
     const [isEditing, setIsEditing] = useState(false);
     const inputRef = useRef<InputRef>(null);
+    const buttonContainerRef = useRef<HTMLDivElement>(null);
 
+    // Use nodeType or fall back to type for backward compatibility
+    const actualNodeType = nodeType || type;
+
+    // Sync editTitle with prop title
     useEffect(() => {
       setEditTitle(title);
     }, [title]);
 
+    // Auto-focus input when editing starts
     useEffect(() => {
       if (isEditing && inputRef.current) {
         inputRef.current.focus();
@@ -48,38 +98,92 @@ export const NodeHeader = memo(
     const handleChange = useCallback(
       (e: React.ChangeEvent<HTMLInputElement>) => {
         setEditTitle(e.target.value);
-        updateTitle(e.target.value);
+        updateTitle?.(e.target.value);
       },
-      [setEditTitle, updateTitle],
+      [updateTitle],
     );
 
+    // Determine background color class
+    const bgColorClass = backgroundColor
+      ? `bg-[${backgroundColor}]`
+      : actualNodeType
+        ? NODE_TYPE_BG_CLASSES[actualNodeType]
+        : '';
+
     return (
-      <div className={cn('flex-shrink-0', { 'mb-3': source === 'node' })}>
-        <div className="flex items-center gap-2">
-          <NodeIcon type={type} resourceType={resourceType} resourceMeta={resourceMeta} />
+      <div
+        data-cy={actualNodeType ? `${actualNodeType}-node-header` : 'node-header'}
+        className={cn(
+          'flex items-center flex-shrink-0 w-full py-2 px-3 h-10',
+          bgColorClass,
+          className,
+        )}
+        ref={buttonContainerRef}
+      >
+        <div className="flex items-center w-full min-w-0 gap-2">
+          {showIcon && (
+            <NodeIcon
+              type={actualNodeType}
+              filename={title}
+              filled={iconFilled}
+              iconColor={iconColor}
+              iconSize={iconSize}
+            />
+          )}
+
           {canEdit && isEditing ? (
             <Input
               ref={inputRef}
-              className="!border-transparent rounded-md font-bold focus:!bg-refly-tertiary-hover px-0.5 py-0 !bg-refly-tertiary-hover !text-refly-text-0"
+              className={cn(
+                '!border-transparent rounded-md font-semibold focus:!bg-refly-tertiary-hover h-6 px-0.5 py-0 !bg-refly-tertiary-hover !text-refly-text-0',
+                {
+                  'text-lg': source === 'skillResponsePreview',
+                },
+              )}
               value={editTitle}
+              data-cy={actualNodeType ? `${actualNodeType}-node-header-input` : 'node-header-input'}
+              placeholder={placeholder}
               onBlur={handleBlur}
               onChange={handleChange}
+              maxLength={maxLength}
             />
           ) : (
             <div
-              className="rounded-md h-6 px-0.5 box-border font-bold leading-6 truncate block hover:bg-refly-tertiary-hover"
-              title={title || fixedTitle}
+              className={cn(
+                'flex-1 rounded-md h-6 px-0.5 box-border font-semibold leading-6 truncate min-w-0',
+                {
+                  'text-lg': source === 'skillResponsePreview',
+                  'text-sm': source !== 'skillResponsePreview',
+                  'cursor-pointer hover:bg-refly-tertiary-hover': canEdit,
+                },
+              )}
+              title={
+                editTitle ||
+                fixedTitle ||
+                title ||
+                placeholder ||
+                t('common.agent', { defaultValue: 'Agent' })
+              }
               onClick={() => {
                 if (canEdit) {
                   setIsEditing(true);
                 }
               }}
             >
-              {title || fixedTitle}
+              {editTitle ||
+                fixedTitle ||
+                title ||
+                placeholder ||
+                t('common.agent', { defaultValue: 'Agent' })}
             </div>
           )}
         </div>
+
+        {/* Custom action buttons from parent */}
+        {actions && <div className="flex items-center gap-2">{actions}</div>}
       </div>
     );
   },
 );
+
+NodeHeader.displayName = 'NodeHeader';

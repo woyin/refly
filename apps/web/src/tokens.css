@@ -10,17 +10,20 @@
   --refly-gradient-modal-top: #d8fffc;
   --refly-gradient-modal-bottom: #ffffff;
   --refly-bg-canvas: #fbfbfb;
+  --refly-bg-body: #ffffff;
   --refly-modal-mask: rgba(0, 0, 0, 0.15);
   --refly-Card-Border: rgba(0, 0, 0, 0.1);
   --refly-semi-color-border: rgba(28, 31, 35, 0.08);
   --refly-semi-color-bg-0: #ffffff;
-  --refly-line: #1c232229;
+  --refly-line: #b9c1c1;
   --refly-text-0: #1c1f23;
   --refly-text-1: #1c1f23cc;
   --refly-text-2: #1c1f2399;
   --refly-text-3: #1c1f2359;
   --refly-text-4: #1c1f231a;
+  --refly-text-caption: #646a73;
   --text-icon-refly-text-2: rgba(28, 31, 35, 0.6);
+  --text-icon-refly-text-flip: #f3f3f3;
   --refly-text-StaticWhite: rgb(3, 3, 3);
   --refly-primary-default: #0e9f77;
   --refly-primary-light: #cdfff1;
@@ -53,6 +56,22 @@
   --refly-func-success-default: #3bb346;
   --refly-func-success-hover: #30953b;
   --refly-func-success-active: #25772f;
+  --refly-text-placeholder: #8f959e;
+  --refly-node-input-fill: #f4f5f6;
+  --refly-node-input-control: #f4f5f6;
+  --refly-node-contrl-1: rgba(217, 255, 254, 0.5);
+  --refly-node-contrl-2: rgba(254, 242, 207, 0.5);
+  --refly-node-fill-1: #d9fffe;
+  --refly-node-fill-2: #fef2cf;
+  --refly-node-run: #7effdb;
+  --refly-bg-dark: #2d2d2d;
+  --refly-fill-label: #ececec;
+  /* Login page background */
+  --refly-bg-login-page: #f7f6f9;
+  /* Login page specific */
+  --refly-bg-input: #f6f6f6;
+  --refly-border-divider: rgba(0, 0, 0, 0.1);
+  --refly-oauth-button-bg: #fdfdfd;
 }
 
 /* Dark Theme */
@@ -66,18 +85,21 @@
   /* Use a subtle primary tint on top and blend into content background for dark theme */
   --refly-gradient-modal-top: rgb(36, 53, 50);
   --refly-gradient-modal-bottom: var(--refly-bg-content-z2);
-  --refly-bg-canvas: #1e1d1d;
+  --refly-bg-canvas: #151414;
+  --refly-bg-body: #1a1a1a;
   --refly-modal-mask: rgba(0, 0, 0, 0.4);
   --refly-Card-Border: rgba(216, 216, 216, 0.1);
   --refly-semi-color-border: rgba(255, 255, 255 0.08);
   --refly-semi-color-bg-0: rgba(22, 22, 26, 1);
-  --refly-line: #1c23221a;
+  --refly-line: #383b3b;
   --refly-text-0: #f9f9f9;
   --refly-text-1: #f9f9f9cc;
   --refly-text-2: #f9f9f999;
   --refly-text-3: #f9f9f959;
   --refly-text-4: #f9f9f91a;
+  --refly-text-caption: rgba(166, 166, 166, 1);
   --text-icon-refly-text-2: rgba(243, 243, 243, 0.6);
+  --text-icon-refly-text-flip: #1c1f23;
   --refly-text-StaticWhite: #ffffff;
   --refly-primary-default: #009589;
   --refly-primary-light: #cdfff1;
@@ -110,4 +132,20 @@
   --refly-func-success-default: #5dc264;
   --refly-func-success-hover: #7fd184;
   --refly-func-success-active: #a6e1a8;
+  --refly-text-placeholder: rgba(117, 117, 117, 1);
+  --refly-node-input-fill: rgba(14, 14, 14, 0.5);
+  --refly-node-input-control: #303031;
+  --refly-node-contrl-1: rgba(44, 92, 90, 0.5);
+  --refly-node-contrl-2: rgba(133, 110, 36, 0.5);
+  --refly-node-fill-1: #2c5c5a;
+  --refly-node-fill-2: #856e24;
+  --refly-node-run: rgba(126, 255, 219, 0.6);
+  --refly-bg-dark: #ececec;
+  --refly-fill-label: #424242;
+  /* Login page background */
+  --refly-bg-login-page: #171a21;
+  /* Login page specific */
+  --refly-bg-input: #ffffff;
+  --refly-border-divider: rgba(216, 216, 216, 0.08);
+  --refly-oauth-button-bg: rgba(216, 216, 216, 0.08);
 }

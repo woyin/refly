@@ -4,19 +4,33 @@ import { useSiderStoreShallow } from '@refly/stores';
 
 /**
  * Custom hook to handle sidebar collapse state based on route changes
- * Sets collapse to false for specific routes, true for all others
+ * Sets collapseState to 'expanded' for specific routes, 'hidden' for all others
  */
 export const useRouteCollapse = () => {
   const location = useLocation();
-  const { setCollapse } = useSiderStoreShallow((state) => ({
-    setCollapse: state.setCollapse,
+  const { collapseState, isManualCollapse, setCollapseState } = useSiderStoreShallow((state) => ({
+    collapseState: state.collapseState,
+    isManualCollapse: state.isManualCollapse,
+    setCollapseState: state.setCollapseState,
   }));
 
   useEffect(() => {
+    if (isManualCollapse) {
+      return;
+    }
+
     const currentPath = location.pathname;
 
     // Routes that should have sidebar expanded (collapse = false)
-    const expandedRoutes = ['/app-manager', '/workflow-list', '/canvas/empty', '/home', '/project'];
+    const expandedRoutes = [
+      '/app-manager',
+      '/workflow-list',
+      '/canvas/empty',
+      '/workspace',
+      '/home',
+      '/project',
+      '/marketplace',
+    ];
 
     // Check if current route matches any of the expanded routes
     const shouldExpand = expandedRoutes.some((route) => {
@@ -27,14 +41,21 @@ export const useRouteCollapse = () => {
         // Exact match for /canvas/empty
         return currentPath === '/canvas/empty';
       }
+      if (route === '/workspace') {
+        // Exact match for /workspace
+        return currentPath === '/workspace';
+      }
 
       // For other routes, check if path starts with the route
       return currentPath.startsWith(route);
     });
 
     // Set collapse state based on route
-    // If shouldExpand is true, set collapse to false (expanded)
-    // If shouldExpand is false, set collapse to true (collapsed)
-    setCollapse(!shouldExpand);
-  }, [location.pathname, setCollapse]);
+    // If shouldExpand is true, set collapseState to 'expanded'
+    // If shouldExpand is false, set collapseState to 'hidden'
+    const nextState = shouldExpand ? 'expanded' : 'hidden';
+    if (collapseState !== nextState) {
+      setCollapseState(nextState);
+    }
+  }, [collapseState, isManualCollapse, location.pathname, setCollapseState]);
 };

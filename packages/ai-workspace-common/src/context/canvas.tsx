@@ -7,7 +7,11 @@ import React, {
   useCallback,
   useRef,
 } from 'react';
-import { get, set, update } from 'idb-keyval';
+import {
+  safeGet as get,
+  safeSet as set,
+  safeUpdate as update,
+} from '@refly-packages/ai-workspace-common/utils/safe-idb';
 import { Modal, Radio } from 'antd';
 import { ModalFunc } from 'antd/es/modal/confirm';
 import { Node, Edge, useStoreApi, InternalNode, useReactFlow } from '@xyflow/react';
@@ -18,10 +22,12 @@ import {
   CanvasState,
   CanvasTransaction,
   VersionConflict,
-  WorkflowVariable,
   SharedCanvasData,
+  InitializeWorkflowRequest,
+  WorkflowExecutionStatus,
 } from '@refly/openapi-schema';
 import { useFetchShareData } from '@refly-packages/ai-workspace-common/hooks/use-fetch-share-data';
+import { useInitializeWorkflow } from '@refly-packages/ai-workspace-common/hooks/use-initialize-workflow';
 import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
 import {
   getCanvasDataFromState,
@@ -36,7 +42,6 @@ import { useCanvasStore, useCanvasStoreShallow } from '@refly/stores';
 import { useDebouncedCallback } from 'use-debounce';
 import { IContextItem } from '@refly/common-types';
 import { useGetCanvasDetail } from '@refly-packages/ai-workspace-common/queries';
-import { useVariablesManagement } from '@refly-packages/ai-workspace-common/hooks/use-variables-management';
 import { useTranslation } from 'react-i18next';
 import dayjs from 'dayjs';
 import { logEvent } from '@refly/telemetry-web';
@@ -66,9 +71,12 @@ interface CanvasContextType {
   shareData?: SharedCanvasData;
   lastUpdated?: number;
   workflow: {
-    workflowVariables: WorkflowVariable[];
-    workflowVariablesLoading: boolean;
-    refetchWorkflowVariables: () => void;
+    initializeWorkflow: (param: InitializeWorkflowRequest) => Promise<boolean>;
+    isInitializing: boolean;
+    executionId?: string;
+    workflowStatus?: WorkflowExecutionStatus;
+    isPolling: boolean;
+    pollingError: any;
   };
 
   forceSyncState: (options?: { syncRemote?: boolean }) => Promise<void>;
@@ -199,25 +207,12 @@ export const CanvasProvider = ({
     enabled: !readonly && !!canvasId,
   });
 
-  const {
-    data: workflowVariables,
-    refetch: refetchWorkflowVariables,
-    isLoading: workflowVariablesLoading,
-  } = useVariablesManagement(canvasId);
-
   // Use the hook to fetch canvas data when in readonly mode
   const {
     data: canvasData,
     error: canvasError,
     loading: shareLoading,
   } = useFetchShareData<SharedCanvasData>(readonly ? canvasId : undefined);
-
-  const finalVariables = useMemo(() => {
-    if (readonly) {
-      return canvasData?.variables ?? [];
-    }
-    return workflowVariables;
-  }, [readonly, workflowVariables, canvasData]);
 
   // Check if it's a 404 error
   const shareNotFound = useMemo(() => {
@@ -370,7 +365,7 @@ export const CanvasProvider = ({
       isSyncingRemoteRef.current = true;
 
       try {
-        const state = await get<CanvasState>(`canvas-state:${canvasId}`);
+        const state = await get<CanvasState | undefined>(`canvas-state:${canvasId}`);
         if (!state) {
           return;
         }
@@ -490,8 +485,8 @@ export const CanvasProvider = ({
         },
       }));
 
-      const currentState = await get(`canvas-state:${canvasId}`);
-      const currentStateData = getCanvasDataFromState(currentState);
+      const currentState = await get<CanvasState | undefined>(`canvas-state:${canvasId}`);
+      const currentStateData = getCanvasDataFromState(currentState as CanvasState);
 
       const diff = calculateCanvasStateDiff(currentStateData, {
         nodes: purgedNodes,
@@ -548,97 +543,126 @@ export const CanvasProvider = ({
     [getState, setState],
   );
 
-  const initialFetchCanvasState = useDebouncedCallback(async (canvasId: string) => {
-    const localState = await get<CanvasState>(`canvas-state:${canvasId}`);
+  const initialFetchCanvasState = useDebouncedCallback(
+    async (canvasId: string) => {
+      const localState = await get<CanvasState | undefined>(`canvas-state:${canvasId}`);
 
-    // Only set loading when local state is not found
-    let needLoading = false;
-    if (!localState) {
-      needLoading = true;
-      setLoading(true);
-    } else {
-      updateCanvasDataFromState(localState);
-    }
+      // Only set loading when local state is not found
+      let needLoading = false;
+      if (!localState) {
+        needLoading = true;
+        setLoading(true);
+      } else {
+        updateCanvasDataFromState(localState);
+      }
 
-    const remoteState = await getCanvasState(canvasId);
-    if (!remoteState) {
-      return;
-    }
+      let remoteState: CanvasState | undefined;
+      try {
+        remoteState = await getCanvasState(canvasId);
+      } catch (error) {
+        console.error('Failed to fetch canvas state from remote:', error);
+        // On error, fallback to local state if available
+        if (needLoading) {
+          setLoading(false);
+        }
+        if (localState) {
+          setCanvasInitialized(canvasId, true);
+        }
+        return;
+      }
 
-    // If local has transactions that remote is missing (same version), push them first
-    let latestLocalState = localState;
-    if (latestLocalState?.version === remoteState?.version) {
-      const remoteTxIds = new Set(remoteState?.transactions?.map((tx) => tx?.txId) ?? []);
-      const missingLocalTxs =
-        latestLocalState?.transactions?.filter(
-          (tx) => !!tx?.txId && !tx?.revoked && !remoteTxIds.has(tx.txId),
-        ) ?? [];
-      if (missingLocalTxs.length > 0) {
-        try {
-          await syncWithRemote(missingLocalTxs);
-          latestLocalState = await get<CanvasState>(`canvas-state:${canvasId}`);
-        } catch {
-          // Intentionally ignore push errors here; we will rely on merge or later sync cycles
+      if (!remoteState) {
+        // Remote state is not available, clear loading and use local state only
+        if (needLoading) {
+          setLoading(false);
+        }
+        // If we have local state, initialize the canvas with it
+        if (localState) {
+          setCanvasInitialized(canvasId, true);
+        }
+        return;
+      }
+
+      // If local has transactions that remote is missing (same version), push them first
+      let latestLocalState = localState;
+      if (latestLocalState?.version === remoteState?.version) {
+        const remoteTxIds = new Set(remoteState?.transactions?.map((tx) => tx?.txId) ?? []);
+        const missingLocalTxs =
+          latestLocalState?.transactions?.filter(
+            (tx) => !!tx?.txId && !tx?.revoked && !remoteTxIds.has(tx.txId),
+          ) ?? [];
+        if (missingLocalTxs.length > 0) {
+          try {
+            await syncWithRemote(missingLocalTxs);
+            latestLocalState = await get<CanvasState | undefined>(`canvas-state:${canvasId}`);
+          } catch {
+            // Intentionally ignore push errors here; we will rely on merge or later sync cycles
+          }
         }
       }
-    }
 
-    let finalState: CanvasState;
-    if (!latestLocalState) {
-      finalState = remoteState;
-    } else {
-      try {
-        finalState = mergeCanvasStates(latestLocalState, remoteState);
-      } catch (error) {
-        if (error instanceof CanvasConflictException) {
-          // Show conflict modal to user
-          const userChoice = await handleConflictResolution(canvasId, {
-            localState: latestLocalState,
-            remoteState,
-          });
-          logEvent('canvas::conflict_version', userChoice, {
-            canvasId,
-            source: 'initial_fetch',
-            localVersion: latestLocalState.version,
-            remoteVersion: remoteState.version,
-          });
+      let finalState: CanvasState;
+      if (!latestLocalState) {
+        finalState = remoteState;
+      } else {
+        try {
+          finalState = mergeCanvasStates(latestLocalState, remoteState);
+        } catch (error) {
+          if (error instanceof CanvasConflictException) {
+            // Show conflict modal to user
+            const userChoice = await handleConflictResolution(canvasId, {
+              localState: latestLocalState,
+              remoteState,
+            });
+            logEvent('canvas::conflict_version', userChoice, {
+              canvasId,
+              source: 'initial_fetch',
+              localVersion: latestLocalState.version,
+              remoteVersion: remoteState.version,
+            });
 
-          if (userChoice === 'local') {
-            // Use local state, and set it to remote
-            finalState = latestLocalState;
+            if (userChoice === 'local') {
+              // Use local state, and set it to remote
+              finalState = latestLocalState;
+            } else {
+              // Use remote state, and overwrite local state
+              finalState = remoteState;
+            }
           } else {
-            // Use remote state, and overwrite local state
+            console.error('Failed to merge canvas states:', error);
             finalState = remoteState;
           }
-        } else {
-          console.error('Failed to merge canvas states:', error);
-          finalState = remoteState;
         }
       }
-    }
 
-    updateCanvasDataFromState(finalState);
+      updateCanvasDataFromState(finalState);
 
-    await set(`canvas-state:${canvasId}`, finalState);
+      await set(`canvas-state:${canvasId}`, finalState);
 
-    if (needLoading) {
-      setLoading(false);
-    }
+      if (needLoading) {
+        setLoading(false);
+      }
 
-    setCanvasInitialized(canvasId, true);
-  }, 10);
+      setCanvasInitialized(canvasId, true);
+    },
+    10,
+    { leading: true, trailing: false },
+  );
 
   const undo = useCallback(async () => {
-    const currentState = await get(`canvas-state:${canvasId}`);
+    const currentState = await get<CanvasState | undefined>(`canvas-state:${canvasId}`);
     const transactions = currentState?.transactions;
     if (Array.isArray(transactions) && transactions.length > 0) {
+      if (!currentState) {
+        return;
+      }
       // Find the last transaction where revoked is false
       for (let i = transactions.length - 1; i >= 0; i--) {
         if (!transactions[i]?.revoked) {
           transactions[i].revoked = true;
           transactions[i].syncedAt = undefined;
-          await set(`canvas-state:${canvasId}`, currentState);
-          updateCanvasDataFromState(currentState);
+          await set(`canvas-state:${canvasId}`, currentState as CanvasState);
+          updateCanvasDataFromState(currentState as CanvasState);
           break;
         }
       }
@@ -646,16 +670,19 @@ export const CanvasProvider = ({
   }, [canvasId, updateCanvasDataFromState]);
 
   const redo = useCallback(async () => {
-    const currentState = await get(`canvas-state:${canvasId}`);
+    const currentState = await get<CanvasState | undefined>(`canvas-state:${canvasId}`);
     const transactions = currentState?.transactions;
     if (Array.isArray(transactions) && transactions.length > 0) {
+      if (!currentState) {
+        return;
+      }
       // Find the first transaction where revoked is true
       for (let i = 0; i < transactions.length; i++) {
         if (transactions[i]?.revoked) {
           transactions[i].revoked = false;
           transactions[i].syncedAt = undefined;
-          await set(`canvas-state:${canvasId}`, currentState);
-          updateCanvasDataFromState(currentState);
+          await set(`canvas-state:${canvasId}`, currentState as CanvasState);
+          updateCanvasDataFromState(currentState as CanvasState);
           break;
         }
       }
@@ -674,7 +701,7 @@ export const CanvasProvider = ({
       if (!polling) return;
       try {
         // Get local CanvasState
-        const localState = await get<CanvasState>(`canvas-state:${canvasId}`);
+        const localState = await get<CanvasState | undefined>(`canvas-state:${canvasId}`);
         if (!localState) {
           // If local state is not found, skip this poll
           return;
@@ -750,6 +777,8 @@ export const CanvasProvider = ({
     initialFetchCanvasState(canvasId);
 
     return () => {
+      // Cancel pending debounced calls to prevent race conditions
+      initialFetchCanvasState.cancel();
       syncCanvasDataDebounced.flush();
 
       // Clear canvas data
@@ -757,7 +786,11 @@ export const CanvasProvider = ({
       setLoading(false);
       setCanvasInitialized(canvasId, false);
     };
-  }, [canvasId, readonly, initialFetchCanvasState, syncCanvasDataDebounced]);
+    // Note: Excluding debounced function references from deps to prevent
+    // unnecessary re-runs. These functions internally capture their deps
+    // through closures and don't need to trigger effect re-execution.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [canvasId, readonly]);
 
   // Force sync canvas state to remote or local
   const forceSyncState = useCallback(
@@ -774,6 +807,15 @@ export const CanvasProvider = ({
     [canvasId, syncLocalNow, syncWithRemote, syncCanvasDataDebounced],
   );
 
+  const {
+    initializeWorkflow,
+    isInitializing,
+    executionId,
+    workflowStatus,
+    isPolling,
+    pollingError,
+  } = useInitializeWorkflow(canvasId, forceSyncState);
+
   return (
     <CanvasContext.Provider
       value={{
@@ -789,9 +831,12 @@ export const CanvasProvider = ({
         undo,
         redo,
         workflow: {
-          workflowVariables: finalVariables,
-          workflowVariablesLoading,
-          refetchWorkflowVariables,
+          initializeWorkflow,
+          isInitializing,
+          executionId,
+          workflowStatus,
+          isPolling,
+          pollingError,
         },
       }}
     >

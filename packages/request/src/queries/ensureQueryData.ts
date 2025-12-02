@@ -9,6 +9,7 @@ import {
   exportDocument,
   getActionResult,
   getAuthConfig,
+  getCanvasCommissionByCanvasId,
   getCanvasData,
   getCanvasDetail,
   getCanvasState,
@@ -16,6 +17,7 @@ import {
   getCodeArtifactDetail,
   getCollabToken,
   getComposioConnectionStatus,
+  getCopilotSessionDetail,
   getCreditBalance,
   getCreditRecharge,
   getCreditUsage,
@@ -31,16 +33,21 @@ import {
   getSettings,
   getSubscriptionPlans,
   getSubscriptionUsage,
+  getToolCallResult,
   getWorkflowAppDetail,
   getWorkflowDetail,
   getWorkflowVariables,
+  hasBeenInvited,
   listAccounts,
   listActions,
   listCanvases,
   listCanvasTemplateCategories,
   listCanvasTemplates,
   listCodeArtifacts,
+  listCopilotSessions,
   listDocuments,
+  listDriveFiles,
+  listInvitationCodes,
   listLabelClasses,
   listLabelInstances,
   listMcpServers,
@@ -59,6 +66,7 @@ import {
   listTools,
   listToolsetInventory,
   listToolsets,
+  listUserTools,
   listWorkflowApps,
   serveStatic,
 } from '../requests/services.gen';
@@ -68,12 +76,14 @@ import {
   ExportCanvasData,
   ExportDocumentData,
   GetActionResultData,
+  GetCanvasCommissionByCanvasIdData,
   GetCanvasDataData,
   GetCanvasDetailData,
   GetCanvasStateData,
   GetCanvasTransactionsData,
   GetCodeArtifactDetailData,
   GetComposioConnectionStatusData,
+  GetCopilotSessionDetailData,
   GetCreditRechargeData,
   GetCreditUsageByCanvasIdData,
   GetCreditUsageByExecutionIdData,
@@ -85,6 +95,7 @@ import {
   GetPilotSessionDetailData,
   GetProjectDetailData,
   GetResourceDetailData,
+  GetToolCallResultData,
   GetWorkflowAppDetailData,
   GetWorkflowDetailData,
   GetWorkflowVariablesData,
@@ -92,7 +103,9 @@ import {
   ListCanvasesData,
   ListCanvasTemplatesData,
   ListCodeArtifactsData,
+  ListCopilotSessionsData,
   ListDocumentsData,
+  ListDriveFilesData,
   ListLabelClassesData,
   ListLabelInstancesData,
   ListMcpServersData,
@@ -230,6 +243,14 @@ export const ensureUseGetWorkflowVariablesData = (
   queryClient.ensureQueryData({
     queryKey: Common.UseGetWorkflowVariablesKeyFn(clientOptions),
     queryFn: () => getWorkflowVariables({ ...clientOptions }).then((response) => response.data),
+  });
+export const ensureUseListDriveFilesData = (
+  queryClient: QueryClient,
+  clientOptions: Options<ListDriveFilesData, true>,
+) =>
+  queryClient.ensureQueryData({
+    queryKey: Common.UseListDriveFilesKeyFn(clientOptions),
+    queryFn: () => listDriveFiles({ ...clientOptions }).then((response) => response.data),
   });
 export const ensureUseListCanvasTemplatesData = (
   queryClient: QueryClient,
@@ -400,6 +421,22 @@ export const ensureUseGetPilotSessionDetailData = (
     queryKey: Common.UseGetPilotSessionDetailKeyFn(clientOptions),
     queryFn: () => getPilotSessionDetail({ ...clientOptions }).then((response) => response.data),
   });
+export const ensureUseListCopilotSessionsData = (
+  queryClient: QueryClient,
+  clientOptions: Options<ListCopilotSessionsData, true> = {},
+) =>
+  queryClient.ensureQueryData({
+    queryKey: Common.UseListCopilotSessionsKeyFn(clientOptions),
+    queryFn: () => listCopilotSessions({ ...clientOptions }).then((response) => response.data),
+  });
+export const ensureUseGetCopilotSessionDetailData = (
+  queryClient: QueryClient,
+  clientOptions: Options<GetCopilotSessionDetailData, true>,
+) =>
+  queryClient.ensureQueryData({
+    queryKey: Common.UseGetCopilotSessionDetailKeyFn(clientOptions),
+    queryFn: () => getCopilotSessionDetail({ ...clientOptions }).then((response) => response.data),
+  });
 export const ensureUseGetWorkflowDetailData = (
   queryClient: QueryClient,
   clientOptions: Options<GetWorkflowDetailData, true>,
@@ -489,6 +526,31 @@ export const ensureUseGetCreditUsageByCanvasIdData = (
     queryKey: Common.UseGetCreditUsageByCanvasIdKeyFn(clientOptions),
     queryFn: () => getCreditUsageByCanvasId({ ...clientOptions }).then((response) => response.data),
   });
+export const ensureUseGetCanvasCommissionByCanvasIdData = (
+  queryClient: QueryClient,
+  clientOptions: Options<GetCanvasCommissionByCanvasIdData, true>,
+) =>
+  queryClient.ensureQueryData({
+    queryKey: Common.UseGetCanvasCommissionByCanvasIdKeyFn(clientOptions),
+    queryFn: () =>
+      getCanvasCommissionByCanvasId({ ...clientOptions }).then((response) => response.data),
+  });
+export const ensureUseListInvitationCodesData = (
+  queryClient: QueryClient,
+  clientOptions: Options<unknown, true> = {},
+) =>
+  queryClient.ensureQueryData({
+    queryKey: Common.UseListInvitationCodesKeyFn(clientOptions),
+    queryFn: () => listInvitationCodes({ ...clientOptions }).then((response) => response.data),
+  });
+export const ensureUseHasBeenInvitedData = (
+  queryClient: QueryClient,
+  clientOptions: Options<unknown, true> = {},
+) =>
+  queryClient.ensureQueryData({
+    queryKey: Common.UseHasBeenInvitedKeyFn(clientOptions),
+    queryFn: () => hasBeenInvited({ ...clientOptions }).then((response) => response.data),
+  });
 export const ensureUseGetSubscriptionPlansData = (
   queryClient: QueryClient,
   clientOptions: Options<unknown, true> = {},
@@ -545,6 +607,14 @@ export const ensureUseListToolsData = (
     queryKey: Common.UseListToolsKeyFn(clientOptions),
     queryFn: () => listTools({ ...clientOptions }).then((response) => response.data),
   });
+export const ensureUseListUserToolsData = (
+  queryClient: QueryClient,
+  clientOptions: Options<unknown, true> = {},
+) =>
+  queryClient.ensureQueryData({
+    queryKey: Common.UseListUserToolsKeyFn(clientOptions),
+    queryFn: () => listUserTools({ ...clientOptions }).then((response) => response.data),
+  });
 export const ensureUseListToolsetInventoryData = (
   queryClient: QueryClient,
   clientOptions: Options<unknown, true> = {},
@@ -560,6 +630,14 @@ export const ensureUseListToolsetsData = (
   queryClient.ensureQueryData({
     queryKey: Common.UseListToolsetsKeyFn(clientOptions),
     queryFn: () => listToolsets({ ...clientOptions }).then((response) => response.data),
+  });
+export const ensureUseGetToolCallResultData = (
+  queryClient: QueryClient,
+  clientOptions: Options<GetToolCallResultData, true>,
+) =>
+  queryClient.ensureQueryData({
+    queryKey: Common.UseGetToolCallResultKeyFn(clientOptions),
+    queryFn: () => getToolCallResult({ ...clientOptions }).then((response) => response.data),
   });
 export const ensureUseGetComposioConnectionStatusData = (
   queryClient: QueryClient,

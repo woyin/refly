@@ -2,22 +2,9 @@ import { Button, Divider } from 'antd';
 import { useTranslation } from 'react-i18next';
 import { FC, useCallback, useMemo, useEffect, useState, useRef } from 'react';
 import { useReactFlow } from '@xyflow/react';
-import { IconPreview } from '@refly-packages/ai-workspace-common/components/common/icon';
-import { useCanvasStoreShallow } from '@refly/stores';
 import { CanvasNode } from '@refly/canvas-common';
-import {
-  Edit,
-  AddContext,
-  Fullscreen,
-  InputContext,
-  SubNode,
-  Delete,
-  AiChat,
-  AutoLayout,
-  Group,
-} from 'refly-icons';
+import { AddContext, InputContext, Delete, AiChat, Copy } from 'refly-icons';
 import { Ungroup, ChevronDown } from 'lucide-react';
-import { locateToNodePreviewEmitter } from '@refly-packages/ai-workspace-common/events/locateToNodePreview';
 import {
   nodeActionEmitter,
   createNodeEventName,
@@ -27,9 +14,6 @@ import { CanvasNodeType } from '@refly/openapi-schema';
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
 import { useUngroupNodes } from '@refly-packages/ai-workspace-common/hooks/canvas/use-batch-nodes-selection/use-ungroup-nodes';
 import { useNodeCluster } from '@refly-packages/ai-workspace-common/hooks/canvas/use-node-cluster';
-import { HoverCard, HoverContent } from '@refly-packages/ai-workspace-common/components/hover-card';
-import { useHoverCard } from '@refly-packages/ai-workspace-common/hooks/use-hover-card';
-import { useNodePreviewControl } from '@refly-packages/ai-workspace-common/hooks/canvas';
 import { useGetNodeContent } from '@refly-packages/ai-workspace-common/hooks/canvas/use-get-node-content';
 
 import './index.scss';
@@ -44,7 +28,6 @@ interface MenuItem {
   primary?: boolean;
   type?: 'button' | 'divider';
   disabled?: boolean;
-  hoverContent?: HoverContent;
 }
 
 interface NodeActionMenuProps {
@@ -64,36 +47,19 @@ export const NodeActionMenu: FC<NodeActionMenuProps> = ({
   nodeType,
   onClose,
   isMultiSelection,
-  onHoverCardStateChange,
   hasFixedHeight = false,
 }) => {
   const { t } = useTranslation();
   const { getNode } = useReactFlow();
-  const { canvasId } = useCanvasContext();
-  const { setShowPreview } = useCanvasStoreShallow((state) => ({
-    setShowPreview: state.setShowPreview,
-  }));
-  const { previewNode } = useNodePreviewControl({ canvasId });
+  const { workflow } = useCanvasContext();
 
   const { activeDocumentId } = useDocumentStoreShallow((state) => ({
     activeDocumentId: state.activeDocumentId,
   }));
 
   const node = useMemo(() => getNode(nodeId) as CanvasNode, [nodeId, getNode]);
-  const nodeData = useMemo(() => node?.data, [node]);
   const { fetchNodeContent } = useGetNodeContent(node);
-  const [localSizeMode, setLocalSizeMode] = useState(
-    () => nodeData?.metadata?.sizeMode || 'adaptive',
-  );
 
-  useEffect(() => {
-    setLocalSizeMode(nodeData?.metadata?.sizeMode || 'adaptive');
-  }, [nodeData?.metadata?.sizeMode]);
-
-  const { nodePreviews, clickToPreview } = useCanvasStoreShallow((state) => ({
-    nodePreviews: state.config[canvasId]?.nodePreviews ?? [],
-    clickToPreview: state.clickToPreview,
-  }));
   const { ungroupNodes } = useUngroupNodes();
 
   const handleAskAI = useCallback(() => {
@@ -118,30 +84,6 @@ export const NodeActionMenu: FC<NodeActionMenuProps> = ({
     });
     onClose?.();
   }, [nodeId, fetchNodeContent, onClose]);
-
-  const handlePreview = useCallback(() => {
-    previewNode(node);
-    locateToNodePreviewEmitter.emit('locateToNodePreview', {
-      id: nodeId,
-      canvasId,
-    });
-    onClose?.();
-  }, [node, nodeId, canvasId, onClose, previewNode]);
-
-  const handleFullScreenPreview = useCallback(() => {
-    setShowPreview(true);
-    const isPreviewOpen = nodePreviews?.some((preview) => preview.id === nodeId);
-
-    if (!isPreviewOpen) {
-      previewNode(node);
-    }
-
-    requestAnimationFrame(() => {
-      nodeActionEmitter.emit(createNodeEventName(nodeId, 'fullScreenPreview'));
-    });
-
-    onClose?.();
-  }, [node, nodeId, canvasId, onClose, previewNode, nodeType, nodePreviews]);
 
   const handleUngroup = useCallback(() => {
     ungroupNodes(nodeId);
@@ -177,22 +119,16 @@ export const NodeActionMenu: FC<NodeActionMenuProps> = ({
     onClose?.();
   }, [nodeId, nodeType, layoutNodeCluster, onClose]);
 
-  const handleEditQuery = useCallback(() => {
-    previewNode(node);
-
-    setTimeout(() => {
-      locateToNodePreviewEmitter.emit('locateToNodePreview', {
-        id: nodeId,
-        canvasId,
-        type: 'editResponse',
-      });
-    }, 100);
-
+  const handleDuplicate = useCallback(() => {
+    nodeActionEmitter.emit(createNodeEventName(nodeId, 'duplicate'));
     onClose?.();
-  }, [nodeId, canvasId, node, previewNode, onClose]);
+  }, [nodeId, onClose]);
 
   const getMenuItems = useCallback(
     (activeDocumentId: string): MenuItem[] => {
+      // Check if workflow is running
+      const isWorkflowRunning = workflow?.isPolling || workflow?.workflowStatus === 'executing';
+
       if (isMultiSelection) {
         return [
           {
@@ -202,11 +138,6 @@ export const NodeActionMenu: FC<NodeActionMenuProps> = ({
             onClick: handleAskAI,
             type: 'button' as const,
             primary: true,
-            hoverContent: {
-              title: t('canvas.nodeActions.askAI'),
-              description: t('canvas.nodeActions.askAIDescription'),
-              videoUrl: 'https://static.refly.ai/onboarding/nodeAction/nodeAction-askAI.webm',
-            },
           },
           { key: 'divider-1', type: 'divider' } as MenuItem,
           {
@@ -215,12 +146,6 @@ export const NodeActionMenu: FC<NodeActionMenuProps> = ({
             label: t('canvas.nodeActions.addToContext'),
             onClick: handleAddToContext,
             type: 'button' as const,
-            hoverContent: {
-              title: t('canvas.nodeActions.addToContext'),
-              description: t('canvas.nodeActions.addToContextDescription'),
-              videoUrl:
-                'https://static.refly.ai/onboarding/nodeAction/nodeAction-addToContext.webm',
-            },
           },
           { key: 'divider-2', type: 'divider' } as MenuItem,
           {
@@ -230,80 +155,11 @@ export const NodeActionMenu: FC<NodeActionMenuProps> = ({
             onClick: handleDelete,
             danger: true,
             type: 'button' as const,
-            hoverContent: {
-              title: t('canvas.nodeActions.delete'),
-              description: t('canvas.nodeActions.deleteDescription'),
-              videoUrl: 'https://static.refly.ai/onboarding/nodeAction/nodeAction-delete.webm',
-            },
           },
         ];
       }
 
-      const commonItems: MenuItem[] = [
-        ...(nodeType === 'skillResponse'
-          ? [
-              {
-                key: 'editQuery',
-                icon: Edit,
-                label: t('canvas.nodeActions.editQuery'),
-                onClick: handleEditQuery,
-                type: 'button' as const,
-                hoverContent: {
-                  title: t('canvas.nodeActions.editQuery'),
-                  description: t('canvas.nodeActions.editQueryDescription'),
-                  videoUrl:
-                    'https://static.refly.ai/onboarding/nodeAction/nodeAction-editQuery.webm',
-                },
-              },
-            ]
-          : []),
-      ];
-
-      const operationItems: MenuItem[] = [
-        ...(!clickToPreview && nodeType !== 'image'
-          ? [
-              {
-                key: 'preview',
-                icon: IconPreview,
-                label: t('canvas.nodeActions.preview'),
-                onClick: handlePreview,
-                type: 'button' as const,
-                hoverContent: {
-                  title: t('canvas.nodeActions.preview'),
-                  description: t('canvas.nodeActions.previewDescription'),
-                  videoUrl:
-                    'https://static.refly.ai/onboarding/nodeAction/nodeActionMenu-openPreview.webm',
-                },
-              },
-            ]
-          : []),
-        {
-          key: 'fullScreen',
-          icon: Fullscreen,
-          label: t('canvas.nodeActions.fullScreen'),
-          onClick: handleFullScreenPreview,
-          type: 'button' as const,
-        },
-      ];
-
       const nodeTypeItems: Record<string, MenuItem[]> = {
-        memo: [
-          {
-            key: 'insertToDoc',
-            icon: InputContext,
-            label: t('canvas.nodeActions.insertToDoc'),
-            loading: false,
-            onClick: handleInsertToDoc,
-            type: 'button' as const,
-            disabled: !activeDocumentId,
-            hoverContent: {
-              title: t('canvas.nodeActions.insertToDoc'),
-              description: t('canvas.nodeActions.insertToDocDescription'),
-              videoUrl:
-                'https://static.refly.ai/onboarding/nodeAction/nodeAction-insertDocument.webm',
-            },
-          },
-        ],
         codeArtifact: [
           {
             key: 'insertToDoc',
@@ -313,12 +169,6 @@ export const NodeActionMenu: FC<NodeActionMenuProps> = ({
             onClick: handleInsertToDoc,
             type: 'button' as const,
             disabled: !activeDocumentId,
-            hoverContent: {
-              title: t('canvas.nodeActions.insertToDoc'),
-              description: t('canvas.nodeActions.insertToDocDescription'),
-              videoUrl:
-                'https://static.refly.ai/onboarding/nodeAction/nodeAction-insertDocument.webm',
-            },
           },
         ],
         group: [
@@ -328,125 +178,49 @@ export const NodeActionMenu: FC<NodeActionMenuProps> = ({
             label: t('canvas.nodeActions.ungroup'),
             onClick: handleUngroup,
             type: 'button' as const,
-            hoverContent: {
-              title: t('canvas.nodeActions.ungroup'),
-              description: t('canvas.nodeActions.ungroupDescription'),
-              videoUrl:
-                'https://static.refly.ai/onboarding/selection-node-action/selection-nodeAction-ungroup.webm',
-            },
           },
         ],
         skillResponse: [
           {
-            key: 'insertToDoc',
-            icon: InputContext,
-            label: t('canvas.nodeActions.insertToDoc'),
-            loading: false,
-            onClick: handleInsertToDoc,
+            key: 'delete',
+            icon: Delete,
+            label: t('canvas.nodeActions.delete'),
+            onClick: handleDelete,
             type: 'button' as const,
-            disabled: !activeDocumentId,
-            hoverContent: {
-              title: t('canvas.nodeActions.insertToDoc'),
-              description: t('canvas.nodeActions.insertToDocDescription'),
-              videoUrl:
-                'https://static.refly.ai/onboarding/nodeAction/nodeAction-insertDocument.webm',
-            },
+            disabled: isWorkflowRunning,
+          },
+          {
+            key: 'duplicate',
+            icon: Copy,
+            label: t('canvas.nodeActions.duplicate'),
+            onClick: handleDuplicate,
+            type: 'button' as const,
+            disabled: isWorkflowRunning,
           },
         ].filter(Boolean),
       };
 
-      const clusterItems: MenuItem[] = [
-        { key: 'divider-cluster', type: 'divider' as const } as MenuItem,
-        {
-          key: 'selectCluster',
-          icon: SubNode,
-          label: t('canvas.nodeActions.selectCluster'),
-          onClick: handleSelectCluster,
-          type: 'button' as const,
-          hoverContent: {
-            title: t('canvas.nodeActions.selectCluster'),
-            description: t('canvas.nodeActions.selectClusterDescription'),
-            videoUrl:
-              'https://static.refly.ai/onboarding/nodeAction/nodeAction-selectOrLayout.webm',
-          },
-        },
-        {
-          key: 'groupCluster',
-          icon: Group,
-          label: t('canvas.nodeActions.groupCluster'),
-          onClick: handleGroupCluster,
-          type: 'button' as const,
-          hoverContent: {
-            title: t('canvas.nodeActions.groupCluster'),
-            description: t('canvas.nodeActions.groupClusterDescription'),
-            videoUrl:
-              'https://static.refly.ai/onboarding/nodeAction/nodeAction-groupChildNodes.webm',
-          },
-        },
-        {
-          key: 'layoutCluster',
-          icon: AutoLayout,
-          label: t('canvas.nodeActions.layoutCluster'),
-          onClick: handleLayoutCluster,
-          type: 'button' as const,
-          hoverContent: {
-            title: t('canvas.nodeActions.layoutCluster'),
-            description: t('canvas.nodeActions.layoutClusterDescription'),
-            videoUrl:
-              'https://static.refly.ai/onboarding/nodeAction/nodeAction-selectOrLayout.webm',
-          },
-        },
-        ...(nodeType === 'group'
-          ? [{ key: 'divider-cluster-2', type: 'divider' as const } as MenuItem]
-          : []),
-        ...(nodeType === 'group'
-          ? [
-              {
-                key: 'delete',
-                icon: Delete,
-                label: t('canvas.nodeActions.delete'),
-                onClick: handleDelete,
-                danger: true,
-                type: 'button' as const,
-                hoverContent: {
-                  title: t('canvas.nodeActions.delete'),
-                  description: t('canvas.nodeActions.deleteDescription'),
-                  videoUrl: 'https://static.refly.ai/onboarding/nodeAction/nodeAction-delete.webm',
-                },
-              },
-            ]
-          : []),
-      ];
-
-      return [
-        ...(nodeType !== 'skill' ? commonItems : []),
-        ...(!['memo', 'skill', 'group', 'image'].includes(nodeType) ? operationItems : []),
-        ...(nodeTypeItems[nodeType] || []),
-        ...(!['memo', 'skill', 'image'].includes(nodeType) ? clusterItems : []),
-      ].filter(Boolean);
+      return [...(nodeTypeItems[nodeType] || [])].filter(Boolean);
     },
     [
       nodeType,
-      nodeData?.contentPreview,
       handleDelete,
       handleAddToContext,
-      handlePreview,
-      t,
-      localSizeMode,
       handleAskAI,
       handleGroupCluster,
       handleLayoutCluster,
-      handleEditQuery,
       handleInsertToDoc,
       handleSelectCluster,
       handleUngroup,
+      handleDuplicate,
       isMultiSelection,
+      workflow,
+      t,
     ],
   );
 
   const menuItems = useMemo(() => getMenuItems(activeDocumentId), [activeDocumentId, getMenuItems]);
 
-  const { hoverCardEnabled } = useHoverCard();
   const contentRef = useRef<HTMLDivElement>(null);
   const [hasMoreContent, setHasMoreContent] = useState(false);
 
@@ -526,21 +300,6 @@ export const NodeActionMenu: FC<NodeActionMenuProps> = ({
                 {item.label}
               </Button>
             );
-
-            if (item.hoverContent && hoverCardEnabled) {
-              return (
-                <HoverCard
-                  key={item.key}
-                  title={item.hoverContent.title}
-                  description={item.hoverContent.description}
-                  videoUrl={item.hoverContent.videoUrl}
-                  placement="right"
-                  onOpenChange={(open) => onHoverCardStateChange?.(open)}
-                >
-                  {button}
-                </HoverCard>
-              );
-            }
 
             return button;
           })}

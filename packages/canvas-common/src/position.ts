@@ -307,8 +307,8 @@ export const calculateNodePosition = ({
   viewport,
   autoLayout = false, // Default to false for backward compatibility
 }: CalculateNodePositionParams): XYPosition => {
-  // If position is provided, use it
-  if (defaultPosition) {
+  // If position is provided and autoLayout is not enabled, use it
+  if (defaultPosition && !autoLayout) {
     return defaultPosition;
   }
 

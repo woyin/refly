@@ -1,7 +1,7 @@
 import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
 import { Queue } from 'bullmq';
 import { InjectQueue } from '@nestjs/bullmq';
-import { Document as DocumentPO, Prisma } from '../../generated/client';
+import { Document as DocumentPO, Prisma } from '@prisma/client';
 import { RAGService } from '../rag/rag.service';
 import { PrismaService } from '../common/prisma.service';
 import { FULLTEXT_SEARCH, FulltextSearchService } from '../common/fulltext-search';
@@ -312,23 +312,23 @@ export class DocumentService {
     });
 
     if (param.canvasId && param.resultId) {
-      await this.canvasSyncService.addNodeToCanvas(
-        user,
-        param.canvasId,
+      await this.canvasSyncService.addNodesToCanvas(user, param.canvasId, [
         {
-          type: 'document',
-          data: {
-            title: doc.title,
-            entityId: doc.docId,
-            metadata: {
-              status: 'finish',
-              parentResultId: param.resultId,
+          node: {
+            type: 'document',
+            data: {
+              title: doc.title,
+              entityId: doc.docId,
+              metadata: {
+                status: 'finish',
+                parentResultId: param.resultId,
+              },
+              contentPreview: doc.contentPreview,
             },
-            contentPreview: doc.contentPreview,
           },
+          connectTo: [{ type: 'skillResponse', entityId: param.resultId }],
         },
-        [{ type: 'skillResponse', entityId: param.resultId }],
-      );
+      ]);
     }
 
     await this.subscriptionService.syncStorageUsage(user);

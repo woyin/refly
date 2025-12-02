@@ -4,118 +4,135 @@ import type { MentionItem } from '../mentionList';
 import type { ResourceType, ResourceMeta } from '@refly/openapi-schema';
 import { useCanvasData } from '@refly-packages/ai-workspace-common/hooks/canvas';
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
-import { useListTools } from '@refly-packages/ai-workspace-common/queries/queries';
-import { useFetchResources } from '@refly-packages/ai-workspace-common/hooks/use-fetch-resources';
+import { useListUserTools } from '@refly-packages/ai-workspace-common/queries/queries';
+import { useFetchDriveFiles } from '@refly-packages/ai-workspace-common/hooks/use-fetch-drive-files';
+import { useVariablesManagement } from '@refly-packages/ai-workspace-common/hooks/use-variables-management';
 
 export const useListMentionItems = (filterNodeId?: string): MentionItem[] => {
   const { t, i18n } = useTranslation();
   const currentLanguage = i18n.languages?.[0] || 'en';
 
   const { nodes } = useCanvasData();
-  const { workflow } = useCanvasContext();
-  const { data: resources } = useFetchResources();
+  const { canvasId } = useCanvasContext();
+  const { data: files } = useFetchDriveFiles();
 
-  // Fetch tools
-  const { data: toolsData } = useListTools({ query: { enabled: true } }, [], {
-    refetchOnWindowFocus: false,
+  // Fetch user tools (authorized + unauthorized) using new unified API
+  // Disable caching to always get fresh data
+  const { data: userToolsData } = useListUserTools({}, [], {
+    refetchOnWindowFocus: true,
+    staleTime: 0,
+    gcTime: 0,
   });
-  const toolsets = toolsData?.data ?? [];
-  const { workflowVariables = [] } = workflow || {};
+  const userTools = userToolsData?.data ?? [];
+  const { data: workflowVariables } = useVariablesManagement(canvasId);
 
   const allItems: MentionItem[] = useMemo(() => {
-    const variableItems = workflowVariables.map((variable) => ({
+    const variableItems: MentionItem[] = workflowVariables.map((variable) => ({
       name: variable.name,
       description: variable.description || '',
-      source: 'variables' as const,
+      source: 'variables',
       variableType: variable.variableType || 'string',
       variableId: variable.variableId || '',
       variableValue: variable.value,
     }));
 
     // Get skillResponse nodes for step records
-    const stepRecordItems: MentionItem[] =
+    const agentItems: MentionItem[] =
       nodes
         ?.filter(
           (node) => node.type === 'skillResponse' && (!filterNodeId || node.id !== filterNodeId),
         )
         ?.map((node) => ({
-          name: node.data?.title ?? t('canvas.richChatInput.untitledStep'),
-          description: t('canvas.richChatInput.stepRecord'),
-          source: 'stepRecord' as const,
+          name: node.data?.title || t('canvas.richChatInput.untitledAgent'),
+          description: t('canvas.richChatInput.agents'),
+          source: 'agents',
           entityId: node.data?.entityId || '',
           nodeId: node.id,
         })) ?? [];
 
-    // Get result record nodes - same logic as ResultList component
-    const resultRecordItems: MentionItem[] =
-      nodes
-        ?.filter(
-          (node) =>
-            ['document', 'codeArtifact', 'website', 'video', 'audio'].includes(node.type) ||
-            (node.type === 'image' && !!node.data?.metadata?.resultId),
-        )
-        ?.map((node) => ({
-          name: node.data?.title ?? t('canvas.richChatInput.untitledResult'),
-          description: t('canvas.richChatInput.resultRecord'),
-          source: 'resultRecord' as const,
-          entityId: node.data?.entityId,
-          nodeId: node.id,
-          metadata: {
-            imageUrl: node.data?.metadata?.imageUrl,
-            resourceType: node.data?.metadata?.resourceType as ResourceType | undefined,
-            resourceMeta: node.data?.metadata?.resourceMeta as ResourceMeta | undefined,
-          },
-        })) ?? [];
-
-    // Get my upload items from API resources data
-    const myUploadItems: MentionItem[] =
-      resources?.map((resource) => ({
-        name: resource.title ?? t('canvas.richChatInput.untitledUpload'),
-        description: t('canvas.richChatInput.myUpload'),
-        source: 'myUpload' as const,
-        variableType: resource.resourceType || 'resource',
-        entityId: resource.resourceId,
-        nodeId: resource.resourceId,
+    // Get my upload items from drive files data
+    const fileItems: MentionItem[] =
+      files?.map((file) => ({
+        name: file.name ?? t('canvas.richChatInput.untitledFile'),
+        description: t('canvas.richChatInput.files'),
+        source: 'files',
+        entityId: file.fileId,
+        nodeId: file.fileId,
         metadata: {
-          imageUrl: resource.data?.url as string | undefined,
-          resourceType: resource.resourceType as ResourceType | undefined,
-          resourceMeta: resource.data as ResourceMeta | undefined,
-          storageKey: resource.storageKey,
-          rawFileKey: resource.rawFileKey,
-          [`${resource.resourceType}Url`]: resource.downloadURL,
+          imageUrl: undefined, // DriveFile doesn't have direct imageUrl
+          resourceType: 'file' as ResourceType,
+          resourceMeta: {
+            url: `/api/drive/file/download/${file.fileId}`,
+            size: file.size,
+            type: file.type,
+            summary: file.summary,
+          } as ResourceMeta | undefined,
+          fileUrl: `/api/drive/file/download/${file.fileId}`,
         },
       })) ?? [];
 
-    // Get toolset items from toolsets
-    const toolsetItems: MentionItem[] = toolsets.map((toolset) => ({
-      name: toolset.name,
-      description: toolset.toolset?.name || toolset.mcpServer?.name || toolset.name,
-      source: 'toolsets' as const,
-      toolset,
-      toolsetId: toolset.id,
-    }));
+    // Build toolset items from userTools API response
+    const toolsetItems: MentionItem[] = userTools.map((userTool) => {
+      const isAuthorized = userTool.authorized ?? false;
 
-    // Get tool items from toolsets
-    const toolItems: MentionItem[] = toolsets.flatMap(
-      (toolset) =>
-        toolset.toolset?.definition?.tools?.map((tool) => ({
-          name: tool.name,
-          description: (tool.descriptionDict?.[currentLanguage] as string) || toolset.name,
-          source: 'tools' as const,
-          toolset,
-          toolsetId: toolset.id,
-        })) ?? [],
-    );
+      if (isAuthorized && userTool.toolset) {
+        // Authorized (installed) tool
+        return {
+          name: userTool.name ?? userTool.key ?? '',
+          description:
+            userTool.toolset?.toolset?.name ||
+            userTool.toolset?.mcpServer?.name ||
+            userTool.name ||
+            '',
+          source: 'toolsets' as const,
+          toolset: userTool.toolset,
+          toolsetId: userTool.toolset?.id || userTool.toolsetId,
+          isInstalled: true,
+        };
+      } else {
+        // Unauthorized (uninstalled) tool
+        const name = (userTool.definition?.labelDict?.[currentLanguage as 'en' | 'zh'] ||
+          userTool.definition?.labelDict?.en ||
+          userTool.name) as string;
+        const description = (userTool.definition?.descriptionDict?.[
+          currentLanguage as 'en' | 'zh'
+        ] ||
+          userTool.definition?.descriptionDict?.en ||
+          userTool.description) as string;
 
-    return [
-      ...variableItems,
-      ...stepRecordItems,
-      ...resultRecordItems,
-      ...myUploadItems,
-      ...toolsetItems,
-      ...toolItems,
-    ];
-  }, [workflowVariables, nodes, resources, toolsets, t, currentLanguage, filterNodeId]);
+        return {
+          name: name || userTool.key || '',
+          description: description || name || userTool.key || '',
+          source: 'toolsets' as const,
+          toolset: undefined,
+          toolsetId: userTool.key,
+          toolDefinition: userTool.definition,
+          isInstalled: false,
+        };
+      }
+    });
+
+    // Build tool items (individual tools within toolsets)
+    const toolItems: MentionItem[] = userTools.flatMap((userTool) => {
+      const isAuthorized = userTool.authorized ?? false;
+      const definition = isAuthorized ? userTool.toolset?.toolset?.definition : userTool.definition;
+      const tools = definition?.tools ?? [];
+
+      return tools.map((tool) => ({
+        name: tool.name,
+        description:
+          (tool.descriptionDict?.[currentLanguage as 'en' | 'zh'] as string) || tool.name,
+        source: 'tools' as const,
+        toolset: isAuthorized ? userTool.toolset : undefined,
+        toolsetId: isAuthorized ? userTool.toolset?.id : userTool.key,
+        toolDefinition: isAuthorized ? undefined : userTool.definition,
+        isInstalled: isAuthorized,
+      }));
+    });
+
+    // Combine all items
+    return [...variableItems, ...agentItems, ...fileItems, ...toolsetItems, ...toolItems];
+  }, [workflowVariables, nodes, files, userTools, t, currentLanguage, filterNodeId]);
 
   return allItems;
 };

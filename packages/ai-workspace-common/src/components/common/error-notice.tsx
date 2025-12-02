@@ -1,17 +1,21 @@
 import React, { useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Button } from 'antd';
+import { Button, message } from 'antd';
 import { logEvent } from '@refly/telemetry-web';
 import { useSubscriptionStoreShallow } from '@refly/stores';
-import { Close, Refresh } from 'refly-icons';
+import { Close, Refresh, Copy } from 'refly-icons';
+import { ActionResult } from '@refly/openapi-schema';
 
 export type ErrorNoticeType =
   | 'creditInsufficient'
   | 'modelCallFailure'
   | 'toolCallFailure'
-  | 'multimodalFailure';
+  | 'multimodalFailure'
+  | 'userAbort';
 
 interface BaseErrorNoticeProps {
+  /** Result data */
+  result: ActionResult;
   /** Type of error notice to determine the appropriate message and actions */
   errorType: ErrorNoticeType;
   /** Custom title text, if not provided will use default translation */
@@ -42,7 +46,11 @@ interface ExecutionFailureProps extends BaseErrorNoticeProps {
   onRetryClick?: () => void;
 }
 
-type ErrorNoticeProps = CreditInsufficientProps | ExecutionFailureProps;
+interface UserAbortProps extends BaseErrorNoticeProps {
+  errorType: 'userAbort';
+}
+
+type ErrorNoticeProps = CreditInsufficientProps | ExecutionFailureProps | UserAbortProps;
 
 /**
  * Error Notice Component
@@ -52,7 +60,14 @@ type ErrorNoticeProps = CreditInsufficientProps | ExecutionFailureProps;
  * specifications with proper styling and internationalization.
  */
 export const ErrorNotice: React.FC<ErrorNoticeProps> = React.memo((props) => {
-  const { errorType, title, description, trackingContext = 'error_notice', className = '' } = props;
+  const {
+    result,
+    errorType,
+    title,
+    description,
+    trackingContext = 'error_notice',
+    className = '',
+  } = props;
   const { t } = useTranslation();
   const { setSubscribeModalVisible } = useSubscriptionStoreShallow((state) => ({
     setSubscribeModalVisible: state.setSubscribeModalVisible,
@@ -65,6 +80,7 @@ export const ErrorNotice: React.FC<ErrorNoticeProps> = React.memo((props) => {
       modelCallFailure: 'modelCallFailure',
       toolCallFailure: 'toolCallFailure',
       multimodalFailure: 'multimodalFailure',
+      userAbort: 'userAbort',
     };
     return `canvas.skillResponse.${typeMap[errorType]}.${key}`;
   };
@@ -108,6 +124,21 @@ export const ErrorNotice: React.FC<ErrorNoticeProps> = React.memo((props) => {
     [errorType, props, trackingContext],
   );
 
+  const handleCopyResultId = useCallback(
+    async (e?: React.MouseEvent) => {
+      e?.stopPropagation();
+
+      try {
+        await navigator.clipboard.writeText(result.resultId);
+        message.success(t('common.copySuccess', { defaultValue: 'Copied to clipboard' }));
+      } catch (error) {
+        console.error('Failed to copy result ID:', error);
+        message.error(t('common.copyFailed', { defaultValue: 'Failed to copy' }));
+      }
+    },
+    [result.resultId, t],
+  );
+
   const renderButton = () => {
     if (errorType === 'creditInsufficient') {
       const upgradeButtonText = 'upgradeButtonText' in props ? props.upgradeButtonText : undefined;
@@ -122,6 +153,9 @@ export const ErrorNotice: React.FC<ErrorNoticeProps> = React.memo((props) => {
           {displayUpgradeText}
         </Button>
       );
+    } else if (errorType === 'userAbort') {
+      // No button for user abort
+      return null;
     } else {
       return (
         <Refresh
@@ -133,9 +167,18 @@ export const ErrorNotice: React.FC<ErrorNoticeProps> = React.memo((props) => {
     }
   };
 
+  // Determine styles based on error type
+  const isWarning = errorType === 'userAbort';
+  const bgColor = isWarning
+    ? 'bg-[#FFFBE6] dark:bg-yellow-950/20'
+    : 'bg-[#FFEFED] dark:bg-red-950/20';
+  const iconBgColor = isWarning
+    ? 'bg-[#faad14] dark:bg-yellow-500'
+    : 'bg-[#F93920] dark:bg-red-500';
+
   return (
     <div
-      className={`flex items-center gap-2 border border-solid border-black/10 dark:border-white/10 bg-[#FFEFED] dark:bg-red-950/20 px-4 py-3 rounded-xl font-['PingFang_SC','-apple-system','BlinkMacSystemFont','sans-serif'] ${className}`}
+      className={`flex items-center gap-2 border border-solid border-black/10 dark:border-white/10 ${bgColor} px-4 py-3 rounded-xl font-['PingFang_SC','-apple-system','BlinkMacSystemFont','sans-serif'] ${className}`}
       onClick={(e) => {
         e.stopPropagation();
       }}
@@ -144,8 +187,10 @@ export const ErrorNotice: React.FC<ErrorNoticeProps> = React.memo((props) => {
       <div className="flex flex-col gap-1 flex-1 min-w-0">
         {/* Title Row with Icon */}
         <div className="flex items-center gap-2">
-          {/* Error Icon */}
-          <div className="flex items-center justify-center p-0.5 bg-[#F93920] dark:bg-red-500 rounded-full flex-shrink-0">
+          {/* Error/Warning Icon */}
+          <div
+            className={`flex items-center justify-center p-0.5 ${iconBgColor} rounded-full flex-shrink-0`}
+          >
             <Close size={12} color="white" />
           </div>
           {/* Title */}
@@ -157,6 +202,15 @@ export const ErrorNotice: React.FC<ErrorNoticeProps> = React.memo((props) => {
         {/* Description */}
         <div className="text-sm font-normal text-[#1C1F23] dark:text-gray-200 leading-[1.429] pl-6">
           {displayDescription}
+        </div>
+
+        <div className="flex items-center gap-1 text-xs font-normal text-gray-500 dark:text-gray-100 leading-[1.429] pl-6 pt-1">
+          <span>{t('common.errorNotice.resultId', { resultId: result.resultId })}</span>
+          <Copy
+            size={14}
+            className="cursor-pointer text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+            onClick={handleCopyResultId}
+          />
         </div>
       </div>
 

@@ -3,7 +3,7 @@ import { useShallow } from 'zustand/react/shallow';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import { CanvasNode, CanvasNodeData, ResponseNodeMeta } from '@refly/canvas-common';
 import { createAutoEvictionStorage, CacheInfo } from '../utils/storage';
-import { WorkflowNodeExecution } from '@refly/openapi-schema';
+import { WorkflowNodeExecution, WorkflowVariable } from '@refly/openapi-schema';
 
 interface NodePreviewData {
   metadata?: Record<string, unknown>;
@@ -15,7 +15,7 @@ type NodePreview = CanvasNode<NodePreviewData> & {
 };
 
 interface CanvasConfig {
-  nodePreviews: NodePreview[];
+  nodePreviewId: string | null;
 }
 
 export interface LinearThreadMessage {
@@ -30,16 +30,10 @@ export interface CanvasState {
   config: Record<string, CanvasConfig & CacheInfo>;
   currentCanvasId: string | null;
   initialFitViewCompleted?: boolean;
-  showPreview: boolean;
-  showMaxRatio: boolean;
-  showLaunchpad: boolean;
   operatingNodeId: string | null;
   showEdges: boolean;
-  clickToPreview: boolean;
   nodeSizeMode: 'compact' | 'adaptive';
-  autoLayout: boolean;
   showTemplates: boolean;
-  showLinearThread: boolean;
   showSlideshow: boolean;
   linearThreadMessages: (LinearThreadMessage & CacheInfo)[];
   tplConfig: Record<string, any> | null;
@@ -50,25 +44,16 @@ export interface CanvasState {
   canvasInitializedAt: Record<string, number | undefined>;
   canvasExecutionId: Record<string, string>;
   canvasNodeExecutions: Record<string, WorkflowNodeExecution[]>;
+  canvasVariables: Record<string, WorkflowVariable[] | undefined>;
 
   setInitialFitViewCompleted: (completed: boolean) => void;
   deleteCanvasData: (canvasId: string) => void;
   setCurrentCanvasId: (canvasId: string | null) => void;
-  addNodePreview: (canvasId: string, node: NodePreview) => void;
   setNodePreview: (canvasId: string, node: NodePreview) => void;
-  removeNodePreview: (canvasId: string, nodeId: string) => void;
-  updateNodePreview: (canvasId: string, node: NodePreview) => void;
-  reorderNodePreviews: (canvasId: string, sourceIndex: number, targetIndex: number) => void;
-  setShowPreview: (show: boolean) => void;
-  setShowMaxRatio: (show: boolean) => void;
-  setShowLaunchpad: (show: boolean) => void;
   setOperatingNodeId: (nodeId: string | null) => void;
   setShowEdges: (show: boolean) => void;
-  setClickToPreview: (enabled: boolean) => void;
   setNodeSizeMode: (mode: 'compact' | 'adaptive') => void;
-  setAutoLayout: (enabled: boolean) => void;
   setShowTemplates: (show: boolean) => void;
-  setShowLinearThread: (show: boolean) => void;
   setShowSlideshow: (show: boolean) => void;
   addLinearThreadMessage: (message: Omit<LinearThreadMessage, 'timestamp'>) => void;
   removeLinearThreadMessage: (id: string) => void;
@@ -85,26 +70,21 @@ export interface CanvasState {
     canvasId: string,
     nodeExecutions: WorkflowNodeExecution[] | null,
   ) => void;
+  setCanvasVariables: (canvasId: string, variables: WorkflowVariable[]) => void;
 }
 
 const defaultCanvasConfig = (): CanvasConfig => ({
-  nodePreviews: [],
+  nodePreviewId: null,
 });
 
 const defaultCanvasState = () => ({
   config: {},
   currentCanvasId: null,
   initialFitViewCompleted: false,
-  showPreview: true,
-  showMaxRatio: true,
-  showLaunchpad: true,
   operatingNodeId: null,
   showEdges: true,
-  clickToPreview: true,
   nodeSizeMode: 'compact' as const,
-  autoLayout: false,
   showTemplates: true,
-  showLinearThread: false,
   showSlideshow: false,
   linearThreadMessages: [],
   tplConfig: null,
@@ -115,6 +95,7 @@ const defaultCanvasState = () => ({
   canvasInitializedAt: {},
   canvasExecutionId: {},
   canvasNodeExecutions: {},
+  canvasVariables: {},
 });
 
 // Create our custom storage with appropriate configuration
@@ -138,137 +119,15 @@ export const useCanvasStore = create<CanvasState>()(
           currentCanvasId: canvasId,
         })),
 
-      setShowPreview: (show) =>
-        set((state) => ({
-          ...state,
-          showPreview: show,
-        })),
-
-      setShowMaxRatio: (show) =>
-        set((state) => ({
-          ...state,
-          showMaxRatio: show,
-        })),
-
-      setShowLaunchpad: (show) =>
-        set((state) => ({
-          ...state,
-          showLaunchpad: show,
-        })),
-
       setInitialFitViewCompleted: (completed) =>
         set((state) => ({
           ...state,
           initialFitViewCompleted: completed,
         })),
 
-      addNodePreview: (canvasId, node) =>
-        set((state) => {
-          if (!node) return state;
-
-          const currentConfig = state.config[canvasId] ?? defaultCanvasConfig();
-          const currentPreviews = currentConfig.nodePreviews ?? [];
-          const existingNodeIndex = currentPreviews.findIndex((n) => n.id === node.id);
-
-          // Do nothing if the node already exists
-          if (existingNodeIndex !== -1) {
-            return state;
-          }
-
-          let newPreviews: NodePreview[];
-
-          if (node.isPinned) {
-            // Find the first pinned node index
-            const firstPinnedIndex = currentPreviews.findIndex((n) => n.isPinned);
-
-            if (firstPinnedIndex === -1) {
-              // If no pinned nodes, add after the unpinned node (if exists)
-              newPreviews =
-                currentPreviews.length > 0
-                  ? [...currentPreviews.slice(0, 1), node, ...currentPreviews.slice(1)]
-                  : [node];
-            } else {
-              // Insert before the first pinned node
-              newPreviews = [
-                ...currentPreviews.slice(0, firstPinnedIndex),
-                node,
-                ...currentPreviews.slice(firstPinnedIndex),
-              ];
-            }
-          } else {
-            // For unpinned node: remove any existing unpinned node and add new one at start
-            const unpinnedIndex = currentPreviews.findIndex((n) => !n.isPinned);
-            if (unpinnedIndex !== -1) {
-              newPreviews = [
-                node,
-                ...currentPreviews.slice(0, unpinnedIndex),
-                ...currentPreviews.slice(unpinnedIndex + 1),
-              ];
-            } else {
-              newPreviews = [node, ...currentPreviews];
-            }
-          }
-
-          return {
-            ...state,
-            config: {
-              ...state.config,
-              [canvasId]: {
-                ...currentConfig,
-                nodePreviews: newPreviews,
-                lastUsedAt: Date.now(),
-              },
-            },
-          };
-        }),
-
       setNodePreview: (canvasId, node) =>
         set((state) => {
-          if (!node) return state;
-
           const currentConfig = state.config[canvasId] ?? defaultCanvasConfig();
-          const currentPreviews = currentConfig.nodePreviews ?? [];
-          const existingNodeIndex = currentPreviews.findIndex((n) => n.id === node.id);
-
-          if (existingNodeIndex !== -1) {
-            let newPreviews: NodePreview[];
-
-            // If the node is unpinned and not the first one, remove it
-            if (!node.isPinned && existingNodeIndex > 0) {
-              newPreviews = [
-                ...currentPreviews.slice(0, existingNodeIndex),
-                ...currentPreviews.slice(existingNodeIndex + 1),
-              ];
-            } else {
-              // Otherwise, update the node
-              newPreviews = [
-                ...currentPreviews.slice(0, existingNodeIndex),
-                node,
-                ...currentPreviews.slice(existingNodeIndex + 1),
-              ];
-            }
-
-            return {
-              ...state,
-              config: {
-                ...state.config,
-                [canvasId]: {
-                  ...currentConfig,
-                  nodePreviews: newPreviews,
-                  lastUsedAt: Date.now(),
-                },
-              },
-            };
-          }
-
-          return state;
-        }),
-
-      removeNodePreview: (canvasId, nodeId) =>
-        set((state) => {
-          const currentConfig = state.config[canvasId] ?? defaultCanvasConfig();
-          const currentPreviews = currentConfig.nodePreviews ?? [];
-          const newPreviews = currentPreviews.filter((n) => n.id !== nodeId);
 
           return {
             ...state,
@@ -276,61 +135,7 @@ export const useCanvasStore = create<CanvasState>()(
               ...state.config,
               [canvasId]: {
                 ...currentConfig,
-                nodePreviews: newPreviews,
-                lastUsedAt: Date.now(),
-              },
-            },
-          };
-        }),
-
-      updateNodePreview: (canvasId, node) =>
-        set((state) => {
-          const currentConfig = state.config[canvasId] ?? defaultCanvasConfig();
-          const currentPreviews = currentConfig.nodePreviews ?? [];
-          const newPreviews = currentPreviews.map((n) =>
-            n.id === node.id
-              ? {
-                  ...n,
-                  data: {
-                    ...n.data,
-                    ...(node.data || {}),
-                  },
-                  ...(node.data ? {} : node),
-                }
-              : n,
-          );
-
-          return {
-            ...state,
-            config: {
-              ...state.config,
-              [canvasId]: {
-                ...currentConfig,
-                nodePreviews: newPreviews,
-                lastUsedAt: Date.now(),
-              },
-            },
-          };
-        }),
-
-      reorderNodePreviews: (canvasId, sourceIndex, targetIndex) =>
-        set((state) => {
-          const currentConfig = state.config[canvasId] ?? defaultCanvasConfig();
-          const currentPreviews = currentConfig.nodePreviews ?? [];
-
-          const newPreviews = [...currentPreviews];
-          const [removed] = newPreviews.splice(sourceIndex, 1);
-          if (removed) {
-            newPreviews.splice(targetIndex, 0, removed);
-          }
-
-          return {
-            ...state,
-            config: {
-              ...state.config,
-              [canvasId]: {
-                ...currentConfig,
-                nodePreviews: newPreviews,
+                nodePreviewId: node?.id ?? null,
                 lastUsedAt: Date.now(),
               },
             },
@@ -349,34 +154,16 @@ export const useCanvasStore = create<CanvasState>()(
           showEdges: show,
         })),
 
-      setClickToPreview: (enabled) =>
-        set((state) => ({
-          ...state,
-          clickToPreview: enabled,
-        })),
-
       setNodeSizeMode: (mode) =>
         set((state) => ({
           ...state,
           nodeSizeMode: mode,
         })),
 
-      setAutoLayout: (enabled) =>
-        set((state) => ({
-          ...state,
-          autoLayout: enabled,
-        })),
-
       setShowTemplates: (show) =>
         set((state) => ({
           ...state,
           showTemplates: show,
-        })),
-
-      setShowLinearThread: (show) =>
-        set((state) => ({
-          ...state,
-          showLinearThread: show,
         })),
 
       setShowSlideshow: (show) =>
@@ -490,6 +277,15 @@ export const useCanvasStore = create<CanvasState>()(
             canvasNodeExecutions: newCanvasNodeExecutions,
           };
         }),
+
+      setCanvasVariables: (canvasId, variables) =>
+        set((state) => ({
+          ...state,
+          canvasVariables: {
+            ...state.canvasVariables,
+            [canvasId]: variables,
+          },
+        })),
     }),
     {
       name: 'canvas-storage',
@@ -498,10 +294,7 @@ export const useCanvasStore = create<CanvasState>()(
         config: state.config,
         currentCanvasId: state.currentCanvasId,
         showEdges: state.showEdges,
-        showLaunchpad: state.showLaunchpad,
-        clickToPreview: state.clickToPreview,
         nodeSizeMode: state.nodeSizeMode,
-        showLinearThread: state.showLinearThread,
         linearThreadMessages: state.linearThreadMessages,
         showSlideshow: state.showSlideshow,
         canvasPage: state.canvasPage,

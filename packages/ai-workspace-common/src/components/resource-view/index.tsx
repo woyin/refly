@@ -21,8 +21,7 @@ interface ResourceViewProps {
   resourceId: string;
   shareId?: string;
   nodeId: string;
-  deckSize: number;
-  setDeckSize: (size: number) => void;
+  hideMeta?: boolean;
 }
 
 const genIndexErrorSubTitle = (indexError: IndexError, t: TFunction) => {
@@ -38,7 +37,7 @@ const genIndexErrorSubTitle = (indexError: IndexError, t: TFunction) => {
 
 export const ResourceView = memo(
   (props: ResourceViewProps) => {
-    const { resourceId, shareId } = props;
+    const { resourceId, shareId, hideMeta } = props;
     const { readonly } = useCanvasContext();
     const { t } = useTranslation();
     const [isReindexing, setIsReindexing] = useState(false);
@@ -51,11 +50,6 @@ export const ResourceView = memo(
       refetch: refetchResourceDetail,
       isLoading,
     } = useGetResourceDetail({ query: { resourceId } }, undefined, {
-      refetchOnWindowFocus: false,
-      refetchOnMount: false,
-      refetchOnReconnect: false,
-      staleTime: 60 * 1000,
-      gcTime: 5 * 60 * 1000,
       enabled: !shareId,
     });
     const { data: shareData } = useFetchShareData<Resource>(shareId);
@@ -120,11 +114,13 @@ export const ResourceView = memo(
           </div>
         ) : (
           <>
-            <ResourceMeta
-              resourceDetail={resourceDetail}
-              isReindexing={isReindexing}
-              onReindex={handleReindexResource}
-            />
+            {!hideMeta && (
+              <ResourceMeta
+                resourceDetail={resourceDetail}
+                isReindexing={isReindexing}
+                onReindex={handleReindexResource}
+              />
+            )}
             {resourceDetail?.indexStatus === 'parse_failed' ? (
               <div className="w-full h-full flex justify-center items-center">
                 <Result

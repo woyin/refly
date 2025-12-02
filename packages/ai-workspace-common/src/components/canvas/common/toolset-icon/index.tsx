@@ -1,9 +1,8 @@
 import React from 'react';
 import { cn } from '@refly-packages/ai-workspace-common/utils/cn';
 import { GenericToolset } from '@refly/openapi-schema';
-import { Mcp } from 'refly-icons';
+import { Mcp, Websearch, DocChecked, Code, Email, Time, Code1, Doc } from 'refly-icons';
 import { Favicon } from '@refly-packages/ai-workspace-common/components/common/favicon';
-import { Logo } from '@refly-packages/ai-workspace-common/components/common/logo';
 import { useListToolsetInventory } from '@refly-packages/ai-workspace-common/queries';
 
 interface ToolsetIconConfig {
@@ -12,6 +11,37 @@ interface ToolsetIconConfig {
   builtinClassName?: string;
 }
 
+const builtinToolsetIconMap = {
+  web_search: {
+    icon: Websearch,
+    backgroundColor: '#94F585',
+  },
+  generate_doc: {
+    icon: DocChecked,
+    backgroundColor: '#67CDFF',
+  },
+  generate_code_artifact: {
+    icon: Code,
+    backgroundColor: '#D8AEFF',
+  },
+  send_email: {
+    icon: Email,
+    backgroundColor: '#FED26A',
+  },
+  get_time: {
+    icon: Time,
+    backgroundColor: '#FF9CBD',
+  },
+  execute_code: {
+    icon: Code1,
+    backgroundColor: '#D8AEFF',
+  },
+  read_file: {
+    icon: Doc,
+    backgroundColor: '#67CDFF',
+  },
+};
+
 /**
  * Renders an icon for a given toolset. When necessary and allowed, it will look up
  * additional toolset metadata from inventory to resolve the final domain for favicon.
@@ -19,32 +49,41 @@ interface ToolsetIconConfig {
  * QueryClientProvider context such as TipTap NodeViews).
  */
 export const ToolsetIcon: React.FC<{
-  toolset: GenericToolset;
-  isBuiltin?: boolean;
+  toolsetKey?: string;
+  toolset?: GenericToolset;
   config?: ToolsetIconConfig;
   disableInventoryLookup?: boolean;
-}> = React.memo(({ toolset, config, isBuiltin, disableInventoryLookup }) => {
-  if (!toolset) return null;
+}> = React.memo(({ toolsetKey, toolset, config, disableInventoryLookup }) => {
+  if (!toolset && !toolsetKey) {
+    return null;
+  }
 
   const { size = 24, className, builtinClassName } = config ?? {};
+
+  if (toolsetKey && Object.keys(builtinToolsetIconMap).includes(toolsetKey ?? '')) {
+    const builtinToolsetIcon = builtinToolsetIconMap[toolsetKey];
+    const IconComponent = builtinToolsetIcon?.icon ?? null;
+    return (
+      <div className={cn('flex items-center justify-center overflow-hidden', className)}>
+        <IconComponent
+          size={size}
+          style={{ background: builtinToolsetIcon.backgroundColor }}
+          className={cn('rounded-md text-black', builtinClassName)}
+        />
+      </div>
+    );
+  }
+
+  // If only toolsetKey is provided without toolset, use inventory lookup
+  if (!toolset && toolsetKey && !disableInventoryLookup) {
+    return <ToolsetIconWithInventory toolsetKey={toolsetKey} size={size} className={className} />;
+  }
 
   // MCP icons do not require inventory lookup
   if (toolset.type === 'mcp') {
     return (
       <div className={cn('flex items-center justify-center overflow-hidden', className)}>
         <Mcp size={size} color="var(--refly-text-1)" />
-      </div>
-    );
-  }
-
-  // Builtin icon never needs inventory lookup
-  if (isBuiltin) {
-    return (
-      <div
-        className={cn('flex items-center justify-center overflow-hidden', className)}
-        aria-label={`Toolset icon for ${toolset.toolset?.definition?.domain ?? 'unknown domain'}`}
-      >
-        <Logo logoProps={{ show: true, className: builtinClassName }} textProps={{ show: false }} />
       </div>
     );
   }
@@ -68,7 +107,8 @@ export const ToolsetIcon: React.FC<{
 });
 
 interface ToolsetIconWithInventoryProps {
-  toolset: GenericToolset;
+  toolset?: GenericToolset;
+  toolsetKey?: string;
   size: number;
   className?: string;
 }
@@ -78,21 +118,48 @@ interface ToolsetIconWithInventoryProps {
  * This component must only be rendered under QueryClientProvider.
  */
 const ToolsetIconWithInventory: React.FC<ToolsetIconWithInventoryProps> = React.memo(
-  ({ toolset, size, className }) => {
+  ({ toolset, toolsetKey, size, className }) => {
     const { data } = useListToolsetInventory({}, null, {
-      enabled: toolset.type === 'regular',
+      enabled: true,
     });
-    const toolsetDefinition = data?.data?.find((t) => t.key === toolset.toolset?.key);
+
+    // If toolsetKey is provided, use it to match (assuming toolsetKey is the key)
+    // Otherwise, use toolset.toolset?.key
+    const matchKey = toolsetKey ?? toolset?.toolset?.key;
+    const toolsetDefinition = matchKey ? data?.data?.find((t) => t.key === matchKey) : null;
+
+    // Check if it's a builtin toolset and render builtin icon if available
+    if (matchKey && builtinToolsetIconMap[matchKey as keyof typeof builtinToolsetIconMap]) {
+      const builtinToolsetIcon =
+        builtinToolsetIconMap[matchKey as keyof typeof builtinToolsetIconMap];
+      const IconComponent = builtinToolsetIcon?.icon ?? null;
+
+      if (IconComponent) {
+        return (
+          <div
+            className={cn('flex items-center justify-center overflow-hidden', className)}
+            aria-label={`Toolset icon for ${toolsetDefinition?.domain ?? 'unknown domain'}`}
+          >
+            <IconComponent
+              size={size}
+              style={{ background: builtinToolsetIcon.backgroundColor }}
+              className="rounded-md text-black"
+            />
+          </div>
+        );
+      }
+    }
+
     const finalUrl =
       toolsetDefinition?.domain ??
-      toolset.toolset?.definition?.domain ??
-      toolset.mcpServer?.url ??
+      toolset?.toolset?.definition?.domain ??
+      toolset?.mcpServer?.url ??
       '';
 
     return (
       <div
         className={cn('flex items-center justify-center overflow-hidden', className)}
-        aria-label={`Toolset icon for ${toolset.toolset?.definition?.domain ?? 'unknown domain'}`}
+        aria-label={`Toolset icon for ${toolsetDefinition?.domain ?? toolset?.toolset?.definition?.domain ?? 'unknown domain'}`}
       >
         <Favicon url={finalUrl} size={size} />
       </div>

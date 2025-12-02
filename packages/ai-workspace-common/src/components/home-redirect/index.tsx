@@ -13,14 +13,16 @@ export const HomeRedirect = ({ defaultNode }: { defaultNode: ReactNode }) => {
 
   const handleHomeRedirect = async () => {
     if (isLogin) {
-      return <Navigate to={'/canvas/empty'} replace />;
+      return <Navigate to={'/workspace'} replace />;
     }
+    // Return defaultNode to allow server-side handling (e.g., Cloudflare Worker)
+    // BackendRedirect will handle the redirect and avoid infinite loop
     return defaultNode;
   };
 
   useEffect(() => {
     handleHomeRedirect().then(setElement);
-  }, []);
+  }, [isLogin, defaultNode]);
 
   return element ?? <LightLoading />;
 };

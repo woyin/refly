@@ -1,36 +1,79 @@
-import { Tooltip, Button, Skeleton } from 'antd';
-import { SideRight } from 'refly-icons';
+import { Button, Skeleton } from 'antd';
+import { Close } from 'refly-icons';
 import { useTranslation } from 'react-i18next';
 import { useCanvasResourcesPanelStoreShallow } from '@refly/stores';
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
 import { WorkflowRunForm } from './workflow-run-form';
 import './index.scss';
-import { useCallback, useState } from 'react';
+import { useCallback, useState, useEffect } from 'react';
 import { WorkflowVariable } from '@refly/openapi-schema';
 import { logEvent } from '@refly/telemetry-web';
-import { useInitializeWorkflow } from '@refly-packages/ai-workspace-common/hooks/use-initialize-workflow';
+import { useGetCreditUsageByCanvasId } from '@refly-packages/ai-workspace-common/queries/queries';
+import { useVariablesManagement } from '@refly-packages/ai-workspace-common/hooks/use-variables-management';
+import { useWorkflowIncompleteNodes } from '@refly-packages/ai-workspace-common/hooks/canvas';
+import { useQueryClient } from '@tanstack/react-query';
 
 export const WorkflowRun = () => {
   const { t } = useTranslation();
-  const { setShowWorkflowRun, setSidePanelVisible } = useCanvasResourcesPanelStoreShallow(
-    (state) => ({
-      setShowWorkflowRun: state.setShowWorkflowRun,
-      setSidePanelVisible: state.setSidePanelVisible,
-    }),
-  );
+  const { setShowWorkflowRun, showWorkflowRun } = useCanvasResourcesPanelStoreShallow((state) => ({
+    setShowWorkflowRun: state.setShowWorkflowRun,
+    showWorkflowRun: state.showWorkflowRun,
+  }));
 
   const { workflow, canvasId } = useCanvasContext();
-  const { workflowVariables, workflowVariablesLoading, refetchWorkflowVariables } = workflow;
+  const {
+    initializeWorkflow,
+    isInitializing: loading,
+    executionId,
+    workflowStatus,
+    isPolling,
+    pollingError,
+  } = workflow;
+  const {
+    data: workflowVariables,
+    setVariables,
+    isLoading: workflowVariablesLoading,
+  } = useVariablesManagement(canvasId);
 
-  const { initializeWorkflow, loading, executionId, workflowStatus, isPolling, pollingError } =
-    useInitializeWorkflow(canvasId);
+  const queryClient = useQueryClient();
+
+  // Check if there are any incomplete nodes (status is 'init' or 'failed')
+  const { hasIncompleteNodes } = useWorkflowIncompleteNodes();
+
+  // Credit usage query with dynamic polling
+  const { data: creditUsageData, isLoading: isCreditUsageLoading } = useGetCreditUsageByCanvasId(
+    {
+      query: { canvasId },
+    },
+    undefined,
+    {
+      enabled: showWorkflowRun && !!canvasId,
+    },
+  );
+
+  // Refresh credit usage when workflow status changes to non-executing state
+  // This runs once on initial render when workflowStatus is not 'executing'
+  // It also runs when workflowStatus changes and is not 'executing' (i.e., workflow completes)
+  useEffect(() => {
+    if (
+      showWorkflowRun &&
+      canvasId &&
+      queryClient &&
+      executionId &&
+      workflowStatus !== 'executing'
+    ) {
+      // Trigger refresh when workflowStatus is not executing
+      queryClient.invalidateQueries({
+        queryKey: ['getCreditUsageByCanvasId', { query: { canvasId } }],
+      });
+    }
+  }, [workflowStatus, canvasId, showWorkflowRun, queryClient, executionId]);
 
   const [isRunning, setIsRunning] = useState(false);
 
   const handleClose = useCallback(() => {
     setShowWorkflowRun(false);
-    setSidePanelVisible(false);
-  }, [setShowWorkflowRun, setSidePanelVisible]);
+  }, [setShowWorkflowRun]);
 
   const onSubmitVariables = useCallback(
     async (variables: WorkflowVariable[]) => {
@@ -44,16 +87,15 @@ export const WorkflowRun = () => {
         canvasId,
       });
 
+      setVariables(variables);
+
       try {
         const success = await initializeWorkflow({
           canvasId,
           variables,
         });
 
-        // Only refetch if initialization was successful
-        if (success) {
-          refetchWorkflowVariables();
-        } else {
+        if (!success) {
           console.warn('Workflow initialization failed');
           // Reset running state on failure
           setIsRunning(false);
@@ -64,20 +106,19 @@ export const WorkflowRun = () => {
         setIsRunning(false);
       }
     },
-    [canvasId, initializeWorkflow, refetchWorkflowVariables],
+    [canvasId, initializeWorkflow, setVariables, setIsRunning],
   );
 
+  if (!showWorkflowRun) return null;
+
   return (
-    <div className="flex flex-col w-full h-[calc(100vh-16px)] bg-refly-bg-content-z2 rounded-xl border-solid border border-refly-Card-Border shadow-refly-m">
-      <div className="w-full h-[65px] flex gap-2 items-center justify-between p-3 border-solid border-refly-Card-Border border-[1px] border-x-0 border-t-0">
-        <div className="flex items-center gap-1 min-w-0 flex-1">
-          <Tooltip title={t('canvas.toolbar.closeResourcesPanel')} arrow={false}>
-            <Button type="text" icon={<SideRight size={18} />} onClick={handleClose} />
-          </Tooltip>
-          <div className="text-refly-text-0 text-base font-semibold leading-[26px] min-w-0 flex-1">
-            {t('canvas.workflow.run.title')}
-          </div>
+    <div className="h-full w-full flex flex-col rounded-xl overflow-hidden">
+      <div className="w-full h-14 flex gap-2 items-center justify-between p-3 border-solid border-refly-Card-Border border-[1px] border-x-0 border-t-0">
+        <div className="text-refly-text-0 text-base font-semibold leading-[26px] min-w-0 flex-1">
+          {t('canvas.workflow.run.title')}
         </div>
+
+        <Button type="text" icon={<Close size={24} />} onClick={handleClose} />
       </div>
 
       <div className="flex-1 w-full overflow-y-auto">
@@ -96,6 +137,12 @@ export const WorkflowRun = () => {
             pollingError={pollingError}
             isRunning={isRunning}
             onRunningChange={setIsRunning}
+            canvasId={canvasId}
+            creditUsage={
+              isCreditUsageLoading || hasIncompleteNodes
+                ? null
+                : (creditUsageData?.data?.total ?? 0)
+            }
           />
         )}
       </div>

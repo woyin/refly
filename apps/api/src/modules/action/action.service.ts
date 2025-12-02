@@ -1,15 +1,35 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Optional } from '@nestjs/common';
+import { InjectQueue } from '@nestjs/bullmq';
+import { Queue } from 'bullmq';
 import { ActionResultNotFoundError } from '@refly/errors';
-import { AbortActionRequest, EntityType, GetActionResultData, User } from '@refly/openapi-schema';
+import {
+  AbortActionRequest,
+  ActionErrorType,
+  EntityType,
+  GetActionResultData,
+  User,
+} from '@refly/openapi-schema';
 import { batchReplaceRegex, genActionResultID, pick } from '@refly/utils';
 import pLimit from 'p-limit';
-import { ActionResult } from '../../generated/client';
-import { ActionDetail } from '../action/action.dto';
+import {
+  ActionResult,
+  ActionMessage as ActionMessageModel,
+  ToolCallResult as ToolCallResultModel,
+} from '@prisma/client';
+import { ActionDetail, actionMessagePO2DTO } from '../action/action.dto';
 import { PrismaService } from '../common/prisma.service';
 import { providerItem2ModelInfo } from '../provider/provider.dto';
 import { ProviderService } from '../provider/provider.service';
 import { StepService } from '../step/step.service';
 import { ToolCallService } from '../tool-call/tool-call.service';
+import { DriveService } from '../drive/drive.service';
+import { RedisService } from '../common/redis.service';
+import { QUEUE_SKILL } from '../../utils';
+import { InvokeSkillJobData } from '../skill/skill.dto';
+
+type GetActionResultParams = GetActionResultData['query'] & {
+  includeFiles?: boolean;
+};
 
 @Injectable()
 export class ActionService {
@@ -26,10 +46,15 @@ export class ActionService {
     private readonly providerService: ProviderService,
     private readonly toolCallService: ToolCallService,
     private readonly stepService: StepService,
+    private readonly driveService: DriveService,
+    private readonly redis: RedisService,
+    @Optional()
+    @InjectQueue(QUEUE_SKILL)
+    private skillQueue?: Queue<InvokeSkillJobData>,
   ) {}
 
-  async getActionResult(user: User, param: GetActionResultData['query']): Promise<ActionDetail> {
-    const { resultId, version } = param;
+  async getActionResult(user: User, param: GetActionResultParams): Promise<ActionDetail> {
+    const { resultId, version, includeFiles = false } = param;
 
     const result = await this.prisma.actionResult.findFirst({
       where: {
@@ -43,6 +68,25 @@ export class ActionService {
       throw new ActionResultNotFoundError();
     }
 
+    const enrichedResult = await this.enrichActionResultWithDetails(user, result);
+
+    if (includeFiles) {
+      enrichedResult.files = await this.driveService.listAllDriveFiles(user, {
+        canvasId: result.targetId,
+        source: 'agent',
+        resultId,
+        includeContent: true,
+        ...(version ? { resultVersion: version } : { scope: 'present' }),
+      });
+    }
+
+    return enrichedResult;
+  }
+
+  private async enrichActionResultWithDetails(
+    user: User,
+    result: ActionResult,
+  ): Promise<ActionDetail> {
     const item =
       (result.providerItemId
         ? await this.providerService.findProviderItemById(user, result.providerItemId)
@@ -56,12 +100,102 @@ export class ActionService {
     const steps = await this.stepService.getSteps(result.resultId, result.version);
     const toolCalls = await this.toolCallService.fetchToolCalls(result.resultId, result.version);
 
+    // Get messages for this action result
+    const messages = await this.prisma.actionMessage.findMany({
+      where: {
+        resultId: result.resultId,
+        version: result.version,
+      },
+      orderBy: { createdAt: 'asc' },
+    });
+
+    // Create a map of tool call results by callId for quick lookup
+    const toolCallResultMap = new Map<string, ToolCallResultModel>();
+    if (toolCalls?.length) {
+      for (const toolCall of toolCalls) {
+        toolCallResultMap.set(toolCall.callId, toolCall);
+      }
+    }
+
+    // Enrich messages with tool call results for tool type messages
+    const enrichedMessages = messages.map((message: ActionMessageModel) => {
+      const enrichedMessage = actionMessagePO2DTO(message);
+
+      // For tool type messages, find and attach the corresponding tool call result
+      if (message.type === 'tool' && message.toolCallId) {
+        const toolCallResult = toolCallResultMap.get(message.toolCallId);
+        if (toolCallResult) {
+          // Attach the tool call result to the message
+          enrichedMessage.toolCallResult = {
+            callId: toolCallResult.callId,
+            uid: toolCallResult.uid,
+            toolsetId: toolCallResult.toolsetId,
+            toolName: toolCallResult.toolName,
+            stepName: toolCallResult.stepName,
+            input: JSON.parse(toolCallResult.input || '{}'),
+            output: JSON.parse(toolCallResult.output || '{}'),
+            error: toolCallResult.error || '',
+            status: toolCallResult.status as 'executing' | 'completed' | 'failed',
+            createdAt: toolCallResult.createdAt.getTime(),
+            updatedAt: toolCallResult.updatedAt.getTime(),
+            deletedAt: toolCallResult.deletedAt?.getTime(),
+          };
+        }
+      }
+
+      return enrichedMessage;
+    });
+
     if (!steps || steps.length === 0) {
-      return { ...result, steps: [], modelInfo };
+      return { ...result, steps: [], messages: enrichedMessages, modelInfo };
     }
 
     const stepsWithToolCalls = this.toolCallService.attachToolCallsToSteps(steps, toolCalls);
-    return { ...result, steps: stepsWithToolCalls, modelInfo };
+    return { ...result, steps: stepsWithToolCalls, messages: enrichedMessages, modelInfo };
+  }
+
+  async batchProcessActionResults(user: User, results: ActionResult[]): Promise<ActionDetail[]> {
+    // Group results by resultId and keep only the latest version for each, maintaining input order
+    const latestResultsMap = new Map<string, ActionResult>();
+    const orderedResultIds: string[] = [];
+
+    for (const result of results) {
+      const existing = latestResultsMap.get(result.resultId);
+      if (!existing || (result.version ?? 0) > (existing.version ?? 0)) {
+        latestResultsMap.set(result.resultId, result);
+        // Only add to ordered list if this is the first time we encounter this resultId
+        if (!existing) {
+          orderedResultIds.push(result.resultId);
+        }
+      }
+    }
+
+    // Get filtered results in the order they first appeared in the input
+    const filteredResults = orderedResultIds.map((resultId) => latestResultsMap.get(resultId));
+
+    // If no results found, return empty array
+    if (!filteredResults.length) {
+      return [];
+    }
+
+    // Use concurrency limit to prevent overwhelming the database
+    const limit = pLimit(5);
+
+    // Process each result in parallel to fetch related data
+    const processedResultsPromises = filteredResults.map((result) =>
+      limit(async () => {
+        try {
+          return await this.enrichActionResultWithDetails(user, result);
+        } catch (error) {
+          this.logger.error(`Failed to process action result ${result.resultId}:`, error);
+          // Return result with empty steps, messages and no model info on error
+          return { ...result, steps: [], messages: [], modelInfo: null };
+        }
+      }),
+    );
+
+    const processedResults = await Promise.all(processedResultsPromises);
+    return processedResults;
   }
 
   async duplicateActionResults(
@@ -159,6 +293,7 @@ export class ActionService {
               'locale',
               'status',
               'errors',
+              'errorType',
             ]),
             context: batchReplaceRegex(JSON.stringify(context), replaceEntityMap),
             history: batchReplaceRegex(JSON.stringify(history), replaceEntityMap),
@@ -268,6 +403,7 @@ export class ActionService {
         data: {
           status: 'failed',
           errors: JSON.stringify([errorMessage]),
+          errorType: 'userAbort',
         },
       });
       this.logger.log(`Updated action ${resultId} status to failed: ${errorMessage}`);
@@ -278,11 +414,16 @@ export class ActionService {
     }
   }
 
-  async abortActionFromReq(user: User, req: AbortActionRequest, reason?: string) {
+  async abortActionFromReq(
+    user: User,
+    req: AbortActionRequest,
+    reason?: string,
+    errorType?: ActionErrorType,
+  ) {
     const { resultId, version } = req;
 
-    // Verify that the action belongs to the user
-    const result = await this.prisma.actionResult.findFirst({
+    // Try exact version first, fallback to latest version if not found (handles rapid start-stop)
+    let result = await this.prisma.actionResult.findFirst({
       where: {
         resultId,
         version,
@@ -290,10 +431,127 @@ export class ActionService {
       },
     });
 
+    // If exact version not found, try to find the latest version for this resultId
+    if (!result) {
+      this.logger.warn(
+        `Action result ${resultId} version ${version} not found, trying to find latest version`,
+      );
+      result = await this.prisma.actionResult.findFirst({
+        where: {
+          resultId,
+          uid: user.uid,
+        },
+        orderBy: {
+          version: 'desc',
+        },
+      });
+    }
+
     if (!result) {
       throw new ActionResultNotFoundError();
     }
 
-    await this.abortAction(user, result, reason);
+    const abortReason = reason || 'User requested abort';
+    const actualVersion = result.version;
+
+    await this.markAbortRequested(resultId, actualVersion, abortReason, errorType);
+
+    // Step 1: Check if controller is in memory (same pod) - FASTEST
+    // Note: If controller exists, Redis mapping has already been deleted when execution started
+    const entry = this.activeAbortControllers.get(resultId);
+    if (entry) {
+      entry.controller.abort(abortReason);
+      this.unregisterAbortController(resultId);
+      // Update database status
+      this.logger.log(`Successfully aborted executing action (same pod): ${resultId}`);
+    }
+
+    // Step 2: Check if job is still queued in BullMQ
+    const jobId = await this.getQueuedJobId(resultId);
+    if (jobId && this.skillQueue) {
+      const job = await this.skillQueue.getJob(jobId);
+      if (job) {
+        await job.remove();
+        await this.deleteQueuedJob(resultId);
+        this.logger.log(`Successfully aborted queued job: ${resultId}`);
+      }
+    }
+  }
+
+  /**
+   * Register a queued job in Redis for abortion support
+   * Stores resultId -> jobId mapping for jobs in BullMQ queue
+   */
+  async registerQueuedJob(resultId: string, jobId: string): Promise<void> {
+    const key = `skill:abort:${resultId}`;
+    await this.redis.setex(key, 1800, jobId); // 30 minutes TTL
+    this.logger.debug(`Registered queued job: ${resultId} -> ${jobId}`);
+  }
+
+  /**
+   * Delete queued job mapping from Redis when job starts executing
+   */
+  async deleteQueuedJob(resultId: string): Promise<void> {
+    const key = `skill:abort:${resultId}`;
+    await this.redis.del(key);
+    this.logger.debug(`Deleted queued job mapping for: ${resultId}`);
+  }
+
+  /**
+   * Get job ID for a queued action
+   */
+  async getQueuedJobId(resultId: string): Promise<string | null> {
+    const key = `skill:abort:${resultId}`;
+    return await this.redis.get(key);
+  }
+
+  /**
+   * Mark an action for abortion in the database (for cross-pod scenarios)
+   *
+   * Updates all non-terminal states to prevent race conditions during queue-to-execution transition
+   */
+  async markAbortRequested(
+    resultId: string,
+    version: number,
+    reason: string,
+    errorType: ActionErrorType = 'userAbort',
+  ): Promise<void> {
+    const updated = await this.prisma.actionResult.updateMany({
+      where: {
+        resultId,
+        version,
+      },
+      data: {
+        status: 'failed',
+        errors: JSON.stringify([reason]),
+        errorType,
+      },
+    });
+
+    if (updated.count > 0) {
+      this.logger.log(
+        `Marked abort requested for action: ${resultId} v${version} by setting status to failed`,
+      );
+    } else {
+      this.logger.warn(
+        `Action ${resultId} v${version} not found or already in terminal state, skipping abort mark`,
+      );
+    }
+  }
+
+  /**
+   * Check if an action has been requested to abort (for polling from executing pod)
+   */
+  async isAbortRequested(resultId: string, version: number): Promise<boolean> {
+    const result = await this.prisma.actionResult.findFirst({
+      where: { resultId, version },
+      select: { status: true },
+    });
+
+    if (!result) {
+      return false;
+    }
+
+    return result.status === 'failed';
   }
 }

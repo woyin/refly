@@ -11,7 +11,7 @@ import { classifyExecutionError } from '@refly-packages/ai-workspace-common/util
 
 interface FailureNoticeProps {
   result: ActionResult;
-  handleRetry: () => void;
+  handleRetry?: () => void;
 }
 
 export const FailureNotice = ({ result, handleRetry }: FailureNoticeProps) => {
@@ -37,6 +37,22 @@ export const FailureNotice = ({ result, handleRetry }: FailureNoticeProps) => {
     [setSubscribeModalVisible],
   );
 
+  // Check if this is a user abort (default to systemError if undefined)
+  const effectiveErrorType = result?.errorType || 'systemError';
+  const isUserAbort = effectiveErrorType === 'userAbort';
+
+  // If user aborted, show user abort notice
+  if (isUserAbort) {
+    return (
+      <ErrorNotice
+        result={result}
+        errorType="userAbort"
+        trackingContext="skill_invoke"
+        className="mt-2"
+      />
+    );
+  }
+
   // Check if this is a classifiable execution error
   const failureType = classifyExecutionError(error, errCode);
 
@@ -47,6 +63,7 @@ export const FailureNotice = ({ result, handleRetry }: FailureNoticeProps) => {
   if (isCreditInsufficient) {
     return (
       <ErrorNotice
+        result={result}
         errorType="creditInsufficient"
         membershipLevel={displayName}
         onUpgradeClick={handleSubscriptionClick}
@@ -73,10 +90,10 @@ export const FailureNotice = ({ result, handleRetry }: FailureNoticeProps) => {
 
     return (
       <ErrorNotice
+        result={result}
         errorType={errorNoticeType}
         onRetryClick={handleRetry}
         trackingContext="skill_invoke"
-        className="mt-2"
       />
     );
   }

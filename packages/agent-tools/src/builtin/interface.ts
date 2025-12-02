@@ -29,19 +29,20 @@ import {
   DeleteCanvasRequest,
   DeleteDocumentRequest,
   MediaGenerateRequest,
-  MediaGenerateResponse,
+  MediaGenerationResult,
   GetActionResultData,
-  CodeArtifactType,
   SendEmailRequest,
   BaseResponse,
   UpsertCodeArtifactRequest,
   UploadResponse,
   FileVisibility,
   EntityType,
-  CanvasNode,
+  SandboxExecuteRequest,
+  SandboxExecuteResponse,
+  DriveFile,
+  UpsertDriveFileRequest,
 } from '@refly/openapi-schema';
 import { Document as LangChainDocument } from '@langchain/core/documents';
-import { RunnableConfig } from '@langchain/core/runnables';
 
 export interface ReflyService {
   createCanvas: (user: User, req: UpsertCanvasRequest) => Promise<CreateCanvasResponse>;
@@ -80,13 +81,8 @@ export interface ReflyService {
     results: SearchResult[],
     options?: { topN?: number; relevanceThreshold?: number },
   ) => Promise<RerankResponse>;
-  generateDoc: (user: User, title: string, config: RunnableConfig) => Promise<{ docId: string }>;
-  generateCodeArtifact: (
-    user: User,
-    title: string,
-    type: CodeArtifactType,
-    config: RunnableConfig,
-  ) => Promise<{ artifactId: string }>;
+  readFile: (user: User, fileId: string) => Promise<DriveFile>;
+  writeFile: (user: User, param: UpsertDriveFileRequest) => Promise<DriveFile>;
   inMemorySearchWithIndexing: (
     user: User,
     options: {
@@ -110,7 +106,7 @@ export interface ReflyService {
   batchProcessURL: (urls: string[]) => Promise<string[]>;
 
   downloadFileFromUrl: (url: string) => Promise<Buffer>;
-  downloadFile: (storageKey: string) => Promise<Buffer>;
+  downloadFile: (params: { storageKey: string; visibility?: FileVisibility }) => Promise<Buffer>;
   uploadFile: (
     user: User,
     param: {
@@ -136,18 +132,16 @@ export interface ReflyService {
       storageKey?: string;
     },
   ) => Promise<UploadResponse['data']>;
-  addNodeToCanvasWithoutCanvasId: (
-    user: User,
-    node: Pick<CanvasNode, 'type' | 'data'> & Partial<Pick<CanvasNode, 'id'>>,
-    connectTo?: any,
-    options?: { autoLayout?: boolean },
-  ) => Promise<void>;
   genImageID: () => Promise<string>;
   // Generate JWT token for user (same as AuthService.login)
   generateJwtToken: (user: User) => Promise<string>;
 
-  generateMedia: (user: User, req: MediaGenerateRequest) => Promise<MediaGenerateResponse>;
+  generateMedia: (user: User, req: MediaGenerateRequest) => Promise<MediaGenerationResult>;
   getActionResult(user: User, param: GetActionResultData['query']): Promise<any>;
+  createShareForDriveFile: (
+    user: User,
+    fileId: string,
+  ) => Promise<{ url: string; shareId: string; driveFile: DriveFile }>;
 
   getUserMediaConfig(
     user: User,
@@ -159,4 +153,7 @@ export interface ReflyService {
     providerItemId: string;
     model: string;
   } | null>;
+
+  // Sandbox code execution
+  execute: (user: User, request: SandboxExecuteRequest) => Promise<SandboxExecuteResponse>;
 }

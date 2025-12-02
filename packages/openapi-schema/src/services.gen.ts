@@ -132,6 +132,21 @@ import type {
   UpdateWorkflowVariablesData,
   UpdateWorkflowVariablesError,
   UpdateWorkflowVariablesResponse2,
+  ListDriveFilesData,
+  ListDriveFilesError,
+  ListDriveFilesResponse2,
+  CreateDriveFileData,
+  CreateDriveFileError,
+  CreateDriveFileResponse,
+  BatchCreateDriveFilesData,
+  BatchCreateDriveFilesError,
+  BatchCreateDriveFilesResponse2,
+  UpdateDriveFileData,
+  UpdateDriveFileError,
+  UpdateDriveFileResponse,
+  DeleteDriveFileData,
+  DeleteDriveFileError,
+  DeleteDriveFileResponse,
   ListCanvasTemplatesData,
   ListCanvasTemplatesError,
   ListCanvasTemplatesResponse,
@@ -321,9 +336,18 @@ import type {
   RecoverPilotSessionData,
   RecoverPilotSessionError,
   RecoverPilotSessionResponse,
+  ListCopilotSessionsData,
+  ListCopilotSessionsError,
+  ListCopilotSessionsResponse2,
+  GetCopilotSessionDetailData,
+  GetCopilotSessionDetailError,
+  GetCopilotSessionDetailResponse2,
   InitializeWorkflowData,
   InitializeWorkflowError,
   InitializeWorkflowResponse2,
+  AbortWorkflowData,
+  AbortWorkflowError,
+  AbortWorkflowResponse,
   GetWorkflowDetailData,
   GetWorkflowDetailError,
   GetWorkflowDetailResponse2,
@@ -367,6 +391,16 @@ import type {
   GetCreditUsageByCanvasIdData,
   GetCreditUsageByCanvasIdError,
   GetCreditUsageByCanvasIdResponse2,
+  GetCanvasCommissionByCanvasIdData,
+  GetCanvasCommissionByCanvasIdError,
+  GetCanvasCommissionByCanvasIdResponse2,
+  ListInvitationCodesError,
+  ListInvitationCodesResponse2,
+  ActivateInvitationCodeData,
+  ActivateInvitationCodeError,
+  ActivateInvitationCodeResponse,
+  HasBeenInvitedError,
+  HasBeenInvitedResponse2,
   GetSubscriptionPlansError,
   GetSubscriptionPlansResponse2,
   GetSubscriptionUsageError,
@@ -423,6 +457,8 @@ import type {
   ListToolsData,
   ListToolsError,
   ListToolsResponse2,
+  ListUserToolsError,
+  ListUserToolsResponse2,
   ListToolsetInventoryError,
   ListToolsetInventoryResponse2,
   ListToolsetsData,
@@ -437,6 +473,9 @@ import type {
   DeleteToolsetData,
   DeleteToolsetError,
   DeleteToolsetResponse,
+  GetToolCallResultData,
+  GetToolCallResultError,
+  GetToolCallResultResponse2,
   AuthorizeComposioConnectionData,
   AuthorizeComposioConnectionError,
   AuthorizeComposioConnectionResponse,
@@ -1131,6 +1170,91 @@ export const updateWorkflowVariables = <ThrowOnError extends boolean = false>(
   >({
     ...options,
     url: '/canvas/workflow/variables',
+  });
+};
+
+/**
+ * List drive files
+ * List all drive files
+ */
+export const listDriveFiles = <ThrowOnError extends boolean = false>(
+  options: Options<ListDriveFilesData, ThrowOnError>,
+) => {
+  return (options?.client ?? client).get<
+    ListDriveFilesResponse2,
+    ListDriveFilesError,
+    ThrowOnError
+  >({
+    ...options,
+    url: '/drive/file/list',
+  });
+};
+
+/**
+ * Create drive file
+ * Create a new drive file
+ */
+export const createDriveFile = <ThrowOnError extends boolean = false>(
+  options: Options<CreateDriveFileData, ThrowOnError>,
+) => {
+  return (options?.client ?? client).post<
+    CreateDriveFileResponse,
+    CreateDriveFileError,
+    ThrowOnError
+  >({
+    ...options,
+    url: '/drive/file/create',
+  });
+};
+
+/**
+ * Batch create drive files
+ * Batch create drive files
+ */
+export const batchCreateDriveFiles = <ThrowOnError extends boolean = false>(
+  options: Options<BatchCreateDriveFilesData, ThrowOnError>,
+) => {
+  return (options?.client ?? client).post<
+    BatchCreateDriveFilesResponse2,
+    BatchCreateDriveFilesError,
+    ThrowOnError
+  >({
+    ...options,
+    url: '/drive/file/batchCreate',
+  });
+};
+
+/**
+ * Update drive file
+ * Update an existing drive file
+ */
+export const updateDriveFile = <ThrowOnError extends boolean = false>(
+  options: Options<UpdateDriveFileData, ThrowOnError>,
+) => {
+  return (options?.client ?? client).post<
+    UpdateDriveFileResponse,
+    UpdateDriveFileError,
+    ThrowOnError
+  >({
+    ...options,
+    url: '/drive/file/update',
+  });
+};
+
+/**
+ * Delete drive file
+ * Delete an existing drive file
+ */
+export const deleteDriveFile = <ThrowOnError extends boolean = false>(
+  options: Options<DeleteDriveFileData, ThrowOnError>,
+) => {
+  return (options?.client ?? client).post<
+    DeleteDriveFileResponse,
+    DeleteDriveFileError,
+    ThrowOnError
+  >({
+    ...options,
+    url: '/drive/file/delete',
   });
 };
 
@@ -2170,6 +2294,40 @@ export const recoverPilotSession = <ThrowOnError extends boolean = false>(
 };
 
 /**
+ * List copilot sessions
+ * List all copilot sessions
+ */
+export const listCopilotSessions = <ThrowOnError extends boolean = false>(
+  options?: Options<ListCopilotSessionsData, ThrowOnError>,
+) => {
+  return (options?.client ?? client).get<
+    ListCopilotSessionsResponse2,
+    ListCopilotSessionsError,
+    ThrowOnError
+  >({
+    ...options,
+    url: '/copilot/session/list',
+  });
+};
+
+/**
+ * Get copilot session detail
+ * Get detail for a copilot session
+ */
+export const getCopilotSessionDetail = <ThrowOnError extends boolean = false>(
+  options: Options<GetCopilotSessionDetailData, ThrowOnError>,
+) => {
+  return (options?.client ?? client).get<
+    GetCopilotSessionDetailResponse2,
+    GetCopilotSessionDetailError,
+    ThrowOnError
+  >({
+    ...options,
+    url: '/copilot/session/detail',
+  });
+};
+
+/**
  * Initialize workflow execution
  * Initialize a new workflow execution for a canvas
  */
@@ -2183,6 +2341,19 @@ export const initializeWorkflow = <ThrowOnError extends boolean = false>(
   >({
     ...options,
     url: '/workflow/initialize',
+  });
+};
+
+/**
+ * Abort workflow execution
+ * Abort a running workflow execution
+ */
+export const abortWorkflow = <ThrowOnError extends boolean = false>(
+  options: Options<AbortWorkflowData, ThrowOnError>,
+) => {
+  return (options?.client ?? client).post<AbortWorkflowResponse, AbortWorkflowError, ThrowOnError>({
+    ...options,
+    url: '/workflow/abort',
   });
 };
 
@@ -2432,6 +2603,74 @@ export const getCreditUsageByCanvasId = <ThrowOnError extends boolean = false>(
   >({
     ...options,
     url: '/credit/canvas',
+  });
+};
+
+/**
+ * Get canvas commission by canvas ID
+ * Get canvas commission (credit usage with commission rate) by canvas ID
+ */
+export const getCanvasCommissionByCanvasId = <ThrowOnError extends boolean = false>(
+  options: Options<GetCanvasCommissionByCanvasIdData, ThrowOnError>,
+) => {
+  return (options?.client ?? client).get<
+    GetCanvasCommissionByCanvasIdResponse2,
+    GetCanvasCommissionByCanvasIdError,
+    ThrowOnError
+  >({
+    ...options,
+    url: '/credit/commission',
+  });
+};
+
+/**
+ * List invitation codes
+ * List all invitation codes
+ */
+export const listInvitationCodes = <ThrowOnError extends boolean = false>(
+  options?: Options<unknown, ThrowOnError>,
+) => {
+  return (options?.client ?? client).get<
+    ListInvitationCodesResponse2,
+    ListInvitationCodesError,
+    ThrowOnError
+  >({
+    ...options,
+    url: '/invitation/list',
+  });
+};
+
+/**
+ * Activate invitation code
+ * Activate an invitation code
+ */
+export const activateInvitationCode = <ThrowOnError extends boolean = false>(
+  options: Options<ActivateInvitationCodeData, ThrowOnError>,
+) => {
+  return (options?.client ?? client).post<
+    ActivateInvitationCodeResponse,
+    ActivateInvitationCodeError,
+    ThrowOnError
+  >({
+    ...options,
+    url: '/invitation/activate',
+  });
+};
+
+/**
+ * Check if user has been invited
+ * Check if user has been invited
+ */
+export const hasBeenInvited = <ThrowOnError extends boolean = false>(
+  options?: Options<unknown, ThrowOnError>,
+) => {
+  return (options?.client ?? client).get<
+    HasBeenInvitedResponse2,
+    HasBeenInvitedError,
+    ThrowOnError
+  >({
+    ...options,
+    url: '/invitation/invited',
   });
 };
 
@@ -2760,6 +2999,19 @@ export const listTools = <ThrowOnError extends boolean = false>(
 };
 
 /**
+ * List user tools
+ * Get installed tools and unauthorized external OAuth tools for current user.
+ */
+export const listUserTools = <ThrowOnError extends boolean = false>(
+  options?: Options<unknown, ThrowOnError>,
+) => {
+  return (options?.client ?? client).get<ListUserToolsResponse2, ListUserToolsError, ThrowOnError>({
+    ...options,
+    url: '/tool/user/list',
+  });
+};
+
+/**
  * List toolset inventory
  * List all available toolsets in inventory, including uninstalled.
  */
@@ -2825,6 +3077,23 @@ export const deleteToolset = <ThrowOnError extends boolean = false>(
   return (options?.client ?? client).post<DeleteToolsetResponse, DeleteToolsetError, ThrowOnError>({
     ...options,
     url: '/tool/toolset/delete',
+  });
+};
+
+/**
+ * Get tool call result
+ * Get the result of a tool call
+ */
+export const getToolCallResult = <ThrowOnError extends boolean = false>(
+  options: Options<GetToolCallResultData, ThrowOnError>,
+) => {
+  return (options?.client ?? client).get<
+    GetToolCallResultResponse2,
+    GetToolCallResultError,
+    ThrowOnError
+  >({
+    ...options,
+    url: '/tool/call/result',
   });
 };
 

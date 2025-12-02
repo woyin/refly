@@ -1,10 +1,11 @@
 import type { ComponentType, NamedExoticComponent } from 'react';
 import { memo } from 'react';
+import mime from 'mime';
 import {
   NODE_COLORS,
   type ResourceFileType,
 } from '@refly-packages/ai-workspace-common/components/canvas/nodes/shared/colors';
-import { CanvasNodeType, ResourceMeta, ResourceType, SelectionKey } from '@refly/openapi-schema';
+import { CanvasNodeType, SelectionKey } from '@refly/openapi-schema';
 
 import {
   AiChat,
@@ -24,21 +25,22 @@ import {
   CodeZip,
   GeneralFile,
   Html,
-  Start,
   File,
+  MessageSmile,
 } from 'refly-icons';
 import { Avatar } from 'antd';
-import { Favicon } from '../../../common/favicon';
+import { useThemeStoreShallow } from '@refly/stores';
 
 type IconComponent = ComponentType<{ size?: number | string; color?: string }>;
 const ICONS: Record<CanvasNodeType | SelectionKey, IconComponent> = {
-  start: Start,
+  start: MessageSmile,
   group: Group,
   image: Image,
   video: Video,
   audio: Audio,
   document: Doc1,
   resource: File,
+  file: File,
   codeArtifact: Code1,
   website: Web1,
   memo: Note,
@@ -58,7 +60,7 @@ const ICONS: Record<CanvasNodeType | SelectionKey, IconComponent> = {
   documentAfterCursorSelection: Doc1,
 };
 
-const RESOURCE_ICONS: Record<ResourceFileType, IconComponent> = {
+const FILE_ICONS: Record<ResourceFileType, IconComponent> = {
   'application/pdf': Pdf,
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document': Doc1,
   'text/markdown': Markdown,
@@ -95,8 +97,8 @@ interface NodeIconProps {
   small?: boolean;
   filled?: boolean;
   url?: string;
-  resourceType?: ResourceType;
-  resourceMeta?: ResourceMeta;
+  filename?: string;
+  fileType?: string;
 }
 
 export const NodeIcon: NamedExoticComponent<NodeIconProps> = memo(
@@ -108,36 +110,22 @@ export const NodeIcon: NamedExoticComponent<NodeIconProps> = memo(
     small = true,
     filled = true,
     url,
-    resourceType,
-    resourceMeta,
+    filename,
+    fileType,
   }: NodeIconProps) => {
     const size = !filled ? 20 : small ? 14 : 16;
+    const { isDarkMode } = useThemeStoreShallow((state) => ({
+      isDarkMode: state.isDarkMode,
+    }));
 
-    const isWeblink = type === 'resource' && resourceType === 'weblink';
-    const isResourceFile =
-      type === 'resource' &&
-      (resourceType === 'file' ||
-        resourceType === 'document' ||
-        resourceType === 'image' ||
-        resourceType === 'video' ||
-        resourceType === 'audio') &&
-      resourceMeta;
+    const isResourceFile = type === 'file';
 
-    const Icon =
-      (isResourceFile ? RESOURCE_ICONS[resourceMeta?.contentType ?? ''] : ICONS[type]) ??
-      GeneralFile;
+    const finalFileType = fileType ?? (filename ? mime.getType(filename) : null);
+    const Icon = (isResourceFile ? FILE_ICONS[finalFileType] : ICONS[type]) ?? GeneralFile;
 
     const resolvedColor = isResourceFile
-      ? (NODE_COLORS[resourceMeta?.contentType ?? ''] ?? NODE_COLORS.resource)
+      ? (NODE_COLORS[finalFileType] ?? NODE_COLORS.resource)
       : (NODE_COLORS[type] ?? NODE_COLORS.document);
-
-    if (isWeblink && resourceMeta?.url) {
-      return (
-        <div className="rounded-md flex items-center justify-center flex-shrink-0">
-          <Favicon url={resourceMeta.url} size={iconSize || size} />
-        </div>
-      );
-    }
 
     if (url) {
       return (
@@ -166,6 +154,9 @@ export const NodeIcon: NamedExoticComponent<NodeIconProps> = memo(
       );
     }
 
+    const backgroundColor =
+      isDarkMode && ['start', 'skillResponse'].includes(type) ? 'black' : resolvedColor;
+
     return (
       <div
         className={`rounded-md flex items-center justify-center flex-shrink-0 ${
@@ -173,7 +164,7 @@ export const NodeIcon: NamedExoticComponent<NodeIconProps> = memo(
         } ${type === 'image' ? 'bg-gradient-to-r from-pink-500 to-purple-500' : ''} ${
           className ?? ''
         }`}
-        style={{ backgroundColor: resolvedColor }}
+        style={{ backgroundColor: backgroundColor }}
       >
         <Icon size={iconSize || size} color="white" />
       </div>

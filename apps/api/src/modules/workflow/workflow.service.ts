@@ -6,6 +6,7 @@ import {
   CanvasNode,
   WorkflowVariable,
   NodeDiff,
+  RawCanvasData,
 } from '@refly/openapi-schema';
 import {
   CanvasNodeFilter,
@@ -15,6 +16,7 @@ import {
   sortNodeExecutionsByExecutionOrder,
 } from '@refly/canvas-common';
 import { SkillService } from '../skill/skill.service';
+import { ActionService } from '../action/action.service';
 import { CanvasService } from '../canvas/canvas.service';
 import { CanvasSyncService } from '../canvas-sync/canvas-sync.service';
 import {
@@ -26,10 +28,11 @@ import {
 } from '@refly/utils';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
-import { WorkflowNodeExecution as WorkflowNodeExecutionPO } from '../../generated/client';
+import { WorkflowNodeExecution as WorkflowNodeExecutionPO } from '@prisma/client';
 import { QUEUE_POLL_WORKFLOW, QUEUE_RUN_WORKFLOW } from '../../utils/const';
-import { CanvasNotFoundError, WorkflowExecutionNotFoundError } from '@refly/errors';
+import { WorkflowExecutionNotFoundError } from '@refly/errors';
 import { RedisService } from '../common/redis.service';
+import { PollWorkflowJobData, RunWorkflowJobData } from './workflow.dto';
 import { CreditService } from '../credit/credit.service';
 import { ceil } from 'lodash';
 
@@ -43,11 +46,13 @@ export class WorkflowService {
     private readonly prisma: PrismaService,
     private readonly redis: RedisService,
     private readonly skillService: SkillService,
+    private readonly actionService: ActionService,
     private readonly canvasService: CanvasService,
     private readonly canvasSyncService: CanvasSyncService,
     private readonly creditService: CreditService,
-    @InjectQueue(QUEUE_RUN_WORKFLOW) private readonly runWorkflowQueue?: Queue,
-    @InjectQueue(QUEUE_POLL_WORKFLOW) private readonly pollWorkflowQueue?: Queue,
+    @InjectQueue(QUEUE_RUN_WORKFLOW) private readonly runWorkflowQueue?: Queue<RunWorkflowJobData>,
+    @InjectQueue(QUEUE_POLL_WORKFLOW)
+    private readonly pollWorkflowQueue?: Queue<PollWorkflowJobData>,
   ) {}
 
   /**
@@ -58,57 +63,56 @@ export class WorkflowService {
    */
   async initializeWorkflowExecution(
     user: User,
-    sourceCanvasId: string,
-    targetCanvasId: string,
+    canvasId: string,
     variables?: WorkflowVariable[],
     options?: {
+      sourceCanvasId?: string;
+      sourceCanvasData?: RawCanvasData;
       appId?: string;
       startNodes?: string[];
       checkCanvasOwnership?: boolean;
+      createNewCanvas?: boolean;
+      nodeBehavior?: 'create' | 'update';
     },
   ): Promise<string> {
-    const canvas = await this.prisma.canvas.findUnique({
-      where: { canvasId: sourceCanvasId },
-    });
+    let canvasData: RawCanvasData;
+    const {
+      sourceCanvasId = canvasId,
+      sourceCanvasData,
+      checkCanvasOwnership,
+      createNewCanvas,
+      nodeBehavior: requestedNodeBehavior,
+    } = options ?? {};
+    const nodeBehavior = requestedNodeBehavior ?? (createNewCanvas ? 'create' : 'update');
 
-    if (!canvas) {
-      throw new CanvasNotFoundError(`Canvas ${sourceCanvasId} not found`);
+    if (sourceCanvasData) {
+      canvasData = sourceCanvasData;
+    } else if (sourceCanvasId) {
+      canvasData = await this.canvasService.getCanvasRawData(user, sourceCanvasId, {
+        checkOwnership: checkCanvasOwnership,
+      });
+    } else {
+      throw new Error('Source canvas data or source canvas ID is required');
     }
-
-    if (options?.checkCanvasOwnership && canvas.uid !== user.uid) {
-      throw new CanvasNotFoundError(`Canvas ${sourceCanvasId} not found for user ${user.uid}`);
-    }
-
-    // Get canvas state
-    const canvasData = await this.canvasSyncService.getCanvasData(
-      user,
-      {
-        canvasId: sourceCanvasId,
-      },
-      canvas,
-    );
 
     // Create workflow execution record
     const executionId = genWorkflowExecutionID();
 
-    const isNewCanvas = targetCanvasId !== sourceCanvasId;
-
     // Use variables from request if provided, otherwise use variables from canvas
-    let finalVariables: WorkflowVariable[] =
-      variables ?? safeParseJSON(canvas.workflow)?.variables ?? [];
+    let finalVariables: WorkflowVariable[] = variables ?? canvasData?.variables ?? [];
 
     // Note: Canvas creation is now handled on the frontend to avoid version conflicts
-    if (isNewCanvas) {
+    if (createNewCanvas) {
       const newCanvas = await this.canvasService.createCanvas(user, {
-        canvasId: targetCanvasId,
-        title: canvas?.title,
+        canvasId: canvasId,
+        title: canvasData.title,
         variables: finalVariables,
         visibility: false, // Workflow execution result canvas should not be visible
       });
       finalVariables = safeParseJSON(newCanvas.workflow)?.variables ?? [];
     } else {
       finalVariables = await this.canvasService.updateWorkflowVariables(user, {
-        canvasId: targetCanvasId,
+        canvasId: canvasId,
         variables: finalVariables,
       });
     }
@@ -118,18 +122,32 @@ export class WorkflowService {
       canvasData,
       variables: finalVariables,
       startNodes: options?.startNodes ?? [],
-      isNewCanvas,
+      nodeBehavior,
     });
+
+    // If it's new canvas mode, add the new node to the new canvas
+    if (nodeBehavior === 'create' && nodeExecutions.length > 0) {
+      const nodesToAdd = nodeExecutions.map((nodeExecution) => ({
+        node: nodeExecution.node,
+        connectTo: Array.isArray(nodeExecution.connectTo)
+          ? nodeExecution.connectTo
+          : ((safeParseJSON(nodeExecution.connectTo) as CanvasNodeFilter[]) ?? []),
+      }));
+
+      await this.canvasSyncService.addNodesToCanvas(user, canvasId, nodesToAdd, {
+        autoLayout: true,
+      });
+    }
 
     await this.prisma.$transaction([
       this.prisma.workflowExecution.create({
         data: {
           executionId,
           uid: user.uid,
-          canvasId: targetCanvasId,
+          canvasId: canvasId,
           sourceCanvasId: sourceCanvasId,
           variables: JSON.stringify(finalVariables),
-          title: canvas.title || 'Workflow Execution',
+          title: canvasData.title ?? 'Workflow Execution',
           status: nodeExecutions.length > 0 ? 'executing' : 'finish',
           totalNodes: nodeExecutions.length,
           appId: options?.appId,
@@ -151,7 +169,7 @@ export class WorkflowService {
           ]),
           nodeExecutionId: genWorkflowNodeExecutionID(),
           executionId,
-          canvasId: targetCanvasId,
+          canvasId: canvasId,
           nodeData: JSON.stringify(nodeExecution.node),
           connectTo: JSON.stringify(nodeExecution.connectTo),
           parentNodeIds: JSON.stringify(nodeExecution.parentNodeIds),
@@ -173,7 +191,7 @@ export class WorkflowService {
           user: { uid: user.uid },
           executionId,
           nodeId: startNodeId,
-          isNewCanvas,
+          nodeBehavior,
         });
       }
     }
@@ -186,7 +204,7 @@ export class WorkflowService {
     if (this.pollWorkflowQueue) {
       await this.pollWorkflowQueue.add(
         'pollWorkflow',
-        { user, executionId },
+        { user, executionId, nodeBehavior },
         { delay: WORKFLOW_POLL_INTERVAL, removeOnComplete: true },
       );
     }
@@ -228,12 +246,15 @@ export class WorkflowService {
       canvasId,
       entityId,
       nodeData,
+      connectTo,
+      title,
       processedQuery,
       originalQuery,
       resultHistory,
     } = nodeExecution;
     const node = safeParseJSON(nodeData) as CanvasNode;
     const metadata = node.data?.metadata as ResponseNodeMeta;
+    const connectToFilters: CanvasNodeFilter[] = safeParseJSON(connectTo) ?? [];
 
     if (!metadata) {
       this.logger.warn(
@@ -243,15 +264,20 @@ export class WorkflowService {
     }
 
     const { modelInfo, selectedToolsets, contextItems = [] } = metadata;
-    const { context, images } = convertContextItemsToInvokeParams(contextItems, () => []);
+    const context = convertContextItemsToInvokeParams(
+      contextItems,
+      connectToFilters
+        .filter((filter) => filter.type === 'skillResponse')
+        .map((filter) => filter.entityId),
+    );
 
     // Prepare the invoke skill request
     const invokeRequest: InvokeSkillRequest = {
       resultId: entityId,
+      title,
       input: {
         query: processedQuery, // Use processed query for skill execution
         originalQuery, // Pass original query separately
-        images,
       },
       target: {
         entityType: 'canvas' as const,
@@ -276,16 +302,14 @@ export class WorkflowService {
    * Process a skillResponse node and invoke the skill task
    * @param user - The user to process the node for
    * @param nodeExecution - The node execution to process
-   * @param isNewCanvas - Whether the canvas is new
+   * @param nodeBehavior - The node behavior to process
    * @returns Promise<void>
    */
   async executeSkillResponseNode(
     user: User,
     nodeExecution: WorkflowNodeExecutionPO,
-    isNewCanvas?: boolean,
   ): Promise<void> {
-    const { nodeType, nodeData, canvasId, processedQuery, originalQuery } = nodeExecution;
-    const node = safeParseJSON(nodeData) as CanvasNode;
+    const { nodeType, canvasId } = nodeExecution;
 
     // Check if the node is a skillResponse type
     if (nodeType !== 'skillResponse') {
@@ -293,32 +317,21 @@ export class WorkflowService {
       return;
     }
 
-    if (isNewCanvas) {
-      // If it's new canvas mode, add the new node to the new canvas
-      const connectToFilters: CanvasNodeFilter[] = safeParseJSON(nodeExecution.connectTo) ?? [];
-
-      await this.canvasSyncService.addNodeToCanvas(user, canvasId, node, connectToFilters);
-    } else {
-      await this.syncNodeDiffToCanvas(user, canvasId, [
-        {
-          type: 'update',
-          id: nodeExecution.nodeId,
-          // from: node, // TODO: check if we need to pass the from
-          to: {
-            data: {
-              title: processedQuery,
-              contentPreview: '',
-              metadata: {
-                status: 'executing',
-                structuredData: {
-                  query: originalQuery, // Store original query in canvas node structuredData
-                },
-              },
+    await this.syncNodeDiffToCanvas(user, canvasId, [
+      {
+        type: 'update',
+        id: nodeExecution.nodeId,
+        // from: node, // TODO: check if we need to pass the from
+        to: {
+          data: {
+            contentPreview: '',
+            metadata: {
+              status: 'executing',
             },
           },
         },
-      ]);
-    }
+      },
+    ]);
 
     await this.invokeSkillTask(user, nodeExecution);
   }
@@ -330,7 +343,8 @@ export class WorkflowService {
    * @param nodeId - The node ID to execute
    * @param newNodeId - The new node ID for new canvas mode (optional)
    */
-  async runWorkflow(user: User, executionId: string, nodeId: string): Promise<void> {
+  async runWorkflow(data: RunWorkflowJobData): Promise<void> {
+    const { user, executionId, nodeId } = data;
     this.logger.log(`[runWorkflow] executionId: ${executionId}, nodeId: ${nodeId}`);
 
     // Acquire a distributed lock to avoid duplicate execution across workers
@@ -377,7 +391,7 @@ export class WorkflowService {
       nodeExecutionIdForFailure = nodeExecution.nodeExecutionId;
 
       // Only proceed if current status is waiting; otherwise exit early
-      if (nodeExecution.status !== 'waiting') {
+      if (nodeExecution.status !== 'init' && nodeExecution.status !== 'waiting') {
         this.logger.warn(`[runWorkflow] Node ${nodeId} status is ${nodeExecution.status}, skip`);
         return;
       }
@@ -400,7 +414,10 @@ export class WorkflowService {
 
       // Atomically transition to executing only if still waiting
       const updateRes = await this.prisma.workflowNodeExecution.updateMany({
-        where: { nodeExecutionId: nodeExecution.nodeExecutionId, status: 'waiting' },
+        where: {
+          nodeExecutionId: nodeExecution.nodeExecutionId,
+          status: { in: ['init', 'waiting'] },
+        },
         data: { status: 'executing', startTime: new Date(), progress: 0 },
       });
       if ((updateRes?.count ?? 0) === 0) {
@@ -411,8 +428,7 @@ export class WorkflowService {
 
       // Execute node based on type
       if (nodeExecution.nodeType === 'skillResponse') {
-        const isNewCanvas = workflowExecution.canvasId !== workflowExecution.sourceCanvasId;
-        await this.executeSkillResponseNode(user, nodeExecution, isNewCanvas);
+        await this.executeSkillResponseNode(user, nodeExecution);
       } else {
         // For other node types, just mark as finish for now
         await this.prisma.workflowNodeExecution.update({
@@ -454,7 +470,9 @@ export class WorkflowService {
   /**
    * Poll one workflow execution: enqueue ready waiting nodes and decide whether to requeue a poll.
    */
-  async pollWorkflow(user: Pick<User, 'uid'>, executionId: string): Promise<void> {
+  async pollWorkflow(data: PollWorkflowJobData): Promise<void> {
+    const { user, executionId, nodeBehavior } = data;
+
     // Load all nodes for this execution in a single query
     const allNodes = await this.prisma.workflowNodeExecution.findMany({
       select: {
@@ -474,13 +492,13 @@ export class WorkflowService {
     const statusByNodeId = new Map<string, string>();
     for (const n of allNodes) {
       if (n?.nodeId) {
-        statusByNodeId.set(n.nodeId, n.status ?? 'waiting');
+        statusByNodeId.set(n.nodeId, n.status ?? 'init');
       }
     }
 
     // Find waiting skillResponse nodes and check parent readiness in-memory
     const waitingSkillNodes = allNodes.filter(
-      (n) => n.status === 'waiting' && n.nodeType === 'skillResponse',
+      (n) => (n.status === 'init' || n.status === 'waiting') && n.nodeType === 'skillResponse',
     );
 
     for (const n of waitingSkillNodes) {
@@ -501,6 +519,7 @@ export class WorkflowService {
             user: { uid: user.uid },
             executionId,
             nodeId: n.nodeId,
+            nodeBehavior,
           },
           {
             jobId: `run:${executionId}:${n.nodeId}`,
@@ -551,20 +570,21 @@ export class WorkflowService {
 
     // Determine if we should continue polling for this execution
     const hasPendingOrExecuting = allNodes.some(
-      (n) => n.status === 'waiting' || n.status === 'executing',
+      (n) => n.status === 'init' || n.status === 'waiting' || n.status === 'executing',
     );
 
     // Update workflow execution statistics using in-memory snapshot
     try {
       const executedNodes = allNodes.filter((n) => n.status === 'finish')?.length ?? 0;
       const failedNodes = allNodes.filter((n) => n.status === 'failed')?.length ?? 0;
-      const waitingNodes = allNodes.filter((n) => n.status === 'waiting')?.length ?? 0;
+      const pendingNodes =
+        allNodes.filter((n) => n.status === 'init' || n.status === 'waiting')?.length ?? 0;
       const executingNodes = allNodes.filter((n) => n.status === 'executing')?.length ?? 0;
 
       let status: 'executing' | 'failed' | 'finish' = 'executing';
       if (failedNodes > 0) {
         status = 'failed';
-      } else if (waitingNodes === 0 && executingNodes === 0) {
+      } else if (pendingNodes === 0 && executingNodes === 0) {
         status = 'finish';
 
         // Check workflow execution for appId and validate uid consistency
@@ -579,10 +599,6 @@ export class WorkflowService {
 
         if (workflowExecution?.appId) {
           const workflowApp = await this.prisma.workflowApp.findUnique({
-            select: {
-              appId: true,
-              uid: true,
-            },
             where: { appId: workflowExecution.appId },
           });
 
@@ -598,6 +614,8 @@ export class WorkflowService {
               executionId,
               commissionCredit,
               workflowExecution.appId,
+              workflowApp.title,
+              workflowApp.shareId,
             );
           }
         }
@@ -614,10 +632,99 @@ export class WorkflowService {
     if (hasPendingOrExecuting && this.pollWorkflowQueue) {
       await this.pollWorkflowQueue.add(
         'pollWorkflow',
-        { user, executionId },
+        { user, executionId, nodeBehavior },
         { delay: WORKFLOW_POLL_INTERVAL, removeOnComplete: true },
       );
     }
+  }
+
+  /**
+   * Abort workflow execution - stop all running/waiting nodes
+   * @param user - The user
+   * @param executionId - The workflow execution ID to abort
+   */
+  async abortWorkflowExecution(user: User, executionId: string): Promise<void> {
+    // Verify workflow execution exists and belongs to user
+    const workflowExecution = await this.prisma.workflowExecution.findUnique({
+      where: { executionId, uid: user.uid },
+    });
+
+    if (!workflowExecution) {
+      throw new WorkflowExecutionNotFoundError(`Workflow execution ${executionId} not found`);
+    }
+
+    // Check if workflow is already finished or failed
+    if (workflowExecution.status === 'finish' || workflowExecution.status === 'failed') {
+      this.logger.warn(
+        `Workflow execution ${executionId} is already ${workflowExecution.status}, cannot abort`,
+      );
+      return;
+    }
+
+    // Get all executing and waiting nodes
+    const nodesToAbort = await this.prisma.workflowNodeExecution.findMany({
+      where: {
+        executionId,
+        status: { in: ['waiting', 'executing'] },
+      },
+    });
+
+    this.logger.log(
+      `Aborting workflow ${executionId}: found ${nodesToAbort.length} nodes to abort`,
+    );
+
+    // Abort all executing skillResponse nodes by calling abort action
+    const executingSkillNodes = nodesToAbort.filter((n) => n.nodeType === 'skillResponse');
+
+    // Abort all executing nodes in parallel for better performance
+    const abortResults = await Promise.allSettled(
+      executingSkillNodes.map(async (node) => {
+        try {
+          await this.actionService.abortActionFromReq(
+            user,
+            { resultId: node.entityId },
+            'Workflow aborted by user',
+          );
+          this.logger.log(`Aborted action ${node.entityId} for node ${node.nodeId}`);
+          return { success: true, nodeId: node.nodeId };
+        } catch (error) {
+          this.logger.warn(
+            `Failed to abort action ${node.entityId}: ${(error as any)?.message ?? error}`,
+          );
+          return { success: false, nodeId: node.nodeId, error };
+        }
+      }),
+    );
+
+    const successCount = abortResults.filter((r) => r.status === 'fulfilled').length;
+    this.logger.log(`Aborted ${successCount}/${executingSkillNodes.length} executing skill nodes`);
+
+    // Update all non-terminal nodes to failed (not just waiting/executing)
+    await this.prisma.workflowNodeExecution.updateMany({
+      where: {
+        executionId,
+        status: { notIn: ['finish', 'failed'] },
+      },
+      data: {
+        status: 'failed',
+        errorMessage: 'Workflow aborted by user',
+        endTime: new Date(),
+      },
+    });
+
+    // Update workflow execution to failed if not already terminal
+    await this.prisma.workflowExecution.updateMany({
+      where: {
+        executionId,
+        status: { notIn: ['finish', 'failed'] },
+      },
+      data: {
+        status: 'failed',
+        abortedByUser: true,
+      },
+    });
+
+    this.logger.log(`Workflow execution ${executionId} aborted by user ${user.uid}`);
   }
 
   /**

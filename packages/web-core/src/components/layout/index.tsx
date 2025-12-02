@@ -1,6 +1,6 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { Layout } from 'antd';
-import { useMatch } from 'react-router-dom';
+import { useMatch, useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { ErrorBoundary } from '@sentry/react';
 import { SiderLayout } from '@refly-packages/ai-workspace-common/components/sider/layout';
@@ -12,6 +12,7 @@ import { LoginModal } from '../../components/login-modal';
 import { SubscribeModal } from '@refly-packages/ai-workspace-common/components/settings/subscribe-modal';
 import { VerificationModal } from '../../components/verification-modal';
 import { ResetPasswordModal } from '../../components/reset-password-modal';
+import { InvitationCodeModal } from '../../components/invitation-code-modal';
 import { usePublicAccessPage } from '@refly-packages/ai-workspace-common/hooks/use-is-share-page';
 import { CanvasListModal } from '@refly-packages/ai-workspace-common/components/workspace/canvas-list-modal';
 import { LibraryModal } from '@refly-packages/ai-workspace-common/components/workspace/library-modal';
@@ -27,9 +28,11 @@ import { safeParseJSON } from '@refly-packages/ai-workspace-common/utils/parse';
 import { LightLoading } from '@refly/ui-kit';
 import { isDesktop } from '@refly/ui-kit';
 import { useGetUserSettings } from '@refly-packages/ai-workspace-common/hooks/use-get-user-settings';
+import { EnvironmentBanner } from './EnvironmentBanner';
 import { useGetMediaModel } from '@refly-packages/ai-workspace-common/hooks/use-get-media-model';
 import { useHandleUrlParamsCallback } from '@refly-packages/ai-workspace-common/hooks/use-handle-url-params-callback';
 import { useRouteCollapse } from '@refly-packages/ai-workspace-common/hooks/use-route-collapse';
+import cn from 'classnames';
 
 const Content = Layout.Content;
 
@@ -38,6 +41,10 @@ interface AppLayoutProps {
 }
 
 export const AppLayout = (props: AppLayoutProps) => {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const hasRedirectedRef = useRef(false);
+
   const { showCanvasListModal, setShowCanvasListModal, showLibraryModal, setShowLibraryModal } =
     useSiderStoreShallow((state) => ({
       showCanvasListModal: state.showCanvasListModal,
@@ -83,6 +90,28 @@ export const AppLayout = (props: AppLayoutProps) => {
     }
   }, [i18n, locale]);
 
+  // Handle root path redirection based on login status
+  useEffect(() => {
+    if (
+      location.pathname === '/' &&
+      !userStore.isCheckingLoginStatus &&
+      !hasRedirectedRef.current
+    ) {
+      hasRedirectedRef.current = true;
+      if (userStore.isLogin && userStore.userProfile) {
+        navigate('/workspace', { replace: true });
+      } else {
+        navigate('/login', { replace: true });
+      }
+    }
+  }, [
+    location.pathname,
+    userStore.isLogin,
+    userStore.userProfile,
+    userStore.isCheckingLoginStatus,
+    navigate,
+  ]);
+
   // Handle payment callback
   useHandleUrlParamsCallback();
 
@@ -91,6 +120,10 @@ export const AppLayout = (props: AppLayoutProps) => {
 
   const routeLogin = useMatch('/');
   const isPricing = useMatch('/pricing');
+  const matchCanvas = useMatch('/canvas/:canvasId');
+  const matchWorkflow = useMatch('/workflow/:workflowId');
+  const isWorkflowEmpty = matchCanvas?.params?.canvasId === 'empty';
+  const isWorkflow = (!!matchCanvas || !!matchWorkflow) && !isWorkflowEmpty;
 
   if (!isPublicAccessPage && !isPricing && !isDesktop()) {
     if (!userStore.isCheckingLoginStatus === undefined || userStore.isCheckingLoginStatus) {
@@ -104,20 +137,29 @@ export const AppLayout = (props: AppLayoutProps) => {
 
   return (
     <ErrorBoundary>
+      <EnvironmentBanner />
       <Layout
-        className="app-layout main h-screen w-full overflow-x-hidden"
+        className="app-layout main w-full overflow-x-hidden"
         style={{
+          height: 'var(--screen-height)',
           background:
             'linear-gradient(124deg,rgba(31,201,150,0.1) 0%,rgba(69,190,255,0.06) 24.85%),var(--refly-bg-body-z0, #FFFFFF)',
         }}
       >
         {showSider ? <SiderLayout source="sider" /> : null}
-        <Layout className="content-layout bg-transparent h-[calc(100vh-16px)] flex-grow overflow-y-auto overflow-x-hidden m-2 rounded-xl shadow-refly-m min-w-0 min-h-0 overscroll-contain">
+        <Layout
+          className={cn(
+            'content-layout bg-transparent flex-grow overflow-y-auto overflow-x-hidden m-2 rounded-xl min-w-0 min-h-0 overscroll-contain',
+            isWorkflow ? '' : 'shadow-refly-m',
+          )}
+          style={{ height: 'calc(var(--screen-height) - 16px)' }}
+        >
           <Content>{props.children}</Content>
         </Layout>
         <BigSearchModal />
         <LoginModal />
         <VerificationModal />
+        <InvitationCodeModal />
         <ResetPasswordModal />
         <SubscribeModal />
         <CanvasListModal visible={showCanvasListModal} setVisible={setShowCanvasListModal} />

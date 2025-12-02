@@ -136,35 +136,32 @@ export const prepareNodeExecutions = (params: {
   canvasData: CanvasData;
   variables: WorkflowVariable[];
   startNodes?: string[];
-  isNewCanvas?: boolean;
+  nodeBehavior?: 'create' | 'update';
 }): { nodeExecutions: WorkflowNode[]; startNodes: string[] } => {
-  const { canvasData, variables, isNewCanvas = false } = params;
+  const { canvasData, variables, nodeBehavior = 'update' } = params;
   const { nodes, edges } = canvasData;
 
   let newNodes: CanvasNode[] = nodes;
   let newEdges: CanvasEdge[] = edges;
 
-  if (isNewCanvas) {
+  if (nodeBehavior === 'create') {
     const mirroredCanvas = mirrorCanvasData(canvasData, {
       nodeProcessor: (node) => {
         // Always clear content preview
         node.data.contentPreview = '';
 
         if (node.type === 'skillResponse') {
+          const metadata = node.data?.metadata as ResponseNodeMeta;
           const originalQuery = String(
-            (node.data?.metadata as ResponseNodeMeta)?.structuredData?.query ??
-              node.data?.title ??
-              '',
+            metadata?.query ?? metadata?.structuredData?.query ?? node.data?.title ?? '',
           );
-          const { processedQuery, updatedQuery } = processQueryWithMentions(originalQuery, {
+          const { llmInputQuery, updatedQuery } = processQueryWithMentions(originalQuery, {
             replaceVars: true,
             variables,
           });
-          node.data.title = processedQuery;
           node.data.metadata = deepmerge(node.data.metadata, {
-            structuredData: {
-              query: updatedQuery,
-            },
+            query: updatedQuery,
+            llmInputQuery,
           });
         }
 
@@ -178,20 +175,17 @@ export const prepareNodeExecutions = (params: {
     // Process skillResponse nodes with variables
     newNodes = nodes.map((node) => {
       if (node.type === 'skillResponse') {
+        const metadata = node.data?.metadata as ResponseNodeMeta;
         const originalQuery = String(
-          (node.data?.metadata as ResponseNodeMeta)?.structuredData?.query ??
-            node.data?.title ??
-            '',
+          metadata?.query ?? metadata?.structuredData?.query ?? node.data?.title ?? '',
         );
-        const { processedQuery, updatedQuery } = processQueryWithMentions(originalQuery, {
+        const { llmInputQuery, updatedQuery } = processQueryWithMentions(originalQuery, {
           replaceVars: true,
           variables,
         });
-        node.data.title = processedQuery;
         node.data.metadata = deepmerge(node.data.metadata, {
-          structuredData: {
-            query: updatedQuery,
-          },
+          query: updatedQuery,
+          llmInputQuery,
         });
       }
       return node;
@@ -201,9 +195,10 @@ export const prepareNodeExecutions = (params: {
   const { nodeMap, parentMap, childMap } = buildNodeRelationships(newNodes, newEdges);
 
   // If new canvas mode, ignore provided start nodes
-  const startNodes = isNewCanvas
-    ? []
-    : (params.startNodes?.map((sid) => nodeMap.get(sid)?.id ?? sid) ?? []);
+  const startNodes =
+    nodeBehavior === 'create'
+      ? []
+      : (params.startNodes?.map((sid) => nodeMap.get(sid)?.id ?? sid) ?? []);
   if (startNodes.length === 0) {
     for (const [nodeId, parents] of parentMap) {
       if (parents.length === 0) {
@@ -216,7 +211,7 @@ export const prepareNodeExecutions = (params: {
     return { nodeExecutions: [], startNodes };
   }
 
-  // Determine which nodes should be in 'waiting' status
+  // Determine which nodes should be in 'init' status
   const subtreeNodes = findSubtreeNodes(startNodes, childMap);
 
   const historyQuery = new ThreadHistoryQuery(newNodes, newEdges);
@@ -231,7 +226,7 @@ export const prepareNodeExecutions = (params: {
     const status =
       subtreeNodes.has(node.id) &&
       ['skillResponse', 'document', 'codeArtifact', 'image', 'video', 'audio'].includes(node.type)
-        ? 'waiting'
+        ? 'init'
         : 'finish';
 
     // Build connection filters based on parent entity IDs
@@ -251,7 +246,7 @@ export const prepareNodeExecutions = (params: {
       nodeType: node.type,
       node,
       entityId: node.data?.entityId ?? '',
-      title: node.data?.editedTitle ?? node.data?.title ?? '',
+      title: node.data?.title ?? '',
       status,
       connectTo,
       parentNodeIds: [...new Set(parents)], // Remove duplicates
@@ -259,13 +254,10 @@ export const prepareNodeExecutions = (params: {
     };
 
     if (node.type === 'skillResponse') {
-      const metadata = node.data?.metadata ?? {};
+      const metadata = node.data?.metadata as ResponseNodeMeta;
       const { contextItems = [] } = metadata as ResponseNodeMeta;
 
-      const originalQuery =
-        String((node.data?.metadata as ResponseNodeMeta)?.structuredData?.query ?? '') ??
-        node.data?.title ??
-        '';
+      const originalQuery = metadata?.query ?? (metadata?.structuredData?.query as string) ?? '';
 
       // Add resource variables referenced in query to context items
       const enhancedContextItems = updateContextItemsFromVariables(contextItems, variables);
@@ -286,11 +278,11 @@ export const prepareNodeExecutions = (params: {
       };
 
       nodeExecution.originalQuery = originalQuery;
-      nodeExecution.processedQuery = node?.data.title;
+      nodeExecution.processedQuery = (node?.data.metadata?.llmInputQuery as string) ?? '';
       nodeExecution.resultHistory = resultHistory;
     } else if (['document', 'codeArtifact', 'image', 'video', 'audio'].includes(node.type)) {
       // Set status based on whether the node is in the subtree (computed with original ids)
-      const status = subtreeNodes.has(node.id) ? 'waiting' : 'finish';
+      const status = subtreeNodes.has(node.id) ? 'init' : 'finish';
       nodeExecution.status = status;
     }
 

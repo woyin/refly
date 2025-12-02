@@ -9,22 +9,11 @@ import {
   IconDeleteFile,
   IconVariable,
 } from '@refly-packages/ai-workspace-common/components/common/icon';
-import {
-  AiChat,
-  Reload,
-  Copy,
-  Clone,
-  More,
-  Delete,
-  Download,
-  PlayOutline,
-  AddContext,
-} from 'refly-icons';
+import { AiChat, Reload, More, Delete, Download, PlayOutline, AddContext } from 'refly-icons';
 import cn from 'classnames';
 import { useReactFlow } from '@xyflow/react';
 import { copyToClipboard } from '@refly-packages/ai-workspace-common/utils';
 import { useGetNodeContent } from '@refly-packages/ai-workspace-common/hooks/canvas/use-get-node-content';
-import { useInitializeWorkflow } from '@refly-packages/ai-workspace-common/hooks/use-initialize-workflow';
 import { nodeOperationsEmitter } from '@refly-packages/ai-workspace-common/events/nodeOperations';
 import { useActionResultStoreShallow, useCanvasStoreShallow } from '@refly/stores';
 import CommonColorPicker from './color-picker';
@@ -57,8 +46,7 @@ type NodeActionButtonsProps = {
 export const NodeActionButtons: FC<NodeActionButtonsProps> = memo(
   ({ nodeId, nodeType, isNodeHovered, bgColor, onChangeBackground, isExtracting }) => {
     const { t } = useTranslation();
-    const { readonly, canvasId } = useCanvasContext();
-    const workflowRun = useInitializeWorkflow(canvasId);
+    const { readonly, canvasId, workflow: workflowRun } = useCanvasContext();
     const { getNode } = useReactFlow();
     const node = useMemo(() => getNode(nodeId), [nodeId, getNode]);
     const { fetchNodeContent } = useGetNodeContent(node);
@@ -66,7 +54,7 @@ export const NodeActionButtons: FC<NodeActionButtonsProps> = memo(
     const buttonContainerRef = useRef<HTMLDivElement>(null);
 
     // Shared workflow state from CanvasProvider
-    const initializing = workflowRun.loading;
+    const initializing = workflowRun.isInitializing;
     const isPolling = workflowRun.isPolling;
 
     const showMoreButton = useMemo(() => {
@@ -133,8 +121,12 @@ export const NodeActionButtons: FC<NodeActionButtonsProps> = memo(
 
       try {
         const content = (await fetchNodeContent()) as string;
-        copyToClipboard(content || '');
-        message.success(t('copilot.message.copySuccess'));
+        const copied = await copyToClipboard(content || '').catch(() => false);
+        if (copied) {
+          message.success(t('copilot.message.copySuccess'));
+        } else {
+          message.error(t('copilot.message.copyFailed'));
+        }
       } catch (error) {
         console.error('Failed to copy content:', error);
         message.error(t('copilot.message.copyFailed'));
@@ -266,13 +258,6 @@ export const NodeActionButtons: FC<NodeActionButtonsProps> = memo(
             disabled: isRunningAction || isRunningWorkflow,
           });
 
-          buttons.push({
-            key: 'cloneAskAI',
-            icon: Clone,
-            tooltip: t('canvas.nodeActions.cloneAskAI'),
-            onClick: handleCloneAskAI,
-            loading: cloneAskAIRunning,
-          });
           break;
 
         case 'skill':
@@ -310,26 +295,6 @@ export const NodeActionButtons: FC<NodeActionButtonsProps> = memo(
 
         case 'video':
           break;
-      }
-
-      // Add copy button for content nodes
-      if (
-        [
-          'skillResponse',
-          'mediaSkillResponse',
-          'document',
-          'resource',
-          'codeArtifact',
-          'memo',
-        ].includes(nodeType)
-      ) {
-        buttons.push({
-          key: 'copy',
-          icon: Copy,
-          tooltip: t('canvas.nodeActions.copy'),
-          onClick: handleCopy,
-          loading: copyRunning,
-        });
       }
 
       // Add delete button for all node types

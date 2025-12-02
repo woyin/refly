@@ -1,11 +1,19 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../common/prisma.service';
 import { MiscService } from '../misc/misc.service';
-import { DeleteShareRequest, ListSharesData, User, EntityType } from '@refly/openapi-schema';
+import {
+  DeleteShareRequest,
+  ListSharesData,
+  User,
+  SharedCanvasData,
+  EntityType,
+} from '@refly/openapi-schema';
 import { ShareNotFoundError } from '@refly/errors';
 import { RAGService } from '../rag/rag.service';
 import { ShareRateLimitService } from './share-rate-limit.service';
 import { safeParseJSON } from '@refly/utils';
+import { DriveService } from '../drive/drive.service';
+import pLimit from 'p-limit';
 
 @Injectable()
 export class ShareCommonService {
@@ -16,6 +24,7 @@ export class ShareCommonService {
     private readonly ragService: RAGService,
     private readonly miscService: MiscService,
     private readonly shareRateLimitService: ShareRateLimitService,
+    private readonly driveService: DriveService,
   ) {}
 
   async storeVector(
@@ -135,6 +144,175 @@ export class ShareCommonService {
     } catch (error) {
       this.logger.error(`Error reading shared content from ${storageKey}, ${error.stack}`);
       throw new ShareNotFoundError();
+    }
+  }
+
+  /**
+   * Handle file duplication and cleanup for share creation/update
+   * This is the main entry point for processing files when creating or updating shares
+   */
+  async processFilesForShare(canvasData: SharedCanvasData, shareId: string): Promise<void> {
+    // Process drive files for sharing
+    if (!canvasData.files.length) {
+      return;
+    }
+    const limit = pLimit(10);
+
+    const promises = canvasData.files.map((file: any) =>
+      limit(async () => {
+        if (file.storageKey) {
+          try {
+            await this.driveService.publishDriveFile(file.storageKey, file.fileId);
+            this.logger.log(`Created publicURL for file ${file.fileId}`);
+          } catch (error) {
+            this.logger.error(`Failed to create publicURL for file ${file.fileId}: ${error.stack}`);
+          }
+        }
+      }),
+    );
+
+    await Promise.all(promises);
+
+    this.logger.log(
+      `Processed ${canvasData.files.length} files for share ${shareId}. All files now have publicURL.`,
+    );
+  }
+
+  /**
+   * Duplicate drive files for share to make it independent from original canvas
+   * This ensures that deleting original files won't affect the shared content
+   */
+  async duplicateDriveFilesForShare(
+    user: User,
+    files: SharedCanvasData['files'],
+    shareId: string,
+  ): Promise<{
+    storageKeyMap: Map<string, string>;
+    fileIdMap: Map<string, string>;
+  }> {
+    if (!files || files.length === 0) {
+      return {
+        storageKeyMap: new Map(),
+        fileIdMap: new Map(),
+      };
+    }
+
+    const storageKeyMap = new Map<string, string>();
+    const fileIdMap = new Map<string, string>();
+    const limit = pLimit(10);
+
+    const promises = files.map((file) =>
+      limit(async () => {
+        try {
+          const { storageKey: newStorageKey, fileId: newFileId } =
+            (await this.driveService.duplicateDriveFile(user, file, shareId)) as any;
+
+          fileIdMap.set(file.fileId, newFileId);
+          storageKeyMap.set(file.fileId, newStorageKey);
+
+          this.logger.log(
+            `Successfully duplicated drive file ${file.fileId} to ${newFileId} for share ${shareId}`,
+          );
+        } catch (error) {
+          this.logger.error(`Failed to duplicate drive file ${file.fileId}: ${error.stack}`);
+        }
+      }),
+    );
+
+    await Promise.all(promises);
+    return { fileIdMap, storageKeyMap };
+  }
+
+  /**
+   * Clean up old shared files when updating a share
+   * This removes database records (soft delete)
+   */
+  private async cleanupOldSharedFiles(user: User, shareId: string): Promise<void> {
+    try {
+      // Find all files belonging to this share
+      const oldFiles = await this.prisma.driveFile.findMany({
+        where: {
+          uid: user.uid,
+          canvasId: shareId,
+          deletedAt: null,
+        },
+      });
+
+      if (oldFiles.length === 0) {
+        return;
+      }
+
+      this.logger.log(`Cleaning up ${oldFiles.length} old files for share ${shareId}`);
+
+      // Soft delete database records
+      const limit = pLimit(10);
+      const promises = oldFiles.map((file) =>
+        limit(async () => {
+          try {
+            await this.prisma.driveFile.update({
+              where: { pk: file.pk },
+              data: { deletedAt: new Date() },
+            });
+
+            this.logger.log(`Soft deleted drive file record: ${file.fileId}`);
+          } catch (error) {
+            this.logger.error(`Failed to delete file ${file.fileId}: ${error.stack}`);
+          }
+        }),
+      );
+
+      await Promise.all(promises);
+      this.logger.log(`Successfully cleaned up old files for share ${shareId}`);
+    } catch (error) {
+      this.logger.error(`Failed to cleanup old shared files for ${shareId}: ${error.stack}`);
+    }
+  }
+
+  /**
+   * Update file references in canvas nodes
+   * Replaces old fileIds with new fileIds in node metadata (e.g., contextItems)
+   */
+  private updateFileReferencesInNodes(nodes: any[], fileIdMap: Map<string, string>): void {
+    if (!nodes || nodes.length === 0 || fileIdMap.size === 0) {
+      return;
+    }
+
+    for (const node of nodes) {
+      // Check skillResponse nodes for contextItems
+      if (node.type === 'skillResponse' && node.data?.metadata?.contextItems) {
+        const contextItems = node.data.metadata.contextItems;
+        for (const item of contextItems) {
+          if (item.type === 'file' && item.entityId) {
+            const newFileId = fileIdMap.get(item.entityId);
+            if (newFileId) {
+              item.entityId = newFileId;
+              this.logger.debug(
+                `Updated file reference in node ${node.id}: ${item.entityId} -> ${newFileId}`,
+              );
+            }
+          }
+        }
+      }
+
+      // Check for query string that might contain file references
+      if (node.data?.metadata?.query && typeof node.data.metadata.query === 'string') {
+        let query = node.data.metadata.query;
+        let updated = false;
+
+        // Replace file references in query string (format: @{type=file,id=df-xxx,...})
+        for (const [oldId, newId] of fileIdMap.entries()) {
+          const oldPattern = new RegExp(`id=${oldId}`, 'g');
+          if (oldPattern.test(query)) {
+            query = query.replace(oldPattern, `id=${newId}`);
+            updated = true;
+          }
+        }
+
+        if (updated) {
+          node.data.metadata.query = query;
+          this.logger.debug(`Updated file references in query for node ${node.id}`);
+        }
+      }
     }
   }
 }

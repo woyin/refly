@@ -1,7 +1,9 @@
-import { memo, useState, useRef, useCallback, useEffect } from 'react';
+import { memo, useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { CanvasNode } from '@refly/canvas-common';
+import { DriveFile } from '@refly/openapi-schema';
 import { PreviewComponent } from '@refly-packages/ai-workspace-common/components/canvas/node-preview';
+import { FilePreview } from '@refly-packages/ai-workspace-common/components/canvas/canvas-resources/file-preview';
 import { Play } from 'refly-icons';
 import AudioBgSvg from './audioBg.svg';
 import ViewSvg from './view.svg';
@@ -14,6 +16,10 @@ import { NodeRelation } from '@refly-packages/ai-workspace-common/components/sli
 import { Modal } from 'antd';
 import { CloseCircleOutlined } from '@ant-design/icons';
 import { NodeRenderer } from '@refly-packages/ai-workspace-common/components/slideshow/components/NodeRenderer';
+import {
+  PublicFileUrlProvider,
+  usePublicFileUrlContext,
+} from '@refly-packages/ai-workspace-common/context/public-file-url';
 
 // Global media manager to stop all playing media
 const mediaManager = {
@@ -316,16 +322,52 @@ DefaultPreview.displayName = 'DefaultPreview';
 export const ResultItemPreview = memo(
   ({ node, inModal = false }: { node: CanvasNode; inModal?: boolean }) => {
     const [wideModeOpen, setWideModeOpen] = useState(false);
+    const inheritedUsePublicFileUrl = usePublicFileUrlContext();
     const [isHovered, setIsHovered] = useState(false);
 
+    // Construct DriveFile from node metadata if fileId exists
+    const driveFile = useMemo<DriveFile | null>(() => {
+      const fileId = node.data?.metadata?.fileId as string | undefined;
+      if (!fileId) {
+        return null;
+      }
+
+      return {
+        fileId,
+        canvasId: (node.data?.metadata?.canvasId as string | undefined) ?? '',
+        name: node.data?.title ?? '',
+        type: (node.data?.metadata?.type as string | undefined) ?? '',
+        category: node.type as DriveFile['category'],
+        publicURL: node.data?.metadata?.publicURL as string | undefined,
+        source: node.data?.metadata?.source as DriveFile['source'],
+        scope: node.data?.metadata?.scope as DriveFile['scope'],
+        size: node.data?.metadata?.size as number | undefined,
+        summary: node.data?.metadata?.summary as string | undefined,
+        variableId: node.data?.metadata?.variableId as string | undefined,
+        resultId: node.data?.metadata?.resultId as string | undefined,
+        resultVersion: node.data?.metadata?.resultVersion as number | undefined,
+        content: node.data?.metadata?.content as string | undefined,
+        createdAt: node.data?.metadata?.createdAt as string | undefined,
+        updatedAt: node.data?.metadata?.updatedAt as string | undefined,
+      };
+    }, [node.data?.metadata, node.data?.title, node.type]);
+
     let content: JSX.Element;
-    if (node.type === 'image' && node.data?.metadata?.imageUrl) {
+    // Priority 1: Use FilePreview for Drive files (when fileId exists)
+    // This handles all file types including document, image, video, audio, etc.
+    if (driveFile) {
+      content = <FilePreview file={driveFile} source={inModal ? 'preview' : 'card'} />;
+    } else if (node.type === 'image' && node.data?.metadata?.imageUrl) {
+      // Fallback to existing image preview for backward compatibility
       content = <ImagePreview node={node} inModal={inModal} />;
     } else if (node.type === 'video' && node.data?.metadata?.videoUrl) {
+      // Fallback to existing video preview for backward compatibility
       content = <VideoPreview node={node} inModal={inModal} />;
     } else if (node.type === 'audio' && node.data?.metadata?.audioUrl) {
+      // Fallback to existing audio preview for backward compatibility
       content = <AudioPreview node={node} />;
     } else if (node.type === 'codeArtifact') {
+      // Use artifact renderer for knowledge base code artifacts (when no fileId)
       content = (
         <WithSuspense>
           <LazyCodeArtifactRenderer
@@ -335,6 +377,8 @@ export const ResultItemPreview = memo(
         </WithSuspense>
       );
     } else if (node.type === 'document') {
+      // Use document renderer for knowledge base documents (when no fileId)
+      // Document renderer requires entityId to be a docId for knowledge base documents
       content = (
         <WithSuspense>
           <LazyDocumentRenderer
@@ -374,9 +418,14 @@ export const ResultItemPreview = memo(
           onCancel={handleWideModeClose}
           width="85%"
           style={{ top: 20 }}
+          modalRender={(modalNode) => (
+            <PublicFileUrlProvider value={inheritedUsePublicFileUrl}>
+              {modalNode}
+            </PublicFileUrlProvider>
+          )}
           styles={{
             body: {
-              maxHeight: 'calc(100vh - 100px)',
+              maxHeight: 'calc(var(--screen-height) - 100px)',
               padding: 0,
               overflow: 'hidden',
             },
@@ -390,7 +439,7 @@ export const ResultItemPreview = memo(
           <div className="bg-white h-full w-full flex flex-col rounded-lg overflow-hidden dark:bg-gray-900">
             <div className="flex-1 overflow-auto">
               {/* 只使用主 node 的结构，避免 CanvasNodeData 非法属性 */}
-              <div className="h-[calc(100vh-160px)]">
+              <div style={{ height: 'calc(var(--screen-height) - 160px)' }}>
                 <NodeRenderer
                   node={{
                     relationId: node.id || 'unknown',

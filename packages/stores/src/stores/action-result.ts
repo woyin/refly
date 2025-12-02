@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { useShallow } from 'zustand/react/shallow';
-import { type ActionResult } from '@refly/openapi-schema';
+import { type ActionResult, type DriveFile } from '@refly/openapi-schema';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import { type CacheInfo, createAutoEvictionStorage } from '../stores/utils/storage-manager';
 
@@ -13,15 +13,22 @@ interface PollingState {
   lastEventTime: number | null;
 }
 
+export type ResultActiveTab = 'configure' | 'lastRun';
+
 interface ActionResultState {
   resultMap: Record<string, ActionResult & CacheInfo>;
+  resultActiveTabMap: Record<string, ResultActiveTab>;
   pollingStateMap: Record<string, PollingState & CacheInfo>;
   streamResults: Record<string, ActionResult>;
+  streamChoked: Record<string, boolean>; // key: resultId, value: true if stream is choked
   traceIdMap: Record<string, string>; // key: resultId, value: traceId
+  currentFile: DriveFile | null;
+  currentFileUsePublicFileUrl?: boolean;
 
   // Stream result actions
   addStreamResult: (resultId: string, result: ActionResult) => void;
   removeStreamResult: (resultId: string) => void;
+  setStreamChoked: (resultId: string, choked: boolean) => void;
 
   // TraceId management actions
   setTraceId: (resultId: string, traceId: string) => void;
@@ -31,6 +38,7 @@ interface ActionResultState {
   // Individual update actions
   updateActionResult: (resultId: string, result: ActionResult) => void;
   removeActionResult: (resultId: string) => void;
+  setResultActiveTab: (resultId: string, tab: ResultActiveTab) => void;
   startPolling: (resultId: string, version: number) => void;
   stopPolling: (resultId: string) => void;
   removePollingState: (resultId: string) => void;
@@ -48,14 +56,21 @@ interface ActionResultState {
   // Storage management
   updateLastUsedTimestamp: (resultId: string) => void;
   cleanupOldResults: () => void;
+
+  // Current file management
+  setCurrentFile: (file: DriveFile | null, options?: { usePublicFileUrl?: boolean }) => void;
 }
 
 export const defaultState = {
   resultMap: {},
+  resultActiveTabMap: {},
   pollingStateMap: {},
   isBatchUpdateScheduled: false,
   streamResults: {},
+  streamChoked: {},
   traceIdMap: {},
+  currentFile: null,
+  currentFileUsePublicFileUrl: undefined,
 };
 
 const POLLING_STATE_INITIAL: PollingState = {
@@ -119,15 +134,6 @@ export const useActionResultStore = create<ActionResultState>()(
         // Shallow update to avoid deep copying the entire store
         const now = Date.now();
         set((state) => {
-          const oldResult = state.resultMap[resultId];
-          const oldVersion = oldResult?.version ?? 0;
-          const newVersion = result.version ?? 0;
-
-          // Skip update if we're trying to update with an older version
-          if (oldResult && newVersion < oldVersion) {
-            return state;
-          }
-
           return {
             ...state,
             resultMap: {
@@ -154,6 +160,13 @@ export const useActionResultStore = create<ActionResultState>()(
             resultMap: newResultMap,
           };
         });
+      },
+
+      setResultActiveTab: (resultId: string, tab: ResultActiveTab) => {
+        set((state) => ({
+          ...state,
+          resultActiveTabMap: { ...state.resultActiveTabMap, [resultId]: tab },
+        }));
       },
 
       startPolling: (resultId: string, version: number) => {
@@ -389,6 +402,13 @@ export const useActionResultStore = create<ActionResultState>()(
         });
       },
 
+      setStreamChoked: (resultId: string, choked: boolean) => {
+        set((state) => ({
+          ...state,
+          streamChoked: { ...state.streamChoked, [resultId]: choked },
+        }));
+      },
+
       // TraceId management methods
       setTraceId: (resultId: string, traceId: string) => {
         set((state) => ({
@@ -413,6 +433,15 @@ export const useActionResultStore = create<ActionResultState>()(
             traceIdMap: newTraceIdMap,
           };
         });
+      },
+
+      // Current file management methods
+      setCurrentFile: (file: DriveFile | null, options?: { usePublicFileUrl?: boolean }) => {
+        set((state) => ({
+          ...state,
+          currentFile: file,
+          currentFileUsePublicFileUrl: file ? options?.usePublicFileUrl : undefined,
+        }));
       },
     }),
     {

@@ -5,9 +5,12 @@ import { type Options } from '@hey-api/client-fetch';
 import { useMutation, UseMutationOptions, useQuery, UseQueryOptions } from '@tanstack/react-query';
 import {
   abortAction,
+  abortWorkflow,
+  activateInvitationCode,
   addNodesToCanvasPage,
   authorizeComposioConnection,
   autoNameCanvas,
+  batchCreateDriveFiles,
   batchCreateProviderItems,
   batchCreateResource,
   batchUpdateDocument,
@@ -22,6 +25,7 @@ import {
   createCheckoutSession,
   createCodeArtifact,
   createDocument,
+  createDriveFile,
   createLabelClass,
   createLabelInstance,
   createMcpServer,
@@ -40,6 +44,7 @@ import {
   createWorkflowApp,
   deleteCanvas,
   deleteDocument,
+  deleteDriveFile,
   deleteLabelClass,
   deleteLabelInstance,
   deleteMcpServer,
@@ -67,6 +72,7 @@ import {
   generateMedia,
   getActionResult,
   getAuthConfig,
+  getCanvasCommissionByCanvasId,
   getCanvasData,
   getCanvasDetail,
   getCanvasState,
@@ -74,6 +80,7 @@ import {
   getCodeArtifactDetail,
   getCollabToken,
   getComposioConnectionStatus,
+  getCopilotSessionDetail,
   getCreditBalance,
   getCreditRecharge,
   getCreditUsage,
@@ -89,9 +96,11 @@ import {
   getSettings,
   getSubscriptionPlans,
   getSubscriptionUsage,
+  getToolCallResult,
   getWorkflowAppDetail,
   getWorkflowDetail,
   getWorkflowVariables,
+  hasBeenInvited,
   importCanvas,
   initializeWorkflow,
   invokeSkill,
@@ -101,7 +110,10 @@ import {
   listCanvasTemplateCategories,
   listCanvasTemplates,
   listCodeArtifacts,
+  listCopilotSessions,
   listDocuments,
+  listDriveFiles,
+  listInvitationCodes,
   listLabelClasses,
   listLabelInstances,
   listMcpServers,
@@ -120,6 +132,7 @@ import {
   listTools,
   listToolsetInventory,
   listToolsets,
+  listUserTools,
   listWorkflowApps,
   logout,
   multiLingualWebSearch,
@@ -142,6 +155,7 @@ import {
   updateCanvasTemplate,
   updateCodeArtifact,
   updateDocument,
+  updateDriveFile,
   updateLabelClass,
   updateLabelInstance,
   updateMcpServer,
@@ -163,12 +177,18 @@ import {
 import {
   AbortActionData,
   AbortActionError,
+  AbortWorkflowData,
+  AbortWorkflowError,
+  ActivateInvitationCodeData,
+  ActivateInvitationCodeError,
   AddNodesToCanvasPageData,
   AddNodesToCanvasPageError,
   AuthorizeComposioConnectionData,
   AuthorizeComposioConnectionError,
   AutoNameCanvasData,
   AutoNameCanvasError,
+  BatchCreateDriveFilesData,
+  BatchCreateDriveFilesError,
   BatchCreateProviderItemsData,
   BatchCreateProviderItemsError,
   BatchCreateResourceData,
@@ -197,6 +217,8 @@ import {
   CreateCodeArtifactError,
   CreateDocumentData,
   CreateDocumentError,
+  CreateDriveFileData,
+  CreateDriveFileError,
   CreateLabelClassData,
   CreateLabelClassError,
   CreateLabelInstanceData,
@@ -232,6 +254,8 @@ import {
   DeleteCanvasError,
   DeleteDocumentData,
   DeleteDocumentError,
+  DeleteDriveFileData,
+  DeleteDriveFileError,
   DeleteLabelClassData,
   DeleteLabelClassError,
   DeleteLabelInstanceData,
@@ -285,6 +309,8 @@ import {
   GetActionResultData,
   GetActionResultError,
   GetAuthConfigError,
+  GetCanvasCommissionByCanvasIdData,
+  GetCanvasCommissionByCanvasIdError,
   GetCanvasDataData,
   GetCanvasDataError,
   GetCanvasDetailData,
@@ -298,6 +324,8 @@ import {
   GetCollabTokenError,
   GetComposioConnectionStatusData,
   GetComposioConnectionStatusError,
+  GetCopilotSessionDetailData,
+  GetCopilotSessionDetailError,
   GetCreditBalanceError,
   GetCreditRechargeData,
   GetCreditRechargeError,
@@ -324,12 +352,15 @@ import {
   GetSettingsError,
   GetSubscriptionPlansError,
   GetSubscriptionUsageError,
+  GetToolCallResultData,
+  GetToolCallResultError,
   GetWorkflowAppDetailData,
   GetWorkflowAppDetailError,
   GetWorkflowDetailData,
   GetWorkflowDetailError,
   GetWorkflowVariablesData,
   GetWorkflowVariablesError,
+  HasBeenInvitedError,
   ImportCanvasData,
   ImportCanvasError,
   InitializeWorkflowData,
@@ -346,8 +377,13 @@ import {
   ListCanvasTemplatesError,
   ListCodeArtifactsData,
   ListCodeArtifactsError,
+  ListCopilotSessionsData,
+  ListCopilotSessionsError,
   ListDocumentsData,
   ListDocumentsError,
+  ListDriveFilesData,
+  ListDriveFilesError,
+  ListInvitationCodesError,
   ListLabelClassesData,
   ListLabelClassesError,
   ListLabelInstancesData,
@@ -381,6 +417,7 @@ import {
   ListToolsetInventoryError,
   ListToolsetsData,
   ListToolsetsError,
+  ListUserToolsError,
   ListWorkflowAppsData,
   ListWorkflowAppsError,
   LogoutError,
@@ -422,6 +459,8 @@ import {
   UpdateCodeArtifactError,
   UpdateDocumentData,
   UpdateDocumentError,
+  UpdateDriveFileData,
+  UpdateDriveFileError,
   UpdateLabelClassData,
   UpdateLabelClassError,
   UpdateLabelInstanceData,
@@ -687,6 +726,21 @@ export const useGetWorkflowVariables = <
       getWorkflowVariables({ ...clientOptions }).then(
         (response) => response.data as TData,
       ) as TData,
+    ...options,
+  });
+export const useListDriveFiles = <
+  TData = Common.ListDriveFilesDefaultResponse,
+  TError = ListDriveFilesError,
+  TQueryKey extends Array<unknown> = unknown[],
+>(
+  clientOptions: Options<ListDriveFilesData, true>,
+  queryKey?: TQueryKey,
+  options?: Omit<UseQueryOptions<TData, TError>, 'queryKey' | 'queryFn'>,
+) =>
+  useQuery<TData, TError>({
+    queryKey: Common.UseListDriveFilesKeyFn(clientOptions, queryKey),
+    queryFn: () =>
+      listDriveFiles({ ...clientOptions }).then((response) => response.data as TData) as TData,
     ...options,
   });
 export const useListCanvasTemplates = <
@@ -1010,6 +1064,38 @@ export const useGetPilotSessionDetail = <
       ) as TData,
     ...options,
   });
+export const useListCopilotSessions = <
+  TData = Common.ListCopilotSessionsDefaultResponse,
+  TError = ListCopilotSessionsError,
+  TQueryKey extends Array<unknown> = unknown[],
+>(
+  clientOptions: Options<ListCopilotSessionsData, true> = {},
+  queryKey?: TQueryKey,
+  options?: Omit<UseQueryOptions<TData, TError>, 'queryKey' | 'queryFn'>,
+) =>
+  useQuery<TData, TError>({
+    queryKey: Common.UseListCopilotSessionsKeyFn(clientOptions, queryKey),
+    queryFn: () =>
+      listCopilotSessions({ ...clientOptions }).then((response) => response.data as TData) as TData,
+    ...options,
+  });
+export const useGetCopilotSessionDetail = <
+  TData = Common.GetCopilotSessionDetailDefaultResponse,
+  TError = GetCopilotSessionDetailError,
+  TQueryKey extends Array<unknown> = unknown[],
+>(
+  clientOptions: Options<GetCopilotSessionDetailData, true>,
+  queryKey?: TQueryKey,
+  options?: Omit<UseQueryOptions<TData, TError>, 'queryKey' | 'queryFn'>,
+) =>
+  useQuery<TData, TError>({
+    queryKey: Common.UseGetCopilotSessionDetailKeyFn(clientOptions, queryKey),
+    queryFn: () =>
+      getCopilotSessionDetail({ ...clientOptions }).then(
+        (response) => response.data as TData,
+      ) as TData,
+    ...options,
+  });
 export const useGetWorkflowDetail = <
   TData = Common.GetWorkflowDetailDefaultResponse,
   TError = GetWorkflowDetailError,
@@ -1183,6 +1269,53 @@ export const useGetCreditUsageByCanvasId = <
       ) as TData,
     ...options,
   });
+export const useGetCanvasCommissionByCanvasId = <
+  TData = Common.GetCanvasCommissionByCanvasIdDefaultResponse,
+  TError = GetCanvasCommissionByCanvasIdError,
+  TQueryKey extends Array<unknown> = unknown[],
+>(
+  clientOptions: Options<GetCanvasCommissionByCanvasIdData, true>,
+  queryKey?: TQueryKey,
+  options?: Omit<UseQueryOptions<TData, TError>, 'queryKey' | 'queryFn'>,
+) =>
+  useQuery<TData, TError>({
+    queryKey: Common.UseGetCanvasCommissionByCanvasIdKeyFn(clientOptions, queryKey),
+    queryFn: () =>
+      getCanvasCommissionByCanvasId({ ...clientOptions }).then(
+        (response) => response.data as TData,
+      ) as TData,
+    ...options,
+  });
+export const useListInvitationCodes = <
+  TData = Common.ListInvitationCodesDefaultResponse,
+  TError = ListInvitationCodesError,
+  TQueryKey extends Array<unknown> = unknown[],
+>(
+  clientOptions: Options<unknown, true> = {},
+  queryKey?: TQueryKey,
+  options?: Omit<UseQueryOptions<TData, TError>, 'queryKey' | 'queryFn'>,
+) =>
+  useQuery<TData, TError>({
+    queryKey: Common.UseListInvitationCodesKeyFn(clientOptions, queryKey),
+    queryFn: () =>
+      listInvitationCodes({ ...clientOptions }).then((response) => response.data as TData) as TData,
+    ...options,
+  });
+export const useHasBeenInvited = <
+  TData = Common.HasBeenInvitedDefaultResponse,
+  TError = HasBeenInvitedError,
+  TQueryKey extends Array<unknown> = unknown[],
+>(
+  clientOptions: Options<unknown, true> = {},
+  queryKey?: TQueryKey,
+  options?: Omit<UseQueryOptions<TData, TError>, 'queryKey' | 'queryFn'>,
+) =>
+  useQuery<TData, TError>({
+    queryKey: Common.UseHasBeenInvitedKeyFn(clientOptions, queryKey),
+    queryFn: () =>
+      hasBeenInvited({ ...clientOptions }).then((response) => response.data as TData) as TData,
+    ...options,
+  });
 export const useGetSubscriptionPlans = <
   TData = Common.GetSubscriptionPlansDefaultResponse,
   TError = GetSubscriptionPlansError,
@@ -1294,6 +1427,21 @@ export const useListTools = <
       listTools({ ...clientOptions }).then((response) => response.data as TData) as TData,
     ...options,
   });
+export const useListUserTools = <
+  TData = Common.ListUserToolsDefaultResponse,
+  TError = ListUserToolsError,
+  TQueryKey extends Array<unknown> = unknown[],
+>(
+  clientOptions: Options<unknown, true> = {},
+  queryKey?: TQueryKey,
+  options?: Omit<UseQueryOptions<TData, TError>, 'queryKey' | 'queryFn'>,
+) =>
+  useQuery<TData, TError>({
+    queryKey: Common.UseListUserToolsKeyFn(clientOptions, queryKey),
+    queryFn: () =>
+      listUserTools({ ...clientOptions }).then((response) => response.data as TData) as TData,
+    ...options,
+  });
 export const useListToolsetInventory = <
   TData = Common.ListToolsetInventoryDefaultResponse,
   TError = ListToolsetInventoryError,
@@ -1324,6 +1472,21 @@ export const useListToolsets = <
     queryKey: Common.UseListToolsetsKeyFn(clientOptions, queryKey),
     queryFn: () =>
       listToolsets({ ...clientOptions }).then((response) => response.data as TData) as TData,
+    ...options,
+  });
+export const useGetToolCallResult = <
+  TData = Common.GetToolCallResultDefaultResponse,
+  TError = GetToolCallResultError,
+  TQueryKey extends Array<unknown> = unknown[],
+>(
+  clientOptions: Options<GetToolCallResultData, true>,
+  queryKey?: TQueryKey,
+  options?: Omit<UseQueryOptions<TData, TError>, 'queryKey' | 'queryFn'>,
+) =>
+  useQuery<TData, TError>({
+    queryKey: Common.UseGetToolCallResultKeyFn(clientOptions, queryKey),
+    queryFn: () =>
+      getToolCallResult({ ...clientOptions }).then((response) => response.data as TData) as TData,
     ...options,
   });
 export const useGetComposioConnectionStatus = <
@@ -1782,6 +1945,75 @@ export const useUpdateWorkflowVariables = <
     mutationKey: Common.UseUpdateWorkflowVariablesKeyFn(mutationKey),
     mutationFn: (clientOptions) =>
       updateWorkflowVariables(clientOptions) as unknown as Promise<TData>,
+    ...options,
+  });
+export const useCreateDriveFile = <
+  TData = Common.CreateDriveFileMutationResult,
+  TError = CreateDriveFileError,
+  TQueryKey extends Array<unknown> = unknown[],
+  TContext = unknown,
+>(
+  mutationKey?: TQueryKey,
+  options?: Omit<
+    UseMutationOptions<TData, TError, Options<CreateDriveFileData, true>, TContext>,
+    'mutationKey' | 'mutationFn'
+  >,
+) =>
+  useMutation<TData, TError, Options<CreateDriveFileData, true>, TContext>({
+    mutationKey: Common.UseCreateDriveFileKeyFn(mutationKey),
+    mutationFn: (clientOptions) => createDriveFile(clientOptions) as unknown as Promise<TData>,
+    ...options,
+  });
+export const useBatchCreateDriveFiles = <
+  TData = Common.BatchCreateDriveFilesMutationResult,
+  TError = BatchCreateDriveFilesError,
+  TQueryKey extends Array<unknown> = unknown[],
+  TContext = unknown,
+>(
+  mutationKey?: TQueryKey,
+  options?: Omit<
+    UseMutationOptions<TData, TError, Options<BatchCreateDriveFilesData, true>, TContext>,
+    'mutationKey' | 'mutationFn'
+  >,
+) =>
+  useMutation<TData, TError, Options<BatchCreateDriveFilesData, true>, TContext>({
+    mutationKey: Common.UseBatchCreateDriveFilesKeyFn(mutationKey),
+    mutationFn: (clientOptions) =>
+      batchCreateDriveFiles(clientOptions) as unknown as Promise<TData>,
+    ...options,
+  });
+export const useUpdateDriveFile = <
+  TData = Common.UpdateDriveFileMutationResult,
+  TError = UpdateDriveFileError,
+  TQueryKey extends Array<unknown> = unknown[],
+  TContext = unknown,
+>(
+  mutationKey?: TQueryKey,
+  options?: Omit<
+    UseMutationOptions<TData, TError, Options<UpdateDriveFileData, true>, TContext>,
+    'mutationKey' | 'mutationFn'
+  >,
+) =>
+  useMutation<TData, TError, Options<UpdateDriveFileData, true>, TContext>({
+    mutationKey: Common.UseUpdateDriveFileKeyFn(mutationKey),
+    mutationFn: (clientOptions) => updateDriveFile(clientOptions) as unknown as Promise<TData>,
+    ...options,
+  });
+export const useDeleteDriveFile = <
+  TData = Common.DeleteDriveFileMutationResult,
+  TError = DeleteDriveFileError,
+  TQueryKey extends Array<unknown> = unknown[],
+  TContext = unknown,
+>(
+  mutationKey?: TQueryKey,
+  options?: Omit<
+    UseMutationOptions<TData, TError, Options<DeleteDriveFileData, true>, TContext>,
+    'mutationKey' | 'mutationFn'
+  >,
+) =>
+  useMutation<TData, TError, Options<DeleteDriveFileData, true>, TContext>({
+    mutationKey: Common.UseDeleteDriveFileKeyFn(mutationKey),
+    mutationFn: (clientOptions) => deleteDriveFile(clientOptions) as unknown as Promise<TData>,
     ...options,
   });
 export const useCreateCanvasTemplate = <
@@ -2533,6 +2765,23 @@ export const useInitializeWorkflow = <
     mutationFn: (clientOptions) => initializeWorkflow(clientOptions) as unknown as Promise<TData>,
     ...options,
   });
+export const useAbortWorkflow = <
+  TData = Common.AbortWorkflowMutationResult,
+  TError = AbortWorkflowError,
+  TQueryKey extends Array<unknown> = unknown[],
+  TContext = unknown,
+>(
+  mutationKey?: TQueryKey,
+  options?: Omit<
+    UseMutationOptions<TData, TError, Options<AbortWorkflowData, true>, TContext>,
+    'mutationKey' | 'mutationFn'
+  >,
+) =>
+  useMutation<TData, TError, Options<AbortWorkflowData, true>, TContext>({
+    mutationKey: Common.UseAbortWorkflowKeyFn(mutationKey),
+    mutationFn: (clientOptions) => abortWorkflow(clientOptions) as unknown as Promise<TData>,
+    ...options,
+  });
 export const useCreateWorkflowApp = <
   TData = Common.CreateWorkflowAppMutationResult,
   TError = CreateWorkflowAppError,
@@ -2582,6 +2831,24 @@ export const useExecuteWorkflowApp = <
   useMutation<TData, TError, Options<ExecuteWorkflowAppData, true>, TContext>({
     mutationKey: Common.UseExecuteWorkflowAppKeyFn(mutationKey),
     mutationFn: (clientOptions) => executeWorkflowApp(clientOptions) as unknown as Promise<TData>,
+    ...options,
+  });
+export const useActivateInvitationCode = <
+  TData = Common.ActivateInvitationCodeMutationResult,
+  TError = ActivateInvitationCodeError,
+  TQueryKey extends Array<unknown> = unknown[],
+  TContext = unknown,
+>(
+  mutationKey?: TQueryKey,
+  options?: Omit<
+    UseMutationOptions<TData, TError, Options<ActivateInvitationCodeData, true>, TContext>,
+    'mutationKey' | 'mutationFn'
+  >,
+) =>
+  useMutation<TData, TError, Options<ActivateInvitationCodeData, true>, TContext>({
+    mutationKey: Common.UseActivateInvitationCodeKeyFn(mutationKey),
+    mutationFn: (clientOptions) =>
+      activateInvitationCode(clientOptions) as unknown as Promise<TData>,
     ...options,
   });
 export const useCreateCheckoutSession = <

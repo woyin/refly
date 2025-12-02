@@ -9,6 +9,7 @@ import {
   exportDocument,
   getActionResult,
   getAuthConfig,
+  getCanvasCommissionByCanvasId,
   getCanvasData,
   getCanvasDetail,
   getCanvasState,
@@ -16,6 +17,7 @@ import {
   getCodeArtifactDetail,
   getCollabToken,
   getComposioConnectionStatus,
+  getCopilotSessionDetail,
   getCreditBalance,
   getCreditRecharge,
   getCreditUsage,
@@ -31,16 +33,21 @@ import {
   getSettings,
   getSubscriptionPlans,
   getSubscriptionUsage,
+  getToolCallResult,
   getWorkflowAppDetail,
   getWorkflowDetail,
   getWorkflowVariables,
+  hasBeenInvited,
   listAccounts,
   listActions,
   listCanvases,
   listCanvasTemplateCategories,
   listCanvasTemplates,
   listCodeArtifacts,
+  listCopilotSessions,
   listDocuments,
+  listDriveFiles,
+  listInvitationCodes,
   listLabelClasses,
   listLabelInstances,
   listMcpServers,
@@ -59,6 +66,7 @@ import {
   listTools,
   listToolsetInventory,
   listToolsets,
+  listUserTools,
   listWorkflowApps,
   serveStatic,
 } from '../requests/services.gen';
@@ -74,6 +82,8 @@ import {
   GetActionResultData,
   GetActionResultError,
   GetAuthConfigError,
+  GetCanvasCommissionByCanvasIdData,
+  GetCanvasCommissionByCanvasIdError,
   GetCanvasDataData,
   GetCanvasDataError,
   GetCanvasDetailData,
@@ -87,6 +97,8 @@ import {
   GetCollabTokenError,
   GetComposioConnectionStatusData,
   GetComposioConnectionStatusError,
+  GetCopilotSessionDetailData,
+  GetCopilotSessionDetailError,
   GetCreditBalanceError,
   GetCreditRechargeData,
   GetCreditRechargeError,
@@ -113,12 +125,15 @@ import {
   GetSettingsError,
   GetSubscriptionPlansError,
   GetSubscriptionUsageError,
+  GetToolCallResultData,
+  GetToolCallResultError,
   GetWorkflowAppDetailData,
   GetWorkflowAppDetailError,
   GetWorkflowDetailData,
   GetWorkflowDetailError,
   GetWorkflowVariablesData,
   GetWorkflowVariablesError,
+  HasBeenInvitedError,
   ListAccountsData,
   ListAccountsError,
   ListActionsError,
@@ -129,8 +144,13 @@ import {
   ListCanvasTemplatesError,
   ListCodeArtifactsData,
   ListCodeArtifactsError,
+  ListCopilotSessionsData,
+  ListCopilotSessionsError,
   ListDocumentsData,
   ListDocumentsError,
+  ListDriveFilesData,
+  ListDriveFilesError,
+  ListInvitationCodesError,
   ListLabelClassesData,
   ListLabelClassesError,
   ListLabelInstancesData,
@@ -164,6 +184,7 @@ import {
   ListToolsetInventoryError,
   ListToolsetsData,
   ListToolsetsError,
+  ListUserToolsError,
   ListWorkflowAppsData,
   ListWorkflowAppsError,
   ServeStaticError,
@@ -398,6 +419,21 @@ export const useGetWorkflowVariablesSuspense = <
       getWorkflowVariables({ ...clientOptions }).then(
         (response) => response.data as TData,
       ) as TData,
+    ...options,
+  });
+export const useListDriveFilesSuspense = <
+  TData = Common.ListDriveFilesDefaultResponse,
+  TError = ListDriveFilesError,
+  TQueryKey extends Array<unknown> = unknown[],
+>(
+  clientOptions: Options<ListDriveFilesData, true>,
+  queryKey?: TQueryKey,
+  options?: Omit<UseQueryOptions<TData, TError>, 'queryKey' | 'queryFn'>,
+) =>
+  useSuspenseQuery<TData, TError>({
+    queryKey: Common.UseListDriveFilesKeyFn(clientOptions, queryKey),
+    queryFn: () =>
+      listDriveFiles({ ...clientOptions }).then((response) => response.data as TData) as TData,
     ...options,
   });
 export const useListCanvasTemplatesSuspense = <
@@ -721,6 +757,38 @@ export const useGetPilotSessionDetailSuspense = <
       ) as TData,
     ...options,
   });
+export const useListCopilotSessionsSuspense = <
+  TData = Common.ListCopilotSessionsDefaultResponse,
+  TError = ListCopilotSessionsError,
+  TQueryKey extends Array<unknown> = unknown[],
+>(
+  clientOptions: Options<ListCopilotSessionsData, true> = {},
+  queryKey?: TQueryKey,
+  options?: Omit<UseQueryOptions<TData, TError>, 'queryKey' | 'queryFn'>,
+) =>
+  useSuspenseQuery<TData, TError>({
+    queryKey: Common.UseListCopilotSessionsKeyFn(clientOptions, queryKey),
+    queryFn: () =>
+      listCopilotSessions({ ...clientOptions }).then((response) => response.data as TData) as TData,
+    ...options,
+  });
+export const useGetCopilotSessionDetailSuspense = <
+  TData = Common.GetCopilotSessionDetailDefaultResponse,
+  TError = GetCopilotSessionDetailError,
+  TQueryKey extends Array<unknown> = unknown[],
+>(
+  clientOptions: Options<GetCopilotSessionDetailData, true>,
+  queryKey?: TQueryKey,
+  options?: Omit<UseQueryOptions<TData, TError>, 'queryKey' | 'queryFn'>,
+) =>
+  useSuspenseQuery<TData, TError>({
+    queryKey: Common.UseGetCopilotSessionDetailKeyFn(clientOptions, queryKey),
+    queryFn: () =>
+      getCopilotSessionDetail({ ...clientOptions }).then(
+        (response) => response.data as TData,
+      ) as TData,
+    ...options,
+  });
 export const useGetWorkflowDetailSuspense = <
   TData = Common.GetWorkflowDetailDefaultResponse,
   TError = GetWorkflowDetailError,
@@ -894,6 +962,53 @@ export const useGetCreditUsageByCanvasIdSuspense = <
       ) as TData,
     ...options,
   });
+export const useGetCanvasCommissionByCanvasIdSuspense = <
+  TData = Common.GetCanvasCommissionByCanvasIdDefaultResponse,
+  TError = GetCanvasCommissionByCanvasIdError,
+  TQueryKey extends Array<unknown> = unknown[],
+>(
+  clientOptions: Options<GetCanvasCommissionByCanvasIdData, true>,
+  queryKey?: TQueryKey,
+  options?: Omit<UseQueryOptions<TData, TError>, 'queryKey' | 'queryFn'>,
+) =>
+  useSuspenseQuery<TData, TError>({
+    queryKey: Common.UseGetCanvasCommissionByCanvasIdKeyFn(clientOptions, queryKey),
+    queryFn: () =>
+      getCanvasCommissionByCanvasId({ ...clientOptions }).then(
+        (response) => response.data as TData,
+      ) as TData,
+    ...options,
+  });
+export const useListInvitationCodesSuspense = <
+  TData = Common.ListInvitationCodesDefaultResponse,
+  TError = ListInvitationCodesError,
+  TQueryKey extends Array<unknown> = unknown[],
+>(
+  clientOptions: Options<unknown, true> = {},
+  queryKey?: TQueryKey,
+  options?: Omit<UseQueryOptions<TData, TError>, 'queryKey' | 'queryFn'>,
+) =>
+  useSuspenseQuery<TData, TError>({
+    queryKey: Common.UseListInvitationCodesKeyFn(clientOptions, queryKey),
+    queryFn: () =>
+      listInvitationCodes({ ...clientOptions }).then((response) => response.data as TData) as TData,
+    ...options,
+  });
+export const useHasBeenInvitedSuspense = <
+  TData = Common.HasBeenInvitedDefaultResponse,
+  TError = HasBeenInvitedError,
+  TQueryKey extends Array<unknown> = unknown[],
+>(
+  clientOptions: Options<unknown, true> = {},
+  queryKey?: TQueryKey,
+  options?: Omit<UseQueryOptions<TData, TError>, 'queryKey' | 'queryFn'>,
+) =>
+  useSuspenseQuery<TData, TError>({
+    queryKey: Common.UseHasBeenInvitedKeyFn(clientOptions, queryKey),
+    queryFn: () =>
+      hasBeenInvited({ ...clientOptions }).then((response) => response.data as TData) as TData,
+    ...options,
+  });
 export const useGetSubscriptionPlansSuspense = <
   TData = Common.GetSubscriptionPlansDefaultResponse,
   TError = GetSubscriptionPlansError,
@@ -1005,6 +1120,21 @@ export const useListToolsSuspense = <
       listTools({ ...clientOptions }).then((response) => response.data as TData) as TData,
     ...options,
   });
+export const useListUserToolsSuspense = <
+  TData = Common.ListUserToolsDefaultResponse,
+  TError = ListUserToolsError,
+  TQueryKey extends Array<unknown> = unknown[],
+>(
+  clientOptions: Options<unknown, true> = {},
+  queryKey?: TQueryKey,
+  options?: Omit<UseQueryOptions<TData, TError>, 'queryKey' | 'queryFn'>,
+) =>
+  useSuspenseQuery<TData, TError>({
+    queryKey: Common.UseListUserToolsKeyFn(clientOptions, queryKey),
+    queryFn: () =>
+      listUserTools({ ...clientOptions }).then((response) => response.data as TData) as TData,
+    ...options,
+  });
 export const useListToolsetInventorySuspense = <
   TData = Common.ListToolsetInventoryDefaultResponse,
   TError = ListToolsetInventoryError,
@@ -1035,6 +1165,21 @@ export const useListToolsetsSuspense = <
     queryKey: Common.UseListToolsetsKeyFn(clientOptions, queryKey),
     queryFn: () =>
       listToolsets({ ...clientOptions }).then((response) => response.data as TData) as TData,
+    ...options,
+  });
+export const useGetToolCallResultSuspense = <
+  TData = Common.GetToolCallResultDefaultResponse,
+  TError = GetToolCallResultError,
+  TQueryKey extends Array<unknown> = unknown[],
+>(
+  clientOptions: Options<GetToolCallResultData, true>,
+  queryKey?: TQueryKey,
+  options?: Omit<UseQueryOptions<TData, TError>, 'queryKey' | 'queryFn'>,
+) =>
+  useSuspenseQuery<TData, TError>({
+    queryKey: Common.UseGetToolCallResultKeyFn(clientOptions, queryKey),
+    queryFn: () =>
+      getToolCallResult({ ...clientOptions }).then((response) => response.data as TData) as TData,
     ...options,
   });
 export const useGetComposioConnectionStatusSuspense = <

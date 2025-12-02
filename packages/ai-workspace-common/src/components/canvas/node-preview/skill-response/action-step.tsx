@@ -4,20 +4,15 @@ import { Steps, Button } from 'antd';
 import { ActionResult, ActionStatus, ActionStep, Source } from '@refly/openapi-schema';
 import { Markdown } from '@refly-packages/ai-workspace-common/components/markdown';
 import { CheckCircleOutlined } from '@ant-design/icons';
-import { ChevronDown, ChevronUp } from 'lucide-react';
 import { cn } from '@refly/utils/cn';
 import { IconLoading } from '@refly-packages/ai-workspace-common/components/common/icon';
-import { genUniqueId } from '@refly/utils/id';
-import { SelectionContext } from '@refly-packages/ai-workspace-common/modules/selection-menu/selection-context';
 import { safeParseJSON } from '@refly/utils/parse';
 import { SourceViewer } from './source-viewer';
 import { getArtifactIcon } from '@refly-packages/ai-workspace-common/components/common/result-display';
 import { RecommendQuestions } from '@refly-packages/ai-workspace-common/components/canvas/node-preview/skill-response/recommend-questions';
 import { useNodeSelection } from '@refly-packages/ai-workspace-common/hooks/canvas/use-node-selection';
-import { IContextItem } from '@refly/common-types';
-import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
 import { getParsedReasoningContent } from '@refly/utils/content-parser';
-import { IconThinking } from '@refly-packages/ai-workspace-common/components/common/icon';
+import { Thinking, ArrowDown, ArrowUp } from 'refly-icons';
 
 const parseStructuredData = (structuredData: Record<string, unknown>, field: string) => {
   return typeof structuredData[field] === 'string'
@@ -62,7 +57,7 @@ const LogBox = memo(
               <CheckCircleOutlined /> {t('canvas.skillResponse.stepCompleted')}
             </div>
             <div className="flex items-center">
-              <ChevronDown className="w-4 h-4 text-gray-500" />
+              <ArrowDown size={16} />
             </div>
           </div>
         ) : (
@@ -89,7 +84,7 @@ const LogBox = memo(
             />
             <Button
               type="text"
-              icon={<ChevronUp className="w-4 h-4 text-gray-500" />}
+              icon={<ArrowUp size={16} />}
               onClick={(e) => {
                 e.stopPropagation();
                 onCollapse(true);
@@ -108,95 +103,66 @@ const ReasoningContent = memo(
     resultId,
     reasoningContent,
     sources,
-    buildContextItem,
     step,
     status,
   }: {
     resultId: string;
     reasoningContent: string;
     sources: Source[];
-    buildContextItem: (text: string) => IContextItem;
     step: ActionStep;
     status: ActionStatus;
   }) => {
     const { t } = useTranslation();
     const [collapsed, setCollapsed] = useState(status !== 'executing');
+    const isFinished = status === 'finish' || status === 'failed';
 
     // Auto-collapse when step status changes from executing to finish
     useEffect(() => {
-      if (status === 'executing') {
+      if (['executing', 'waiting'].includes(status)) {
         setCollapsed(false);
       } else {
         setCollapsed(true);
       }
     }, [status]);
 
-    const getSourceNode = useCallback(() => {
-      return {
-        type: 'skillResponse' as const,
-        entityId: resultId,
-      };
-    }, [resultId]);
-
     if (!reasoningContent) return null;
 
     return (
-      <div>
+      <div className="p-3 bg-refly-bg-control-z0 rounded-lg transition-all">
         <div
-          className={cn(
-            'p-3 bg-gray-50 rounded-lg border border-gray-200 transition-all dark:bg-gray-900 dark:border-gray-700',
-            {
-              'cursor-pointer hover:bg-gray-100 dark:hover-gray-800': collapsed,
-            },
-          )}
+          className="flex items-center justify-between cursor-pointer select-none min-h-[24px]"
+          onClick={(e) => {
+            e.stopPropagation();
+            setCollapsed(!collapsed);
+          }}
         >
-          {collapsed ? (
-            <div
-              className="flex items-center justify-between text-sm"
-              onClick={(e) => {
-                e.stopPropagation();
-                setCollapsed(false);
-              }}
-            >
-              <div className="flex items-center gap-1">
-                <IconThinking className="w-4 h-4" />
-                {t('canvas.skillResponse.reasoningContent')}
-              </div>
-              <ChevronDown className="w-4 h-4" />
-            </div>
-          ) : (
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-1 text-sm font-medium">
-                  <IconThinking className="w-4 h-4" />
-                  {t('canvas.skillResponse.reasoningContent')}
-                </div>
-                <Button
-                  type="text"
-                  icon={<ChevronUp className="w-4 h-4" />}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setCollapsed(true);
-                  }}
-                  size="small"
-                  className="flex items-center justify-center h-6 w-6 min-w-0 p-0"
-                />
-              </div>
-              <div className={`skill-response-reasoning-${resultId}-${step.name}`}>
-                <Markdown
-                  content={getParsedReasoningContent(reasoningContent)}
-                  sources={sources}
-                  resultId={resultId}
-                />
-                <SelectionContext
-                  containerClass={`skill-response-reasoning-${resultId}-${step.name}`}
-                  getContextItem={buildContextItem}
-                  getSourceNode={getSourceNode}
-                />
-              </div>
-            </div>
-          )}
+          <div className="flex items-center gap-2 text-sm font-semibold leading-5">
+            <Thinking size={16} />
+            {t('canvas.skillResponse.reasoningContent')}
+          </div>
+          <Button
+            type="text"
+            size="small"
+            className="!w-4 !h-4 !rounded-[4px]"
+            icon={collapsed ? <ArrowDown size={12} /> : <ArrowUp size={12} />}
+            onClick={(e) => {
+              e.stopPropagation();
+              setCollapsed(!collapsed);
+            }}
+          />
         </div>
+
+        {!collapsed && (
+          <div
+            className={`mt-3 skill-response-reasoning-${resultId}-${step.name} ${isFinished ? 'max-h-[400px] overflow-y-auto' : ''}`}
+          >
+            <Markdown
+              content={getParsedReasoningContent(reasoningContent)}
+              sources={sources}
+              resultId={resultId}
+            />
+          </div>
+        )}
       </div>
     );
   },
@@ -207,36 +173,19 @@ const ActualContent = memo(
     resultId,
     content,
     sources,
-    buildContextItem,
     step,
   }: {
     resultId: string;
     content: string;
     sources: Source[];
-    buildContextItem: (text: string) => IContextItem;
     step: ActionStep;
   }) => {
-    const { readonly } = useCanvasContext();
-    const getSourceNode = useCallback(() => {
-      return {
-        type: 'skillResponse' as const,
-        entityId: resultId,
-      };
-    }, [resultId]);
-
-    if (!content) return null;
+    if (!content?.trim()) return null;
 
     return (
-      <div className="my-3 text-gray-600 dark:text-gray-300 text-base">
+      <div className="my-3 text-base">
         <div className={`skill-response-content-${resultId}-${step.name}`}>
           <Markdown content={content} sources={sources} resultId={resultId} />
-          {!readonly && (
-            <SelectionContext
-              containerClass={`skill-response-content-${resultId}-${step.name}`}
-              getContextItem={buildContextItem}
-              getSourceNode={getSourceNode}
-            />
-          )}
         </div>
       </div>
     );
@@ -310,25 +259,6 @@ export const ActionStepCard = memo(
       }
     }, [result?.status]);
 
-    const buildContextItem = useCallback(
-      (text: string) => {
-        const item: IContextItem = {
-          type: 'skillResponseSelection',
-          entityId: genUniqueId(),
-          title: text.slice(0, 50),
-          selection: {
-            content: text,
-            sourceEntityType: 'skillResponse',
-            sourceEntityId: result?.resultId ?? '',
-            sourceTitle: result?.title ?? '',
-          },
-        };
-
-        return item;
-      },
-      [result?.resultId, result?.title],
-    );
-
     // Prioritize original query from structuredData over other sources
     const displayQuery = useMemo(() => {
       const structuredData = step?.structuredData;
@@ -364,7 +294,7 @@ export const ActionStepCard = memo(
     if (!step) return null;
 
     return (
-      <div className="flex flex-col gap-1 mx-1">
+      <div className="flex flex-col">
         {logs && logs.length > 0 && (
           <LogBox
             logs={logs ?? []}
@@ -388,7 +318,6 @@ export const ActionStepCard = memo(
             resultId={result?.resultId}
             reasoningContent={step.reasoningContent}
             sources={parsedData.sources}
-            buildContextItem={buildContextItem}
             step={step}
             status={status}
           />
@@ -399,7 +328,6 @@ export const ActionStepCard = memo(
             resultId={result?.resultId}
             content={step?.content}
             sources={parsedData.sources}
-            buildContextItem={buildContextItem}
             step={step}
           />
         )}

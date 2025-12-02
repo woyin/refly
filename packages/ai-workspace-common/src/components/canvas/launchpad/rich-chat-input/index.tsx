@@ -1,60 +1,52 @@
+import { mentionStyles } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/variable/mention-style';
+import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
 import {
-  memo,
-  useCallback,
-  forwardRef,
-  useEffect,
-  useState,
-  useMemo,
-  useRef,
-  useImperativeHandle,
-} from 'react';
-import React from 'react';
-import { useTranslation } from 'react-i18next';
-import { useSearchStoreShallow } from '@refly/stores';
-import { cn } from '@refly/utils/cn';
-import { useUserStoreShallow } from '@refly/stores';
-import { useEditor, EditorContent } from '@tiptap/react';
-import StarterKit from '@tiptap/starter-kit';
-import Placeholder from '@tiptap/extension-placeholder';
-import { PasteCleanupExtension } from './paste-extension';
+  createNodeEventName,
+  nodeActionEmitter,
+} from '@refly-packages/ai-workspace-common/events/nodeActions';
+import { useAgentNodeManagement } from '@refly-packages/ai-workspace-common/hooks/canvas/use-agent-node-management';
+import { useFetchDriveFiles } from '@refly-packages/ai-workspace-common/hooks/use-fetch-drive-files';
 import type { IContextItem } from '@refly/common-types';
 import type { CanvasNodeType, GenericToolset } from '@refly/openapi-schema';
-import { mentionStyles } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/variable/mention-style';
+import { useSearchStoreShallow, useUserStoreShallow, useToolStoreShallow } from '@refly/stores';
+import { cn } from '@refly/utils/cn';
+import Placeholder from '@tiptap/extension-placeholder';
+import { EditorContent, useEditor } from '@tiptap/react';
+import StarterKit from '@tiptap/starter-kit';
 import { useStore } from '@xyflow/react';
+import React, {
+  forwardRef,
+  memo,
+  useCallback,
+  useEffect,
+  useImperativeHandle,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
+import { useTranslation } from 'react-i18next';
 import { useShallow } from 'zustand/react/shallow';
-import {
-  nodeActionEmitter,
-  createNodeEventName,
-} from '@refly-packages/ai-workspace-common/events/nodeActions';
-import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
-import { useFetchResources } from '@refly-packages/ai-workspace-common/hooks/use-fetch-resources';
-import { type MentionItem } from './mentionList';
-import { createMentionExtension } from './mention-extension';
 import AtomicInlineKeymap from './atomic-inline-keymap';
+import { useListMentionItems } from './hooks/use-list-mention-items';
+import { createMentionExtension, type MentionPosition } from './mention-extension';
+import { type MentionItem } from './mentionList';
+import { PasteCleanupExtension } from './paste-extension';
 import {
-  serializeDocToTokens,
   buildNodesFromContent,
   createContextItemFromMentionItem,
+  serializeDocToTokens,
 } from './utils';
-import { useListMentionItems } from './hooks/use-list-mention-items';
+import { useAgentConnections } from '@refly-packages/ai-workspace-common/hooks/canvas/use-agent-connections';
+import { useVariablesManagement } from '@refly-packages/ai-workspace-common/hooks/use-variables-management';
 
 interface RichChatInputProps {
   readonly: boolean;
-  query: string;
-  setQuery: (text: string) => void;
   placeholder?: string;
   inputClassName?: string;
   maxRows?: number;
   minRows?: number;
   handleSendMessage: () => void;
-  contextItems?: IContextItem[];
-
-  mentionPosition?: 'top-start' | 'bottom-start';
-
-  setContextItems?: (items: IContextItem[]) => void;
-
-  selectedToolsets?: GenericToolset[];
-  setSelectedToolsets?: (items: GenericToolset[]) => void;
+  mentionPosition?: MentionPosition;
 
   onUploadImage?: (file: File) => Promise<void>;
   onUploadMultipleImages?: (files: File[]) => Promise<void>;
@@ -64,22 +56,17 @@ interface RichChatInputProps {
 
 export interface RichChatInputRef {
   focus: () => void;
+  insertAtSymbol?: () => void;
 }
 
 const RichChatInputComponent = forwardRef<RichChatInputRef, RichChatInputProps>(
   (
     {
       readonly,
-      query,
-      setQuery,
       handleSendMessage,
       onUploadImage,
       onUploadMultipleImages,
       onFocus,
-      contextItems = [],
-      setContextItems,
-      selectedToolsets = [],
-      setSelectedToolsets,
       placeholder,
       mentionPosition = 'bottom-start',
       nodeId,
@@ -90,15 +77,20 @@ const RichChatInputComponent = forwardRef<RichChatInputRef, RichChatInputProps>(
     const [isDragging, setIsDragging] = useState(false);
     const [isFocused, setIsFocused] = useState(false);
     const isLogin = useUserStoreShallow((state) => state.isLogin);
-    const { canvasId, workflow } = useCanvasContext();
-    const { data: resources } = useFetchResources();
+    const { canvasId } = useCanvasContext();
+    const { data: files } = useFetchDriveFiles();
     const searchStore = useSearchStoreShallow((state) => ({
       setIsSearchOpen: state.setIsSearchOpen,
     }));
+    const { setToolStoreModalOpen } = useToolStoreShallow((state) => ({
+      setToolStoreModalOpen: state.setToolStoreModalOpen,
+    }));
+    const { query, setQuery, setContextItems, setSelectedToolsets } =
+      useAgentNodeManagement(nodeId);
+    const { connectToUpstreamAgent } = useAgentConnections();
+    const { data: workflowVariables } = useVariablesManagement(canvasId);
 
     const [isMentionListVisible, setIsMentionListVisible] = useState(false);
-
-    const { workflowVariables = [] } = workflow || {};
 
     // Gate mention suggestions until explicit user interaction
     // Prevent auto-popup on initial load when content already contains '@xx'
@@ -115,38 +107,21 @@ const RichChatInputComponent = forwardRef<RichChatInputRef, RichChatInputProps>(
       allItemsRef.current = allItems;
     }, [allItems]);
 
-    // Use ref to store latest contextItems to avoid performance issues
-    const contextItemsRef = useRef(contextItems);
-
-    // Update ref when contextItems changes
-    useEffect(() => {
-      contextItemsRef.current = contextItems;
-    }, [contextItems]);
-
-    // Use ref to store latest selectedToolsets to avoid performance issues
-    const selectedToolsetsRef = useRef(selectedToolsets);
-
-    // Update ref when selectedToolsets changes
-    useEffect(() => {
-      selectedToolsetsRef.current = selectedToolsets;
-    }, [selectedToolsets]);
-
     // Use ref to track previous canvas data to avoid infinite loops
     const prevCanvasDataRef = useRef({ canvasId: '', allItemsLength: 0 });
 
     // Helper function to add item to context items
     const addToContextItems = useCallback(
       (contextItem: IContextItem) => {
-        if (!setContextItems) return;
-
-        const currentContextItems = contextItemsRef.current || [];
-        const isAlreadyInContext = currentContextItems.some(
-          (ctxItem) => ctxItem.entityId === contextItem.entityId,
-        );
-
-        if (!isAlreadyInContext) {
-          setContextItems([...currentContextItems, contextItem]);
-        }
+        setContextItems((prevContextItems) => {
+          const isAlreadyInContext = (prevContextItems ?? []).some(
+            (ctxItem) => ctxItem.entityId === contextItem.entityId,
+          );
+          if (isAlreadyInContext) {
+            return prevContextItems ?? [];
+          }
+          return [...(prevContextItems ?? []), contextItem];
+        });
       },
       [setContextItems],
     );
@@ -154,18 +129,24 @@ const RichChatInputComponent = forwardRef<RichChatInputRef, RichChatInputProps>(
     // Helper function to add toolset to selected toolsets
     const addToSelectedToolsets = useCallback(
       (toolsetItem: GenericToolset) => {
-        if (!setSelectedToolsets) return;
-
-        const currentSelectedToolsets = selectedToolsetsRef.current || [];
-        const isAlreadySelected = currentSelectedToolsets.some(
-          (selectedItem) => selectedItem.id === toolsetItem.id,
-        );
-
-        if (!isAlreadySelected) {
-          setSelectedToolsets([...currentSelectedToolsets, toolsetItem]);
-        }
+        setSelectedToolsets((prevToolsets) => {
+          const isAlreadySelected = (prevToolsets ?? []).some(
+            (selectedItem) => selectedItem.id === toolsetItem.id,
+          );
+          if (isAlreadySelected) {
+            return prevToolsets ?? [];
+          }
+          return [...(prevToolsets ?? []), toolsetItem];
+        });
       },
       [setSelectedToolsets],
+    );
+
+    const addToUpstreamAgents = useCallback(
+      (resultId: string) => {
+        connectToUpstreamAgent(nodeId, resultId);
+      },
+      [connectToUpstreamAgent, nodeId],
     );
 
     // Helper function to insert mention into editor
@@ -190,12 +171,17 @@ const RichChatInputComponent = forwardRef<RichChatInputRef, RichChatInputProps>(
       ({ editor, range, props }: { editor: any; range: any; props: MentionItem }) => {
         const item = props;
 
+        // If tool/toolset is not installed, open tool store modal to browse and install
+        if ((item.source === 'toolsets' || item.source === 'tools') && item.isInstalled === false) {
+          setToolStoreModalOpen(true);
+          // Optionally pre-select the tool if we want to open install modal directly
+          // setCurrentToolDefinition(item.toolDefinition);
+          // setToolInstallModalOpen(true);
+          return;
+        }
+
         // For step and result records, add to context instead of inserting text
-        if (
-          item.source === 'stepRecord' ||
-          item.source === 'resultRecord' ||
-          item.source === 'myUpload'
-        ) {
+        if (item.source === 'agents' || item.source === 'files') {
           const mediaUrl =
             item.metadata?.imageUrl || item.metadata?.videoUrl || item.metadata?.audioUrl;
 
@@ -211,11 +197,13 @@ const RichChatInputComponent = forwardRef<RichChatInputRef, RichChatInputProps>(
           });
 
           setTimeout(() => {
-            if (setContextItems && (item.entityId || item.nodeId)) {
+            if (item.source === 'files') {
               const contextItem = createContextItemFromMentionItem(item);
               addToContextItems(contextItem);
+            } else if (item.source === 'agents') {
+              addToUpstreamAgents(item.entityId);
             }
-          }, 1000);
+          }, 100);
         } else if (item.source === 'toolsets' || item.source === 'tools') {
           // Insert a tool mention with toolset metadata stored in node attrs
           insertMention(editor, range, {
@@ -233,23 +221,22 @@ const RichChatInputComponent = forwardRef<RichChatInputRef, RichChatInputProps>(
             if (setSelectedToolsets && item.toolsetId && item.toolset) {
               addToSelectedToolsets(item.toolset);
             }
-          }, 1000);
+          }, 100);
         } else if (item.variableType === 'resource') {
           // For resource type variables, find the corresponding resource data and add to context
           if (item.variableValue?.length && item.variableValue[0]?.resource) {
             const resourceValue = item.variableValue[0].resource;
-            const resource = resources.find((r) => r.resourceId === resourceValue.entityId);
+            const resource = files.find((r) => r.fileId === resourceValue.entityId);
 
             const contextItem: IContextItem = {
               entityId: resourceValue.entityId,
-              title: resource?.title ?? resourceValue.name,
+              title: resource?.name ?? resourceValue.name,
               type: 'resource' as CanvasNodeType,
               metadata: {
                 source: 'myUpload',
                 storageKey: resourceValue.storageKey,
                 resourceType: resourceValue.fileType,
-                resourceMeta: resource?.data,
-                [`${resourceValue.fileType}Url`]: resource?.downloadURL,
+                resourceMeta: resource,
               },
             };
 
@@ -260,13 +247,13 @@ const RichChatInputComponent = forwardRef<RichChatInputRef, RichChatInputProps>(
               variableType: 'resource',
               url: resourceValue.storageKey,
               resourceType: resourceValue.fileType,
-              resourceMeta: resource?.data,
+              resourceMeta: resource,
               entityId: resourceValue.entityId,
             });
 
             setTimeout(() => {
               addToContextItems(contextItem);
-            }, 1000);
+            }, 100);
           }
         } else {
           // For regular variables (startNode and resourceLibrary), insert as normal mention
@@ -283,7 +270,14 @@ const RichChatInputComponent = forwardRef<RichChatInputRef, RichChatInputProps>(
           });
         }
       },
-      [addToContextItems, addToSelectedToolsets, insertMention, resources],
+      [
+        addToContextItems,
+        addToSelectedToolsets,
+        insertMention,
+        files,
+        setToolStoreModalOpen,
+        addToUpstreamAgents,
+      ],
     );
 
     // Create mention extension with custom suggestion
@@ -372,10 +366,10 @@ const RichChatInputComponent = forwardRef<RichChatInputRef, RichChatInputProps>(
           },
         },
       },
-      [placeholder],
+      [placeholder, nodeId],
     );
 
-    // Expose focus method through ref
+    // Expose focus and insertAtSymbol methods through ref
     useImperativeHandle(
       ref,
       () => ({
@@ -384,9 +378,109 @@ const RichChatInputComponent = forwardRef<RichChatInputRef, RichChatInputProps>(
             editor.commands.focus();
           }
         },
+        insertAtSymbol: () => {
+          if (editor && !readonly) {
+            hasUserInteractedRef.current = true;
+            // If editor wasn't focused, move cursor to the end
+            const wasFocused = editor.isFocused;
+            if (!wasFocused) {
+              editor.commands.focus('end');
+            } else {
+              editor.commands.focus();
+            }
+            editor.commands.insertContent('@');
+            // Try to show mention popup after a short delay
+            setTimeout(() => {
+              if (popupInstanceRef.current) {
+                popupInstanceRef.current.show();
+              }
+            }, 50);
+          }
+        },
       }),
-      [editor, readonly],
+      [editor, readonly, hasUserInteractedRef, popupInstanceRef],
     );
+
+    // Sync all mentions in the editor to contextItems/selectedToolsets
+    const syncMentionsToState = useCallback(() => {
+      if (!editor) return;
+
+      const doc = editor?.state?.doc;
+      if (!doc) return;
+
+      const mentionNodes: any[] = [];
+      doc.descendants((node: any) => {
+        if (node?.type?.name === 'mention') {
+          mentionNodes.push(node);
+        }
+      });
+
+      // Collect file mentions and sync to contextItems
+      const fileMentions = mentionNodes.filter(
+        (node) => node?.attrs?.source === 'files' || node?.attrs?.source === 'products',
+      );
+
+      if (fileMentions.length > 0) {
+        const newContextItems: IContextItem[] = [];
+        for (const mention of fileMentions) {
+          const attrs = mention?.attrs;
+          if (attrs?.entityId) {
+            const contextItem: IContextItem = {
+              entityId: attrs.entityId,
+              title: attrs.label || attrs.id,
+              type: 'file',
+              metadata: {
+                source: attrs.source || 'files',
+                resourceType: attrs.resourceType,
+                resourceMeta: attrs.resourceMeta,
+              },
+            };
+            newContextItems.push(contextItem);
+          }
+        }
+
+        if (newContextItems.length > 0) {
+          setContextItems((prevContextItems) => {
+            const existing = prevContextItems ?? [];
+            const merged = [...existing];
+            for (const item of newContextItems) {
+              if (!existing.some((ctx) => ctx.entityId === item.entityId)) {
+                merged.push(item);
+              }
+            }
+            return merged;
+          });
+        }
+      }
+
+      // Collect tool mentions and sync to selectedToolsets
+      const toolMentions = mentionNodes.filter(
+        (node) => node?.attrs?.source === 'tools' || node?.attrs?.source === 'toolsets',
+      );
+
+      if (toolMentions.length > 0) {
+        const newToolsets: GenericToolset[] = [];
+        for (const mention of toolMentions) {
+          const attrs = mention?.attrs;
+          if (attrs?.toolset && attrs?.toolsetId) {
+            newToolsets.push(attrs.toolset);
+          }
+        }
+
+        if (newToolsets.length > 0) {
+          setSelectedToolsets((prevToolsets) => {
+            const existing = prevToolsets ?? [];
+            const merged = [...existing];
+            for (const toolset of newToolsets) {
+              if (!existing.some((t) => t.id === toolset.id)) {
+                merged.push(toolset);
+              }
+            }
+            return merged;
+          });
+        }
+      }
+    }, [editor, setContextItems, setSelectedToolsets]);
 
     // Enhanced handleSendMessage that converts mentions to Handlebars
     const handleSendMessageWithMentions = useCallback(() => {
@@ -394,26 +488,43 @@ const RichChatInputComponent = forwardRef<RichChatInputRef, RichChatInputProps>(
         const currentContent = serializeDocToTokens(editor?.state?.doc);
         // Update the query with the serialized content before sending
         setQuery(currentContent);
+
+        // Sync all mentions to state before sending
+        syncMentionsToState();
+
         // Call the original handleSendMessage
         handleSendMessage();
       } else {
         handleSendMessage();
       }
-    }, [editor, setQuery, handleSendMessage, serializeDocToTokens]);
+    }, [editor, setQuery, handleSendMessage, syncMentionsToState]);
 
     const isSyncedExternalQuery = useRef(false);
+    const lastNodeIdRef = useRef<string | undefined>(undefined);
 
-    // Update editor content when query changes externally
+    // Reset sync flag when query or nodeId changes
     useEffect(() => {
-      if (!editor || isSyncedExternalQuery.current) return;
+      isSyncedExternalQuery.current = false;
+    }, [query, nodeId]);
+
+    // Update editor content when query or nodeId changes
+    useEffect(() => {
+      if (!editor || isSyncedExternalQuery.current) {
+        return;
+      }
+
       const currentText = serializeDocToTokens(editor?.state?.doc);
       const nextText = query ?? '';
-      if (currentText !== nextText) {
+      const hasNodeChanged = lastNodeIdRef.current !== nodeId;
+
+      // Force re-render when nodeId changes even if content text is the same
+      if (currentText !== nextText || hasNodeChanged) {
         // Convert handlebars variables back to mention nodes for rendering
         const nodes = buildNodesFromContent(nextText, workflowVariables, allItems);
         // Preserve full selection range to avoid collapsing selection
         const prevFrom = editor.state?.selection?.from ?? null;
         const prevTo = editor.state?.selection?.to ?? null;
+
         if (nodes.length > 0) {
           const jsonDoc = {
             type: 'doc',
@@ -437,8 +548,10 @@ const RichChatInputComponent = forwardRef<RichChatInputRef, RichChatInputProps>(
           editor.commands.setTextSelection({ from: clampedFrom, to: clampedTo });
         }
       }
+
+      lastNodeIdRef.current = nodeId;
       isSyncedExternalQuery.current = true;
-    }, [query, editor, workflowVariables, allItems, isSyncedExternalQuery]);
+    }, [query, editor, workflowVariables, allItems, nodeId]);
 
     // Additional effect to re-render content when canvas data becomes available
     useEffect(() => {
@@ -560,23 +673,6 @@ const RichChatInputComponent = forwardRef<RichChatInputRef, RichChatInputProps>(
           if (isMentionListVisible) {
             return;
           }
-
-          // Ctrl/Meta + Enter should always send the message
-          if ((e.ctrlKey || e.metaKey) && (query?.trim() || !isLogin)) {
-            e.preventDefault();
-            e.stopPropagation();
-            e.nativeEvent?.stopImmediatePropagation?.();
-            handleSendMessageWithMentions();
-            return;
-          }
-
-          // For regular Enter key, send message if not in mention suggestion
-          if (!e.shiftKey && (query?.trim() || !isLogin)) {
-            e.preventDefault();
-            e.stopPropagation();
-            e.nativeEvent?.stopImmediatePropagation?.();
-            handleSendMessageWithMentions();
-          }
         }
       },
       [
@@ -645,7 +741,7 @@ const RichChatInputComponent = forwardRef<RichChatInputRef, RichChatInputProps>(
             'w-full h-full flex flex-col flex-grow overflow-y-auto overflow-x-hidden relative',
             isDragging && 'ring-2 ring-green-500 ring-opacity-50 rounded-lg',
             readonly && 'opacity-70 cursor-not-allowed',
-            isFocused ? 'nodrag nopan nowheel cursor-text' : '!cursor-pointer',
+            isFocused ? 'nodrag nopan nowheel cursor-text' : '!cursor-text',
           )}
           onDragOver={(e) => {
             e.preventDefault();
@@ -688,9 +784,10 @@ const RichChatInputComponent = forwardRef<RichChatInputRef, RichChatInputProps>(
             </div>
           )}
 
-          <div className="flex-1 min-h-0" onKeyDownCapture={handleKeyDown} onPaste={handlePaste}>
+          <div className="flex-1" onKeyDownCapture={handleKeyDown} onPaste={handlePaste}>
             {editor ? (
               <EditorContent
+                className="h-full"
                 editor={editor}
                 data-cy="rich-chat-input"
                 data-placeholder={placeholder || t('canvas.richChatInput.defaultPlaceholder')}

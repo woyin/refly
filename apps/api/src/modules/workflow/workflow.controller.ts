@@ -1,12 +1,14 @@
 import { Controller, Post, Body, UseGuards, Get, Query } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guard/jwt-auth.guard';
 import { LoginedUser } from '../../utils/decorators/user.decorator';
-import { User as UserModel } from '../../generated/client';
+import { User as UserModel } from '@prisma/client';
 import { WorkflowService } from './workflow.service';
 import {
   InitializeWorkflowRequest,
   InitializeWorkflowResponse,
   GetWorkflowDetailResponse,
+  AbortWorkflowRequest,
+  BaseResponse,
 } from '@refly/openapi-schema';
 import { buildSuccessResponse } from '../../utils';
 import { ParamsError } from '@refly/errors';
@@ -25,12 +27,32 @@ export class WorkflowController {
     const executionId = await this.workflowService.initializeWorkflowExecution(
       user,
       request.canvasId,
-      request.newCanvasId ?? request.canvasId,
       request.variables,
-      { startNodes: request.startNodes, checkCanvasOwnership: true },
+      {
+        sourceCanvasId: request.sourceCanvasId,
+        sourceCanvasData: request.sourceCanvasData,
+        createNewCanvas: request.createNewCanvas,
+        nodeBehavior: request.nodeBehavior,
+        startNodes: request.startNodes,
+        checkCanvasOwnership: true,
+      },
     );
 
     return buildSuccessResponse({ workflowExecutionId: executionId });
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('abort')
+  async abortWorkflow(
+    @LoginedUser() user: UserModel,
+    @Body() request: AbortWorkflowRequest,
+  ): Promise<BaseResponse> {
+    if (!request.executionId) {
+      throw new ParamsError('Execution ID is required');
+    }
+
+    await this.workflowService.abortWorkflowExecution(user, request.executionId);
+    return buildSuccessResponse(null);
   }
 
   @UseGuards(JwtAuthGuard)

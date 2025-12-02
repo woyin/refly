@@ -1,8 +1,6 @@
 generator client {
   provider        = "prisma-client-js"
   previewFeatures = ["tracing"]
-  output          = "../src/generated/client"
-  binaryTargets   = ["native", "darwin", "darwin-arm64"]
 }
 
 datasource db {
@@ -134,6 +132,8 @@ model ActionResult {
   history                 String?      @map("history")
   /// Errors
   errors                  String?      @map("errors")
+  /// Error type
+  errorType               String?      @map("error_type")
   /// Toolsets (JSON array of `GenericToolset`)
   toolsets                String?      @map("toolsets")
   /// Locale setting
@@ -150,6 +150,8 @@ model ActionResult {
   pilotStepId             String?      @map("pilot_step_id")
   /// Pilot session id
   pilotSessionId          String?      @map("pilot_session_id")
+  /// Copilot session id
+  copilotSessionId        String?      @map("copilot_session_id")
   /// Workflow execution id
   workflowExecutionId     String?      @map("workflow_execution_id")
   /// Workflow node execution id
@@ -169,6 +171,7 @@ model ActionResult {
   @@index([targetType, targetId])
   @@index([pilotStepId])
   @@index([status, updatedAt])
+  @@index([copilotSessionId])
   @@map("action_results")
 }
 
@@ -206,6 +209,36 @@ model ActionStep {
 
   @@index([resultId, version, order])
   @@map("action_steps")
+}
+
+model ActionMessage {
+  /// Primary key
+  pk               BigInt   @id @default(autoincrement())
+  /// Message id
+  messageId        String   @unique @map("message_id")
+  /// Action result id
+  resultId         String   @map("result_id")
+  /// Action result version
+  version          Int      @default(0) @map("version")
+  /// Message type
+  type             String   @map("type")
+  /// Message content
+  content          String   @map("content")
+  /// Reasoning content
+  reasoningContent String?  @map("reasoning_content")
+  /// Usage metadata (JSON)
+  usageMeta        String?  @map("usage_meta")
+  /// Tool call metadata (JSON)
+  toolCallMeta     String?  @map("tool_call_meta")
+  /// Tool call id
+  toolCallId       String?  @map("tool_call_id")
+  /// Create timestamp
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  /// Update timestamp
+  updatedAt        DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz()
+
+  @@index([resultId, version])
+  @@map("action_messages")
 }
 
 model PilotSession {
@@ -274,6 +307,26 @@ model PilotStep {
   @@map("pilot_steps")
 }
 
+model CopilotSession {
+  /// Primary key
+  pk        BigInt   @id @default(autoincrement())
+  /// Session id
+  sessionId String   @unique @map("session_id")
+  /// UID
+  uid       String   @map("uid")
+  /// Session title
+  title     String   @map("title")
+  /// Canvas id
+  canvasId  String   @map("canvas_id")
+  /// Create timestamp
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  /// Update timestamp
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz()
+
+  @@index([uid, canvasId])
+  @@map("copilot_sessions")
+}
+
 model WorkflowExecution {
   /// Primary key
   pk             BigInt   @id @default(autoincrement())
@@ -289,6 +342,8 @@ model WorkflowExecution {
   title          String   @map("title")
   /// Workflow status: init, executing, finished, failed
   status         String   @default("init") @map("status")
+  /// Whether the workflow was aborted by user
+  abortedByUser  Boolean  @default(false) @map("aborted_by_user")
   /// Workflow app id
   appId          String?  @map("app_id")
   /// Workflow variables (JSON)
@@ -359,19 +414,15 @@ model WorkflowNodeExecution {
   @@map("workflow_node_executions")
 }
 
-enum WorkflowNodeStatus {
+enum ActionStatus {
+  init
   waiting
   executing
   finish
   failed
 }
 
-enum ActionStatus {
-  waiting
-  executing
-  finish
-  failed
-}
+// Publish review status will be stored as String for extensibility
 
 model TokenUsage {
   /// Primary key
@@ -508,41 +559,43 @@ model CanvasVersion {
 
 model CanvasTemplate {
   /// Primary key
-  pk             BigInt                  @id @default(autoincrement())
+  pk              BigInt    @id @default(autoincrement())
   /// Canvas template id
-  templateId     String                  @unique @map("template_id")
+  templateId      String    @unique @map("template_id")
   /// Origin canvas id (deprecated)
-  originCanvasId String                  @default("") @map("origin_canvas_id")
-  /// Category id
-  categoryId     String?                 @map("category_id")
+  originCanvasId  String    @default("") @map("origin_canvas_id")
+  /// Category id (deprecated, use categories relation instead)
+  categoryId      String?   @map("category_id")
   /// Workflow app id
-  appId          String?                 @map("app_id")
+  appId           String?   @map("app_id")
   /// Share id
-  shareId        String                  @default("") @map("share_id")
+  shareId         String    @default("") @map("share_id")
+  /// Credit usage for running this workflow app
+  creditUsage     Int?      @map("credit_usage")
+  /// Cover image storage key
+  coverStorageKey String?   @map("cover_storage_key")
   /// Version
-  version        Int                     @default(0) @map("version")
+  version         Int       @default(0) @map("version")
   /// UID
-  uid            String                  @map("uid")
+  uid             String    @map("uid")
   /// Share user (JSON of `ShareUser`)
-  shareUser      String                  @map("share_user")
+  shareUser       String    @map("share_user")
   /// Canvas template title
-  title          String                  @map("title")
+  title           String    @map("title")
   /// Canvas template description
-  description    String                  @map("description")
+  description     String    @map("description")
   /// Whether this canvas template is public
-  isPublic       Boolean                 @default(false) @map("is_public")
+  isPublic        Boolean   @default(false) @map("is_public")
   /// Priority
-  priority       Int                     @default(0) @map("priority")
+  priority        Int       @default(0) @map("priority")
   /// Language code
-  language       String                  @map("language")
+  language        String    @map("language")
   /// Create timestamp
-  createdAt      DateTime                @default(now()) @map("created_at") @db.Timestamptz()
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz()
   /// Update timestamp
-  updatedAt      DateTime                @default(now()) @updatedAt @map("updated_at") @db.Timestamptz()
+  updatedAt       DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz()
   /// Soft delete timestamp
-  deletedAt      DateTime?               @map("deleted_at") @db.Timestamptz()
-  /// Category
-  category       CanvasTemplateCategory? @relation(fields: [categoryId], references: [categoryId])
+  deletedAt       DateTime? @map("deleted_at") @db.Timestamptz()
 
   @@index([uid, updatedAt])
   @@index([isPublic, priority])
@@ -551,25 +604,43 @@ model CanvasTemplate {
 
 model CanvasTemplateCategory {
   /// Primary key
-  pk              BigInt           @id @default(autoincrement())
+  pk              BigInt    @id @default(autoincrement())
   /// Category id
-  categoryId      String           @unique @map("category_id")
+  categoryId      String    @unique @map("category_id")
   /// Category name
-  name            String           @map("name")
+  name            String    @map("name")
   /// Label dictionary (JSON)
-  labelDict       String           @map("label_dict")
+  labelDict       String    @map("label_dict")
   /// Description dictionary (JSON)
-  descriptionDict String           @map("description_dict")
+  descriptionDict String    @map("description_dict")
   /// Create timestamp
-  createdAt       DateTime         @default(now()) @map("created_at") @db.Timestamptz()
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz()
   /// Update timestamp
-  updatedAt       DateTime         @default(now()) @updatedAt @map("updated_at") @db.Timestamptz()
+  updatedAt       DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz()
   /// Soft delete timestamp
-  deletedAt       DateTime?        @map("deleted_at") @db.Timestamptz()
-  /// Templates
-  templates       CanvasTemplate[]
+  deletedAt       DateTime? @map("deleted_at") @db.Timestamptz()
 
   @@map("canvas_template_categories")
+}
+
+model CanvasTemplateCategoryRelation {
+  /// Primary key
+  pk         BigInt    @id @default(autoincrement())
+  /// Template id
+  templateId String    @map("template_id")
+  /// Category id
+  categoryId String    @map("category_id")
+  /// Create timestamp
+  createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+  /// Update timestamp
+  updatedAt  DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz()
+  /// Soft delete timestamp
+  deletedAt  DateTime? @map("deleted_at") @db.Timestamptz()
+
+  @@unique([templateId, categoryId])
+  @@index([templateId, deletedAt])
+  @@index([categoryId, deletedAt])
+  @@map("canvas_template_category_relations")
 }
 
 model CanvasEntityRelation {
@@ -744,6 +815,48 @@ model CodeArtifact {
   @@map("code_artifacts")
 }
 
+model DriveFile {
+  /// Primary key
+  pk            BigInt    @id @default(autoincrement())
+  /// Drive file id
+  fileId        String    @unique @map("file_id")
+  /// UID
+  uid           String    @map("uid")
+  /// Canvas id
+  canvasId      String    @map("canvas_id")
+  /// Drive file name
+  name          String    @map("name")
+  /// Drive file type (MIME type)
+  type          String    @map("type")
+  /// Drive file category
+  category      String    @map("category")
+  /// Drive file size
+  size          BigInt    @default(0) @map("size")
+  /// Drive file source
+  source        String    @default("manual") @map("source")
+  /// Drive file scope
+  scope         String    @default("present") @map("scope")
+  /// Storage key for this file
+  storageKey    String?   @map("storage_key")
+  /// Drive file summary
+  summary       String?   @map("summary")
+  /// Related variable id (when source is 'variable')
+  variableId    String?   @map("variable_id")
+  /// Action result id (when source is 'agent')
+  resultId      String?   @map("result_id")
+  /// Action result version (when source is 'agent')
+  resultVersion Int?      @map("result_version")
+  /// Drive file create timestamp
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+  /// Update timestamp
+  updatedAt     DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz()
+  /// Soft delete timestamp
+  deletedAt     DateTime? @map("deleted_at") @db.Timestamptz()
+
+  @@index([canvasId, deletedAt, updatedAt])
+  @@map("drive_files")
+}
+
 model Project {
   /// Primary key
   pk                 BigInt     @id @default(autoincrement())
@@ -778,42 +891,53 @@ model Project {
 
 model WorkflowApp {
   /// Primary key
-  pk              BigInt    @id @default(autoincrement())
+  pk                  BigInt    @id @default(autoincrement())
   /// Workflow app id
-  appId           String    @unique @map("app_id")
+  appId               String    @unique @map("app_id")
   /// UID
-  uid             String    @map("uid")
+  uid                 String    @map("uid")
   /// Title
-  title           String    @default("") @map("title")
+  title               String    @default("") @map("title")
   /// Description
-  description     String?   @map("description")
+  description         String?   @map("description")
   /// Query
-  query           String?   @map("query")
+  query               String?   @map("query")
   /// Variables
-  variables       String?   @map("variables")
+  variables           String?   @map("variables")
   /// Canvas id
-  canvasId        String?   @map("canvas_id")
+  canvasId            String?   @map("canvas_id")
   /// Storage key
-  storageKey      String?   @map("storage_key")
+  storageKey          String?   @map("storage_key")
   /// Share id for public access
-  shareId         String?   @map("share_id")
+  shareId             String?   @map("share_id")
+  /// Template share id for community publishing (independent from shareId)
+  templateShareId     String?   @map("template_share_id")
   /// Cover image storage key
-  coverStorageKey String?   @map("cover_storage_key")
+  coverStorageKey     String?   @map("cover_storage_key")
   /// Template content for app publishing
-  templateContent String?   @map("template_content")
+  templateContent     String?   @map("template_content")
   /// Whether remix is enabled for this app
-  remixEnabled    Boolean   @default(false) @map("remix_enabled")
+  remixEnabled        Boolean   @default(false) @map("remix_enabled")
+  /// Whether to publish this app to the community
+  publishToCommunity  Boolean   @default(false) @map("publish_to_community")
+  /// Community publish review status
+  publishReviewStatus String    @default("init") @map("publish_review_status")
+  /// Review remarks/notes from admin
+  remarks             String?   @map("remarks")
   /// Result node IDs
-  resultNodeIds   String[]  @default([]) @map("result_node_ids")
+  resultNodeIds       String[]  @default([]) @map("result_node_ids")
+  /// Credit usage for running this workflow app
+  creditUsage         Int?      @map("credit_usage")
   /// Create timestamp
-  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+  createdAt           DateTime  @default(now()) @map("created_at") @db.Timestamptz()
   /// Update timestamp
-  updatedAt       DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz()
+  updatedAt           DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz()
   /// Soft delete timestamp
-  deletedAt       DateTime? @map("deleted_at") @db.Timestamptz()
+  deletedAt           DateTime? @map("deleted_at") @db.Timestamptz()
 
   @@index([canvasId, deletedAt])
   @@index([shareId])
+  @@index([templateShareId])
   @@map("workflow_apps")
 }
 
@@ -1216,6 +1340,10 @@ model CreditRecharge {
   source      String   @default("purchase") @map("source")
   /// Recharge description
   description String?  @map("description")
+  /// App Id
+  appId       String?  @map("app_id")
+  /// Extra data (JSON)
+  extraData   String?  @map("extra_data")
   /// Expiration timestamp (30 days from creation)
   expiresAt   DateTime @map("expires_at") @db.Timestamptz()
   /// Create timestamp
@@ -1280,6 +1408,10 @@ model CreditUsage {
   pilotSessionId    String?  @map("pilot_session_id")
   /// Usage description
   description       String?  @map("description")
+  /// App Id
+  appId             String?  @map("app_id")
+  /// Extra data (JSON)
+  extraData         String?  @map("extra_data")
   /// Model usage details for skill execution (JSON array of model usage)
   modelUsageDetails String?  @map("model_usage_details")
   /// Create timestamp
@@ -1290,6 +1422,29 @@ model CreditUsage {
   @@index([actionResultId])
   @@index([pilotSessionId])
   @@map("credit_usages")
+}
+
+model InvitationCode {
+  /// Primary key
+  pk         BigInt   @id @default(autoincrement())
+  /// Invitation code
+  code       String   @unique @map("code")
+  /// Inviter UID
+  inviterUid String   @map("inviter_uid")
+  /// Invitee UID
+  inviteeUid String?  @unique @map("invitee_uid")
+  /// Invitation status: pending, accepted, expired
+  status     String   @default("pending") @map("status")
+  /// Create timestamp
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  /// Update timestamp
+  updatedAt  DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz()
+
+  @@unique([inviterUid, inviteeUid])
+  @@index([inviterUid])
+  @@index([inviteeUid])
+  @@index([status])
+  @@map("invitation_codes")
 }
 
 model StorageUsageMeter {
@@ -1509,11 +1664,11 @@ model Toolset {
   name          String    @map("name")
   /// Toolset key
   key           String    @map("key")
-  /// Toolset auth type (credentials, oauth)
-  authType      String?   @map("auth_type")
+  /// Toolset auth type (credentials, oauth, config_based)
+  authType      String?   @default("config_based") @map("auth_type")
   /// Toolset auth data
   authData      String?   @map("auth_data")
-  /// Toolset config
+  /// Toolset config (deprecated, use ToolMethod table instead)
   config        String?   @map("config")
   /// Whether the toolset is enabled
   enabled       Boolean   @default(true) @map("enabled")
@@ -1529,7 +1684,79 @@ model Toolset {
   deletedAt     DateTime? @map("deleted_at") @db.Timestamptz()
 
   @@index([uid, isGlobal, deletedAt])
+  @@index([key, enabled])
   @@map("toolsets")
+}
+
+model ToolMethod {
+  /// Primary key
+  pk             Int       @id @default(autoincrement())
+  /// Toolset inventory key (foreign key to ToolsetInventory)
+  inventoryKey   String    @map("inventory_key")
+  /// Version ID (for version control)
+  versionId      Int       @default(1) @map("version_id")
+  /// Method name (unique within toolset version)
+  name           String    @map("name")
+  /// Method description (for LLM understanding)
+  description    String    @map("description")
+  /// API endpoint full URL
+  endpoint       String    @map("endpoint")
+  /// HTTP method (GET, POST, PUT, DELETE, PATCH)
+  httpMethod     String    @default("POST") @map("http_method")
+  /// Request schema (JSON string)
+  requestSchema  String    @map("request_schema") @db.Text
+  /// Response schema (JSON string)
+  responseSchema String    @map("response_schema") @db.Text
+  /// Adapter type (http, sdk)
+  adapterType    String    @default("http") @map("adapter_type")
+  /// Adapter config (JSON string, optional SDK-specific config)
+  adapterConfig  String?   @map("adapter_config") @db.Text
+  /// Whether the method is enabled
+  enabled        Boolean   @default(true) @map("enabled")
+  /// Create timestamp
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+  /// Update timestamp
+  updatedAt      DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz()
+  /// Deletion timestamp (soft delete)
+  deletedAt      DateTime? @map("deleted_at") @db.Timestamptz()
+
+  @@unique([inventoryKey, name, versionId])
+  @@index([versionId])
+  @@map("tool_methods")
+}
+
+model ToolsetInventory {
+  /// Primary key
+  pk              Int       @id @default(autoincrement())
+  /// Toolset key (unique identifier, e.g., 'firecrawl', 'calculator')
+  key             String    @unique @map("key")
+  /// Toolset name (human-readable name, e.g., 'Firecrawl', 'Calculator')
+  name            String    @map("name")
+  /// Toolset domain (for displaying favicon, e.g., 'firecrawl.dev')
+  domain          String?   @map("domain")
+  /// Toolset label dictionary (display name in JSON format: {"en": "Firecrawl", "zh": "Firecrawl"})
+  labelDict       String    @map("label_dict") @db.Text
+  /// Toolset description dictionary (description in JSON format: {"en": "...", "zh": "..."})
+  descriptionDict String    @map("description_dict") @db.Text
+  /// API Key for authentication (optional)
+  apiKey          String?   @map("api_key") @db.Text
+  /// Toolset type ('regular', 'builtin', 'oauth')
+  type            String    @default("regular") @map("type")
+  /// Adapter type ('http', 'sdk')
+  adapterType     String    @default("http") @map("adapter_type")
+  /// Whether the toolset is enabled in inventory
+  enabled         Boolean   @default(true) @map("enabled")
+  /// Credit billing info (in JSON format)
+  creditBilling   String?   @map("credit_billing") @db.Text
+  /// Create timestamp
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+  /// Update timestamp
+  updatedAt       DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz()
+  /// Deletion timestamp (soft delete)
+  deletedAt       DateTime? @map("deleted_at") @db.Timestamptz()
+
+  @@index([key])
+  @@map("toolset_inventory")
 }
 
 model ComposioConnection {
@@ -1636,6 +1863,38 @@ model McpServer {
   @@index([uid, deletedAt])
   @@index([isGlobal])
   @@map("mcp_servers")
+}
+
+/// Drive file parse cache
+model DriveFileParseCache {
+  /// Primary key
+  pk                BigInt   @id @default(autoincrement())
+  /// Drive file id
+  fileId            String   @unique @map("file_id")
+  /// UID
+  uid               String   @map("uid")
+  /// Storage path for parsed content
+  contentStorageKey String   @map("content_storage_key")
+  /// Content type
+  contentType       String   @map("content_type")
+  /// Parser used
+  parser            String   @map("parser")
+  /// Number of pages (for PDF)
+  numPages          Int?     @map("num_pages")
+  /// Word count
+  wordCount         Int?     @map("word_count")
+  /// Parse status: success, failed
+  parseStatus       String   @map("parse_status")
+  /// Parse error (JSON)
+  parseError        String?  @map("parse_error")
+  /// Create timestamp
+  createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  /// Update timestamp
+  updatedAt         DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz()
+
+  @@index([uid, createdAt])
+  @@index([parseStatus])
+  @@map("drive_file_parse_caches")
 }
 
 /// Variable extraction history for workflow 3.0

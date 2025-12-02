@@ -1,7 +1,7 @@
 import { memo, useEffect, useState, useCallback, useMemo } from 'react';
-import { NodeProps, Position, useReactFlow } from '@xyflow/react';
-import { NodeIcon } from './shared/node-icon';
-import { Divider } from 'antd';
+import { NodeProps, Position } from '@xyflow/react';
+import { StartNodeHeader } from './shared/start-node-header';
+import cn from 'classnames';
 import { BiText } from 'react-icons/bi';
 import { useNodeData } from '@refly-packages/ai-workspace-common/hooks/canvas';
 import { getNodeCommonStyles } from './shared/styles';
@@ -13,20 +13,20 @@ import { useTranslation } from 'react-i18next';
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
 import { CreateVariablesModal } from '../workflow-variables';
 import { Attachment, List } from 'refly-icons';
-import SVGX from '../../../assets/x.svg';
 import {
   nodeActionEmitter,
   createNodeEventName,
   cleanupNodeEvents,
 } from '@refly-packages/ai-workspace-common/events/nodeActions';
 import { useAddNode } from '@refly-packages/ai-workspace-common/hooks/canvas/use-add-node';
-import { genSkillID } from '@refly/utils/id';
+import { genNodeEntityId } from '@refly/utils/id';
 import { useGetNodeConnectFromDragCreateInfo } from '@refly-packages/ai-workspace-common/hooks/canvas/use-get-node-connect';
 import { NodeDragCreateInfo } from '@refly-packages/ai-workspace-common/events/nodeOperations';
 import { CanvasNode } from '@refly/openapi-schema';
-import { cn } from '@refly/utils/cn';
+import { useVariablesManagement } from '@refly-packages/ai-workspace-common/hooks/use-variables-management';
+import { useCanvasStoreShallow } from '@refly/stores';
 
-const NODE_SIDE_CONFIG = { width: 320, height: 'auto' };
+const NODE_SIDE_CONFIG = { width: 250, height: 'auto' };
 
 export const VARIABLE_TYPE_ICON_MAP = {
   string: BiText,
@@ -34,22 +34,8 @@ export const VARIABLE_TYPE_ICON_MAP = {
   resource: Attachment,
 };
 
-const Header = memo(({ className }: { className?: string }) => {
-  const { t } = useTranslation();
-  return (
-    <div className={cn('flex items-center gap-2', className)}>
-      <NodeIcon type="start" filled={true} />
-      <span className="text-sm font-semibold leading-6 text-refly-text-0">
-        {t('canvas.nodeTypes.start')}
-      </span>
-    </div>
-  );
-});
-
-Header.displayName = 'Header';
-
 // Input parameter row component
-const InputParameterRow = memo(
+export const InputParameterRow = memo(
   ({
     variableType,
     label,
@@ -70,8 +56,6 @@ const InputParameterRow = memo(
     return (
       <div className="flex gap-2 items-center justify-between py-1.5 px-3 bg-refly-bg-control-z0 rounded-lg">
         <div className="flex items-center gap-1 flex-1 min-w-0">
-          <img src={SVGX} alt="x" className="w-[10px] h-[10px] flex-shrink-0" />
-          <Divider type="vertical" className="bg-refly-Card-Border mx-2 my-0 flex-shrink-0" />
           <div className="text-xs font-medium text-refly-text-1 truncate max-w-full">{label}</div>
           {isRequired && (
             <div className="h-4 px-1 flex items-center justify-center text-refly-text-2 text-[10px] leading-[14px] border-[1px] border-solid border-refly-Card-Border rounded-[4px] flex-shrink-0">
@@ -99,19 +83,29 @@ type StartNodeProps = NodeProps & {
   data: CanvasNode;
 };
 
-export const StartNode = memo(({ id, selected, onNodeClick, data }: StartNodeProps) => {
+export const StartNode = memo(({ id, onNodeClick, data }: StartNodeProps) => {
+  const { canvasId, shareData } = useCanvasContext();
+  const { nodePreviewId } = useCanvasStoreShallow((state) => ({
+    nodePreviewId: state.config[canvasId]?.nodePreviewId,
+  }));
+
+  const selected = useMemo(() => {
+    return nodePreviewId === id;
+  }, [nodePreviewId, id]);
+
+  const { t } = useTranslation();
   const [isHovered, setIsHovered] = useState(false);
-  const [previousWidth, setPreviousWidth] = useState<string | number>('fit-content');
   const { edges } = useCanvasData();
-  const { setNodeStyle, setNodePosition } = useNodeData();
-  const { getNode } = useReactFlow();
+  const { setNodeStyle } = useNodeData();
   useSelectedNodeZIndex(id, selected);
   const { handleMouseEnter: onHoverStart, handleMouseLeave: onHoverEnd } = useNodeHoverEffect(id);
-  const { workflow } = useCanvasContext();
+
   const [showCreateVariablesModal, setShowCreateVariablesModal] = useState(false);
-  const { workflowVariables } = workflow;
+  const { data: variables } = useVariablesManagement(canvasId);
   const { addNode } = useAddNode();
   const { getConnectionInfo } = useGetNodeConnectFromDragCreateInfo();
+
+  const workflowVariables = shareData?.variables ?? variables;
 
   // Check if node has any connections
   const isSourceConnected = edges?.some((edge) => edge.source === id);
@@ -142,98 +136,28 @@ export const StartNode = memo(({ id, selected, onNodeClick, data }: StartNodePro
 
       addNode(
         {
-          type: 'skill',
+          type: 'skillResponse',
           data: {
-            title: 'Skill',
-            entityId: genSkillID(),
+            title: '',
+            entityId: genNodeEntityId('skillResponse'),
             metadata: {
-              contextItems: [],
+              status: 'init',
             },
           },
           position,
         },
         connectTo,
-        false,
+        true,
         true,
       );
     },
-    [id, workflowVariables, addNode, getConnectionInfo],
-  );
-
-  // Function to calculate width difference and adjust position
-  const adjustPositionForWidthChange = useCallback(
-    (
-      oldWidth: string | number,
-      newWidth: string | number,
-      currentPosition: { x: number; y: number },
-    ) => {
-      // Only adjust if we have a valid current position
-      if (!currentPosition) return currentPosition;
-
-      // Calculate width difference
-      let widthDifference = 0;
-
-      if (oldWidth === 'fit-content' && newWidth === 320) {
-        // From fit-content to 320px - move left by the difference
-        // Estimate fit-content width based on the header content (icon + text + padding)
-        // Icon (~24px) + text (~60px) + padding (32px) = ~116px
-        const estimatedFitContentWidth = 116;
-        widthDifference = 320 - estimatedFitContentWidth;
-      } else if (oldWidth === 320 && newWidth === 'fit-content') {
-        // From 320px to fit-content - move right by the difference
-        const estimatedFitContentWidth = 116;
-        widthDifference = estimatedFitContentWidth - 320;
-      }
-
-      // Adjust x position to keep right edge in the same place
-      return {
-        x: currentPosition.x - widthDifference,
-        y: currentPosition.y,
-      };
-    },
-    [],
+    [id, addNode, getConnectionInfo],
   );
 
   // Effect to handle width changes and maintain right edge position
   useEffect(() => {
-    const newWidth = workflowVariables.length > 0 ? 320 : 'fit-content';
-    const oldWidth = previousWidth;
-
-    // Update the node style
-    if (workflowVariables.length > 0) {
-      setNodeStyle(id, NODE_SIDE_CONFIG);
-    } else {
-      setNodeStyle(id, { width: 'fit-content', height: 'auto' });
-    }
-
-    // Adjust position if width has changed to keep right edge in the same place
-    if (oldWidth !== newWidth) {
-      const currentNode = getNode(id);
-      if (currentNode?.position) {
-        const adjustedPosition = adjustPositionForWidthChange(
-          oldWidth,
-          newWidth,
-          currentNode.position,
-        );
-
-        // Only update position if it has actually changed
-        if (adjustedPosition.x !== currentNode.position.x) {
-          setNodePosition(id, adjustedPosition);
-        }
-      }
-
-      // Update the previous width for next comparison
-      setPreviousWidth(newWidth);
-    }
-  }, [
-    id,
-    setNodeStyle,
-    setNodePosition,
-    workflowVariables.length,
-    previousWidth,
-    adjustPositionForWidthChange,
-    getNode,
-  ]);
+    setNodeStyle(id, NODE_SIDE_CONFIG);
+  }, [id, setNodeStyle]);
 
   // Add event handling for askAI
   useEffect(() => {
@@ -267,31 +191,35 @@ export const StartNode = memo(({ id, selected, onNodeClick, data }: StartNodePro
       />
 
       <div
-        style={
-          workflowVariables.length > 0 ? NODE_SIDE_CONFIG : { width: 'fit-content', height: 'auto' }
-        }
-        className={`h-full flex flex-col relative p-4 box-border z-1
-          ${getNodeCommonStyles({ selected, isHovered })}
-        `}
+        style={NODE_SIDE_CONFIG}
+        className={cn(
+          'h-full flex flex-col relative box-border z-1 p-0',
+          getNodeCommonStyles({ selected, isHovered }),
+          'rounded-2xl border-solid border border-gray-200 bg-refly-bg-content-z2',
+        )}
       >
         {/* Header section */}
-        {workflowVariables.length > 0 && <Header className="mb-4" />}
+        <StartNodeHeader source="node" />
 
         {/* Input parameters section */}
         {workflowVariables.length > 0 ? (
-          <div className="space-y-2">
-            {workflowVariables.slice(0, 6).map((variable) => (
-              <InputParameterRow
-                key={variable.name}
-                label={variable.name}
-                isRequired={variable.required}
-                variableType={variable.variableType}
-                isSingle={variable.isSingle}
-              />
-            ))}
+          <div className="flex flex-col p-3">
+            <div className="space-y-2">
+              {workflowVariables.slice(0, 6).map((variable) => (
+                <InputParameterRow
+                  key={variable.name}
+                  label={variable.name}
+                  isRequired={variable.required}
+                  variableType={variable.variableType}
+                  isSingle={variable.isSingle}
+                />
+              ))}
+            </div>
           </div>
         ) : (
-          <Header />
+          <div className="flex flex-col p-3 text-xs text-refly-text-2">
+            {t('canvas.nodeActions.selectToEdit')}
+          </div>
         )}
       </div>
 

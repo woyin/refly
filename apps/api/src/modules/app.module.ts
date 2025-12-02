@@ -16,6 +16,7 @@ import { AppController } from './app.controller';
 import { KnowledgeModule } from './knowledge/knowledge.module';
 import { SkillModule } from './skill/skill.module';
 import { PilotModule } from './pilot/pilot.module';
+import { CopilotModule } from './copilot/copilot.module';
 import { SearchModule } from './search/search.module';
 import { LabelModule } from './label/label.module';
 import { EventModule } from './event/event.module';
@@ -39,8 +40,28 @@ import { WorkflowModule } from './workflow/workflow.module';
 import { WorkflowAppModule } from './workflow-app/workflow-app.module';
 import { ToolModule } from './tool/tool.module';
 import { VariableExtractionModule } from './variable-extraction/variable-extraction.module';
+import { InvitationModule } from './invitation/invitation.module';
+import { DriveModule } from './drive/drive.module';
 
 import { isDesktop } from '../utils/runtime';
+import { initTracer } from '../tracer';
+
+// Initialize OpenTelemetry tracing
+// - Tempo/Grafana: receives all spans (full observability)
+// - Langfuse: receives only LLM/LangChain spans (filtered via shouldExportSpan)
+const langfuseEnabled = process.env.LANGFUSE_ENABLED === 'true';
+if (process.env.OTLP_TRACES_ENDPOINT) {
+  initTracer({
+    otlpEndpoint: process.env.OTLP_TRACES_ENDPOINT,
+    langfuse: langfuseEnabled
+      ? {
+          publicKey: process.env.LANGFUSE_PUBLIC_KEY,
+          secretKey: process.env.LANGFUSE_SECRET_KEY,
+          baseUrl: process.env.LANGFUSE_BASE_URL,
+        }
+      : undefined,
+  });
+}
 
 class CustomThrottlerGuard extends ThrottlerGuard {
   protected async shouldSkip(context: ExecutionContext): Promise<boolean> {
@@ -75,7 +96,22 @@ class CustomThrottlerGuard extends ThrottlerGuard {
         },
         autoLogging: false,
         genReqId: () => api.trace.getSpan(api.context.active())?.spanContext()?.traceId,
-        transport: process.env.NODE_ENV !== 'production' ? { target: 'pino-pretty' } : undefined,
+        transport: process.env.LOKI_HOST
+          ? {
+              target: 'pino-loki',
+              options: {
+                batching: true,
+                interval: 5,
+                host: process.env.LOKI_HOST,
+                labels: {
+                  app: 'refly-api',
+                  env: process.env.NODE_ENV || 'development',
+                },
+              },
+            }
+          : process.env.NODE_ENV !== 'production'
+            ? { target: 'pino-pretty' }
+            : undefined,
         formatters: {
           level: (level) => ({ level }),
         },
@@ -88,6 +124,7 @@ class CustomThrottlerGuard extends ThrottlerGuard {
     KnowledgeModule,
     SkillModule,
     PilotModule,
+    CopilotModule,
     SearchModule,
     LabelModule,
     EventModule,
@@ -107,9 +144,11 @@ class CustomThrottlerGuard extends ThrottlerGuard {
     InternalMcpModule,
     MediaGeneratorModule,
     CreditModule,
+    InvitationModule,
     WorkflowModule,
     WorkflowAppModule,
     VariableExtractionModule,
+    DriveModule,
     ...(isDesktop()
       ? []
       : [

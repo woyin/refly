@@ -31,6 +31,8 @@ import { isDesktop } from '../../utils/runtime';
 import { ActionModule } from '../action/action.module';
 import { ToolModule } from '../tool/tool.module';
 import { ToolCallModule } from '../tool-call/tool-call.module';
+import { DriveModule } from '../drive/drive.module';
+import { CanvasSyncModule } from '../canvas-sync/canvas-sync.module';
 
 @Module({
   imports: [
@@ -44,12 +46,14 @@ import { ToolCallModule } from '../tool-call/tool-call.module';
     SubscriptionModule,
     CreditModule,
     MiscModule,
+    DriveModule,
     CodeArtifactModule,
     ProviderModule,
     ToolModule,
     ToolCallModule,
     McpServerModule,
     MediaGeneratorModule,
+    CanvasSyncModule,
     ...(isDesktop()
       ? []
       : [

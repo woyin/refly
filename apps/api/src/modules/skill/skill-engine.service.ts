@@ -1,34 +1,36 @@
-import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { Injectable, OnModuleInit } from '@nestjs/common';
+import { PinoLogger } from 'nestjs-pino';
+import { ConfigService } from '@nestjs/config';
 import { ModuleRef } from '@nestjs/core';
 import { ReflyService } from '@refly/agent-tools';
-import { SkillEngine, SkillEngineOptions, SkillRunnableConfig } from '@refly/skill-template';
-import { CanvasService } from '../canvas/canvas.service';
+import { SkillEngine, SkillEngineOptions } from '@refly/skill-template';
+import { genImageID } from '@refly/utils';
+import { buildSuccessResponse } from '../../utils';
+import { genBaseRespDataFromError } from '../../utils/exception';
+import { ActionService } from '../action/action.service';
+import { AuthService } from '../auth/auth.service';
 import { CanvasSyncService } from '../canvas-sync/canvas-sync.service';
+import { canvasPO2DTO } from '../canvas/canvas.dto';
+import { CanvasService } from '../canvas/canvas.service';
+import { codeArtifactPO2DTO } from '../code-artifact/code-artifact.dto';
+import { CodeArtifactService } from '../code-artifact/code-artifact.service';
+import { DriveService } from '../drive/drive.service';
+import { DocumentService } from '../knowledge/document.service';
+import { documentPO2DTO, resourcePO2DTO } from '../knowledge/knowledge.dto';
+import { ParserFactory } from '../knowledge/parsers/factory';
+import { ResourceService } from '../knowledge/resource.service';
+import { MediaGeneratorService } from '../media-generator/media-generator.service';
+import { MiscService } from '../misc/misc.service';
+import { NotificationService } from '../notification/notification.service';
 import { ProviderService } from '../provider/provider.service';
 import { RAGService } from '../rag/rag.service';
 import { SearchService } from '../search/search.service';
-import { buildSuccessResponse } from '../../utils';
-import { canvasPO2DTO } from '../canvas/canvas.dto';
-import { ParserFactory } from '../knowledge/parsers/factory';
-import { documentPO2DTO, resourcePO2DTO } from '../knowledge/knowledge.dto';
-import { ConfigService } from '@nestjs/config';
-import { AuthService } from '../auth/auth.service';
-import { MediaGeneratorService } from '../media-generator/media-generator.service';
-import { ActionService } from '../action/action.service';
-import { InternalToolService } from '../tool/internal-tool.service';
-import { NotificationService } from '../notification/notification.service';
-import { genBaseRespDataFromError } from '../../utils/exception';
-import { CodeArtifactService } from '../code-artifact/code-artifact.service';
-import { codeArtifactPO2DTO } from '../code-artifact/code-artifact.dto';
-import { ResourceService } from '../knowledge/resource.service';
-import { DocumentService } from '../knowledge/document.service';
-import { MiscService } from '../misc/misc.service';
-import { genImageID } from '@refly/utils';
+import { ShareCreationService } from '../share/share-creation.service';
+import { ScaleboxService } from '../tool/sandbox/scalebox.service';
+import { ToolService } from '../tool/tool.service';
 
 @Injectable()
 export class SkillEngineService implements OnModuleInit {
-  private logger = new Logger(SkillEngineService.name);
-
   private searchService: SearchService;
   private resourceService: ResourceService;
   private documentService: DocumentService;
@@ -38,16 +40,22 @@ export class SkillEngineService implements OnModuleInit {
   private authService: AuthService;
   private mediaGeneratorService: MediaGeneratorService;
   private actionService: ActionService;
-  private internalToolService: InternalToolService;
+  private driveService: DriveService;
   private notificationService: NotificationService;
   private codeArtifactService: CodeArtifactService;
   private miscService: MiscService;
   private engine: SkillEngine;
   private canvasSyncService: CanvasSyncService;
+  private toolService: ToolService;
+  private scaleboxService: ScaleboxService;
+  private shareCreationService: ShareCreationService;
   constructor(
     private moduleRef: ModuleRef,
     private config: ConfigService,
-  ) {}
+    private readonly logger: PinoLogger,
+  ) {
+    this.logger.setContext(SkillEngineService.name);
+  }
 
   async onModuleInit() {
     this.searchService = this.moduleRef.get(SearchService, { strict: false });
@@ -59,11 +67,14 @@ export class SkillEngineService implements OnModuleInit {
     this.authService = this.moduleRef.get(AuthService, { strict: false });
     this.mediaGeneratorService = this.moduleRef.get(MediaGeneratorService, { strict: false });
     this.actionService = this.moduleRef.get(ActionService, { strict: false });
-    this.internalToolService = this.moduleRef.get(InternalToolService, { strict: false });
+    this.driveService = this.moduleRef.get(DriveService, { strict: false });
     this.notificationService = this.moduleRef.get(NotificationService, { strict: false });
     this.codeArtifactService = this.moduleRef.get(CodeArtifactService, { strict: false });
     this.miscService = this.moduleRef.get(MiscService, { strict: false });
     this.canvasSyncService = this.moduleRef.get(CanvasSyncService, { strict: false });
+    this.toolService = this.moduleRef.get(ToolService, { strict: false });
+    this.scaleboxService = this.moduleRef.get(ScaleboxService, { strict: false });
+    this.shareCreationService = this.moduleRef.get(ShareCreationService, { strict: false });
   }
 
   /**
@@ -85,11 +96,28 @@ export class SkillEngineService implements OnModuleInit {
       },
       createCanvas: async (user, req) => {
         const canvas = await this.canvasService.createCanvas(user, req);
-        return buildSuccessResponse(canvasPO2DTO(canvas));
+        const canvasDTO = canvasPO2DTO(canvas);
+        if (canvasDTO.usedToolsets && canvasDTO.usedToolsets.length > 0) {
+          canvasDTO.usedToolsets = await this.toolService.populateToolsetsWithDefinition(
+            canvasDTO.usedToolsets,
+          );
+        }
+        return buildSuccessResponse(canvasDTO);
       },
       listCanvases: async (user, param) => {
         const canvasList = await this.canvasService.listCanvases(user, param);
-        return buildSuccessResponse(canvasList.map((canvas) => canvasPO2DTO(canvas)));
+        const canvasDTOs = canvasList.map((canvas) => canvasPO2DTO(canvas));
+        const populatedCanvases = await Promise.all(
+          canvasDTOs.map(async (canvasDTO) => {
+            if (canvasDTO.usedToolsets && canvasDTO.usedToolsets.length > 0) {
+              canvasDTO.usedToolsets = await this.toolService.populateToolsetsWithDefinition(
+                canvasDTO.usedToolsets,
+              );
+            }
+            return canvasDTO;
+          }),
+        );
+        return buildSuccessResponse(populatedCanvases);
       },
       deleteCanvas: async (user, param) => {
         await this.canvasService.deleteCanvas(user, param);
@@ -142,23 +170,6 @@ export class SkillEngineService implements OnModuleInit {
         const result = await this.searchService.search(user, req, options);
         return buildSuccessResponse(result);
       },
-      generateDoc: async (user, title, config) => {
-        const result = await this.internalToolService.generateDoc(
-          user,
-          title,
-          config as SkillRunnableConfig,
-        );
-        return result;
-      },
-      generateCodeArtifact: async (user, title, type, config) => {
-        const result = await this.internalToolService.generateCodeArtifact(
-          user,
-          title,
-          type,
-          config as SkillRunnableConfig,
-        );
-        return result;
-      },
       inMemorySearchWithIndexing: async (user, options) => {
         const result = await this.ragService.inMemorySearchWithIndexing(user, options);
         return buildSuccessResponse(result);
@@ -209,8 +220,8 @@ export class SkillEngineService implements OnModuleInit {
         const result = await this.notificationService.batchProcessURL(urls);
         return result;
       },
-      downloadFile: async (storageKey) => {
-        const result = await this.miscService.downloadFile({ storageKey, visibility: 'private' });
+      downloadFile: async (params) => {
+        const result = await this.miscService.downloadFile(params);
         return result;
       },
       downloadFileFromUrl: async (url) => {
@@ -225,11 +236,32 @@ export class SkillEngineService implements OnModuleInit {
         const result = await this.miscService.uploadBase64(user, param);
         return result;
       },
-      addNodeToCanvasWithoutCanvasId: async (user, node, connectTo, options) => {
-        await this.canvasSyncService.addNodeToCanvasWithoutCanvasId(user, node, connectTo, options);
+      readFile: async (user, fileId) => {
+        const result = await this.driveService.getDriveFileDetail(user, fileId);
+        return result;
+      },
+      writeFile: async (user, param) => {
+        return await this.driveService.createDriveFile(user, param);
+      },
+      createShareForDriveFile: async (user, fileId) => {
+        const { shareRecord, driveFile } = await this.shareCreationService.createShareForDriveFile(
+          user,
+          {
+            entityId: fileId,
+            entityType: 'driveFile',
+            allowDuplication: false,
+          },
+        );
+
+        const url = `${this.config.get('origin')}/share/file/${shareRecord.shareId}`;
+
+        return { url, shareId: shareRecord.shareId, driveFile };
       },
       genImageID: async () => {
         return genImageID();
+      },
+      execute: async (user, req) => {
+        return await this.scaleboxService.execute(user, req);
       },
     };
   };

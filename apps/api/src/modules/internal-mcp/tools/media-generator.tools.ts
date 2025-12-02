@@ -3,7 +3,7 @@ import { Tool, Context } from '@rekog/mcp-nest';
 import { z } from 'zod';
 import { Request } from 'express';
 import { InternalMcpService } from '../internal-mcp.service';
-import { User as UserModel } from '../../../generated/client';
+import { User as UserModel } from '@prisma/client';
 import { MediaGeneratorService } from '../../media-generator/media-generator.service';
 import { ActionService } from '../../action/action.service';
 import { ProviderService } from '../../provider/provider.service';
@@ -104,7 +104,7 @@ export class MediaGeneratorTools {
       // Start media generation
       const generateResponse = await this.mediaGeneratorService.generate(user, mediaRequest);
 
-      if (!generateResponse.success || !generateResponse.resultId) {
+      if (!generateResponse.resultId) {
         return this.internalMcpService.formatErrorResponse(
           new Error('Failed to start media generation'),
         );
@@ -238,6 +238,7 @@ export class MediaGeneratorTools {
         outputUrl: actionResult.outputUrl,
         storageKey: actionResult.storageKey,
         errors: actionResult.errors || [],
+        errorType: actionResult.errorType,
         createdAt: actionResult.createdAt,
         updatedAt: actionResult.updatedAt,
       };

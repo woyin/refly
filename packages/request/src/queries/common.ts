@@ -4,9 +4,12 @@ import { type Options } from '@hey-api/client-fetch';
 import { UseQueryResult } from '@tanstack/react-query';
 import {
   abortAction,
+  abortWorkflow,
+  activateInvitationCode,
   addNodesToCanvasPage,
   authorizeComposioConnection,
   autoNameCanvas,
+  batchCreateDriveFiles,
   batchCreateProviderItems,
   batchCreateResource,
   batchUpdateDocument,
@@ -21,6 +24,7 @@ import {
   createCheckoutSession,
   createCodeArtifact,
   createDocument,
+  createDriveFile,
   createLabelClass,
   createLabelInstance,
   createMcpServer,
@@ -39,6 +43,7 @@ import {
   createWorkflowApp,
   deleteCanvas,
   deleteDocument,
+  deleteDriveFile,
   deleteLabelClass,
   deleteLabelInstance,
   deleteMcpServer,
@@ -66,6 +71,7 @@ import {
   generateMedia,
   getActionResult,
   getAuthConfig,
+  getCanvasCommissionByCanvasId,
   getCanvasData,
   getCanvasDetail,
   getCanvasState,
@@ -73,6 +79,7 @@ import {
   getCodeArtifactDetail,
   getCollabToken,
   getComposioConnectionStatus,
+  getCopilotSessionDetail,
   getCreditBalance,
   getCreditRecharge,
   getCreditUsage,
@@ -88,9 +95,11 @@ import {
   getSettings,
   getSubscriptionPlans,
   getSubscriptionUsage,
+  getToolCallResult,
   getWorkflowAppDetail,
   getWorkflowDetail,
   getWorkflowVariables,
+  hasBeenInvited,
   importCanvas,
   initializeWorkflow,
   invokeSkill,
@@ -100,7 +109,10 @@ import {
   listCanvasTemplateCategories,
   listCanvasTemplates,
   listCodeArtifacts,
+  listCopilotSessions,
   listDocuments,
+  listDriveFiles,
+  listInvitationCodes,
   listLabelClasses,
   listLabelInstances,
   listMcpServers,
@@ -119,6 +131,7 @@ import {
   listTools,
   listToolsetInventory,
   listToolsets,
+  listUserTools,
   listWorkflowApps,
   logout,
   multiLingualWebSearch,
@@ -141,6 +154,7 @@ import {
   updateCanvasTemplate,
   updateCodeArtifact,
   updateDocument,
+  updateDriveFile,
   updateLabelClass,
   updateLabelInstance,
   updateMcpServer,
@@ -317,6 +331,16 @@ export const UseGetWorkflowVariablesKeyFn = (
   clientOptions: Options<unknown, true>,
   queryKey?: Array<unknown>,
 ) => [useGetWorkflowVariablesKey, ...(queryKey ?? [clientOptions])];
+export type ListDriveFilesDefaultResponse = Awaited<ReturnType<typeof listDriveFiles>>['data'];
+export type ListDriveFilesQueryResult<
+  TData = ListDriveFilesDefaultResponse,
+  TError = unknown,
+> = UseQueryResult<TData, TError>;
+export const useListDriveFilesKey = 'ListDriveFiles';
+export const UseListDriveFilesKeyFn = (
+  clientOptions: Options<unknown, true>,
+  queryKey?: Array<unknown>,
+) => [useListDriveFilesKey, ...(queryKey ?? [clientOptions])];
 export type ListCanvasTemplatesDefaultResponse = Awaited<
   ReturnType<typeof listCanvasTemplates>
 >['data'];
@@ -549,6 +573,30 @@ export const UseGetPilotSessionDetailKeyFn = (
   clientOptions: Options<unknown, true>,
   queryKey?: Array<unknown>,
 ) => [useGetPilotSessionDetailKey, ...(queryKey ?? [clientOptions])];
+export type ListCopilotSessionsDefaultResponse = Awaited<
+  ReturnType<typeof listCopilotSessions>
+>['data'];
+export type ListCopilotSessionsQueryResult<
+  TData = ListCopilotSessionsDefaultResponse,
+  TError = unknown,
+> = UseQueryResult<TData, TError>;
+export const useListCopilotSessionsKey = 'ListCopilotSessions';
+export const UseListCopilotSessionsKeyFn = (
+  clientOptions: Options<unknown, true> = {},
+  queryKey?: Array<unknown>,
+) => [useListCopilotSessionsKey, ...(queryKey ?? [clientOptions])];
+export type GetCopilotSessionDetailDefaultResponse = Awaited<
+  ReturnType<typeof getCopilotSessionDetail>
+>['data'];
+export type GetCopilotSessionDetailQueryResult<
+  TData = GetCopilotSessionDetailDefaultResponse,
+  TError = unknown,
+> = UseQueryResult<TData, TError>;
+export const useGetCopilotSessionDetailKey = 'GetCopilotSessionDetail';
+export const UseGetCopilotSessionDetailKeyFn = (
+  clientOptions: Options<unknown, true>,
+  queryKey?: Array<unknown>,
+) => [useGetCopilotSessionDetailKey, ...(queryKey ?? [clientOptions])];
 export type GetWorkflowDetailDefaultResponse = Awaited<
   ReturnType<typeof getWorkflowDetail>
 >['data'];
@@ -673,6 +721,40 @@ export const UseGetCreditUsageByCanvasIdKeyFn = (
   clientOptions: Options<unknown, true>,
   queryKey?: Array<unknown>,
 ) => [useGetCreditUsageByCanvasIdKey, ...(queryKey ?? [clientOptions])];
+export type GetCanvasCommissionByCanvasIdDefaultResponse = Awaited<
+  ReturnType<typeof getCanvasCommissionByCanvasId>
+>['data'];
+export type GetCanvasCommissionByCanvasIdQueryResult<
+  TData = GetCanvasCommissionByCanvasIdDefaultResponse,
+  TError = unknown,
+> = UseQueryResult<TData, TError>;
+export const useGetCanvasCommissionByCanvasIdKey = 'GetCanvasCommissionByCanvasId';
+export const UseGetCanvasCommissionByCanvasIdKeyFn = (
+  clientOptions: Options<unknown, true>,
+  queryKey?: Array<unknown>,
+) => [useGetCanvasCommissionByCanvasIdKey, ...(queryKey ?? [clientOptions])];
+export type ListInvitationCodesDefaultResponse = Awaited<
+  ReturnType<typeof listInvitationCodes>
+>['data'];
+export type ListInvitationCodesQueryResult<
+  TData = ListInvitationCodesDefaultResponse,
+  TError = unknown,
+> = UseQueryResult<TData, TError>;
+export const useListInvitationCodesKey = 'ListInvitationCodes';
+export const UseListInvitationCodesKeyFn = (
+  clientOptions: Options<unknown, true> = {},
+  queryKey?: Array<unknown>,
+) => [useListInvitationCodesKey, ...(queryKey ?? [clientOptions])];
+export type HasBeenInvitedDefaultResponse = Awaited<ReturnType<typeof hasBeenInvited>>['data'];
+export type HasBeenInvitedQueryResult<
+  TData = HasBeenInvitedDefaultResponse,
+  TError = unknown,
+> = UseQueryResult<TData, TError>;
+export const useHasBeenInvitedKey = 'HasBeenInvited';
+export const UseHasBeenInvitedKeyFn = (
+  clientOptions: Options<unknown, true> = {},
+  queryKey?: Array<unknown>,
+) => [useHasBeenInvitedKey, ...(queryKey ?? [clientOptions])];
 export type GetSubscriptionPlansDefaultResponse = Awaited<
   ReturnType<typeof getSubscriptionPlans>
 >['data'];
@@ -751,6 +833,16 @@ export const UseListToolsKeyFn = (
   clientOptions: Options<unknown, true> = {},
   queryKey?: Array<unknown>,
 ) => [useListToolsKey, ...(queryKey ?? [clientOptions])];
+export type ListUserToolsDefaultResponse = Awaited<ReturnType<typeof listUserTools>>['data'];
+export type ListUserToolsQueryResult<
+  TData = ListUserToolsDefaultResponse,
+  TError = unknown,
+> = UseQueryResult<TData, TError>;
+export const useListUserToolsKey = 'ListUserTools';
+export const UseListUserToolsKeyFn = (
+  clientOptions: Options<unknown, true> = {},
+  queryKey?: Array<unknown>,
+) => [useListUserToolsKey, ...(queryKey ?? [clientOptions])];
 export type ListToolsetInventoryDefaultResponse = Awaited<
   ReturnType<typeof listToolsetInventory>
 >['data'];
@@ -773,6 +865,18 @@ export const UseListToolsetsKeyFn = (
   clientOptions: Options<unknown, true> = {},
   queryKey?: Array<unknown>,
 ) => [useListToolsetsKey, ...(queryKey ?? [clientOptions])];
+export type GetToolCallResultDefaultResponse = Awaited<
+  ReturnType<typeof getToolCallResult>
+>['data'];
+export type GetToolCallResultQueryResult<
+  TData = GetToolCallResultDefaultResponse,
+  TError = unknown,
+> = UseQueryResult<TData, TError>;
+export const useGetToolCallResultKey = 'GetToolCallResult';
+export const UseGetToolCallResultKeyFn = (
+  clientOptions: Options<unknown, true>,
+  queryKey?: Array<unknown>,
+) => [useGetToolCallResultKey, ...(queryKey ?? [clientOptions])];
 export type GetComposioConnectionStatusDefaultResponse = Awaited<
   ReturnType<typeof getComposioConnectionStatus>
 >['data'];
@@ -945,6 +1049,30 @@ export type UpdateWorkflowVariablesMutationResult = Awaited<
 export const useUpdateWorkflowVariablesKey = 'UpdateWorkflowVariables';
 export const UseUpdateWorkflowVariablesKeyFn = (mutationKey?: Array<unknown>) => [
   useUpdateWorkflowVariablesKey,
+  ...(mutationKey ?? []),
+];
+export type CreateDriveFileMutationResult = Awaited<ReturnType<typeof createDriveFile>>;
+export const useCreateDriveFileKey = 'CreateDriveFile';
+export const UseCreateDriveFileKeyFn = (mutationKey?: Array<unknown>) => [
+  useCreateDriveFileKey,
+  ...(mutationKey ?? []),
+];
+export type BatchCreateDriveFilesMutationResult = Awaited<ReturnType<typeof batchCreateDriveFiles>>;
+export const useBatchCreateDriveFilesKey = 'BatchCreateDriveFiles';
+export const UseBatchCreateDriveFilesKeyFn = (mutationKey?: Array<unknown>) => [
+  useBatchCreateDriveFilesKey,
+  ...(mutationKey ?? []),
+];
+export type UpdateDriveFileMutationResult = Awaited<ReturnType<typeof updateDriveFile>>;
+export const useUpdateDriveFileKey = 'UpdateDriveFile';
+export const UseUpdateDriveFileKeyFn = (mutationKey?: Array<unknown>) => [
+  useUpdateDriveFileKey,
+  ...(mutationKey ?? []),
+];
+export type DeleteDriveFileMutationResult = Awaited<ReturnType<typeof deleteDriveFile>>;
+export const useDeleteDriveFileKey = 'DeleteDriveFile';
+export const UseDeleteDriveFileKeyFn = (mutationKey?: Array<unknown>) => [
+  useDeleteDriveFileKey,
   ...(mutationKey ?? []),
 ];
 export type CreateCanvasTemplateMutationResult = Awaited<ReturnType<typeof createCanvasTemplate>>;
@@ -1213,6 +1341,12 @@ export const UseInitializeWorkflowKeyFn = (mutationKey?: Array<unknown>) => [
   useInitializeWorkflowKey,
   ...(mutationKey ?? []),
 ];
+export type AbortWorkflowMutationResult = Awaited<ReturnType<typeof abortWorkflow>>;
+export const useAbortWorkflowKey = 'AbortWorkflow';
+export const UseAbortWorkflowKeyFn = (mutationKey?: Array<unknown>) => [
+  useAbortWorkflowKey,
+  ...(mutationKey ?? []),
+];
 export type CreateWorkflowAppMutationResult = Awaited<ReturnType<typeof createWorkflowApp>>;
 export const useCreateWorkflowAppKey = 'CreateWorkflowApp';
 export const UseCreateWorkflowAppKeyFn = (mutationKey?: Array<unknown>) => [
@@ -1229,6 +1363,14 @@ export type ExecuteWorkflowAppMutationResult = Awaited<ReturnType<typeof execute
 export const useExecuteWorkflowAppKey = 'ExecuteWorkflowApp';
 export const UseExecuteWorkflowAppKeyFn = (mutationKey?: Array<unknown>) => [
   useExecuteWorkflowAppKey,
+  ...(mutationKey ?? []),
+];
+export type ActivateInvitationCodeMutationResult = Awaited<
+  ReturnType<typeof activateInvitationCode>
+>;
+export const useActivateInvitationCodeKey = 'ActivateInvitationCode';
+export const UseActivateInvitationCodeKeyFn = (mutationKey?: Array<unknown>) => [
+  useActivateInvitationCodeKey,
   ...(mutationKey ?? []),
 ];
 export type CreateCheckoutSessionMutationResult = Awaited<ReturnType<typeof createCheckoutSession>>;

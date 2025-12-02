@@ -1,28 +1,26 @@
 import { codeArtifactEmitter } from '@refly-packages/ai-workspace-common/events/codeArtifact';
 import { deletedNodesEmitter } from '@refly-packages/ai-workspace-common/events/deleted-nodes';
-import { useFindImages } from '@refly-packages/ai-workspace-common/hooks/canvas/use-find-images';
-import { useFindMemo } from '@refly-packages/ai-workspace-common/hooks/canvas/use-find-memo';
-import { useFindThreadHistory } from '@refly-packages/ai-workspace-common/hooks/canvas/use-find-thread-history';
-import { useFindWebsite } from '@refly-packages/ai-workspace-common/hooks/canvas/use-find-website';
-import { useSetNodeDataByEntity } from '@refly-packages/ai-workspace-common/hooks/canvas/use-set-node-data-by-entity';
 import { ssePost } from '@refly-packages/ai-workspace-common/utils/sse-post';
-import { SkillNodeMeta, convertContextItemsToInvokeParams } from '@refly/canvas-common';
+import { convertContextItemsToInvokeParams } from '@refly/canvas-common';
 import {
+  ActionMessage,
   ActionResult,
   ActionStatus,
   ActionStep,
   ActionStepMeta,
+  AgentMode,
   Artifact,
   CodeArtifactType,
   Entity,
+  GenericToolset,
   InvokeSkillRequest,
+  ModelInfo,
   SkillEvent,
 } from '@refly/openapi-schema';
 import { useActionResultStore } from '@refly/stores';
 import { logEvent } from '@refly/telemetry-web';
 import { aggregateTokenUsage, detectActualTypeFromType, genActionResultID } from '@refly/utils';
 import { ARTIFACT_TAG_CLOSED_REGEX, getArtifactContentAndAttributes } from '@refly/utils/artifact';
-import { getRuntime } from '@refly/utils/env';
 import { useCallback, useEffect, useRef } from 'react';
 import {
   mergeToolCallById,
@@ -30,25 +28,43 @@ import {
 } from '../../components/markdown/plugins/tool-call/toolProcessor';
 import { useSubscriptionUsage } from '../use-subscription-usage';
 import {
-  globalAbortControllerRef,
-  globalCurrentResultIdRef,
-  globalIsAbortedRef,
+  cleanupAbortController,
+  globalAbortControllersRef,
+  globalAbortedResultsRef,
   useAbortAction,
 } from './use-abort-action';
 import { useActionPolling } from './use-action-polling';
+import { IContextItem } from '@refly/common-types';
 import { useUpdateActionResult } from './use-update-action-result';
+import { useAgentConnections } from '@refly-packages/ai-workspace-common/hooks/canvas/use-agent-connections';
+
+export interface InvokeActionPayload {
+  title?: string;
+  nodeId?: string;
+  query?: string;
+  resultId?: string;
+  version?: number;
+  modelInfo?: ModelInfo | null;
+  contextItems?: IContextItem[];
+  selectedToolsets?: GenericToolset[];
+  agentMode?: AgentMode;
+  copilotSessionId?: string;
+}
 
 export const useInvokeAction = (params?: { source?: string }) => {
   const latestStepsRef = useRef(new Map<string, ActionStep[]>());
+  // Message cache for real-time updates (similar to steps cache)
+  const latestMessagesRef = useRef(new Map<string, ActionMessage[]>());
+  const actionResultStatusRef = useRef(new Map<string, ActionStatus>());
 
   const { source } = params || {};
 
-  const setNodeDataByEntity = useSetNodeDataByEntity();
   const { abortAction } = useAbortAction(params);
 
   const deletedNodeIdsRef = useRef<Set<string>>(new Set());
 
   const { refetchUsage } = useSubscriptionUsage();
+  const { getUpstreamAgentNodes } = useAgentConnections();
 
   useEffect(() => {
     const handleNodeDeleted = (entityId: string) => {
@@ -64,23 +80,26 @@ export const useInvokeAction = (params?: { source?: string }) => {
     };
   }, []);
 
-  const { createTimeoutHandler, stopPolling } = useActionPolling();
+  const { stopPolling } = useActionPolling();
   const onUpdateResult = useUpdateActionResult();
 
   const onSkillStart = (skillEvent: SkillEvent) => {
     const { resultId } = skillEvent;
-    const { resultMap } = useActionResultStore.getState();
-    const result = resultMap[resultId];
+    const status = getActionStatus(resultId);
 
-    if (!result) {
+    if (!status) {
       return;
     }
+
+    // Get result info from store for logging (this is acceptable for logging)
+    const { resultMap } = useActionResultStore.getState();
+    const result = resultMap[resultId];
 
     logEvent('model::invoke_start', Date.now(), {
       resultId,
       source,
-      model: result.modelInfo?.name,
-      skill: result.actionMeta?.name,
+      model: result?.modelInfo?.name,
+      skill: result?.actionMeta?.name,
     });
 
     stopPolling(resultId);
@@ -88,10 +107,17 @@ export const useInvokeAction = (params?: { source?: string }) => {
 
   const onSkillLog = (skillEvent: SkillEvent) => {
     const { resultId, step, log } = skillEvent;
+    const status = getActionStatus(resultId);
+
+    if (!status || !step) {
+      return;
+    }
+
+    // Get result from store for steps access
     const { resultMap } = useActionResultStore.getState();
     const result = resultMap[resultId];
 
-    if (!result || !step) {
+    if (!result) {
       return;
     }
 
@@ -109,17 +135,18 @@ export const useInvokeAction = (params?: { source?: string }) => {
 
   const onSkillTokenUsage = (skillEvent: SkillEvent) => {
     const { resultId, step, tokenUsage } = skillEvent;
-    const { resultMap } = useActionResultStore.getState();
-    const result = resultMap[resultId];
+    const status = getActionStatus(resultId);
 
-    if (!result || !step) {
+    if (!status || !step) {
       return;
     }
 
-    const currentResult = useActionResultStore.getState().resultMap[resultId];
-    if (!currentResult) return;
+    // Get result from store for steps access
+    const { resultMap } = useActionResultStore.getState();
+    const result = resultMap[resultId];
+    if (!result) return;
 
-    const updatedStep: ActionStep = findOrCreateStep(currentResult.steps ?? [], step);
+    const updatedStep: ActionStep = findOrCreateStep(result.steps ?? [], step);
     if (tokenUsage) {
       updatedStep.tokenUsage = aggregateTokenUsage([...(updatedStep.tokenUsage ?? []), tokenUsage]);
     }
@@ -127,7 +154,7 @@ export const useInvokeAction = (params?: { source?: string }) => {
     onUpdateResult(
       resultId,
       {
-        steps: getUpdatedSteps(currentResult.steps ?? [], updatedStep),
+        steps: getUpdatedSteps(result.steps ?? [], updatedStep),
       },
       skillEvent,
     );
@@ -151,6 +178,35 @@ export const useInvokeAction = (params?: { source?: string }) => {
       return [...steps, updatedStep];
     }
     return steps.map((step) => (step.name === updatedStep.name ? updatedStep : step));
+  };
+
+  // Message helper functions
+  const findOrCreateMessage = (
+    messages: ActionMessage[],
+    messageId: string,
+    type: 'ai' | 'tool',
+  ): ActionMessage => {
+    const existingMessage = messages?.find((m) => m.messageId === messageId);
+    return existingMessage
+      ? { ...existingMessage }
+      : {
+          messageId,
+          type,
+          content: '',
+          reasoningContent: '',
+          createdAt: new Date().toISOString(),
+        };
+  };
+
+  const getUpdatedMessages = (
+    messages: ActionMessage[],
+    updatedMessage: ActionMessage,
+  ): ActionMessage[] => {
+    const existingIndex = messages?.findIndex((m) => m.messageId === updatedMessage.messageId);
+    if (existingIndex === -1 || existingIndex === undefined) {
+      return [...(messages ?? []), updatedMessage];
+    }
+    return messages.map((msg, index) => (index === existingIndex ? updatedMessage : msg));
   };
 
   // Update toolCalls on a step by parsing tool_use XML in the current chunk content
@@ -207,31 +263,102 @@ export const useInvokeAction = (params?: { source?: string }) => {
   const clearLatestSteps = (resultId?: string) => {
     if (!resultId) {
       latestStepsRef.current.clear();
+      latestMessagesRef.current.clear();
     } else {
       latestStepsRef.current.delete(resultId);
+      latestMessagesRef.current.delete(resultId);
     }
   };
 
+  const getActionStatus = (resultId: string): ActionStatus | null => {
+    const cachedStatus = actionResultStatusRef.current.get(resultId);
+    if (cachedStatus) return cachedStatus;
+
+    const storeResult = useActionResultStore.getState().resultMap[resultId];
+    return storeResult?.status ?? null;
+  };
+
+  const setActionStatus = (resultId: string, status: ActionStatus) => {
+    actionResultStatusRef.current.set(resultId, status);
+  };
+
+  const getLatestMessages = (resultId: string): ActionMessage[] => {
+    const cached = latestMessagesRef.current.get(resultId);
+    if (cached && cached.length > 0) return cached;
+
+    const storeMessages = useActionResultStore.getState().resultMap[resultId]?.messages ?? [];
+    return storeMessages;
+  };
+
+  const setLatestMessages = (resultId: string, messages: ActionMessage[]) => {
+    latestMessagesRef.current.set(resultId, messages);
+  };
+
   const onSkillStream = (skillEvent: SkillEvent) => {
-    const { resultId, content = '', reasoningContent = '', step, artifact } = skillEvent;
+    const { resultId, content = '', reasoningContent = '', step, artifact, messageId } = skillEvent;
+    const status = getActionStatus(resultId);
+
+    if (!status || !step) {
+      return;
+    }
+
+    // Get result from store for steps access
     const { resultMap } = useActionResultStore.getState();
     const result = resultMap[resultId];
 
-    if (!result || !step) {
+    if (!result) {
       return;
     }
-    const updatedStep: ActionStep = findOrCreateStep(result.steps ?? [], step);
-    updatedStep.content = (updatedStep.content ?? '') + (content ?? '');
-    if (!updatedStep.reasoningContent) {
-      updatedStep.reasoningContent = reasoningContent ?? '';
-    } else {
-      updatedStep.reasoningContent =
-        (updatedStep.reasoningContent ?? '') + (reasoningContent ?? '');
-    }
 
-    const payload = {
-      steps: getUpdatedSteps(result.steps ?? [], updatedStep),
+    // Use cached steps for real-time updates (same pattern as onToolCallStream)
+    const currentSteps = getLatestSteps(resultId);
+
+    // Update steps (for backward compatibility)
+    const existingStep = currentSteps.find((s) => s.name === step.name);
+    const updatedStep: ActionStep = existingStep
+      ? { ...existingStep }
+      : {
+          ...step,
+          content: '',
+          reasoningContent: '',
+          artifacts: [],
+          structuredData: {},
+        };
+
+    updatedStep.content = (updatedStep.content ?? '') + (content ?? '');
+    updatedStep.reasoningContent = (updatedStep.reasoningContent ?? '') + (reasoningContent ?? '');
+
+    const mergedSteps = getUpdatedSteps(currentSteps, updatedStep);
+    setLatestSteps(resultId, mergedSteps);
+
+    const payload: Partial<ActionResult> = {
+      status,
+      steps: mergedSteps,
     };
+
+    // Update messages if messageId is provided (also use cache for real-time updates)
+    if (messageId) {
+      const currentMessages = getLatestMessages(resultId);
+      const existingMessage = currentMessages.find((m) => m.messageId === messageId);
+      const updatedMessage: ActionMessage = existingMessage
+        ? { ...existingMessage }
+        : {
+            messageId,
+            type: 'ai',
+            content: '',
+            reasoningContent: '',
+            createdAt: new Date().toISOString(),
+          };
+
+      updatedMessage.content = (updatedMessage.content ?? '') + (content ?? '');
+      updatedMessage.reasoningContent =
+        (updatedMessage.reasoningContent ?? '') + (reasoningContent ?? '');
+      updatedMessage.updatedAt = new Date().toISOString();
+
+      const mergedMessages = getUpdatedMessages(currentMessages, updatedMessage);
+      setLatestMessages(resultId, mergedMessages);
+      payload.messages = mergedMessages;
+    }
 
     if (artifact) {
       onSkillStreamArtifact(resultId, artifact, updatedStep.content ?? '');
@@ -242,10 +369,17 @@ export const useInvokeAction = (params?: { source?: string }) => {
 
   const onSkillStructedData = (skillEvent: SkillEvent) => {
     const { step, resultId, structuredData = {} } = skillEvent;
+    const status = getActionStatus(resultId);
+
+    if (!status || !structuredData || !step) {
+      return;
+    }
+
+    // Get result from store for steps access
     const { resultMap } = useActionResultStore.getState();
     const result = resultMap[resultId];
 
-    if (!result || !structuredData || !step) {
+    if (!result) {
       return;
     }
 
@@ -281,6 +415,7 @@ export const useInvokeAction = (params?: { source?: string }) => {
     }
 
     const payload = {
+      status,
       steps: getUpdatedSteps(result.steps ?? [], updatedStep),
     };
     onUpdateResult(skillEvent.resultId, payload, skillEvent);
@@ -288,10 +423,17 @@ export const useInvokeAction = (params?: { source?: string }) => {
 
   const onSkillArtifact = (skillEvent: SkillEvent) => {
     const { resultId, artifact, step } = skillEvent;
+    const status = getActionStatus(resultId);
+
+    if (!status || !step || !artifact) {
+      return;
+    }
+
+    // Get result from store for steps access
     const { resultMap } = useActionResultStore.getState();
     const result = resultMap[resultId];
 
-    if (!result || !step || !artifact) {
+    if (!result) {
       return;
     }
 
@@ -309,6 +451,7 @@ export const useInvokeAction = (params?: { source?: string }) => {
         : [...existingArtifacts, artifact];
 
     const payload = {
+      status,
       steps: getUpdatedSteps(result.steps ?? [], updatedStep),
     };
 
@@ -321,6 +464,8 @@ export const useInvokeAction = (params?: { source?: string }) => {
 
   const onSkillEnd = (skillEvent: SkillEvent) => {
     clearLatestSteps(skillEvent.resultId);
+
+    // Get result from store for logging
     const { resultMap } = useActionResultStore.getState();
     const result = resultMap[skillEvent.resultId];
 
@@ -337,59 +482,20 @@ export const useInvokeAction = (params?: { source?: string }) => {
 
     stopPolling(skillEvent.resultId);
 
+    setActionStatus(skillEvent.resultId, 'finish');
     const payload = {
       status: 'finish' as const,
     };
     onUpdateResult(skillEvent.resultId, payload, skillEvent);
-
-    if (globalCurrentResultIdRef.current === skillEvent.resultId) {
-      globalCurrentResultIdRef.current = '';
-    }
-
-    const artifacts = result.steps?.flatMap((s) => s.artifacts ?? []);
-    if (artifacts?.length) {
-      for (const artifact of artifacts) {
-        if (deletedNodeIdsRef.current.has(artifact.entityId)) {
-          continue;
-        }
-
-        if (artifact.type === 'codeArtifact') {
-          setNodeDataByEntity(
-            {
-              type: artifact.type,
-              entityId: artifact.entityId,
-            },
-            {
-              metadata: {
-                status: 'finish',
-                activeTab: 'preview', // Set to preview when skill finishes
-              },
-            },
-          );
-        } else {
-          setNodeDataByEntity(
-            {
-              type: artifact.type,
-              entityId: artifact.entityId,
-            },
-            {
-              metadata: {
-                status: 'finish',
-              },
-            },
-          );
-        }
-      }
-    }
 
     refetchUsage();
   };
 
   const onSkillError = (skillEvent: SkillEvent) => {
     clearLatestSteps(skillEvent.resultId);
-    const runtime = getRuntime();
     const { originError, resultId } = skillEvent;
 
+    // Get result from store for logging and setTraceId
     const { resultMap, setTraceId } = useActionResultStore.getState();
     const result = resultMap[resultId];
 
@@ -414,30 +520,217 @@ export const useInvokeAction = (params?: { source?: string }) => {
       setTraceId(resultId, traceId);
     }
 
+    setActionStatus(skillEvent.resultId, 'failed');
     const payload = {
       status: 'failed' as const,
       errors: originError ? [originError] : [],
     };
     onUpdateResult(skillEvent.resultId, payload, skillEvent);
 
-    if (runtime?.includes('extension')) {
-      if (globalIsAbortedRef.current) {
-        return;
-      }
-    } else {
-      // if it is aborted, do nothing
-      if (globalAbortControllerRef.current?.signal?.aborted) {
-        return;
-      }
+    // if it is aborted, do nothing
+    if (globalAbortedResultsRef.current.has(resultId)) {
+      return;
     }
   };
 
-  // deprecated, use stream instead
+  // Handle tool_call_start event - create a new tool message
   const onToolCallStart = (skillEvent: SkillEvent) => {
-    onToolCallStream(skillEvent);
+    const {
+      resultId,
+      messageId,
+      toolCallMeta,
+      toolCallResult,
+      step,
+      content = '',
+      reasoningContent = '',
+    } = skillEvent;
+    const status = getActionStatus(resultId);
+
+    if (!status) return;
+
+    // Get result from store for other properties if needed
+    const { resultMap } = useActionResultStore.getState();
+    const result = resultMap[resultId];
+
+    if (!result) return;
+
+    const payload: Partial<ActionResult> = {
+      status,
+    };
+
+    // Update messages with tool message if messageId is provided
+    if (messageId && toolCallMeta) {
+      const currentMessages = getLatestMessages(resultId);
+      const updatedMessage = findOrCreateMessage(currentMessages, messageId, 'tool');
+      updatedMessage.toolCallMeta = toolCallMeta;
+      updatedMessage.toolCallId = toolCallMeta.toolCallId;
+      updatedMessage.toolCallResult = toolCallResult;
+      updatedMessage.updatedAt = new Date().toISOString();
+
+      const mergedMessages = getUpdatedMessages(currentMessages, updatedMessage);
+      setLatestMessages(resultId, mergedMessages);
+      payload.messages = mergedMessages;
+    }
+
+    // Also update steps for backward compatibility
+    if (step) {
+      const currentSteps = getLatestSteps(resultId);
+      const existingStep = currentSteps.find((s) => s.name === step.name);
+      const updatedStep: ActionStep = existingStep
+        ? { ...existingStep }
+        : {
+            ...step,
+            content: '',
+            reasoningContent: '',
+            artifacts: [],
+            structuredData: {},
+          };
+
+      updatedStep.content = (updatedStep.content ?? '') + (content ?? '');
+      updatedStep.reasoningContent =
+        (updatedStep.reasoningContent ?? '') + (reasoningContent ?? '');
+      updateToolCallsFromXml(updatedStep, step, content);
+
+      const mergedSteps = getUpdatedSteps(currentSteps, updatedStep);
+      setLatestSteps(resultId, mergedSteps);
+      payload.steps = mergedSteps;
+    }
+
+    onUpdateResult(resultId, payload, skillEvent);
   };
 
-  // deprecated, use stream instead
+  // Handle tool_call_end event - update tool message status to completed
+  const onToolCallEnd = (skillEvent: SkillEvent) => {
+    const {
+      resultId,
+      messageId,
+      toolCallMeta,
+      toolCallResult,
+      step,
+      content = '',
+      artifact,
+    } = skillEvent;
+    const status = getActionStatus(resultId);
+
+    if (!status) return;
+
+    // Get result from store for other properties if needed
+    const { resultMap } = useActionResultStore.getState();
+    const result = resultMap[resultId];
+
+    if (!result) return;
+
+    const payload: Partial<ActionResult> = {
+      status,
+    };
+
+    // Update messages with completed status
+    if (messageId && toolCallMeta) {
+      const currentMessages = getLatestMessages(resultId);
+      const updatedMessage = findOrCreateMessage(currentMessages, messageId, 'tool');
+      updatedMessage.toolCallMeta = {
+        ...updatedMessage.toolCallMeta,
+        ...toolCallMeta,
+        status: 'completed',
+      };
+      updatedMessage.toolCallId = toolCallMeta.toolCallId;
+      updatedMessage.toolCallResult = toolCallResult;
+      updatedMessage.updatedAt = new Date().toISOString();
+
+      const mergedMessages = getUpdatedMessages(currentMessages, updatedMessage);
+      setLatestMessages(resultId, mergedMessages);
+      payload.messages = mergedMessages;
+    }
+
+    // Also update steps for backward compatibility
+    if (step) {
+      const currentSteps = getLatestSteps(resultId);
+      const existingStep = currentSteps.find((s) => s.name === step.name);
+      const updatedStep: ActionStep = existingStep
+        ? { ...existingStep }
+        : {
+            ...step,
+            content: '',
+            reasoningContent: '',
+            artifacts: [],
+            structuredData: {},
+          };
+
+      updatedStep.content = (updatedStep.content ?? '') + (content ?? '');
+      updateToolCallsFromXml(updatedStep, step, content);
+
+      const mergedSteps = getUpdatedSteps(currentSteps, updatedStep);
+      setLatestSteps(resultId, mergedSteps);
+      if (artifact) {
+        onSkillStreamArtifact(resultId, artifact, updatedStep.content ?? '');
+      }
+      payload.steps = mergedSteps;
+    }
+
+    onUpdateResult(resultId, payload, skillEvent);
+  };
+
+  // Handle tool_call_error event - update tool message status to failed
+  const onToolCallError = (skillEvent: SkillEvent) => {
+    const { resultId, messageId, toolCallMeta, toolCallResult, step, content = '' } = skillEvent;
+    const status = getActionStatus(resultId);
+
+    if (!status) return;
+
+    // Get result from store for other properties if needed
+    const { resultMap } = useActionResultStore.getState();
+    const result = resultMap[resultId];
+
+    if (!result) return;
+
+    const payload: Partial<ActionResult> = {
+      status,
+    };
+
+    // Update messages with failed status
+    if (messageId && toolCallMeta) {
+      const currentMessages = getLatestMessages(resultId);
+      const updatedMessage = findOrCreateMessage(currentMessages, messageId, 'tool');
+      updatedMessage.toolCallMeta = {
+        ...updatedMessage.toolCallMeta,
+        ...toolCallMeta,
+        status: 'failed',
+      };
+      updatedMessage.toolCallId = toolCallMeta.toolCallId;
+      updatedMessage.toolCallResult = toolCallResult;
+      updatedMessage.updatedAt = new Date().toISOString();
+
+      const mergedMessages = getUpdatedMessages(currentMessages, updatedMessage);
+      setLatestMessages(resultId, mergedMessages);
+      payload.messages = mergedMessages;
+    }
+
+    // Also update steps for backward compatibility
+    if (step) {
+      const currentSteps = getLatestSteps(resultId);
+      const existingStep = currentSteps.find((s) => s.name === step.name);
+      const updatedStep: ActionStep = existingStep
+        ? { ...existingStep }
+        : {
+            ...step,
+            content: '',
+            reasoningContent: '',
+            artifacts: [],
+            structuredData: {},
+          };
+
+      updatedStep.content = (updatedStep.content ?? '') + (content ?? '');
+      updateToolCallsFromXml(updatedStep, step, content);
+
+      const mergedSteps = getUpdatedSteps(currentSteps, updatedStep);
+      setLatestSteps(resultId, mergedSteps);
+      payload.steps = mergedSteps;
+    }
+
+    onUpdateResult(resultId, payload, skillEvent);
+  };
+
+  // Handle tool_call_stream event - update tool call XML content in steps
   const onToolCallStream = (skillEvent: SkillEvent) => {
     const { resultId, content = '', reasoningContent = '', step, artifact } = skillEvent;
     if (!resultId || !step) return;
@@ -474,153 +767,103 @@ export const useInvokeAction = (params?: { source?: string }) => {
 
   const onCompleted = () => {};
   const onStart = () => {};
-  const findThreadHistory = useFindThreadHistory();
-  const findMemo = useFindMemo();
-  const findWebsite = useFindWebsite();
-  const findImages = useFindImages();
 
   const invokeAction = useCallback(
-    async (payload: SkillNodeMeta, target: Entity) => {
+    async (payload: InvokeActionPayload, target: Entity) => {
       deletedNodeIdsRef.current = new Set();
 
       payload.resultId ||= genActionResultID();
-      payload.selectedSkill ||= { name: 'commonQnA' };
 
       const {
+        title,
+        nodeId,
         query,
         modelInfo,
         contextItems,
-        selectedSkill,
         resultId,
         version = 0,
-        tplConfig = {},
-        runtimeConfig = {},
-        projectId,
         selectedToolsets = [],
+        agentMode = 'node_agent',
+        copilotSessionId,
       } = payload;
-
-      const originalQuery = payload.structuredData?.query as string;
 
       logEvent('model::invoke_trigger', Date.now(), {
         source,
         resultId,
         model: modelInfo?.name,
         target: target?.entityType,
-        skill: selectedSkill?.name,
       });
 
-      globalAbortControllerRef.current = new AbortController();
-      globalCurrentResultIdRef.current = resultId; // Track current active resultId
+      const controller = new AbortController();
+      globalAbortControllersRef.current.set(resultId, controller);
+      globalAbortedResultsRef.current.delete(resultId);
 
-      const { context, resultHistory, images } = convertContextItemsToInvokeParams(
+      const upstreamAgentNodes = nodeId ? getUpstreamAgentNodes(nodeId) : [];
+      const context = convertContextItemsToInvokeParams(
         contextItems ?? [],
-        (item) =>
-          findThreadHistory({ resultId: item.entityId }).map((node) => ({
-            title: node.data?.title,
-            resultId: node.data?.entityId,
-          })),
-        (item) => {
-          if (item.type === 'memo') {
-            return findMemo({ resultId: item.entityId }).map((node) => ({
-              content: node.data?.contentPreview ?? '',
-              title: node.data?.title ?? 'Memo',
-            }));
-          }
-          return [];
-        },
-        (item) => {
-          if (item.type === 'image') {
-            return findImages({ resultId: item.entityId });
-          }
-          return [];
-        },
-        (item) => {
-          if (item.type === 'website') {
-            return findWebsite({ resultId: item.entityId }).map((node) => ({
-              url: node.data?.metadata?.url ?? '',
-              title: node.data?.title ?? 'Website',
-            }));
-          }
-          return [];
-        },
+        upstreamAgentNodes.map((node) => node.data?.entityId) ?? [],
       );
 
       const param: InvokeSkillRequest = {
         resultId,
+        title: title ?? query,
         input: {
           query,
-          originalQuery,
-          images,
         },
         target,
         modelName: modelInfo?.name,
         modelItemId: modelInfo?.providerItemId,
         context,
-        resultHistory,
-        skillName: selectedSkill?.name,
         toolsets: selectedToolsets,
-        tplConfig,
-        runtimeConfig,
-        projectId,
+        mode: agentMode,
+        copilotSessionId,
       };
 
       const initialResult: ActionResult = {
         resultId,
         version,
         type: 'skill',
-        actionMeta: selectedSkill,
         modelInfo,
         title: query,
+        input: param.input,
         targetId: target?.entityId,
         targetType: target?.entityType,
         context,
-        history: resultHistory,
-        tplConfig,
-        runtimeConfig,
-        status: 'waiting' as ActionStatus,
+        status: 'executing' as ActionStatus,
         steps: [],
         errors: [],
       };
 
+      setActionStatus(resultId, 'executing');
       onUpdateResult(resultId, initialResult);
       useActionResultStore.getState().addStreamResult(resultId, initialResult);
+      useActionResultStore.getState().setResultActiveTab(resultId, 'lastRun');
 
-      // Create timeout handler for this action
-      const { resetTimeout, cleanup: timeoutCleanup } = createTimeoutHandler(resultId, version);
-
-      // Wrap event handlers to reset timeout
-      const wrapEventHandler =
-        (handler: (...args: any[]) => void) =>
-        (...args: any[]) => {
-          resetTimeout();
-          handler(...args);
-        };
-
-      resetTimeout();
-
-      await ssePost({
-        controller: globalAbortControllerRef.current,
-        payload: param,
-        onStart: wrapEventHandler(onStart),
-        onSkillStart: wrapEventHandler(onSkillStart),
-        onSkillStream: wrapEventHandler(onSkillStream),
-        onToolCallStart: wrapEventHandler(onToolCallStart),
-        onToolCallStream: wrapEventHandler(onToolCallStream),
-        onSkillLog: wrapEventHandler(onSkillLog),
-        onSkillArtifact: wrapEventHandler(onSkillArtifact),
-        onSkillStructedData: wrapEventHandler(onSkillStructedData),
-        onSkillCreateNode: wrapEventHandler(onSkillCreateNode),
-        onSkillEnd: wrapEventHandler(onSkillEnd),
-        onCompleted: wrapEventHandler(onCompleted),
-        onSkillError: wrapEventHandler(onSkillError),
-        onSkillTokenUsage: wrapEventHandler(onSkillTokenUsage),
-      });
-
-      return () => {
-        timeoutCleanup();
-      };
+      try {
+        await ssePost({
+          controller,
+          payload: param,
+          onStart,
+          onSkillStart,
+          onSkillStream,
+          onToolCallStart,
+          onToolCallEnd,
+          onToolCallError,
+          onToolCallStream,
+          onSkillLog,
+          onSkillArtifact,
+          onSkillStructedData,
+          onSkillCreateNode,
+          onSkillEnd,
+          onCompleted,
+          onSkillError,
+          onSkillTokenUsage,
+        });
+      } finally {
+        cleanupAbortController(resultId);
+      }
     },
-    [setNodeDataByEntity, onUpdateResult, createTimeoutHandler],
+    [source, abortAction, onUpdateResult, getUpstreamAgentNodes, refetchUsage],
   );
 
   return { invokeAction, abortAction };

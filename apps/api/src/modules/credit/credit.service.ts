@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../common/prisma.service';
 import { RedisService } from '../common/redis.service';
-import { User } from '@refly/openapi-schema';
+import { CreditRechargeExtraData, CreditUsageExtraData, User } from '@refly/openapi-schema';
 import { CreditBilling, CreditRecharge, CreditUsage, RawCanvasData } from '@refly/openapi-schema';
 import {
   CheckRequestCreditUsageResult,
@@ -18,11 +18,14 @@ import {
   genSubscriptionRechargeId,
   genCommissionCreditUsageId,
   genCommissionCreditRechargeId,
+  genRegistrationCreditRechargeId,
+  genInvitationActivationCreditRechargeId,
 } from '@refly/utils';
+
 import { CreditBalance } from './credit.dto';
 import { CanvasSyncService } from '../canvas-sync/canvas-sync.service';
 import { ConfigService } from '@nestjs/config';
-
+import { WorkflowAppNotFoundError } from '@refly/errors';
 @Injectable()
 export class CreditService {
   private readonly logger = new Logger(CreditService.name);
@@ -43,12 +46,14 @@ export class CreditService {
     creditAmount: number,
     rechargeData: {
       rechargeId: string;
-      source: 'gift' | 'subscription' | 'commission';
+      source: 'gift' | 'subscription' | 'commission' | 'invitation';
       description?: string;
       createdAt: Date;
       expiresAt: Date;
     },
     now: Date = new Date(),
+    extraData?: CreditRechargeExtraData,
+    appId?: string,
   ): Promise<void> {
     // Check for existing debts
     const activeDebts = await this.prisma.creditDebt.findMany({
@@ -106,6 +111,8 @@ export class CreditService {
               createdAt: rechargeData.createdAt,
               updatedAt: now,
               expiresAt: rechargeData.expiresAt,
+              appId,
+              extraData: JSON.stringify(extraData),
             },
           ],
           skipDuplicates: true,
@@ -187,6 +194,8 @@ export class CreditService {
     executionId: string,
     creditUsage: number,
     appId?: string,
+    title?: string,
+    shareId?: string,
   ): Promise<void> {
     const creditUsageId = genCommissionCreditUsageId(executionId);
     const creditRechargeId = genCommissionCreditRechargeId(executionId);
@@ -198,19 +207,224 @@ export class CreditService {
       expiresAt.getMonth() + this.configService.get('credit.commissionCreditExpiresIn'),
     );
 
-    await this.processCreditRecharge(shareUserId, creditUsage, {
-      rechargeId: creditRechargeId,
-      source: 'commission',
-      description: `Commission credit for sharing execution ${executionId} from app ${appId}`,
-      createdAt: now,
-      expiresAt,
+    await this.processCreditRecharge(
+      shareUserId,
+      creditUsage,
+      {
+        rechargeId: creditRechargeId,
+        source: 'commission',
+        description: `Commission credit for sharing execution ${executionId} from app ${appId}`,
+        createdAt: now,
+        expiresAt,
+      },
+      now,
+      {
+        executionId,
+        shareId,
+        title,
+        appId,
+        commissionRate: this.configService.get('credit.canvasCreditCommissionRate'),
+      },
+      appId,
+    );
+    await this.deductCreditsAndCreateUsage(
+      uid,
+      creditUsage,
+      {
+        usageId: creditUsageId,
+        usageType: 'commission',
+        createdAt: now,
+        description: `Commission credit for sharing execution ${executionId} from app ${appId}`,
+        appId,
+      },
+      creditUsage,
+      {
+        executionId,
+        shareId,
+        title,
+        appId,
+        commissionRate: this.configService.get('credit.canvasCreditCommissionRate'),
+      },
+    );
+  }
+
+  /**
+   * Create registration credit recharge for a user
+   * This method creates a one-time configurable credit registration bonus
+   * Each user can only receive this bonus once (uid unique constraint)
+   */
+  async createRegistrationCreditRecharge(uid: string, now: Date = new Date()): Promise<void> {
+    // Check if user already has registration bonus
+    const existingBonus = await this.prisma.creditRecharge.findFirst({
+      where: {
+        uid,
+        source: 'gift',
+        description: 'Registration bonus credit recharge',
+        enabled: true,
+      },
     });
-    await this.deductCreditsAndCreateUsage(uid, creditUsage, {
-      usageId: creditUsageId,
-      usageType: 'commission',
-      createdAt: now,
-      description: `Commission credit for sharing execution ${executionId} from app ${appId}`,
+
+    if (existingBonus) {
+      this.logger.log(`User ${uid} already has registration bonus, skipping`);
+      return;
+    }
+
+    const bonusCreditAmount = this.configService.get('auth.registration.bonusCreditAmount');
+    const bonusCreditExpiresInMonths = this.configService.get(
+      'auth.registration.bonusCreditExpiresInMonths',
+    );
+
+    // Calculate expiration date
+    const expiresAt = new Date(now);
+    expiresAt.setMonth(expiresAt.getMonth() + bonusCreditExpiresInMonths);
+
+    await this.processCreditRecharge(
+      uid,
+      bonusCreditAmount,
+      {
+        rechargeId: genRegistrationCreditRechargeId(uid),
+        source: 'gift',
+        description: 'Registration bonus credit recharge',
+        createdAt: now,
+        expiresAt,
+      },
+      now,
+    );
+
+    this.logger.log(
+      `Created registration bonus: ${uid} received ${bonusCreditAmount} credits, expires at ${expiresAt.toISOString()}`,
+    );
+  }
+
+  /**
+   * Create invitation activation credit recharge for both inviter and invitee
+   * Credit amounts and expiration periods are configurable
+   */
+  async createInvitationActivationCreditRecharge(
+    inviterUid: string,
+    inviteeUid: string,
+    now: Date = new Date(),
+  ): Promise<void> {
+    const inviterCreditAmount = this.configService.get('auth.invitation.inviterCreditAmount');
+    const inviteeCreditAmount = this.configService.get('auth.invitation.inviteeCreditAmount');
+    const inviterCreditExpiresInMonths = this.configService.get(
+      'auth.invitation.inviterCreditExpiresInMonths',
+    );
+    const inviteeCreditExpiresInMonths = this.configService.get(
+      'auth.invitation.inviteeCreditExpiresInMonths',
+    );
+
+    // Calculate expiration dates
+    const inviterExpiresAt = new Date(now);
+    inviterExpiresAt.setMonth(inviterExpiresAt.getMonth() + inviterCreditExpiresInMonths);
+
+    const inviteeExpiresAt = new Date(now);
+    inviteeExpiresAt.setMonth(inviteeExpiresAt.getMonth() + inviteeCreditExpiresInMonths);
+
+    // Create recharge for inviter
+    await this.processCreditRecharge(
+      inviterUid,
+      inviterCreditAmount,
+      {
+        rechargeId: genInvitationActivationCreditRechargeId(inviterUid, inviteeUid),
+        source: 'invitation',
+        description: `Invitation activation bonus for inviting user ${inviteeUid}`,
+        createdAt: now,
+        expiresAt: inviterExpiresAt,
+      },
+      now,
+    );
+
+    // Create recharge for invitee
+    await this.processCreditRecharge(
+      inviteeUid,
+      inviteeCreditAmount,
+      {
+        rechargeId: genInvitationActivationCreditRechargeId(inviteeUid, inviterUid),
+        source: 'invitation',
+        description: `Invitation activation bonus for being invited by user ${inviterUid}`,
+        createdAt: now,
+        expiresAt: inviteeExpiresAt,
+      },
+      now,
+    );
+
+    this.logger.log(
+      `Created invitation activation credits: ${inviterUid} received ${inviterCreditAmount} credits (expires at ${inviterExpiresAt.toISOString()}), ${inviteeUid} received ${inviteeCreditAmount} credits (expires at ${inviteeExpiresAt.toISOString()})`,
+    );
+  }
+
+  /**
+   * Extract workflow app data from description
+   * Returns title and shareId if description contains appId pattern
+   */
+  private async extractWorkflowAppData(
+    description?: string,
+  ): Promise<{ title?: string; shareId?: string }> {
+    if (!description) {
+      return {};
+    }
+
+    // Extract appId from description if it matches the pattern
+    const appIdMatch = description.match(/from app ([\w-]+)$/);
+    if (!appIdMatch) {
+      return {};
+    }
+
+    const appId = appIdMatch[1];
+    try {
+      const workflowData = await this.getWorkflowTitleAndShareId(appId);
+      return {
+        title: workflowData.title,
+        shareId: workflowData.shareId,
+      };
+    } catch (error) {
+      // If workflow app not found or any other error, just return empty object
+      this.logger.warn(`Failed to get workflow data for appId ${appId}: ${error.message}`);
+      return {};
+    }
+  }
+
+  async getWorkflowTitleAndShareId(appId: string) {
+    const workflowApp = await this.prisma.workflowApp.findFirst({
+      where: { appId },
     });
+    if (!workflowApp) {
+      throw new WorkflowAppNotFoundError();
+    }
+
+    // If the workflow app is deleted, don't return shareId
+    const shareId = workflowApp.deletedAt ? undefined : workflowApp.shareId;
+
+    return { title: workflowApp.title, shareId };
+  }
+
+  /**
+   * Batch get workflow data for multiple appIds
+   */
+  private async batchGetWorkflowData(
+    appIds: string[],
+  ): Promise<Record<string, { title: string; shareId?: string }>> {
+    if (appIds.length === 0) {
+      return {};
+    }
+
+    const workflowApps = await this.prisma.workflowApp.findMany({
+      where: {
+        appId: {
+          in: appIds,
+        },
+      },
+    });
+
+    const result: Record<string, { title: string; shareId?: string }> = {};
+    for (const workflowApp of workflowApps) {
+      // If the workflow app is deleted, don't return shareId
+      const shareId = workflowApp.deletedAt ? undefined : workflowApp.shareId;
+      result[workflowApp.appId] = { title: workflowApp.title, shareId };
+    }
+
+    return result;
   }
 
   /**
@@ -412,8 +626,10 @@ export class CreditService {
       modelUsageDetails?: string;
       createdAt: Date;
       description?: string;
+      appId?: string;
     },
     dueAmount?: number,
+    extraData?: CreditUsageExtraData,
   ): Promise<void> {
     // Lazy load daily gift recharge
     await this.lazyLoadDailyGiftCredits(uid);
@@ -473,6 +689,8 @@ export class CreditService {
           dueAmount: dueAmount,
           createdAt: usageData.createdAt,
           description: usageData.description,
+          appId: usageData.appId,
+          extraData: JSON.stringify(extraData),
         },
       }),
       // Execute all deduction operations
@@ -568,8 +786,10 @@ export class CreditService {
       throw new Error(`No user found for uid ${uid}`);
     }
 
-    // Calculate credit cost directly from unitCost
-    const creditCost = creditBilling?.unitCost || 0;
+    // Calculate credit cost using the higher of input/output costs (they should be identical for media models)
+    const creditCost = creditBilling
+      ? Math.max(creditBilling.inputCost ?? 0, creditBilling.outputCost ?? 0)
+      : 0;
 
     // If no credit cost, just create usage record
     if (creditCost <= 0) {
@@ -615,15 +835,27 @@ export class CreditService {
     for (const step of creditUsageSteps) {
       const { usage, creditBilling } = step;
 
-      // Calculate tokens for this usage
-      const totalTokens = usage.inputTokens + usage.outputTokens;
+      const inputTokens = usage.inputTokens || 0;
+      const outputTokens = usage.outputTokens || 0;
 
       // Calculate credit cost for this usage
       let creditCost = 0;
-      if (creditBilling && creditBilling.unit === '5k_tokens') {
-        // Round up to nearest 5k tokens (not enough 5K counts as 5K)
-        const tokenUnits = Math.ceil(totalTokens / 5000);
-        creditCost = tokenUnits * (creditBilling.unitCost || 0);
+      if (creditBilling) {
+        if (creditBilling.unit === '5k_tokens') {
+          const perInputUnit = creditBilling.inputCost || 0;
+          const perOutputUnit = creditBilling.outputCost || 0;
+          creditCost = Math.ceil(
+            (inputTokens / 5000) * perInputUnit + (outputTokens / 5000) * perOutputUnit,
+          );
+        } else if (creditBilling.unit === '1m_tokens') {
+          const perInputUnit = creditBilling.inputCost || 0;
+          const perOutputUnit = creditBilling.outputCost || 0;
+          creditCost = Math.ceil(
+            (inputTokens / 1000000) * perInputUnit + (outputTokens / 1000000) * perOutputUnit,
+          );
+        } else {
+          creditCost = Math.max(creditBilling.inputCost, creditBilling.outputCost);
+        }
       }
 
       // Track original due amount before early bird discount
@@ -642,7 +874,8 @@ export class CreditService {
       // Add to model usage details - model name, total tokens, and credit cost
       modelUsageDetails.push({
         modelName: usage.modelName,
-        totalTokens: usage.inputTokens + usage.outputTokens,
+        inputTokens,
+        outputTokens,
         creditCost: creditCost,
       });
     }
@@ -711,6 +944,7 @@ export class CreditService {
         enabled: true,
         source: true,
         description: true,
+        extraData: true,
         expiresAt: true,
         createdAt: true,
         updatedAt: true,
@@ -722,15 +956,59 @@ export class CreditService {
       take: pageSize,
     });
 
-    const data = records.map((record) => ({
-      ...record,
-      amount: Number(record.amount), // Convert BigInt to number
-      balance: Number(record.balance), // Convert BigInt to number
-      source: record.source as 'purchase' | 'gift' | 'promotion' | 'refund',
-      expiresAt: record.expiresAt.toISOString(),
-      createdAt: record.createdAt.toISOString(),
-      updatedAt: record.updatedAt.toISOString(),
-    }));
+    // Collect appIds that need to be queried for workflow data
+    const appIdsToQuery: string[] = [];
+    const recordAppIdMap: Record<string, string> = {};
+
+    for (const record of records) {
+      const extraData = record.extraData ? safeParseJSON(record.extraData) : null;
+
+      // If extraData doesn't have title and shareId, extract appId from description
+      if (!extraData?.title || !extraData?.shareId) {
+        const appIdMatch = record.description?.match(/from app ([\w-]+)$/);
+        if (appIdMatch) {
+          const appId = appIdMatch[1];
+          appIdsToQuery.push(appId);
+          recordAppIdMap[record.rechargeId] = appId;
+        }
+      }
+    }
+
+    // Batch query workflow data
+    const workflowDataMap = await this.batchGetWorkflowData(appIdsToQuery);
+
+    const data = records.map((record) => {
+      const extraData = record.extraData ? safeParseJSON(record.extraData) : null;
+      let workflowData: { title?: string; shareId?: string } = {};
+
+      // Use title and shareId from extraData if available
+      if (extraData?.title && extraData?.shareId) {
+        workflowData = {
+          title: extraData.title,
+          shareId: extraData.shareId,
+        };
+      } else {
+        // Otherwise, use data from batch query
+        const appId = recordAppIdMap[record.rechargeId];
+        if (appId && workflowDataMap[appId]) {
+          workflowData = workflowDataMap[appId];
+        }
+      }
+
+      // Exclude extraData from the returned object as it's not part of the CreditRecharge type
+      const { extraData: _, ...recordWithoutExtraData } = record;
+
+      return {
+        ...recordWithoutExtraData,
+        amount: Number(record.amount), // Convert BigInt to number
+        balance: Number(record.balance), // Convert BigInt to number
+        source: record.source as 'purchase' | 'gift' | 'promotion' | 'refund',
+        expiresAt: record.expiresAt.toISOString(),
+        createdAt: record.createdAt.toISOString(),
+        updatedAt: record.updatedAt.toISOString(),
+        ...workflowData,
+      };
+    });
 
     return {
       data,
@@ -769,6 +1047,7 @@ export class CreditService {
         actionResultId: true,
         pilotSessionId: true,
         description: true,
+        extraData: true,
         createdAt: true,
       },
       orderBy: {
@@ -778,17 +1057,61 @@ export class CreditService {
       take: pageSize,
     });
 
-    const data = records.map((record) => ({
-      ...record,
-      amount: Number(record.amount), // Convert BigInt to number
-      usageType: record.usageType as
-        | 'model_call'
-        | 'media_generation'
-        | 'embedding'
-        | 'reranking'
-        | 'other',
-      createdAt: record.createdAt.toISOString(),
-    }));
+    // Collect appIds that need to be queried for workflow data
+    const appIdsToQuery: string[] = [];
+    const recordAppIdMap: Record<string, string> = {};
+
+    for (const record of records) {
+      const extraData = record.extraData ? safeParseJSON(record.extraData) : null;
+
+      // If extraData doesn't have title and shareId, extract appId from description
+      if (!extraData?.title || !extraData?.shareId) {
+        const appIdMatch = record.description?.match(/from app ([\w-]+)$/);
+        if (appIdMatch) {
+          const appId = appIdMatch[1];
+          appIdsToQuery.push(appId);
+          recordAppIdMap[record.usageId] = appId;
+        }
+      }
+    }
+
+    // Batch query workflow data
+    const workflowDataMap = await this.batchGetWorkflowData(appIdsToQuery);
+
+    const data = records.map((record) => {
+      const extraData = record.extraData ? safeParseJSON(record.extraData) : null;
+      let workflowData: { title?: string; shareId?: string } = {};
+
+      // Use title and shareId from extraData if available
+      if (extraData?.title && extraData?.shareId) {
+        workflowData = {
+          title: extraData.title,
+          shareId: extraData.shareId,
+        };
+      } else {
+        // Otherwise, use data from batch query
+        const appId = recordAppIdMap[record.usageId];
+        if (appId && workflowDataMap[appId]) {
+          workflowData = workflowDataMap[appId];
+        }
+      }
+
+      // Exclude extraData from the returned object as it's not part of the CreditUsage type
+      const { extraData: _, ...recordWithoutExtraData } = record;
+
+      return {
+        ...recordWithoutExtraData,
+        amount: Number(record.amount), // Convert BigInt to number
+        usageType: record.usageType as
+          | 'model_call'
+          | 'media_generation'
+          | 'embedding'
+          | 'reranking'
+          | 'other',
+        createdAt: record.createdAt.toISOString(),
+        ...workflowData,
+      };
+    });
 
     return {
       data,
@@ -814,6 +1137,7 @@ export class CreditService {
       select: {
         amount: true,
         balance: true,
+        source: true,
       },
       orderBy: {
         expiresAt: 'asc',
@@ -850,14 +1174,47 @@ export class CreditService {
     // Net balance is positive balance minus debt
     const netBalance = totalBalance - totalDebt;
 
+    // Calculate regular credits and template earnings credits
+    const regularCredits =
+      activeRecharges
+        .filter((record) => record.source !== 'commission')
+        .reduce((sum, record) => sum + Number(record.balance), 0) - totalDebt;
+
+    const templateEarningsCredits = activeRecharges
+      .filter((record) => record.source === 'commission')
+      .reduce((sum, record) => sum + Number(record.balance), 0);
+
     return {
       creditAmount: totalAmount,
       creditBalance: netBalance,
+      regularCredits: regularCredits,
+      templateEarningsCredits: templateEarningsCredits,
     };
   }
 
-  async countResultCreditUsage(user: User, resultId: string): Promise<number> {
-    // Get the latest action result record for this resultId, ordered by version desc
+  async countResultCreditUsage(user: User, resultId: string, version?: number): Promise<number> {
+    // If version is specified, query for exact version
+    if (version !== undefined) {
+      const usages = await this.prisma.creditUsage.findMany({
+        where: {
+          uid: user.uid,
+          actionResultId: resultId,
+          version: version,
+        },
+      });
+
+      // If no usage found for the specified version, return 0
+      if (usages.length === 0) {
+        return 0;
+      }
+
+      return usages.reduce((sum, usage) => {
+        const dueAmount = usage.dueAmount ? Number(usage.dueAmount) : 0;
+        return sum + (dueAmount > 0 ? dueAmount : Number(usage.amount));
+      }, 0);
+    }
+
+    // If version is not specified, get the latest version
     const actionResult = await this.prisma.actionResult.findFirst({
       where: {
         resultId,
@@ -872,6 +1229,7 @@ export class CreditService {
       return 0;
     }
 
+    // First try to find usages by the latest version
     const usages = await this.prisma.creditUsage.findMany({
       where: {
         actionResultId: resultId,

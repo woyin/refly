@@ -1,29 +1,38 @@
-import { Navigate } from 'react-router-dom';
 import { HomeRedirect } from '@refly-packages/ai-workspace-common/components/home-redirect';
+import BackendRedirect from '@refly-packages/ai-workspace-common/components/backend-redirect';
 import {
-  UnsignedFrontPage,
-  CanvasPage,
   Pricing,
   ShareCanvasPage,
   ShareCodePage,
-  SharePagePage,
-  TemplatePreviewPage,
   SkillResponseSharePage,
   DocumentSharePage,
-  ArtifactGalleryPage,
-  UseCasesGalleryPage,
-  ProjectPage,
+  DriveFileSharePage,
   WorkflowAppPage,
   WorkflowListPage,
   AppManager,
+  MarketplacePage,
+  WorkflowPage,
+  WorkspacePage,
+  LoginPage,
 } from '@refly/web-core';
 
 import type { RouteObject } from 'react-router-dom';
+import {
+  CanvasRedirect,
+  WorkspaceRedirect,
+  ProtectedRoute,
+  WorkflowTemplateRedirect,
+} from './redirects';
 
 export const RoutesList: RouteObject[] = [
+  // TODO: deprecated and navigate to framer page
   {
     path: '/',
-    element: <HomeRedirect defaultNode={<UnsignedFrontPage />} />,
+    element: <HomeRedirect defaultNode={<BackendRedirect />} />,
+  },
+  {
+    path: '/login',
+    element: <LoginPage />,
   },
   {
     path: '/pricing',
@@ -46,36 +55,50 @@ export const RoutesList: RouteObject[] = [
     element: <DocumentSharePage />,
   },
   {
-    path: '/share/pages/:shareId',
-    element: <SharePagePage />,
+    path: '/share/file/:shareId',
+    element: <DriveFileSharePage />,
   },
+
+  // Deprecated routes - redirect to new routes
+  // TODO: deprecated and navigate to /workspace
+  {
+    path: '/share/pages/:shareId',
+    element: <WorkspaceRedirect />,
+  },
+  // TODO: deprecated and navigate to /workspace
   {
     path: '/artifact-gallery',
-    element: <ArtifactGalleryPage />,
+    element: <WorkspaceRedirect />,
   },
+  // TODO: deprecated and navigate to /workspace
   {
     path: '/use-cases-gallery',
-    element: <UseCasesGalleryPage />,
+    element: <WorkspaceRedirect />,
   },
+  // TODO: deprecated and navigate to /workspace
   {
     path: '/preview/canvas/:shareId',
-    element: <TemplatePreviewPage />,
+    element: <WorkspaceRedirect />,
   },
+  // TODO: deprecated and navigate to /workspace
   {
     path: '/canvas/',
-    element: <Navigate to="/canvas/empty" replace />,
+    element: <WorkspaceRedirect />,
   },
+  // TODO: deprecated and navigate to /workflow/:workflowId
   {
     path: '/canvas/:canvasId',
-    element: <CanvasPage />,
+    element: <CanvasRedirect />,
   },
+  // TODO: deprecated and navigate to /workspace
   {
     path: '/project/:projectId',
-    element: <ProjectPage />,
+    element: <WorkspaceRedirect />,
   },
+  // TODO: deprecated and navigate to /workflow-template/:shareId
   {
     path: '/app/:shareId',
-    element: <WorkflowAppPage />,
+    element: <WorkflowTemplateRedirect />,
   },
   {
     path: '/workflow-list',
@@ -84,5 +107,26 @@ export const RoutesList: RouteObject[] = [
   {
     path: '/app-manager',
     element: <AppManager />,
+  },
+  {
+    path: '/marketplace',
+    element: <MarketplacePage />,
+  },
+  // New SEO-optimized routes
+  {
+    path: '/workspace',
+    element: (
+      <ProtectedRoute>
+        <WorkspacePage />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: '/workflow/:workflowId',
+    element: <WorkflowPage />,
+  },
+  {
+    path: '/workflow-template/:shareId',
+    element: <WorkflowAppPage />,
   },
 ];

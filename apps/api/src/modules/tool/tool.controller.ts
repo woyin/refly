@@ -1,7 +1,7 @@
 import { Body, Controller, Get, ParseBoolPipe, Post, Query, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guard/jwt-auth.guard';
 import { LoginedUser } from '../../utils/decorators/user.decorator';
-import { User as UserModel } from '../../generated/client';
+import { User as UserModel } from '@prisma/client';
 import { buildSuccessResponse } from '../../utils/response';
 import { ToolService } from './tool.service';
 import {
@@ -12,6 +12,8 @@ import {
   UpsertToolsetResponse,
   UpsertToolsetRequest,
   ListToolsetInventoryResponse,
+  ListUserToolsResponse,
+  GetToolCallResultResponse,
 } from '@refly/openapi-schema';
 import { toolsetPO2DTO } from './tool.dto';
 
@@ -30,13 +32,27 @@ export class ToolController {
       isGlobal,
       enabled,
     });
-    return buildSuccessResponse(tools);
+    // Populate toolsets with definition from inventory
+    const populatedTools = await this.toolService.populateToolsetsWithDefinition(tools);
+    return buildSuccessResponse(populatedTools);
   }
 
+  /**
+   * List all tools including UnAuthorized tools for the user
+   * @param user
+   * @returns
+   */
+
   @UseGuards(JwtAuthGuard)
+  @Get('/user/list')
+  async listUserTools(@LoginedUser() user: UserModel): Promise<ListUserToolsResponse> {
+    const userTools = await this.toolService.listUserTools(user);
+    return buildSuccessResponse(userTools);
+  }
+
   @Get('/inventory/list')
   async listToolsetInventory(): Promise<ListToolsetInventoryResponse> {
-    const toolsets = this.toolService.listToolsetInventory();
+    const toolsets = await this.toolService.listToolsetInventory();
     return buildSuccessResponse(toolsets);
   }
 
@@ -46,8 +62,11 @@ export class ToolController {
     @LoginedUser() user: UserModel,
     @Query('isGlobal', new ParseBoolPipe({ optional: true })) isGlobal?: boolean,
   ): Promise<ListToolsetsResponse> {
-    const toolsets = await this.toolService.listRegularTools(user, { isGlobal });
-    return buildSuccessResponse(toolsets.map((toolset) => toolset.toolset));
+    // Use listTools to get all tool types (regular, OAuth, builtin)
+    // Filter out MCP tools since they don't have toolset property
+    const tools = await this.toolService.listTools(user, { isGlobal });
+    const toolsets = tools.filter((tool) => tool.toolset).map((tool) => tool.toolset);
+    return buildSuccessResponse(toolsets);
   }
 
   @UseGuards(JwtAuthGuard)
@@ -78,5 +97,15 @@ export class ToolController {
   ): Promise<BaseResponse> {
     await this.toolService.deleteToolset(user, body);
     return buildSuccessResponse();
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('/call/result')
+  async getToolCallResult(
+    @LoginedUser() user: UserModel,
+    @Query('toolCallId') toolCallId: string,
+  ): Promise<GetToolCallResultResponse> {
+    const result = await this.toolService.getToolCallResult(user, toolCallId);
+    return buildSuccessResponse({ result });
   }
 }

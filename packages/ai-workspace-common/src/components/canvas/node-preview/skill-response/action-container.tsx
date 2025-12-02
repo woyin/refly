@@ -2,7 +2,7 @@ import { useMemo, useCallback, memo, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button, message, Tooltip } from 'antd';
 import { ModelIcon } from '@lobehub/icons';
-import { ActionResult, ActionStep, GenericToolset, ModelInfo, Source } from '@refly/openapi-schema';
+import { ActionResult, ActionStep, Source } from '@refly/openapi-schema';
 import { CheckCircleOutlined, CopyOutlined, ImportOutlined } from '@ant-design/icons';
 import { copyToClipboard } from '@refly-packages/ai-workspace-common/utils';
 import { parseMarkdownCitationsAndCanvasTags, safeParseJSON } from '@refly/utils/parse';
@@ -10,8 +10,6 @@ import { useDocumentStoreShallow } from '@refly/stores';
 import { useCreateDocument } from '@refly-packages/ai-workspace-common/hooks/canvas/use-create-document';
 import { editorEmitter, EditorOperation } from '@refly/utils/event-emitter/editor';
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
-import { FollowingActions } from '../sharedComponents/following-actions';
-import { IContextItem } from '@refly/common-types';
 import { useFetchProviderItems } from '@refly-packages/ai-workspace-common/hooks/use-fetch-provider-items';
 import { useGetCreditUsageByResultId } from '@refly-packages/ai-workspace-common/queries';
 import { useSetNodeDataByEntity } from '@refly-packages/ai-workspace-common/hooks/canvas/use-set-node-data-by-entity';
@@ -19,18 +17,11 @@ import { useSetNodeDataByEntity } from '@refly-packages/ai-workspace-common/hook
 interface ActionContainerProps {
   step: ActionStep;
   result: ActionResult;
-  nodeId?: string;
-  initSelectedToolsets?: GenericToolset[];
 }
 
 const buttonClassName = 'text-xs flex justify-center items-center h-6 px-1 rounded-lg';
 
-const ActionContainerComponent = ({
-  result,
-  step,
-  nodeId,
-  initSelectedToolsets,
-}: ActionContainerProps) => {
+const ActionContainerComponent = ({ result, step }: ActionContainerProps) => {
   const { t } = useTranslation();
   const { debouncedCreateDocument, isCreating } = useCreateDocument();
   const { readonly } = useCanvasContext();
@@ -88,10 +79,14 @@ const ActionContainerComponent = ({
   );
 
   const handleCopyToClipboard = useCallback(
-    (content: string) => {
+    async (content: string) => {
       const parsedText = parseMarkdownCitationsAndCanvasTags(content, sources);
-      copyToClipboard(parsedText || '');
-      message.success(t('copilot.message.copySuccess'));
+      const copied = await copyToClipboard(parsedText || '').catch(() => false);
+      if (copied) {
+        message.success(t('copilot.message.copySuccess'));
+      } else {
+        message.error(t('copilot.message.copyFailed'));
+      }
     },
     [sources, t],
   );
@@ -128,39 +123,6 @@ const ActionContainerComponent = ({
     return providerItemList?.find((item) => item.config?.modelId === tokenUsage?.modelName) || null;
   }, [providerItemList, tokenUsage]);
 
-  const initContextItems = useMemo(() => {
-    if (!result.resultId) {
-      return [];
-    }
-
-    const currentNodeContext: IContextItem = {
-      type: 'skillResponse',
-      entityId: result.resultId,
-      title: result.title ?? '',
-      metadata: {
-        withHistory: true,
-      },
-    };
-
-    return [currentNodeContext];
-  }, [result.resultId, result.title]);
-
-  const initModelInfo = useMemo(() => {
-    if (providerItem && providerItem.category === 'llm') {
-      const modelInfo: ModelInfo = {
-        name: (providerItem.config as any)?.modelId || providerItem.name,
-        label: providerItem.name,
-        provider: providerItem.provider?.name || '',
-        providerItemId: providerItem.itemId,
-        contextLimit: (providerItem.config as any)?.contextLimit || 0,
-        maxOutput: (providerItem.config as any)?.maxOutput || 0,
-        capabilities: (providerItem.config as any)?.capabilities || {},
-      };
-      return modelInfo;
-    }
-    return null;
-  }, [providerItem]);
-
   // Update node metadata with credit cost when credit usage is available
   useEffect(() => {
     if (creditUsage?.data?.total && result?.resultId && !isPending) {
@@ -184,20 +146,11 @@ const ActionContainerComponent = ({
 
   return (
     <div
-      className="border-[1px] border-solid border-b-0 border-x-0 border-refly-Card-Border pt-3"
+      className="border-[1px] border-solid border-b-0 border-x-0 border-refly-Card-Border"
       onClick={(e) => {
         e.stopPropagation();
       }}
     >
-      {!readonly && (
-        <FollowingActions
-          initContextItems={initContextItems}
-          initModelInfo={initModelInfo}
-          nodeId={nodeId}
-          initSelectedToolsets={initSelectedToolsets}
-        />
-      )}
-
       <div className="w-full flex gap-2 items-center p-3 rounded-b-xl">
         {tokenUsage && (
           <div className="flex flex-1 items-center gap-1 min-w-0">

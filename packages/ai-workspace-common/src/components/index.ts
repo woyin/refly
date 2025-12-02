@@ -10,12 +10,11 @@ export * from './resource-view';
 export * from './search-quick-open-btn';
 export * from './request-access';
 export * from './project';
-export * from './pilot';
 export * from './output-locale-list';
 export * from './markdown';
 export * from './import-resource';
 export * from './home-redirect';
-export * from './hover-card';
+export { default as BackendRedirect } from './backend-redirect';
 export * from './canvas-template';
 export * from './ui-locale-list';
 

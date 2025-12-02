@@ -1,12 +1,12 @@
 import { Button, Popover, Input, Segmented, Dropdown, Badge, Typography, Tooltip } from 'antd';
 import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
-import { Tools, Close, Mcp, Cancelled } from 'refly-icons';
+import { Close, Mcp, Cancelled } from 'refly-icons';
 import { useTranslation } from 'react-i18next';
 import {
   useListTools,
   useGetCanvasData,
 } from '@refly-packages/ai-workspace-common/queries/queries';
-import { GenericToolset, RawCanvasData } from '@refly/openapi-schema';
+import { GenericToolset, RawCanvasData, ToolsetDefinition } from '@refly/openapi-schema';
 import EmptyImage from '@refly-packages/ai-workspace-common/assets/noResource.svg';
 import React from 'react';
 import { ToolsetIcon } from '@refly-packages/ai-workspace-common/components/canvas/common/toolset-icon';
@@ -18,7 +18,9 @@ import { NodeIcon } from '@refly-packages/ai-workspace-common/components/canvas/
 import { extractToolsetsWithNodes } from '@refly/canvas-common';
 import { useOpenInstallTool } from '@refly-packages/ai-workspace-common/hooks/use-open-install-tool';
 import { useOpenInstallMcp } from '@refly-packages/ai-workspace-common/hooks/use-open-install-mcp';
+import { IoWarningOutline } from 'react-icons/io5';
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
+import { useListToolsetInventory } from '@refly-packages/ai-workspace-common/queries';
 
 const isToolsetInstalled = (
   toolset: GenericToolset,
@@ -26,7 +28,7 @@ const isToolsetInstalled = (
 ): boolean => {
   return installedToolsets.some((t) => {
     if (toolset.type === 'regular') {
-      return toolset.id === 'builtin' || t.toolset?.key === toolset.toolset?.key;
+      return toolset.builtin || t.toolset?.key === toolset.toolset?.key;
     } else if (toolset.type === 'mcp') {
       return t.name === toolset.name;
     }
@@ -281,6 +283,7 @@ const ToolsDependencyContent = React.memo(
     setActiveTab,
     currentTools,
     installedToolsets,
+    toolsetDefinitions,
     setOpen,
     isLogin,
     totalCount,
@@ -296,6 +299,7 @@ const ToolsDependencyContent = React.memo(
     setActiveTab: (value: string) => void;
     currentTools: Array<{ toolset: any; referencedNodes: any[] }>;
     installedToolsets: any[];
+    toolsetDefinitions: ToolsetDefinition[];
     setOpen: (value: boolean) => void;
     isLogin: boolean;
     totalCount: number;
@@ -307,6 +311,27 @@ const ToolsDependencyContent = React.memo(
 
     const { openInstallToolByKey } = useOpenInstallTool();
     const { openInstallMcp } = useOpenInstallMcp();
+
+    // Helper function to get complete toolset definition
+    const getToolsetDefinition = useCallback(
+      (toolset: GenericToolset) => {
+        // First try to get from toolset itself
+        if (toolset?.toolset?.definition) {
+          return toolset.toolset.definition;
+        }
+
+        // If not found, try to find from toolsetInventoryData by toolsetKey
+        if (toolset?.toolset?.key && toolsetDefinitions) {
+          const definition = toolsetDefinitions.find((item) => item.key === toolset.toolset.key);
+          if (definition) {
+            return definition;
+          }
+        }
+
+        return null;
+      },
+      [toolsetDefinitions],
+    );
 
     const handleInstallTool = useCallback(
       (toolset: GenericToolset) => {
@@ -321,24 +346,31 @@ const ToolsDependencyContent = React.memo(
     );
 
     return (
-      <div className="flex flex-col gap-4 w-[480px] p-6">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-1">
-            <div className="text-lg font-semibold">{t('canvas.toolsDepencency.title')}</div>
+      <div className="flex flex-col gap-3 md:gap-4 w-[calc(100vw-32px)] max-w-[480px] p-4 md:p-6">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-1 min-w-0 flex-1">
+            <div className="text-base md:text-lg font-semibold truncate">
+              {t('canvas.toolsDepencency.title')}
+            </div>
             {uninstalledCount > 0 && isLogin && (
-              <div className="max-w-[200px] truncate bg-refly-Colorful-red-light text-refly-func-danger-default rounded-[99px] px-2 text-xs leading-[18px]">
+              <div className="max-w-[120px] md:max-w-[200px] truncate bg-refly-Colorful-red-light text-refly-func-danger-default rounded-[99px] px-2 text-xs leading-[18px] flex-shrink-0">
                 {t('canvas.toolsDepencency.uninstalledToolsCount', {
                   count: uninstalledCount,
                 })}
               </div>
             )}
           </div>
-          <Button type="text" icon={<Close size={20} />} onClick={handleClose} />
+          <Button
+            type="text"
+            icon={<Close size={20} />}
+            onClick={handleClose}
+            className="flex-shrink-0"
+          />
         </div>
 
         {isLoading ? null : totalCount > 0 ? (
           <>
-            <div className="flex flex-col gap-3">
+            <div className="flex flex-col gap-2 md:gap-3">
               <Input
                 placeholder={t('canvas.toolsDepencency.searchPlaceholder')}
                 value={searchTerm}
@@ -358,38 +390,37 @@ const ToolsDependencyContent = React.memo(
             </div>
 
             {/* Tools List */}
-            <div className="max-h-[400px] overflow-y-auto space-y-3">
+            <div className="max-h-[400px] overflow-y-auto space-y-2 md:space-y-3">
               {currentTools.length === 0 ? (
                 <EmptyContent searchTerm={searchTerm} />
               ) : (
                 currentTools.map(({ toolset, referencedNodes }) => {
                   const isInstalled = isToolsetInstalled(toolset, installedToolsets);
+                  const toolsetDefinition = getToolsetDefinition(toolset);
                   const description =
                     toolset?.type === 'mcp'
                       ? toolset.mcpServer.url
-                      : toolset?.toolset?.definition?.descriptionDict?.[currentLanguage || 'en'];
+                      : toolsetDefinition?.descriptionDict?.[currentLanguage || 'en'];
 
                   return (
                     <div
                       key={toolset.id}
-                      className="border-solid border-[1px] border-refly-Card-Border rounded-xl p-3"
+                      className="border-solid border-[1px] border-refly-Card-Border rounded-xl p-2 md:p-3"
                     >
                       {/* Tool Header */}
-                      <div className="py-1 px-2 flex items-center justify-between gap-3">
-                        <ToolsetIcon
-                          toolset={toolset}
-                          isBuiltin={toolset.id === 'builtin'}
-                          config={{ builtinClassName: '!w-6 !h-6' }}
-                        />
+                      <div className="py-1 px-1 md:px-2 flex items-center justify-between gap-2 md:gap-3">
+                        <div className="flex-shrink-0">
+                          <ToolsetIcon
+                            toolset={toolset}
+                            config={{ builtinClassName: '!w-5 !h-5 md:!w-6 md:!h-6' }}
+                          />
+                        </div>
 
                         <div className="flex-1 min-w-0 flex flex-col gap-0.5">
-                          <div className="flex items-center gap-1">
-                            <div className="min-w-0 max-w-full text-refly-text-0 text-sm font-semibold leading-5 truncate">
-                              {toolset.type === 'regular' && toolset.id === 'builtin'
-                                ? (toolset?.toolset?.definition?.labelDict?.[
-                                    currentLanguage
-                                  ] as string)
-                                : toolset.name}
+                          <div className="flex items-center gap-1 min-w-0">
+                            <div className="min-w-0 max-w-full text-refly-text-0 text-xs md:text-sm font-semibold leading-5 truncate">
+                              {(toolsetDefinition?.labelDict?.[currentLanguage] as string) ||
+                                toolset.name}
                             </div>
 
                             {isLogin && (
@@ -414,7 +445,9 @@ const ToolsDependencyContent = React.memo(
 
                         {!isInstalled && isLogin && (
                           <Button
-                            className="text-refly-primary-default hover:!text-refly-primary-hover"
+                            type="text"
+                            size="small"
+                            className="text-refly-primary-default hover:!text-refly-primary-hover flex-shrink-0 text-xs md:text-sm"
                             onClick={() => handleInstallTool(toolset)}
                           >
                             {t('canvas.toolsDepencency.goToInstall')}
@@ -455,6 +488,10 @@ export const ToolsDependencyChecker = ({ canvasData }: { canvasData?: RawCanvasD
     enabled: isLogin,
     refetchOnWindowFocus: false,
   });
+  const { data: toolsetInventoryData } = useListToolsetInventory({}, null, {
+    enabled: true,
+  });
+  const toolsetDefinitions = toolsetInventoryData?.data ?? [];
 
   const installedToolsets = data?.data ?? [];
 
@@ -598,7 +635,6 @@ export const ToolsDependencyChecker = ({ canvasData }: { canvasData?: RawCanvasD
                 <ToolsetIcon
                   key={toolset.toolset.id}
                   toolset={toolset.toolset}
-                  isBuiltin={toolset.toolset.id === 'builtin'}
                   config={{
                     size: 14,
                     className:
@@ -645,6 +681,7 @@ export const ToolsDependencyChecker = ({ canvasData }: { canvasData?: RawCanvasD
           setActiveTab={setActiveTab}
           currentTools={currentTools}
           installedToolsets={installedToolsets}
+          toolsetDefinitions={toolsetDefinitions}
           totalCount={toolsetsWithNodes.length}
           setOpen={setOpen}
           showReferencedNodesDisplay={false}
@@ -693,6 +730,10 @@ export const ToolsDependency = ({ canvasId }: { canvasId: string }) => {
     enabled: isLogin,
     refetchOnWindowFocus: false,
   });
+  const { data: toolsetInventoryData } = useListToolsetInventory({}, null, {
+    enabled: true,
+  });
+  const toolsetDefinitions = toolsetInventoryData?.data ?? [];
 
   const installedToolsets = data?.data ?? [];
 
@@ -806,6 +847,7 @@ export const ToolsDependency = ({ canvasId }: { canvasId: string }) => {
   return (
     <Popover
       className="tools-in-canvas"
+      align={{ offset: [0, 10] }}
       open={open}
       onOpenChange={setOpen}
       trigger="click"
@@ -829,6 +871,7 @@ export const ToolsDependency = ({ canvasId }: { canvasId: string }) => {
           setActiveTab={setActiveTab}
           currentTools={currentTools}
           installedToolsets={installedToolsets}
+          toolsetDefinitions={toolsetDefinitions}
           totalCount={toolsetsWithNodes.length}
           setOpen={setOpen}
           isLoading={canvasLoading || toolsLoading}
@@ -836,21 +879,21 @@ export const ToolsDependency = ({ canvasId }: { canvasId: string }) => {
       }
       arrow={false}
     >
-      <Badge count={uninstalledCount} size="small" offset={[-2, 0]}>
-        <Button
-          type="text"
-          icon={
-            <Tools
-              size={20}
-              color={open ? 'var(--refly-primary-default)' : 'var(--refly-text-0)'}
-            />
-          }
-          className={cn(
-            '!p-0 h-[30px] w-[30px] flex items-center justify-center',
-            open && '!bg-gradient-tools-open',
-          )}
-        />
-      </Badge>
+      <div className="flex items-center">
+        <Badge count={uninstalledCount} size="small" offset={[-2, 0]}>
+          <Button
+            type="text"
+            icon={
+              <IoWarningOutline
+                size={18}
+                color="var(--refly-func-warning-default)"
+                className="flex items-center"
+              />
+            }
+            className="p-2 flex items-center justify-center font-semibold"
+          />
+        </Badge>
+      </div>
     </Popover>
   );
 };

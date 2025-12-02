@@ -1,28 +1,25 @@
 import { Composio, ToolExecuteResponse } from '@composio/core';
 import { JSONSchemaToZod } from '@dmitryrechkin/json-schema-to-zod';
 import { DynamicStructuredTool, type StructuredToolInterface } from '@langchain/core/tools';
-import { InjectQueue } from '@nestjs/bullmq';
-import { Injectable, Logger, NotFoundException, Optional } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { ComposioConnectionStatus, GenericToolset, User } from '@refly/openapi-schema';
-import { Queue } from 'bullmq';
-import { QUEUE_SYNC_TOOL_CREDIT_USAGE } from '../../../utils/const';
+import type { ComposioConnectionStatus, GenericToolset, User } from '@refly/openapi-schema';
+import { COMPOSIO_CONNECTION_STATUS } from '../constant/constant';
 import { PrismaService } from '../../common/prisma.service';
+import { RedisService } from '../../common/redis.service';
 import { CreditService } from '../../credit/credit.service';
-import { SyncToolCreditUsageJobData } from '../../credit/credit.dto';
+import type { SyncToolCreditUsageJobData } from '../../credit/credit.dto';
 
 @Injectable()
 export class ComposioService {
   private readonly logger = new Logger(ComposioService.name);
   private composio: Composio;
-
+  private readonly DEFINITION_CACHE_PREFIX = 'oauth:definition:';
   constructor(
     private readonly config: ConfigService,
     private readonly prisma: PrismaService,
+    private readonly redis: RedisService,
     private readonly creditService: CreditService,
-    @Optional()
-    @InjectQueue(QUEUE_SYNC_TOOL_CREDIT_USAGE)
-    private readonly toolCreditUsageQueue?: Queue<SyncToolCreditUsageJobData>,
   ) {
     const apiKey = this.config.get<string>('composio.apiKey');
     if (!apiKey) {
@@ -82,7 +79,9 @@ export class ComposioService {
 
       if (connection) {
         const status: ComposioConnectionStatus =
-          connection.status === 'active' ? 'active' : 'revoked';
+          connection.status === COMPOSIO_CONNECTION_STATUS.ACTIVE
+            ? COMPOSIO_CONNECTION_STATUS.ACTIVE
+            : COMPOSIO_CONNECTION_STATUS.REVOKED;
         return {
           status,
           connectedAccountId: connection.connectedAccountId ?? undefined,
@@ -98,14 +97,14 @@ export class ComposioService {
 
       // Not found anywhere
       return {
-        status: 'revoked' as const,
+        status: COMPOSIO_CONNECTION_STATUS.REVOKED,
         connectedAccountId: null,
         integrationId: appSlug,
       };
     } catch (error) {
       this.logger.error(`Connection status check failed: ${error.message}`);
       return {
-        status: 'revoked' as const,
+        status: COMPOSIO_CONNECTION_STATUS.REVOKED,
         connectedAccountId: null,
         integrationId: appSlug,
       };
@@ -216,7 +215,7 @@ export class ComposioService {
         // Save connection and toolset in a single transaction
         await this.saveConnection(user, appSlug, connectedAccount);
         return {
-          status: 'active' as const,
+          status: COMPOSIO_CONNECTION_STATUS.ACTIVE,
           connectedAccountId: connectedAccount.id,
           integrationId: appSlug,
         };
@@ -224,7 +223,7 @@ export class ComposioService {
 
       return null;
     } catch (composioError) {
-      this.logger.warn('Failed to query Composio API: ', composioError.message);
+      this.logger.warn(`Failed to query Composio API: ${composioError.message}`);
       return null;
     }
   }
@@ -236,7 +235,9 @@ export class ComposioService {
   private async saveConnection(user: User, appSlug: string, connectedAccount: any) {
     const connectedAccountId = connectedAccount.id;
     const status: ComposioConnectionStatus =
-      connectedAccount.status?.toUpperCase() === 'ACTIVE' ? 'active' : 'revoked';
+      connectedAccount.status?.toUpperCase() === 'ACTIVE'
+        ? COMPOSIO_CONNECTION_STATUS.ACTIVE
+        : COMPOSIO_CONNECTION_STATUS.REVOKED;
 
     // 1. Save or update composio_connections
     await this.prisma.composioConnection.upsert({
@@ -375,5 +376,14 @@ export class ComposioService {
       structuredTools.push(...langchainTools);
     }
     return structuredTools;
+  }
+
+  /**
+   * Invalidate definition cache
+   */
+  async invalidateCache(appSlug: string): Promise<void> {
+    const cacheKey = `${this.DEFINITION_CACHE_PREFIX}${appSlug}`;
+    await this.redis.del(cacheKey);
+    this.logger.log(`Invalidated definition cache for ${appSlug}`);
   }
 }
