@@ -1436,6 +1436,7 @@ const translations = {
       run: {
         title: '运行调试',
         run: '运行',
+        startRunning: '工作流开始运行',
         executing: '运行中',
         remix: '再创作',
         copyWorkflow: '再创作工作流',
@@ -1457,7 +1458,7 @@ const translations = {
         },
         creditUsage: '预计使用 {{count}} 积分',
         abort: {
-          confirmTitle: '终止工作流执行？',
+          confirmTitle: '终止工作流执行',
           main: '确认终止工作流执行吗？',
           note: '工作流将立即停止。已完成的步骤将保留，已消耗的积分将不会返还。',
           confirm: '确定终止',

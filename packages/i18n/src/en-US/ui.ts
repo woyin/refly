@@ -1432,6 +1432,7 @@ const translations = {
       run: {
         title: 'Run Workflow',
         run: 'Run',
+        startRunning: 'Your workflow starts running',
         executing: 'Running',
         remix: 'Remix',
         copyWorkflow: 'Remix Workflow',
@@ -1453,7 +1454,7 @@ const translations = {
         },
         creditUsage: 'Estimated usage {{count}} credits',
         abort: {
-          confirmTitle: 'Stop Workflow Execution?',
+          confirmTitle: 'Stop Workflow Execution',
           main: 'Are you sure you want to stop this workflow?',
           note: 'The workflow will halt immediately. Completed steps will remain saved, and credits already consumed will not be refunded.',
           confirm: 'Confirm Stop',
