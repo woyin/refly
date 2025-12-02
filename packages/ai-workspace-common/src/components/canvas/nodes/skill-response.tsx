@@ -206,11 +206,14 @@ export const SkillResponseNode = memo(
       return nodePreviewId === id;
     }, [nodePreviewId, id]);
 
-    const { highlightedNodeId } = useCanvasNodesStoreShallow((state) => ({
+    const { highlightedNodeId, highlightedNodeIds } = useCanvasNodesStoreShallow((state) => ({
       highlightedNodeId: state.highlightedNodeId,
+      highlightedNodeIds: state.highlightedNodeIds,
     }));
 
-    const shouldHighlight = highlightedNodeId === id;
+    // Check if node should be highlighted (either single highlight or multiple highlights)
+    // Single highlight (hover) and multiple highlights (validation) can coexist
+    const shouldHighlight = highlightedNodeId === id || highlightedNodeIds?.has(id) === true;
 
     const connection = useConnection();
     const isConnectingTarget = useMemo(
@@ -475,7 +478,7 @@ export const SkillResponseNode = memo(
       });
 
       const query = data?.metadata?.query ?? '';
-      const { processedQuery } = processQueryWithMentions(query, {
+      const { llmInputQuery } = processQueryWithMentions(query, {
         replaceVars: true,
         variables,
       });
@@ -485,11 +488,12 @@ export const SkillResponseNode = memo(
           nodeId: id,
           title: title ?? query,
           resultId: entityId,
-          query: processedQuery,
+          query: llmInputQuery,
           contextItems: data?.metadata?.contextItems,
           selectedToolsets: purgeToolsets(data?.metadata?.selectedToolsets),
           version: nextVersion,
           modelInfo: data?.metadata?.modelInfo,
+          workflowVariables: variables,
         },
         {
           entityType: 'canvas',
