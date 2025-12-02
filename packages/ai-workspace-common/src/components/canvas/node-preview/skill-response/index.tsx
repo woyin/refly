@@ -131,6 +131,7 @@ const SkillResponseNodePreviewComponent = ({
         contextItems,
         selectedToolsets,
         version: nextVersion,
+        workflowVariables: variables,
       },
       {
         entityId: canvasId,
@@ -150,6 +151,7 @@ const SkillResponseNodePreviewComponent = ({
     setNodeData,
     node.id,
     node.data,
+    variables,
   ]);
 
   const outputStep = steps.find((step) => OUTPUT_STEP_NAMES.includes(step.name));
