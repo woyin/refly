@@ -732,7 +732,6 @@ export class WorkflowService {
 
     this.logger.log(`Workflow execution ${executionId} aborted by user ${user.uid}`);
   }
-
   /**
    * Get workflow execution detail with node executions
    * @param user - The user requesting the workflow detail
