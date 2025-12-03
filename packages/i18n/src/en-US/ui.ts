@@ -884,7 +884,7 @@ const translations = {
       more: 'More',
     },
     template: {
-      title: 'Community Templates',
+      title: 'Marketplace',
       endMessage: {
         title: "Didn't find the workflow automation template you need?",
         subtitle: "Join our Discord and tell us what you're looking for",
@@ -2215,7 +2215,7 @@ const translations = {
       },
     },
     siderMenu: {
-      home: 'Dashboard',
+      home: 'Workspace',
       canvas: 'My Workflows',
       appManager: 'My Templates',
       marketplace: 'Marketplace',
