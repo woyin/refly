@@ -14,6 +14,7 @@ import { useVariablesManagement } from '@refly-packages/ai-workspace-common/hook
 import { useFetchProviderItems } from '@refly-packages/ai-workspace-common/hooks/use-fetch-provider-items';
 import { useCanvasLayout } from '@refly-packages/ai-workspace-common/hooks/canvas/use-canvas-layout';
 import { CanvasNode } from '@refly/openapi-schema';
+import { logEvent } from '@refly/telemetry-web';
 
 interface CopilotMessageProps {
   result: ActionResult;
@@ -69,6 +70,7 @@ export const CopilotMessage = memo(({ result, isFinal }: CopilotMessageProps) =>
   });
 
   const handleApprove = useCallback(async () => {
+    logEvent('copilot_approve_clicked');
     if (!workflowPlan) {
       return;
     }
@@ -141,7 +143,7 @@ export const CopilotMessage = memo(({ result, isFinal }: CopilotMessageProps) =>
     <div className="flex flex-col gap-2">
       {/* User query - right aligned blue bubble */}
       <div className="flex justify-end pl-5">
-        <div className="rounded-xl bg-[#F2FDFF] dark:bg-[#327576] text-refly-text-0 px-4 py-3 text-[15px]">
+        <div className="rounded-xl bg-[#F2FDFF] dark:bg-[#327576] text-refly-text-0 px-4 py-3 text-[15px] break-all">
           {input?.query}
         </div>
       </div>

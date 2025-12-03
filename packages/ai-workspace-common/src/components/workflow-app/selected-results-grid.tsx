@@ -98,6 +98,7 @@ export const SelectedResultsGrid = memo(
     // Clean up currentFile when component unmounts if modal was open
     // This prevents state leakage when navigating away while preview is open
     useEffect(() => {
+      setCurrentFile(null);
       return () => {
         if (currentFile) {
           setCurrentFile(null);
@@ -108,8 +109,8 @@ export const SelectedResultsGrid = memo(
 
     if (selectedNodes.length === 0) {
       return (
-        <div className="w-full h-full flex items-center justify-center text-refly-text-2 text-sm">
-          {t('workflowApp.noResultsSelected')}
+        <div className="w-full h-full flex items-center justify-center text-refly-func-danger-default text-sm">
+          {t('workflowApp.runResultRequired')}
         </div>
       );
     }

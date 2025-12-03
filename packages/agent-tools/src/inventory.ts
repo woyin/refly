@@ -8,6 +8,12 @@ import {
   BuiltinGenerateCodeArtifactDefinition,
   BuiltinSendEmailToolset,
   BuiltinSendEmailDefinition,
+  BuiltinGetTimeToolset,
+  BuiltinGetTimeDefinition,
+  BuiltinReadFileToolset,
+  BuiltinReadFileDefinition,
+  BuiltinExecuteCodeToolset,
+  BuiltinExecuteCodeDefinition,
 } from './builtin';
 import { AgentBaseToolset } from './base';
 import { BrowserUseToolset, BrowserUseToolsetDefinition } from './browser-use';
@@ -23,7 +29,7 @@ import { ProductHuntToolset, ProductHuntToolsetDefinition } from './producthunt'
 import { RedditToolsetDefinition } from './reddit';
 import { TwitterToolsetDefinition } from './twitter';
 // import { WhaleWisdomToolset, WhaleWisdomToolsetDefinition } from './whalewisdom';
-import { SandboxToolset, SandboxToolsetDefinition } from './sandbox';
+// import { SandboxToolset, SandboxToolsetDefinition } from './sandbox';
 import { Apify13FToolset, Apify13FToolsetDefinition } from './apify-13f';
 
 export type AnyToolsetClass = new (...args: any[]) => AgentBaseToolset<any>;
@@ -51,6 +57,18 @@ export const builtinToolsetInventory: Record<
     class: BuiltinSendEmailToolset,
     definition: BuiltinSendEmailDefinition,
   },
+  [BuiltinGetTimeDefinition.key]: {
+    class: BuiltinGetTimeToolset,
+    definition: BuiltinGetTimeDefinition,
+  },
+  [BuiltinReadFileDefinition.key]: {
+    class: BuiltinReadFileToolset,
+    definition: BuiltinReadFileDefinition,
+  },
+  [BuiltinExecuteCodeDefinition.key]: {
+    class: BuiltinExecuteCodeToolset,
+    definition: BuiltinExecuteCodeDefinition,
+  },
 };
 
 // Oauth tool use external sdk to execute, so the class is undefined
@@ -61,10 +79,6 @@ export const toolsetInventory: Record<
     definition: ToolsetDefinition;
   }
 > = {
-  [SandboxToolsetDefinition.key]: {
-    class: SandboxToolset,
-    definition: SandboxToolsetDefinition,
-  },
   [Apify13FToolsetDefinition.key]: {
     class: Apify13FToolset,
     definition: Apify13FToolsetDefinition,
