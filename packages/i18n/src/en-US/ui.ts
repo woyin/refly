@@ -1924,6 +1924,10 @@ const translations = {
       defaultPlaceholder: 'Describe what you want to generate...',
       createUserInput: 'Create user input "{{userInputName}}"',
       unauthorized: 'Authorize',
+      oauthSuccess: 'Tool authorized successfully',
+      oauthFailed: 'Failed to authorize tool',
+      oauthTimeout: 'Authorization timeout, please try again',
+      authorizing: 'Authorizing...',
     },
     toolsDepencency: {
       title: 'Tool Dependencies',
