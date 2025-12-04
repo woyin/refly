@@ -31,6 +31,7 @@ export interface CreditBalance {
   creditBalance: number;
   regularCredits?: number;
   templateEarningsCredits?: number;
+  cumulativeEarningsCredits?: number;
 }
 
 // New interfaces for batch processing
