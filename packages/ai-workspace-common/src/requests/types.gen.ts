@@ -736,7 +736,15 @@ export type ResourceMeta = {
 /**
  * Resource type
  */
-export type ResourceType = 'weblink' | 'text' | 'file' | 'document' | 'image' | 'video' | 'audio';
+export type ResourceType =
+  | 'weblink'
+  | 'text'
+  | 'file'
+  | 'document'
+  | 'image'
+  | 'video'
+  | 'audio'
+  | 'text/plain';
 
 /**
  * Error message for resource indexing
@@ -9789,9 +9797,9 @@ export type GetDocumentDetailError = unknown;
 export type ExportDocumentData = {
   query: {
     /**
-     * Export document ID to retrieve
+     * Export file ID to retrieve
      */
-    docId: string;
+    fileId: string;
     /**
      * Export format
      */

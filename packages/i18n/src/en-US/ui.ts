@@ -956,9 +956,9 @@ const translations = {
     exportSuccess: 'Export successfully',
     exportFailed: 'Export failed',
     exportAs: 'Export as',
-    exportDocumentToMarkdown: 'Export to Markdown',
-    exportDocumentToDocx: 'Export to DOCX',
-    exportDocumentToPdf: 'Export to PDF',
+    exportDocumentToMarkdown: 'Markdown Document (.md)',
+    exportDocumentToDocx: 'Word Document (.docx)',
+    exportDocumentToPdf: 'PDF Document (.pdf)',
     openWebpage: 'Open Original Webpage',
     downloadFile: 'Download File',
     canvasListModal: {
@@ -2013,6 +2013,7 @@ const translations = {
       fileTooLarge: 'File size cannot exceed {{size}}',
       fileParsingUsage:
         'Advanced file parsing (including PDF): {{used}}/{{limit}} pages used today',
+      fileSizeLimit: 'Maximum upload size: {{size}}',
       fromWeblink: 'Paste Weblink',
       selectAll: 'Select All',
       webLinkPlaceholer: 'Enter or paste valid web links, one per line...',
