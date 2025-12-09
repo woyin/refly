@@ -2,7 +2,7 @@ import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/commo
 import { ConfigService } from '@nestjs/config';
 import Redis from 'ioredis';
 import { isDesktop } from '../../utils/runtime';
-import { safeParseJSON } from '@refly/utils';
+import { safeParseJSON, runModuleInitWithTimeoutAndRetry } from '@refly/utils';
 import { OperationTooFrequent } from '@refly/errors';
 
 interface InMemoryItem {
@@ -26,7 +26,9 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
       this.logger.log('Initializing Redis client');
 
       if (configService.get('redis.url')) {
-        this.client = new Redis(configService.get('redis.url'));
+        this.client = new Redis(configService.get('redis.url'), {
+          maxRetriesPerRequest: null, // Required for BullMQ blocking commands
+        });
       } else {
         this.client = new Redis({
           host: configService.getOrThrow('redis.host'),
@@ -34,6 +36,7 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
           username: configService.get('redis.username'),
           password: configService.get('redis.password'),
           tls: configService.get<boolean>('redis.tls') ? {} : undefined,
+          maxRetriesPerRequest: null, // Required for BullMQ blocking commands
         });
       }
 
@@ -88,29 +91,29 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
   }
 
   getClient() {
+    if (!this.client) {
+      throw new Error('Redis client is not initialized yet');
+    }
     return this.client;
   }
 
-  async onModuleInit() {
+  async onModuleInit(): Promise<void> {
     if (isDesktop() || !this.client) {
       this.logger.log('Skip redis initialization in desktop mode');
       return;
     }
 
-    const initPromise = this.client.ping();
-    const timeoutPromise = new Promise((_, reject) => {
-      setTimeout(() => {
-        reject(`Redis connection timed out after ${this.INIT_TIMEOUT}ms`);
-      }, this.INIT_TIMEOUT);
-    });
-
-    try {
-      await Promise.race([initPromise, timeoutPromise]);
-      this.logger.log('Redis connection established');
-    } catch (error) {
-      this.logger.error(`Failed to establish Redis connection: ${error}`);
-      throw error;
-    }
+    await runModuleInitWithTimeoutAndRetry(
+      async () => {
+        await this.client?.ping();
+        this.logger.log('Redis connection established');
+      },
+      {
+        logger: this.logger,
+        label: 'RedisService.onModuleInit',
+        timeoutMs: this.INIT_TIMEOUT,
+      },
+    );
   }
 
   async setex(key: string, seconds: number, value: string) {

@@ -3,7 +3,7 @@ import { PinoLogger } from 'nestjs-pino';
 import { randomUUID } from 'node:crypto';
 import { DirectConnection } from '@hocuspocus/server';
 import { AIMessage, HumanMessage } from '@langchain/core/messages';
-import { AIMessageChunk, BaseMessage, MessageContentComplex } from '@langchain/core/dist/messages';
+import { AIMessageChunk, BaseMessage, MessageContentComplex } from '@langchain/core/messages';
 import { CallbackHandler as LangfuseCallbackHandler } from '@langfuse/langchain';
 import { InjectQueue } from '@nestjs/bullmq';
 import { ConfigService } from '@nestjs/config';
@@ -28,7 +28,7 @@ import {
   SkillRunnableMeta,
   createSkillInventory,
 } from '@refly/skill-template';
-import { genImageID, getWholeParsedContent, safeParseJSON } from '@refly/utils';
+import { genImageID, getWholeParsedContent, safeParseJSON, isAutoModel } from '@refly/utils';
 import { Queue } from 'bullmq';
 import { Response } from 'express';
 import { EventEmitter } from 'node:events';
@@ -1355,6 +1355,29 @@ export class SkillInvokerService {
   ): Promise<void> {
     const steps = await resultAggregator.getSteps({ resultId, version });
 
+    // If this is an Auto model request, use Auto model's billing rate instead of the actual model's rate
+    let autoProviderItem: any = null;
+    try {
+      const actionResult = await this.prisma.actionResult.findFirst({
+        where: { resultId, version },
+      });
+
+      if (actionResult?.providerItemId) {
+        const originalItem = await this.providerService.findProviderItemById(
+          user,
+          actionResult.providerItemId,
+        );
+
+        if (originalItem) {
+          if (isAutoModel(originalItem.config)) {
+            autoProviderItem = originalItem;
+          }
+        }
+      }
+    } catch (error) {
+      this.logger.warn(`[Billing] Failed to check Auto model routing: ${error?.message}`);
+    }
+
     // Collect all model names used in token usage
     const modelNames = new Set<string>();
     for (const step of steps) {
@@ -1401,8 +1424,12 @@ export class SkillInvokerService {
         for (const tokenUsage of tokenUsages) {
           const providerItem = providerItemsMap.get(String(tokenUsage.modelName));
 
-          if (providerItem?.creditBilling) {
-            const creditBilling = normalizeCreditBilling(safeParseJSON(providerItem.creditBilling));
+          // Use Auto model's billing rate if this request was routed from Auto
+          // This ensures: token count from real model + billing rate from Auto model
+          const billingItem = autoProviderItem || providerItem;
+
+          if (billingItem?.creditBilling) {
+            const creditBilling = normalizeCreditBilling(safeParseJSON(billingItem.creditBilling));
 
             if (!creditBilling) {
               continue;
@@ -1416,9 +1443,12 @@ export class SkillInvokerService {
               outputTokens: tokenUsage.outputTokens || 0,
             };
 
+            // billingModelName: model name used for billing (Auto or direct model)
+            // usage.modelName already contains the actual model name
             creditUsageSteps.push({
               usage,
               creditBilling,
+              billingModelName: billingItem.name,
             });
           }
         }
