@@ -9525,6 +9525,14 @@ export const PostHandlerContextSchema = {
       type: 'string',
       description: 'File name title from input params',
     },
+    resultId: {
+      type: 'string',
+      description: 'Result ID from execution context',
+    },
+    version: {
+      type: 'number',
+      description: 'Result version from execution context',
+    },
   },
 } as const;
 
