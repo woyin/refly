@@ -44,6 +44,7 @@ import { VariableExtractionModule } from './variable-extraction/variable-extract
 import { InvitationModule } from './invitation/invitation.module';
 import { DriveModule } from './drive/drive.module';
 import { FormModule } from './form/form.module';
+import { VoucherModule } from './voucher/voucher.module';
 import { CommonModule } from './common/common.module';
 import { RedisService } from './common/redis.service';
 
@@ -135,6 +136,7 @@ class CustomThrottlerGuard extends ThrottlerGuard {
     VariableExtractionModule,
     DriveModule,
     FormModule,
+    VoucherModule,
     ...(isDesktop()
       ? []
       : [
