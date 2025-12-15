@@ -21,7 +21,6 @@ import {
 } from './voucher.dto';
 import {
   DAILY_POPUP_TRIGGER_LIMIT,
-  VOUCHER_EXPIRATION_DAYS,
   VoucherStatus,
   VoucherSource,
   InvitationStatus,
@@ -211,9 +210,11 @@ export class VoucherService implements OnModuleInit {
         scoringResult.score,
       );
 
+      const VOUCHER_EXPIRATION_MINUTES = this.configService.get('voucher.expirationMinutes');
+
       // 4. Generate voucher
       const expiresAt = new Date();
-      expiresAt.setDate(expiresAt.getDate() + VOUCHER_EXPIRATION_DAYS);
+      expiresAt.setMinutes(expiresAt.getMinutes() + VOUCHER_EXPIRATION_MINUTES);
 
       const voucher = await this.createVoucher({
         uid: user.uid,
@@ -284,6 +285,9 @@ export class VoucherService implements OnModuleInit {
 
     // Generate email content based on user's locale
     const userName = userPo.nickname || userPo.name || 'Refly User';
+    const expirationMinutes = this.configService.get('voucher.expirationMinutes');
+    // Convert minutes to days for email display (round up)
+    const expirationDays = Math.max(1, Math.ceil(expirationMinutes / (60 * 24)));
     const { subject, html } = generateVoucherEmail(
       {
         userName,
@@ -291,7 +295,7 @@ export class VoucherService implements OnModuleInit {
         discountValue,
         discountedPrice,
         inviteLink,
-        expirationDays: VOUCHER_EXPIRATION_DAYS,
+        expirationDays,
       },
       userPo.uiLocale || undefined,
     );
@@ -411,6 +415,7 @@ export class VoucherService implements OnModuleInit {
 
   /**
    * Get user's available (unused, not expired) vouchers
+   * bestVoucher prioritizes vouchers with stripePromoCodeId (actually usable in Stripe)
    */
   async getAvailableVouchers(uid: string): Promise<VoucherAvailableResult> {
     const now = new Date();
@@ -423,17 +428,40 @@ export class VoucherService implements OnModuleInit {
           gt: now,
         },
       },
-      orderBy: {
-        discountPercent: 'desc', // Best voucher first
-      },
+      orderBy: [
+        { discountPercent: 'desc' }, // Best discount first
+        { createdAt: 'desc' }, // Newer vouchers first
+      ],
     });
 
     const voucherDTOs = vouchers.map((v) => this.toVoucherDTO(v));
 
+    // Separate vouchers with and without stripePromoCodeId
+    const vouchersWithPromo = voucherDTOs.filter((v) => v.stripePromoCodeId);
+    const vouchersWithoutPromo = voucherDTOs.filter((v) => !v.stripePromoCodeId);
+
+    // Sort each group by discountPercent desc, then createdAt desc
+    const sortByDiscount = (a: VoucherDTO, b: VoucherDTO) => {
+      if (b.discountPercent !== a.discountPercent) {
+        return b.discountPercent - a.discountPercent;
+      }
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    };
+
+    vouchersWithPromo.sort(sortByDiscount);
+    vouchersWithoutPromo.sort(sortByDiscount);
+
+    // Combine: vouchers with promo code first, then without
+    const sortedVouchers = [...vouchersWithPromo, ...vouchersWithoutPromo];
+
+    // bestVoucher: prefer voucher with stripePromoCodeId (actually usable)
+    // Fallback to highest discount without promo if none have promo
+    const bestVoucher = vouchersWithPromo[0] || vouchersWithoutPromo[0] || undefined;
+
     return {
-      hasAvailableVoucher: voucherDTOs.length > 0,
-      vouchers: voucherDTOs,
-      bestVoucher: voucherDTOs[0] || undefined,
+      hasAvailableVoucher: sortedVouchers.length > 0,
+      vouchers: sortedVouchers,
+      bestVoucher,
     };
   }
 
@@ -660,7 +688,9 @@ export class VoucherService implements OnModuleInit {
 
     // Create voucher for invitee
     const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + VOUCHER_EXPIRATION_DAYS);
+    expiresAt.setMinutes(
+      expiresAt.getMinutes() + this.configService.get('voucher.expirationMinutes'),
+    );
 
     const voucher = await this.createVoucher({
       uid: inviteeUid,
