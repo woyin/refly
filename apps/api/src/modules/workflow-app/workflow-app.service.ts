@@ -235,10 +235,10 @@ export class WorkflowAppService {
       visibility: 'public',
     });
     let isTemplateContentValid = false;
+    let shouldSkipGeneration = false;
 
     // Decide whether to enqueue template generation (stable mode comparison)
     try {
-      let shouldSkipGeneration = false;
       if (existingWorkflowApp) {
         // Previous variables fingerprint
         const prevVariables: WorkflowVariable[] = (() => {
@@ -336,6 +336,15 @@ export class WorkflowAppService {
       );
     }
 
+    // Determine template generation status for database update
+    // - 'idle': no generation needed (shouldSkipGeneration = true)
+    // - 'pending': generation queued (will be updated to 'generating' by processor)
+    // - Keep existing status if template is valid
+    const templateGenerationStatus = shouldSkipGeneration
+      ? 'idle'
+      : isTemplateContentValid
+        ? undefined // Keep existing status
+        : 'pending';
     // Start voucher scoring in parallel with DB operations
     // This promise will be awaited later after all DB operations complete
     const voucherPromise = this.voucherService
@@ -361,7 +370,15 @@ export class WorkflowAppService {
           resultNodeIds,
           creditUsage,
           updatedAt: new Date(),
+          // Reset templateContent if invalid
           ...{ ...(isTemplateContentValid ? {} : { templateContent: null }) },
+          // Update generation status
+          ...(templateGenerationStatus
+            ? {
+                templateGenerationStatus,
+                templateGenerationError: null, // Clear previous error
+              }
+            : {}),
         },
       });
     } else {
@@ -381,6 +398,8 @@ export class WorkflowAppService {
           publishReviewStatus: publishToCommunity ? 'reviewing' : 'init',
           resultNodeIds,
           creditUsage,
+          // Set initial generation status
+          templateGenerationStatus: shouldSkipGeneration ? 'idle' : 'pending',
         },
       });
     }
@@ -496,6 +515,66 @@ export class WorkflowAppService {
     });
 
     return { ...workflowApp, owner: userPo };
+  }
+
+  /**
+   * Get template generation status for a workflow app
+   * This is a lightweight method to check generation status directly from database
+   */
+  async getTemplateGenerationStatus(
+    user: User,
+    appId: string,
+  ): Promise<{
+    status: 'idle' | 'pending' | 'generating' | 'completed' | 'failed';
+    templateContent?: string | null;
+    error?: string | null;
+    updatedAt: string;
+    createdAt: string;
+  }> {
+    const workflowApp = await this.prisma.workflowApp.findFirst({
+      where: { appId, uid: user.uid, deletedAt: null },
+      select: {
+        appId: true,
+        templateContent: true,
+        templateGenerationStatus: true,
+        templateGenerationError: true,
+        updatedAt: true,
+        createdAt: true,
+      },
+    });
+
+    if (!workflowApp) {
+      throw new WorkflowAppNotFoundError();
+    }
+
+    // Read status directly from database
+    // Handle null values from old records (before migration)
+    const dbStatus = (workflowApp.templateGenerationStatus ?? 'idle') as
+      | 'idle'
+      | 'pending'
+      | 'generating'
+      | 'completed'
+      | 'failed';
+
+    // Validate status: if we have templateContent, status should be 'completed' or 'idle'
+    let status = dbStatus;
+    if (workflowApp.templateContent && workflowApp.templateContent.trim() !== '') {
+      // Has content - if status is still pending/generating/failed, treat as completed
+      if (status === 'pending' || status === 'generating' || status === 'failed') {
+        this.logger.warn(
+          `Status mismatch for appId=${appId}: content exists but status=${status}, treating as completed`,
+        );
+        status = 'completed';
+      }
+    }
+
+    return {
+      status,
+      templateContent: workflowApp.templateContent,
+      error: workflowApp.templateGenerationError,
+      updatedAt: workflowApp.updatedAt.toISOString(),
+      createdAt: workflowApp.createdAt.toISOString(),
+    };
   }
 
   async executeWorkflowApp(user: User, shareId: string, variables: WorkflowVariable[]) {

@@ -1498,6 +1498,9 @@ const translations = {
         forbiddenToAddNodeWhenWorkflowIsRunning:
           'Workflow is running, cannot add node, please try again later',
       },
+      template: {
+        updating: 'The template description string you are using is being updated...',
+      },
     },
     connectionTimeout: {
       title: 'Connection Timeout',

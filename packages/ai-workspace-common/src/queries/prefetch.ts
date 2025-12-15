@@ -35,6 +35,7 @@ import {
   getSettings,
   getSubscriptionPlans,
   getSubscriptionUsage,
+  getTemplateGenerationStatus,
   getToolCallResult,
   getWorkflowAppDetail,
   getWorkflowDetail,
@@ -100,6 +101,7 @@ import {
   GetPilotSessionDetailData,
   GetProjectDetailData,
   GetResourceDetailData,
+  GetTemplateGenerationStatusData,
   GetToolCallResultData,
   GetWorkflowAppDetailData,
   GetWorkflowDetailData,
@@ -466,6 +468,15 @@ export const prefetchUseListWorkflowApps = (
   queryClient.prefetchQuery({
     queryKey: Common.UseListWorkflowAppsKeyFn(clientOptions),
     queryFn: () => listWorkflowApps({ ...clientOptions }).then((response) => response.data),
+  });
+export const prefetchUseGetTemplateGenerationStatus = (
+  queryClient: QueryClient,
+  clientOptions: Options<GetTemplateGenerationStatusData, true>,
+) =>
+  queryClient.prefetchQuery({
+    queryKey: Common.UseGetTemplateGenerationStatusKeyFn(clientOptions),
+    queryFn: () =>
+      getTemplateGenerationStatus({ ...clientOptions }).then((response) => response.data),
   });
 export const prefetchUseGetSettings = (
   queryClient: QueryClient,
