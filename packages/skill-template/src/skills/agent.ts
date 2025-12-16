@@ -16,6 +16,7 @@ import { Icon, SkillTemplateConfigDefinition, User } from '@refly/openapi-schema
 import { GraphState } from '../scheduler/types';
 // utils
 import { buildFinalRequestMessages } from '../scheduler/utils/message';
+import { compressAgentLoopMessages } from '../utils/context-manager';
 
 // prompts
 import { buildNodeAgentSystemPrompt } from '../prompts/node-agent';
@@ -26,6 +27,7 @@ import { AIMessage, ToolMessage } from '@langchain/core/messages';
 import type { BaseMessage } from '@langchain/core/messages';
 import type { Runnable } from '@langchain/core/runnables';
 import { type StructuredToolInterface } from '@langchain/core/tools';
+import { countToken } from '../scheduler/utils/token';
 
 // Constants for recursion control
 const MAX_TOOL_ITERATIONS = 25;
@@ -171,11 +173,54 @@ export class Agent extends BaseSkill {
       this.engine.logger.info('No tools selected, using base LLM without tools');
       llmForGraph = baseLlm;
     }
+    // Get compression context from config
+    const { user, canvasId, resultId, version } = config?.configurable ?? {};
 
     const llmNodeForCachedGraph = async (nodeState: typeof MessagesAnnotation.State) => {
       try {
+        let currentMessages = nodeState.messages ?? [];
+        if (this.engine?.service && user && canvasId && resultId && version) {
+          try {
+            // Calculate tools tokens once (tools schema is static during the agent loop)
+            const toolSchemaTokens = availableToolsForNode?.length
+              ? countToken(
+                  JSON.stringify(
+                    availableToolsForNode.map((t) => ({
+                      name: t.name,
+                      description: t.description,
+                      schema: t.schema,
+                    })),
+                  ),
+                )
+              : 0;
+            const modelInfo = config?.configurable?.modelConfigMap?.agent;
+            const contextLimit = modelInfo?.contextLimit ?? 128000;
+            const maxOutput = modelInfo?.maxOutput ?? 8000;
+            const compressionResult = await compressAgentLoopMessages({
+              messages: currentMessages,
+              contextLimit,
+              maxOutput,
+              user,
+              canvasId,
+              resultId,
+              resultVersion: version,
+              service: this.engine.service,
+              logger: this.engine.logger,
+              modelInfo,
+              // Include tools tokens in the calculation for accurate budget estimation
+              additionalTokens: toolSchemaTokens,
+            });
+            currentMessages = compressionResult.messages;
+          } catch (compressionError) {
+            // Log but don't fail - compression is optional optimization
+            this.engine.logger.error('Agent loop compression failed', {
+              error: (compressionError as Error)?.message,
+            });
+          }
+        }
+
         // Use llmForGraph, which is the (potentially tool-bound) LLM instance for the graph
-        const response = await llmForGraph.invoke(nodeState.messages);
+        const response = await llmForGraph.invoke(currentMessages);
         return { messages: [response] };
       } catch (error) {
         this.engine.logger.error(`LLM node execution failed: ${error.stack}`);

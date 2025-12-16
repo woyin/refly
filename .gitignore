@@ -54,3 +54,5 @@ docs/.vitepress/cache/*
 *.opt
 
 .claude/settings.local.json
+
+.codex/*
