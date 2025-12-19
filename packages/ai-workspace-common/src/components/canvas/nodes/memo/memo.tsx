@@ -34,7 +34,6 @@ import { genSkillID, genMemoID } from '@refly/utils/id';
 import { IContextItem } from '@refly/common-types';
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
 import { useNodeSize } from '@refly-packages/ai-workspace-common/hooks/canvas/use-node-size';
-import { useSelectedNodeZIndex } from '@refly-packages/ai-workspace-common/hooks/canvas/use-selected-node-zIndex';
 import { useGetNodeConnectFromDragCreateInfo } from '@refly-packages/ai-workspace-common/hooks/canvas/use-get-node-connect';
 import { NodeDragCreateInfo } from '@refly-packages/ai-workspace-common/events/nodeOperations';
 import { Logo } from '@refly-packages/ai-workspace-common/components/common/logo';
@@ -47,7 +46,6 @@ export const MemoNode = ({ data, selected, id, isPreview = false, onNodeClick }:
   const setNodeDataByEntity = useSetNodeDataByEntity();
   const { t } = useTranslation();
   const { addNode } = useAddNode();
-  useSelectedNodeZIndex(id, selected);
 
   const { getNode } = useReactFlow();
   const node = getNode(id);
@@ -355,11 +353,7 @@ export const MemoNode = ({ data, selected, id, isPreview = false, onNodeClick }:
       const memoId = genMemoID();
       const jsonContent = editor?.getJSON();
       const content = editor?.storage?.markdown?.getMarkdown() || data?.contentPreview || '';
-
-      const { position, connectTo } = getConnectionInfo(
-        { entityId: data.entityId, type: 'memo' },
-        event?.dragCreateInfo,
-      );
+      const position = event?.dragCreateInfo?.position;
 
       addNode(
         {
@@ -369,13 +363,13 @@ export const MemoNode = ({ data, selected, id, isPreview = false, onNodeClick }:
             contentPreview: content,
             entityId: memoId,
             metadata: {
-              bgColor: data?.metadata?.bgColor || '#FFFEE7',
+              bgColor: data?.metadata?.bgColor || '#FEF2CF',
               jsonContent,
             },
           },
           position,
         },
-        connectTo,
+        [],
         false,
         true,
       );
@@ -437,9 +431,6 @@ export const MemoNode = ({ data, selected, id, isPreview = false, onNodeClick }:
       >
         <div
           style={{ backgroundColor: bgColor }}
-          onClick={() => {
-            editor?.commands.focus('end');
-          }}
           className={`
             h-full
             w-full
@@ -452,7 +443,12 @@ export const MemoNode = ({ data, selected, id, isPreview = false, onNodeClick }:
             ${getNodeCommonStyles({ selected: !isPreview && selected, isHovered })}
           `}
         >
-          <div className="relative flex-grow overflow-y-auto">
+          <div
+            className="relative flex-grow overflow-y-auto"
+            onClick={() => {
+              editor?.commands.focus('end');
+            }}
+          >
             <div
               className="editor-wrapper"
               style={{ userSelect: 'text', cursor: isPreview || readonly ? 'default' : 'text' }}
