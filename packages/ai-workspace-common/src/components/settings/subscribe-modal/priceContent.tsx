@@ -421,7 +421,7 @@ const PlanItem = memo((props: PlanItemProps) => {
             </Tag>
           )}
         </div>
-        {voucher && !isCurrentPlan && voucherValidDays && (
+        {voucher && !isCurrentPlan && voucherValidDays && interval !== 'yearly' && (
           <VoucherTag discountPercent={voucher.discountPercent} validDays={voucherValidDays} />
         )}
       </div>
@@ -623,8 +623,8 @@ export const PriceContent = memo((props: { source: PriceSource; entryPoint?: str
           interval: interval,
         };
 
-        // Validate voucher before creating checkout session
-        if (availableVoucher?.voucherId) {
+        // Validate voucher before creating checkout session (only for monthly subscriptions)
+        if (availableVoucher?.voucherId && interval !== 'yearly') {
           const validateRes = await getClient().validateVoucher({
             body: { voucherId: availableVoucher.voucherId },
           });
