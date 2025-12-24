@@ -174,6 +174,7 @@ export const WorkflowAPPForm = ({
   const [internalIsRunning, setInternalIsRunning] = useState(false);
   const [toolsPanelOpen, setToolsPanelOpen] = useState(false);
   const [highlightInstallButtons, setHighlightInstallButtons] = useState(false);
+  const [isFileUploading, setIsFileUploading] = useState(false);
 
   const handleToolsDependencyOpenChange = useCallback(
     (nextOpen: boolean) => {
@@ -841,7 +842,14 @@ export const WorkflowAPPForm = ({
     setTemplateVariables(variables);
   }, []);
 
-  const isRunButtonDisabled = loading || isRunning;
+  // Handle file uploading state changes from MixedTextEditor
+  const handleFileUploadingChange = useCallback((uploading: boolean) => {
+    setIsFileUploading(uploading);
+  }, []);
+
+  // Separate executing state (for loading indicator) from disabled state
+  const isExecuting = loading || isRunning;
+  const isRunButtonDisabled = isExecuting || isFileUploading;
 
   return (
     <div>
@@ -995,6 +1003,7 @@ export const WorkflowAPPForm = ({
                   onVariablesChange={handleTemplateVariableChange}
                   disabled={isFormDisabled}
                   originalVariables={workflowVariables}
+                  onUploadingChange={handleFileUploadingChange}
                 />
                 {/* Tools Dependency Form */}
                 {workflowApp?.canvasData && (
@@ -1110,14 +1119,14 @@ export const WorkflowAPPForm = ({
                     )}
                     type="primary"
                     onClick={handleRun}
-                    loading={isRunButtonDisabled}
+                    loading={isExecuting}
                     disabled={isRunButtonDisabled}
                   >
                     <span className="inline-flex items-center gap-[2px]">
-                      {isRunButtonDisabled
+                      {isExecuting
                         ? t('canvas.workflow.run.executing')
                         : t('canvas.workflow.run.run')}
-                      {!isRunButtonDisabled && (
+                      {!isExecuting && (
                         <svg
                           xmlns="http://www.w3.org/2000/svg"
                           width="18"
@@ -1261,14 +1270,14 @@ export const WorkflowAPPForm = ({
                     )}
                     type="primary"
                     onClick={handleRun}
-                    loading={isRunButtonDisabled}
+                    loading={isExecuting}
                     disabled={isRunButtonDisabled || !isFormValid}
                   >
                     <span className="inline-flex items-center gap-[2px]">
-                      {isRunButtonDisabled
+                      {isExecuting
                         ? t('canvas.workflow.run.executing')
                         : t('canvas.workflow.run.run')}
-                      {!isRunButtonDisabled && (
+                      {!isExecuting && (
                         <svg
                           xmlns="http://www.w3.org/2000/svg"
                           width="18"
