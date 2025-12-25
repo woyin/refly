@@ -5,6 +5,50 @@ import { GenericToolset, ModelInfo } from '@refly/openapi-schema';
 import { CanvasNodeData, ResponseNodeMeta } from '@refly/canvas-common';
 import { purgeContextItems } from '@refly/canvas-common';
 import { useRealtimeCanvasData } from './use-realtime-canvas-data';
+import { toolsetEmitter } from '@refly-packages/ai-workspace-common/events/toolset';
+// Hook for batch updating toolsetId across all canvas nodes
+export const useCanvasToolsetUpdater = () => {
+  const { nodes } = useRealtimeCanvasData();
+
+  const updateToolsetIdForAllNodes = useCallback(
+    (toolsetKey: string, newToolsetId: string) => {
+      // Find all skillResponse nodes that have the matching toolset
+
+      const nodesToUpdate = nodes.filter((node) => {
+        if (node.type === 'skillResponse' && node.data?.metadata) {
+          const metadata = node.data.metadata as ResponseNodeMeta;
+
+          if (metadata.selectedToolsets && Array.isArray(metadata.selectedToolsets)) {
+            const selectedToolsets = metadata.selectedToolsets as GenericToolset[];
+            const hasMatchingToolset = selectedToolsets.some((toolset) => {
+              const match = toolset.toolset?.key === toolsetKey;
+              return match;
+            });
+            return hasMatchingToolset;
+          }
+        }
+        return false;
+      });
+
+      // Emit events for each node to update itself using setSelectedToolsets
+      for (const node of nodesToUpdate) {
+        if (node.id) {
+          // Emit event for this specific node to update itself
+          setTimeout(() => {
+            toolsetEmitter.emit('updateNodeToolset', {
+              nodeId: node.id,
+              toolsetKey,
+              newToolsetId,
+            });
+          }, 0);
+        }
+      }
+    },
+    [nodes],
+  );
+
+  return { updateToolsetIdForAllNodes };
+};
 
 export const useAgentNodeManagement = (nodeId: string) => {
   const { nodesLookup } = useRealtimeCanvasData();
