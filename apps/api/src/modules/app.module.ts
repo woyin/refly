@@ -46,6 +46,7 @@ import { DriveModule } from './drive/drive.module';
 import { FormModule } from './form/form.module';
 import { VoucherModule } from './voucher/voucher.module';
 import { CommonModule } from './common/common.module';
+import { ScheduleModule } from './schedule/schedule.module';
 import { RedisService } from './common/redis.service';
 
 import { isDesktop } from '../utils/runtime';
@@ -140,6 +141,7 @@ class CustomThrottlerGuard extends ThrottlerGuard {
     DriveModule,
     FormModule,
     VoucherModule,
+    ScheduleModule,
     ...(isDesktop()
       ? []
       : [

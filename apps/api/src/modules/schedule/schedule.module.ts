@@ -1,0 +1,34 @@
+import { Module } from '@nestjs/common';
+import { BullModule } from '@nestjs/bullmq';
+import { ScheduleModule as NestScheduleModule } from '@nestjs/schedule';
+import { ScheduleService } from './schedule.service';
+import { ScheduleController } from './schedule.controller';
+import { ScheduleCronService } from './schedule-cron.service';
+import { SchedulePriorityService } from './schedule-priority.service';
+import { ScheduleProcessor } from './schedule.processor';
+import { QUEUE_SCHEDULE_EXECUTION } from '../../utils/const';
+import { CommonModule } from '../common/common.module';
+import { WorkflowModule } from '../workflow/workflow.module';
+import { SubscriptionModule } from '../subscription/subscription.module';
+import { CreditModule } from '../credit/credit.module';
+import { CanvasModule } from '../canvas/canvas.module';
+import { MiscModule } from '../misc/misc.module';
+
+@Module({
+  imports: [
+    CommonModule,
+    NestScheduleModule.forRoot(), // For @Cron
+    BullModule.registerQueue({
+      name: QUEUE_SCHEDULE_EXECUTION,
+    }),
+    WorkflowModule,
+    SubscriptionModule, // For priority check
+    CreditModule, // For credit check
+    CanvasModule,
+    MiscModule,
+  ],
+  controllers: [ScheduleController],
+  providers: [ScheduleService, ScheduleCronService, SchedulePriorityService, ScheduleProcessor],
+  exports: [ScheduleService],
+})
+export class ScheduleModule {}
