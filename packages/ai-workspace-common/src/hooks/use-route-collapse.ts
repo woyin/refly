@@ -30,6 +30,7 @@ export const useRouteCollapse = () => {
       '/home',
       '/project',
       '/marketplace',
+      '/run-history',
     ];
 
     // Check if current route matches any of the expanded routes

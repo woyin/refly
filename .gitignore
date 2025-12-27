@@ -21,6 +21,7 @@ yarn-error.log*
 lerna-debug.log*
 .pnpm-debug.log*
 i18n-consistency-report.json
+templates/*
 
 # Rush temporary files
 common/deploy/

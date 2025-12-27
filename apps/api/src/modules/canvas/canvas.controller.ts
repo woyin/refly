@@ -57,6 +57,7 @@ export class CanvasController {
     @Query('pageSize', new DefaultValuePipe(10), ParseIntPipe) pageSize: number,
     @Query('order', new DefaultValuePipe('updationDesc')) order: ListOrder,
     @Query('keyword') keyword: string,
+    @Query('scheduleStatus') scheduleStatus?: 'active' | 'inactive',
   ): Promise<ListCanvasResponse> {
     const canvases = await this.canvasService.listCanvases(user, {
       page,
@@ -64,7 +65,8 @@ export class CanvasController {
       projectId,
       order,
       keyword,
-    });
+      scheduleStatus,
+    } as any);
     return buildSuccessResponse(canvases.map(canvasPO2DTO));
   }
 

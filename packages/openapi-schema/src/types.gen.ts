@@ -620,6 +620,10 @@ export type Canvas = {
    */
   minimapStorageKey?: string;
   /**
+   * Workflow schedule configuration
+   */
+  schedule?: WorkflowSchedule;
+  /**
    * Canvas creation time
    */
   createdAt: string;
@@ -627,6 +631,41 @@ export type Canvas = {
    * Canvas update time
    */
   updatedAt: string;
+};
+
+export type WorkflowSchedule = {
+  /**
+   * Schedule ID
+   */
+  scheduleId?: string;
+  /**
+   * Schedule name
+   */
+  name?: string;
+  /**
+   * Whether the schedule is enabled
+   */
+  isEnabled?: boolean;
+  /**
+   * Cron expression
+   */
+  cronExpression?: string;
+  /**
+   * Schedule config JSON (type, time, weekdays, monthDays)
+   */
+  scheduleConfig?: string;
+  /**
+   * Timezone
+   */
+  timezone?: string;
+  /**
+   * Next run time
+   */
+  nextRunAt?: string;
+  /**
+   * Last run time
+   */
+  lastRunAt?: string;
 };
 
 export type CanvasTemplateCategory = {

@@ -26,3 +26,15 @@ export interface GetScheduleRecordsDto {
   page?: number;
   pageSize?: number;
 }
+
+export interface ListAllScheduleRecordsDto {
+  page?: number;
+  pageSize?: number;
+  status?: 'pending' | 'running' | 'success' | 'failed';
+  keyword?: string;
+  tools?: string[];
+}
+
+export interface GetScheduleRecordDetailDto {
+  scheduleRecordId: string;
+}

@@ -955,6 +955,10 @@ export const CanvasSchema = {
       type: 'string',
       description: 'Minimap storage key',
     },
+    schedule: {
+      description: 'Workflow schedule configuration',
+      $ref: '#/components/schemas/WorkflowSchedule',
+    },
     createdAt: {
       type: 'string',
       format: 'date-time',
@@ -964,6 +968,46 @@ export const CanvasSchema = {
       type: 'string',
       format: 'date-time',
       description: 'Canvas update time',
+    },
+  },
+} as const;
+
+export const WorkflowScheduleSchema = {
+  type: 'object',
+  properties: {
+    scheduleId: {
+      type: 'string',
+      description: 'Schedule ID',
+    },
+    name: {
+      type: 'string',
+      description: 'Schedule name',
+    },
+    isEnabled: {
+      type: 'boolean',
+      description: 'Whether the schedule is enabled',
+    },
+    cronExpression: {
+      type: 'string',
+      description: 'Cron expression',
+    },
+    scheduleConfig: {
+      type: 'string',
+      description: 'Schedule config JSON (type, time, weekdays, monthDays)',
+    },
+    timezone: {
+      type: 'string',
+      description: 'Timezone',
+    },
+    nextRunAt: {
+      type: 'string',
+      format: 'date-time',
+      description: 'Next run time',
+    },
+    lastRunAt: {
+      type: 'string',
+      format: 'date-time',
+      description: 'Last run time',
     },
   },
 } as const;

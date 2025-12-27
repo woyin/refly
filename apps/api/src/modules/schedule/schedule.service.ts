@@ -1,14 +1,25 @@
-import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException, BadRequestException, Inject } from '@nestjs/common';
 import { PrismaService } from '../common/prisma.service';
 import { CreateScheduleDto, UpdateScheduleDto } from './schedule.dto';
 import { genScheduleId } from '@refly/utils';
 import { CronExpressionParser } from 'cron-parser';
+import { ObjectStorageService } from '../common/object-storage';
+import { OSS_INTERNAL } from '../common/object-storage/tokens';
 
 @Injectable()
 export class ScheduleService {
   private readonly logger = new Logger(ScheduleService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    @Inject(OSS_INTERNAL) private readonly oss: ObjectStorageService,
+  ) {}
+
+  // Helper to remove BigInt pk field from schedule objects
+  private excludePk<T extends { pk?: bigint }>(obj: T): Omit<T, 'pk'> {
+    const { pk, ...result } = obj;
+    return result;
+  }
 
   async createSchedule(uid: string, dto: CreateScheduleDto) {
     // 1. Validate Cron Expression
@@ -16,6 +27,21 @@ export class ScheduleService {
       CronExpressionParser.parse(dto.cronExpression);
     } catch {
       throw new BadRequestException('Invalid cron expression');
+    }
+
+    // Check if schedule already exists for this canvas
+    const existingSchedule = await this.prisma.workflowSchedule.findFirst({
+      where: { canvasId: dto.canvasId, uid, deletedAt: null },
+    });
+
+    if (existingSchedule) {
+      // Update existing schedule instead of creating a new one
+      return this.updateSchedule(uid, existingSchedule.scheduleId, {
+        cronExpression: dto.cronExpression,
+        scheduleConfig: dto.scheduleConfig,
+        timezone: dto.timezone,
+        isEnabled: dto.isEnabled,
+      });
     }
 
     // 2. Check Plan Quota
@@ -39,14 +65,24 @@ export class ScheduleService {
     });
     const nextRunAt = interval.next().toDate();
 
-    // 4. Create Schedule
+    // 4. Get canvas title for default name if name not provided
+    let scheduleName = dto.name;
+    if (!scheduleName) {
+      const canvas = await this.prisma.canvas.findUnique({
+        where: { canvasId: dto.canvasId },
+        select: { title: true },
+      });
+      scheduleName = canvas?.title || 'Scheduled Task';
+    }
+
+    // 5. Create Schedule
     const scheduleId = genScheduleId();
-    return this.prisma.workflowSchedule.create({
+    const schedule = await this.prisma.workflowSchedule.create({
       data: {
         scheduleId,
         uid,
         canvasId: dto.canvasId,
-        name: dto.name,
+        name: scheduleName,
         cronExpression: dto.cronExpression,
         scheduleConfig: dto.scheduleConfig,
         timezone: dto.timezone,
@@ -54,6 +90,9 @@ export class ScheduleService {
         nextRunAt: dto.isEnabled ? nextRunAt : null,
       },
     });
+
+    // Remove pk field (BigInt) to avoid serialization issues
+    return this.excludePk(schedule);
   }
 
   async updateSchedule(uid: string, scheduleId: string, dto: UpdateScheduleDto) {
@@ -83,13 +122,14 @@ export class ScheduleService {
       }
     }
 
-    return this.prisma.workflowSchedule.update({
+    const updated = await this.prisma.workflowSchedule.update({
       where: { scheduleId },
       data: {
         ...dto,
         nextRunAt,
       },
     });
+    return this.excludePk(updated);
   }
 
   async deleteSchedule(uid: string, scheduleId: string) {
@@ -101,7 +141,7 @@ export class ScheduleService {
       throw new NotFoundException('Schedule not found');
     }
 
-    return this.prisma.workflowSchedule.update({
+    const deleted = await this.prisma.workflowSchedule.update({
       where: { scheduleId },
       data: {
         deletedAt: new Date(),
@@ -109,6 +149,7 @@ export class ScheduleService {
         nextRunAt: null,
       },
     });
+    return this.excludePk(deleted);
   }
 
   async getSchedule(uid: string, scheduleId: string) {
@@ -120,7 +161,7 @@ export class ScheduleService {
       throw new NotFoundException('Schedule not found');
     }
 
-    return schedule;
+    return this.excludePk(schedule);
   }
 
   async listSchedules(uid: string, canvasId?: string, page = 1, pageSize = 10) {
@@ -140,7 +181,7 @@ export class ScheduleService {
       }),
     ]);
 
-    return { total, page, pageSize, items };
+    return { total, page, pageSize, items: items.map((item) => this.excludePk(item)) };
   }
 
   async getScheduleRecords(uid: string, scheduleId: string, page = 1, pageSize = 10) {
@@ -159,6 +200,149 @@ export class ScheduleService {
       }),
     ]);
 
-    return { total, page, pageSize, items };
+    return { total, page, pageSize, items: items.map((item) => this.excludePk(item)) };
+  }
+
+  async listAllScheduleRecords(
+    uid: string,
+    page = 1,
+    pageSize = 10,
+    status?: 'pending' | 'running' | 'success' | 'failed',
+    keyword?: string,
+    tools?: string[],
+  ) {
+    const where: any = { uid };
+
+    // Filter by status
+    if (status) {
+      where.status = status;
+    }
+
+    // Filter by keyword (search in workflowTitle)
+    if (keyword) {
+      where.workflowTitle = {
+        contains: keyword,
+        mode: 'insensitive',
+      };
+    }
+
+    // Filter by tools (usedTools contains any of the selected tools)
+    if (tools && tools.length > 0) {
+      where.OR = tools.map((tool) => ({
+        usedTools: {
+          contains: tool,
+        },
+      }));
+    }
+
+    const [total, items] = await Promise.all([
+      this.prisma.scheduleRecord.count({ where }),
+      this.prisma.scheduleRecord.findMany({
+        where,
+        orderBy: { scheduledAt: 'desc' },
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+      }),
+    ]);
+
+    // Get unique scheduleIds and fetch schedule names
+    const scheduleIds = [...new Set(items.map((item) => item.scheduleId))];
+    const schedules = await this.prisma.workflowSchedule.findMany({
+      where: { scheduleId: { in: scheduleIds } },
+      select: { scheduleId: true, name: true },
+    });
+    const scheduleNameMap = new Map(schedules.map((s) => [s.scheduleId, s.name]));
+
+    // Map items to include scheduleName and exclude pk
+    const mappedItems = items.map((item) => {
+      const { pk, ...rest } = item;
+      return {
+        ...rest,
+        scheduleName: scheduleNameMap.get(item.scheduleId) || item.workflowTitle || 'Untitled',
+      };
+    });
+
+    return { total, page, pageSize, items: mappedItems };
+  }
+
+  async getAvailableTools(uid: string) {
+    // Get all unique tools used across all schedule records for this user
+    const records = await this.prisma.scheduleRecord.findMany({
+      where: { uid },
+      select: { usedTools: true },
+    });
+
+    const toolSet = new Set<string>();
+    for (const record of records) {
+      if (record.usedTools) {
+        try {
+          const tools = JSON.parse(record.usedTools) as string[];
+          for (const tool of tools) {
+            toolSet.add(tool);
+          }
+        } catch {
+          // Invalid JSON, skip
+        }
+      }
+    }
+
+    return Array.from(toolSet).map((tool) => ({
+      id: tool,
+      name: tool,
+    }));
+  }
+
+  async getScheduleRecordDetail(uid: string, scheduleRecordId: string) {
+    const record = await this.prisma.scheduleRecord.findUnique({
+      where: { scheduleRecordId },
+    });
+
+    if (!record || record.uid !== uid) {
+      throw new NotFoundException('Schedule record not found');
+    }
+
+    // Get schedule name
+    const schedule = await this.prisma.workflowSchedule.findUnique({
+      where: { scheduleId: record.scheduleId },
+      select: { name: true },
+    });
+
+    const { pk, ...rest } = record;
+    return {
+      ...rest,
+      scheduleName: schedule?.name || record.workflowTitle || 'Untitled',
+    };
+  }
+
+  async getRecordSnapshot(uid: string, scheduleRecordId: string) {
+    const record = await this.prisma.scheduleRecord.findUnique({
+      where: { scheduleRecordId },
+    });
+
+    if (!record || record.uid !== uid) {
+      throw new NotFoundException('Schedule record not found');
+    }
+
+    if (!record.snapshotStorageKey) {
+      throw new NotFoundException('Snapshot not found for this record');
+    }
+
+    const stream = await this.oss.getObject(record.snapshotStorageKey);
+    if (!stream) {
+      throw new NotFoundException('Snapshot data not found in storage');
+    }
+
+    // Read stream to string
+    const chunks: Buffer[] = [];
+    for await (const chunk of stream) {
+      chunks.push(Buffer.from(chunk));
+    }
+    const content = Buffer.concat(chunks).toString('utf-8');
+
+    try {
+      return JSON.parse(content);
+    } catch {
+      throw new BadRequestException('Invalid snapshot data format');
+    }
   }
 }

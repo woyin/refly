@@ -6,9 +6,12 @@ import {
   UpdateScheduleDto,
   ListSchedulesDto,
   GetScheduleRecordsDto,
+  ListAllScheduleRecordsDto,
+  GetScheduleRecordDetailDto,
 } from './schedule.dto';
 import { JwtAuthGuard } from '../auth/guard/jwt-auth.guard';
 import { LoginedUser } from '../../utils/decorators/user.decorator';
+import { buildSuccessResponse } from '../../utils';
 
 @Controller('v1/schedule')
 @UseGuards(JwtAuthGuard)
@@ -17,7 +20,8 @@ export class ScheduleController {
 
   @Post('create')
   async createSchedule(@LoginedUser() user: User, @Body() dto: CreateScheduleDto) {
-    return this.scheduleService.createSchedule(user.uid, dto);
+    const result = await this.scheduleService.createSchedule(user.uid, dto);
+    return buildSuccessResponse(result);
   }
 
   @Post('update')
@@ -26,31 +30,78 @@ export class ScheduleController {
     @Body() body: UpdateScheduleDto & { scheduleId: string },
   ) {
     const { scheduleId, ...dto } = body;
-    return this.scheduleService.updateSchedule(user.uid, scheduleId, dto);
+    const result = await this.scheduleService.updateSchedule(user.uid, scheduleId, dto);
+    return buildSuccessResponse(result);
   }
 
   @Post('delete')
   async deleteSchedule(@LoginedUser() user: User, @Body() body: { scheduleId: string }) {
-    return this.scheduleService.deleteSchedule(user.uid, body.scheduleId);
+    const result = await this.scheduleService.deleteSchedule(user.uid, body.scheduleId);
+    return buildSuccessResponse(result);
   }
 
   @Post('detail')
   async getSchedule(@LoginedUser() user: User, @Body() body: { scheduleId: string }) {
-    return this.scheduleService.getSchedule(user.uid, body.scheduleId);
+    const result = await this.scheduleService.getSchedule(user.uid, body.scheduleId);
+    return buildSuccessResponse(result);
   }
 
   @Post('list')
   async listSchedules(@LoginedUser() user: User, @Body() dto: ListSchedulesDto) {
-    return this.scheduleService.listSchedules(user.uid, dto.canvasId, dto.page, dto.pageSize);
+    const result = await this.scheduleService.listSchedules(
+      user.uid,
+      dto.canvasId,
+      dto.page,
+      dto.pageSize,
+    );
+    return buildSuccessResponse(result);
   }
 
   @Post('records')
   async getScheduleRecords(@LoginedUser() user: User, @Body() dto: GetScheduleRecordsDto) {
-    return this.scheduleService.getScheduleRecords(
+    const result = await this.scheduleService.getScheduleRecords(
       user.uid,
       dto.scheduleId,
       dto.page,
       dto.pageSize,
     );
+    return buildSuccessResponse(result);
+  }
+
+  @Post('records/list')
+  async listAllScheduleRecords(@LoginedUser() user: User, @Body() dto: ListAllScheduleRecordsDto) {
+    const result = await this.scheduleService.listAllScheduleRecords(
+      user.uid,
+      dto.page,
+      dto.pageSize,
+      dto.status,
+      dto.keyword,
+      dto.tools,
+    );
+    return buildSuccessResponse(result);
+  }
+
+  @Post('records/tools')
+  async getAvailableTools(@LoginedUser() user: User) {
+    const result = await this.scheduleService.getAvailableTools(user.uid);
+    return buildSuccessResponse(result);
+  }
+
+  @Post('record/detail')
+  async getScheduleRecordDetail(
+    @LoginedUser() user: User,
+    @Body() dto: GetScheduleRecordDetailDto,
+  ) {
+    const result = await this.scheduleService.getScheduleRecordDetail(
+      user.uid,
+      dto.scheduleRecordId,
+    );
+    return buildSuccessResponse(result);
+  }
+
+  @Post('record/snapshot')
+  async getRecordSnapshot(@LoginedUser() user: User, @Body() dto: GetScheduleRecordDetailDto) {
+    const result = await this.scheduleService.getRecordSnapshot(user.uid, dto.scheduleRecordId);
+    return buildSuccessResponse(result);
   }
 }
