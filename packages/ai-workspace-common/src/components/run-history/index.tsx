@@ -3,7 +3,7 @@ import { time } from '@refly-packages/ai-workspace-common/utils/time';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from '@refly-packages/ai-workspace-common/utils/router';
 
-import { Empty, Typography, Table } from 'antd';
+import { Empty, Typography, Table, Button, message } from 'antd';
 import { EndMessage } from '@refly-packages/ai-workspace-common/components/workspace/scroll-loading';
 import { Spin } from '@refly-packages/ai-workspace-common/components/common/spin';
 import { LOCALE } from '@refly/common-types';
@@ -16,10 +16,17 @@ import { useDebouncedCallback } from 'use-debounce';
 import { useState } from 'react';
 import './index.scss';
 
-type ScheduleRecordStatus = 'pending' | 'running' | 'success' | 'failed';
+type ScheduleRecordStatus =
+  | 'scheduled'
+  | 'pending'
+  | 'processing'
+  | 'running'
+  | 'success'
+  | 'failed';
 
 interface ScheduleRecordItem {
   scheduleRecordId: string;
+  scheduleId?: string;
   scheduleName: string;
   workflowTitle?: string;
   status: ScheduleRecordStatus;
@@ -130,17 +137,59 @@ const RunHistoryList = memo(() => {
     [navigate],
   );
 
+  const [retryingScheduleRecordId, setRetryingScheduleRecordId] = useState<string | null>(null);
+
+  const handleRetryScheduleRecord = useCallback(
+    async (record: ScheduleRecordItem) => {
+      if (!record.scheduleRecordId) {
+        message.error(t('runHistory.retryError.noScheduleRecordId'));
+        return;
+      }
+
+      setRetryingScheduleRecordId(record.scheduleRecordId);
+      try {
+        await client.post({
+          url: '/schedule/record/retry',
+          body: {
+            scheduleRecordId: record.scheduleRecordId,
+          },
+        });
+        message.success(t('runHistory.retrySuccess'));
+        // Reload data after a short delay to show the updated record
+        setTimeout(() => {
+          reload();
+        }, 1000);
+      } catch (error) {
+        console.error('Failed to retry schedule record:', error);
+        message.error(t('runHistory.retryError.failed'));
+      } finally {
+        setRetryingScheduleRecordId(null);
+      }
+    },
+    [t, reload],
+  );
+
   // Get status display config
   const getStatusConfig = useCallback(
     (status: ScheduleRecordStatus) => {
       const configs = {
+        scheduled: {
+          label: t('runHistory.status.scheduled'),
+          color: 'default' as const,
+          textClass: 'text-gray-600',
+        },
         pending: {
-          label: t('runHistory.status.init'),
+          label: t('runHistory.status.queued'),
           color: 'default' as const,
           textClass: 'text-gray-500',
         },
+        processing: {
+          label: t('runHistory.status.processing'),
+          color: 'processing' as const,
+          textClass: 'text-blue-400',
+        },
         running: {
-          label: t('runHistory.status.executing'),
+          label: t('runHistory.status.running'),
           color: 'processing' as const,
           textClass: 'text-blue-500',
         },
@@ -218,23 +267,48 @@ const RunHistoryList = memo(() => {
       {
         title: t('runHistory.tableTitle.actions'),
         key: 'actions',
-        width: 120,
+        width: 180,
         align: 'left' as const,
         fixed: 'right' as const,
         render: (_: unknown, record: ScheduleRecordItem) => (
-          <Typography.Link
-            className="!text-teal-600 hover:!text-teal-700 text-sm"
-            onClick={(e) => {
-              e.stopPropagation();
-              handleViewDetail(record);
-            }}
-          >
-            {t('runHistory.viewDetail')}
-          </Typography.Link>
+          <div className="flex items-center gap-2">
+            {/* Only show retry button for failed records, not for scheduled or pending records */}
+            {record.scheduleRecordId && record.status === 'failed' && (
+              <Button
+                type="link"
+                size="small"
+                loading={retryingScheduleRecordId === record.scheduleRecordId}
+                disabled={!!retryingScheduleRecordId}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleRetryScheduleRecord(record);
+                }}
+                className="!text-blue-600 hover:!text-blue-700 text-sm p-0"
+              >
+                {t('runHistory.retry')}
+              </Button>
+            )}
+            <Typography.Link
+              className="!text-teal-600 hover:!text-teal-700 text-sm"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleViewDetail(record);
+              }}
+            >
+              {t('runHistory.viewDetail')}
+            </Typography.Link>
+          </div>
         ),
       },
     ],
-    [t, language, getStatusConfig, handleViewDetail],
+    [
+      t,
+      language,
+      getStatusConfig,
+      handleViewDetail,
+      retryingScheduleRecordId,
+      handleRetryScheduleRecord,
+    ],
   );
 
   // Check if any filters are active

@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../common/prisma.service';
 import { Subscription } from '@prisma/client';
 
+// Priority range: 1-10 (higher number = higher priority, aligned with BullMQ)
 const PLAN_PRIORITY_MAP: Record<string, number> = {
   refly_plus_yearly_test_v3: 1,
   refly_plus_monthly_test_v3: 1,
@@ -30,6 +31,11 @@ export class SchedulePriorityService {
 
   constructor(private readonly prisma: PrismaService) {}
 
+  /**
+   * Calculate execution priority for a user
+   * @param uid - User ID
+   * @returns Priority value (1-10, higher number = higher priority, aligned with BullMQ)
+   */
   async calculateExecutionPriority(uid: string): Promise<number> {
     // 1. Get user's current subscription
     const subscription = await this.prisma.subscription.findFirst({
@@ -48,10 +54,10 @@ export class SchedulePriorityService {
     // 3. Get priority adjustment factors
     const factors = await this.getPriorityFactors(uid, subscription);
 
-    // 4. Apply priority adjustments
+    // 4. Apply priority adjustments (penalties reduce priority, bonuses increase it)
     const adjustedPriority = this.applyPriorityAdjustments(basePriority, factors);
 
-    // 5. Ensure priority is within valid range (1-10)
+    // 5. Ensure priority is within valid range (1-10, higher = higher priority)
     const finalPriority = Math.max(1, Math.min(10, adjustedPriority));
 
     this.logger.debug(
@@ -113,26 +119,26 @@ export class SchedulePriorityService {
   private applyPriorityAdjustments(basePriority: number, factors: any): number {
     let priority = basePriority;
 
-    // Penalty for consecutive failures
+    // Penalty for consecutive failures (reduce priority)
     if (factors.consecutiveFailures > 0) {
       // Max 3 penalty levels
       const penalty = Math.min(factors.consecutiveFailures, 3) * ADJUSTMENT_FACTORS.FAILURE_PENALTY;
-      priority += penalty;
+      priority -= penalty;
     }
 
-    // Penalty for high load (many active schedules)
+    // Penalty for high load (many active schedules) - reduce priority
     if (factors.activeScheduleCount > 5) {
-      priority += ADJUSTMENT_FACTORS.HIGH_LOAD_PENALTY;
+      priority -= ADJUSTMENT_FACTORS.HIGH_LOAD_PENALTY;
     }
 
-    // Penalty for low credits
+    // Penalty for low credits - reduce priority
     if (factors.lowCredits) {
-      priority += ADJUSTMENT_FACTORS.LOW_CREDIT_PENALTY;
+      priority -= ADJUSTMENT_FACTORS.LOW_CREDIT_PENALTY;
     }
 
-    // Bonus for early bird
+    // Bonus for early bird - increase priority
     if (factors.isEarlyBird) {
-      priority += ADJUSTMENT_FACTORS.EARLY_BIRD_BONUS;
+      priority -= ADJUSTMENT_FACTORS.EARLY_BIRD_BONUS; // EARLY_BIRD_BONUS is -1, so -= -1 = +1
     }
 
     return Math.floor(priority);

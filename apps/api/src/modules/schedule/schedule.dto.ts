@@ -30,11 +30,19 @@ export interface GetScheduleRecordsDto {
 export interface ListAllScheduleRecordsDto {
   page?: number;
   pageSize?: number;
-  status?: 'pending' | 'running' | 'success' | 'failed';
+  status?: 'scheduled' | 'pending' | 'processing' | 'running' | 'success' | 'failed';
   keyword?: string;
   tools?: string[];
 }
 
 export interface GetScheduleRecordDetailDto {
+  scheduleRecordId: string;
+}
+
+export interface TriggerScheduleManuallyDto {
+  scheduleId: string;
+}
+
+export interface RetryScheduleRecordDto {
   scheduleRecordId: string;
 }

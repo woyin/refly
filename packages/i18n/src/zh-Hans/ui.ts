@@ -4353,8 +4353,10 @@ const translations = {
     },
     status: {
       all: '所有状态',
-      init: '初始化中',
-      executing: '运行中',
+      scheduled: '已计划',
+      queued: '排队中',
+      processing: '处理中',
+      running: '执行中',
       succeeded: '成功',
       failed: '失败',
     },
@@ -4373,6 +4375,18 @@ const translations = {
       noTools: '暂无工具',
       clearAllTools: '清除所有选择',
       tool: '工具',
+    },
+    triggerNow: '立即触发',
+    triggerSuccess: '触发成功',
+    triggerError: {
+      noScheduleId: '无法触发：缺少调度ID',
+      failed: '触发失败，请稍后重试',
+    },
+    retry: '重试',
+    retrySuccess: '重试成功',
+    retryError: {
+      noScheduleRecordId: '无法重试：缺少执行记录ID',
+      failed: '重试失败，请稍后重试',
     },
   },
   runDetail: {

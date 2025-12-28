@@ -4319,8 +4319,10 @@ const translations = {
     },
     status: {
       all: 'All Status',
-      init: 'Initializing',
-      executing: 'Running',
+      scheduled: 'Scheduled',
+      queued: 'Queued',
+      processing: 'Processing',
+      running: 'Running',
       succeeded: 'Succeeded',
       failed: 'Failed',
     },
@@ -4339,6 +4341,18 @@ const translations = {
       noTools: 'No tools available',
       clearAllTools: 'Clear All Selections',
       tool: 'Tool',
+    },
+    triggerNow: 'Trigger Now',
+    triggerSuccess: 'Schedule triggered successfully',
+    triggerError: {
+      noScheduleId: 'Cannot trigger: schedule ID missing',
+      failed: 'Failed to trigger schedule, please try again later',
+    },
+    retry: 'Retry',
+    retrySuccess: 'Retry initiated successfully',
+    retryError: {
+      noScheduleRecordId: 'Cannot retry: schedule record ID missing',
+      failed: 'Failed to retry schedule record, please try again later',
     },
   },
   runDetail: {

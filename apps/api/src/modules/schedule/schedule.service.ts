@@ -1,10 +1,14 @@
 import { Injectable, Logger, NotFoundException, BadRequestException, Inject } from '@nestjs/common';
 import { PrismaService } from '../common/prisma.service';
 import { CreateScheduleDto, UpdateScheduleDto } from './schedule.dto';
-import { genScheduleId } from '@refly/utils';
+import { genScheduleId, genScheduleRecordId } from '@refly/utils';
 import { CronExpressionParser } from 'cron-parser';
 import { ObjectStorageService } from '../common/object-storage';
 import { OSS_INTERNAL } from '../common/object-storage/tokens';
+import { InjectQueue } from '@nestjs/bullmq';
+import { Queue } from 'bullmq';
+import { QUEUE_SCHEDULE_EXECUTION } from '../../utils/const';
+import { SchedulePriorityService } from './schedule-priority.service';
 
 @Injectable()
 export class ScheduleService {
@@ -13,6 +17,8 @@ export class ScheduleService {
   constructor(
     private readonly prisma: PrismaService,
     @Inject(OSS_INTERNAL) private readonly oss: ObjectStorageService,
+    @InjectQueue(QUEUE_SCHEDULE_EXECUTION) private readonly scheduleQueue: Queue,
+    private readonly priorityService: SchedulePriorityService,
   ) {}
 
   // Helper to remove BigInt pk field from schedule objects
@@ -60,10 +66,16 @@ export class ScheduleService {
     }
 
     // 3. Calculate next run time
-    const interval = CronExpressionParser.parse(dto.cronExpression, {
-      tz: dto.timezone || 'Asia/Shanghai',
-    });
-    const nextRunAt = interval.next().toDate();
+    // Always calculate nextRunAt even if disabled, so it's ready when enabled
+    let nextRunAt: Date | null = null;
+    try {
+      const interval = CronExpressionParser.parse(dto.cronExpression, {
+        tz: dto.timezone || 'Asia/Shanghai',
+      });
+      nextRunAt = interval.next().toDate();
+    } catch {
+      throw new BadRequestException('Invalid cron expression');
+    }
 
     // 4. Get canvas title for default name if name not provided
     let scheduleName = dto.name;
@@ -77,6 +89,7 @@ export class ScheduleService {
 
     // 5. Create Schedule
     const scheduleId = genScheduleId();
+    const isEnabled = dto.isEnabled ?? false;
     const schedule = await this.prisma.workflowSchedule.create({
       data: {
         scheduleId,
@@ -86,10 +99,17 @@ export class ScheduleService {
         cronExpression: dto.cronExpression,
         scheduleConfig: dto.scheduleConfig,
         timezone: dto.timezone,
-        isEnabled: dto.isEnabled ?? false,
-        nextRunAt: dto.isEnabled ? nextRunAt : null,
+        isEnabled,
+        // Only set nextRunAt if enabled, otherwise keep it calculated but null
+        // This allows the schedule to be ready when enabled
+        nextRunAt: isEnabled ? nextRunAt : null,
       },
     });
+
+    // 6. Create scheduled record if enabled and has nextRunAt
+    if (isEnabled && nextRunAt) {
+      await this.createOrUpdateScheduledRecord(uid, scheduleId, dto.canvasId, nextRunAt);
+    }
 
     // Remove pk field (BigInt) to avoid serialization issues
     return this.excludePk(schedule);
@@ -104,12 +124,19 @@ export class ScheduleService {
       throw new NotFoundException('Schedule not found');
     }
 
-    let nextRunAt = schedule.nextRunAt;
-    if (dto.cronExpression || dto.isEnabled !== undefined) {
-      const cron = dto.cronExpression || schedule.cronExpression;
-      const timezone = dto.timezone || schedule.timezone;
-      const isEnabled = dto.isEnabled !== undefined ? dto.isEnabled : schedule.isEnabled;
+    // Recalculate nextRunAt if any of these fields change: cronExpression, timezone, or isEnabled
+    const cron = dto.cronExpression || schedule.cronExpression;
+    const timezone = dto.timezone || schedule.timezone;
+    const isEnabled = dto.isEnabled !== undefined ? dto.isEnabled : schedule.isEnabled;
 
+    let nextRunAt = schedule.nextRunAt;
+    const shouldRecalculate =
+      dto.cronExpression !== undefined ||
+      dto.timezone !== undefined ||
+      dto.isEnabled !== undefined ||
+      (isEnabled && !nextRunAt); // Recalculate if enabling and nextRunAt is null
+
+    if (shouldRecalculate) {
       if (isEnabled) {
         try {
           const interval = CronExpressionParser.parse(cron, { tz: timezone });
@@ -118,6 +145,7 @@ export class ScheduleService {
           throw new BadRequestException('Invalid cron expression');
         }
       } else {
+        // When disabled, keep nextRunAt as null
         nextRunAt = null;
       }
     }
@@ -129,6 +157,15 @@ export class ScheduleService {
         nextRunAt,
       },
     });
+
+    // Update or create scheduled record if enabled and has nextRunAt
+    if (isEnabled && nextRunAt) {
+      await this.createOrUpdateScheduledRecord(uid, scheduleId, schedule.canvasId, nextRunAt);
+    } else {
+      // Delete scheduled record if disabled or no nextRunAt
+      await this.deleteScheduledRecord(scheduleId);
+    }
+
     return this.excludePk(updated);
   }
 
@@ -207,7 +244,7 @@ export class ScheduleService {
     uid: string,
     page = 1,
     pageSize = 10,
-    status?: 'pending' | 'running' | 'success' | 'failed',
+    status?: 'scheduled' | 'pending' | 'processing' | 'running' | 'success' | 'failed',
     keyword?: string,
     tools?: string[],
   ) {
@@ -259,6 +296,7 @@ export class ScheduleService {
       return {
         ...rest,
         scheduleName: scheduleNameMap.get(item.scheduleId) || item.workflowTitle || 'Untitled',
+        scheduleId: item.scheduleId, // Ensure scheduleId is included
       };
     });
 
@@ -344,5 +382,196 @@ export class ScheduleService {
     } catch {
       throw new BadRequestException('Invalid snapshot data format');
     }
+  }
+
+  async triggerScheduleManually(uid: string, scheduleId: string) {
+    // 1. Verify schedule exists and belongs to user
+    const schedule = await this.prisma.workflowSchedule.findUnique({
+      where: { scheduleId },
+    });
+
+    if (!schedule || schedule.uid !== uid || schedule.deletedAt) {
+      throw new NotFoundException('Schedule not found');
+    }
+
+    // 2. Calculate user execution priority
+    const priority = await this.priorityService.calculateExecutionPriority(uid);
+
+    // 3. Push to execution queue with priority
+    const timestamp = Date.now();
+    const scheduledAt = new Date(); // Manual trigger uses current time
+
+    await this.scheduleQueue.add(
+      'execute-scheduled-workflow',
+      {
+        scheduleId: schedule.scheduleId,
+        canvasId: schedule.canvasId,
+        uid: schedule.uid,
+        scheduledAt: scheduledAt.toISOString(),
+        priority,
+      },
+      {
+        jobId: `schedule:${schedule.scheduleId}:manual:${timestamp}`, // Deduplication ID for manual trigger
+        priority: Math.floor(priority), // BullMQ priority (higher number = higher priority)
+        attempts: 1, // No automatic retry, user must manually retry on failure
+        backoff: {
+          type: 'exponential',
+          delay: 1000,
+        },
+      },
+    );
+
+    this.logger.log(`Manually triggered schedule ${schedule.scheduleId} with priority ${priority}`);
+
+    return {
+      scheduleId: schedule.scheduleId,
+      triggeredAt: scheduledAt,
+      priority,
+    };
+  }
+
+  /**
+   * Retry a failed schedule record using its existing snapshot
+   * @param uid User ID
+   * @param scheduleRecordId The schedule record ID to retry
+   * @returns Retry status
+   */
+  async retryScheduleRecord(uid: string, scheduleRecordId: string) {
+    // 1. Verify schedule record exists and belongs to user
+    const record = await this.prisma.scheduleRecord.findUnique({
+      where: { scheduleRecordId },
+    });
+
+    if (!record || record.uid !== uid) {
+      throw new NotFoundException('Schedule record not found');
+    }
+
+    // 2. Check if snapshot exists for retry
+    if (!record.snapshotStorageKey) {
+      throw new BadRequestException('No snapshot available for retry. Cannot retry this record.');
+    }
+
+    // 3. Verify the schedule still exists
+    const schedule = await this.prisma.workflowSchedule.findUnique({
+      where: { scheduleId: record.scheduleId },
+    });
+
+    if (!schedule || schedule.deletedAt) {
+      throw new NotFoundException('Associated schedule not found or has been deleted');
+    }
+
+    // 4. Calculate user execution priority
+    const priority = await this.priorityService.calculateExecutionPriority(uid);
+
+    // 5. Update ScheduleRecord status to 'pending' immediately for frontend feedback
+    await this.prisma.scheduleRecord.update({
+      where: { scheduleRecordId },
+      data: {
+        status: 'pending',
+        failureReason: null,
+        errorDetails: null,
+        triggeredAt: new Date(),
+      },
+    });
+
+    // 6. Push to execution queue with the existing scheduleRecordId to reuse snapshot
+    const timestamp = Date.now();
+
+    await this.scheduleQueue.add(
+      'execute-scheduled-workflow',
+      {
+        scheduleId: record.scheduleId,
+        canvasId: record.canvasId,
+        uid: record.uid,
+        scheduledAt: new Date().toISOString(),
+        scheduleRecordId: record.scheduleRecordId, // Pass existing record ID to reuse snapshot
+        priority,
+      },
+      {
+        jobId: `schedule:${record.scheduleId}:retry:${scheduleRecordId}:${timestamp}`,
+        priority: Math.floor(priority),
+        attempts: 1, // No automatic retry, user must manually retry on failure
+        backoff: {
+          type: 'exponential',
+          delay: 1000,
+        },
+      },
+    );
+
+    this.logger.log(
+      `Retrying schedule record ${scheduleRecordId} for schedule ${record.scheduleId} with priority ${priority}`,
+    );
+
+    return {
+      scheduleRecordId,
+      scheduleId: record.scheduleId,
+      status: 'pending',
+      priority,
+    };
+  }
+
+  /**
+   * Create or update a scheduled record for the next execution
+   * This record represents a future execution that hasn't started yet
+   */
+  async createOrUpdateScheduledRecord(
+    uid: string,
+    scheduleId: string,
+    canvasId: string,
+    scheduledAt: Date,
+  ): Promise<void> {
+    // Get canvas title for workflowTitle
+    const canvas = await this.prisma.canvas.findUnique({
+      where: { canvasId },
+      select: { title: true },
+    });
+
+    // Check if a scheduled record already exists for this schedule
+    const existingScheduledRecord = await this.prisma.scheduleRecord.findFirst({
+      where: {
+        scheduleId,
+        status: 'scheduled',
+        workflowExecutionId: null, // Only scheduled records without execution
+      },
+    });
+
+    if (existingScheduledRecord) {
+      // Update existing scheduled record
+      await this.prisma.scheduleRecord.update({
+        where: { scheduleRecordId: existingScheduledRecord.scheduleRecordId },
+        data: {
+          scheduledAt,
+          workflowTitle: canvas?.title || 'Untitled',
+        },
+      });
+    } else {
+      // Create new scheduled record
+      const scheduleRecordId = genScheduleRecordId();
+      await this.prisma.scheduleRecord.create({
+        data: {
+          scheduleRecordId,
+          scheduleId,
+          uid,
+          canvasId,
+          workflowTitle: canvas?.title || 'Untitled',
+          status: 'scheduled',
+          scheduledAt,
+          priority: 5, // Default priority, will be recalculated when actually executed
+        },
+      });
+    }
+  }
+
+  /**
+   * Delete scheduled record for a schedule
+   */
+  async deleteScheduledRecord(scheduleId: string): Promise<void> {
+    await this.prisma.scheduleRecord.deleteMany({
+      where: {
+        scheduleId,
+        status: 'scheduled',
+        workflowExecutionId: null,
+      },
+    });
   }
 }
