@@ -30,7 +30,7 @@ export interface GetScheduleRecordsDto {
 export interface ListAllScheduleRecordsDto {
   page?: number;
   pageSize?: number;
-  status?: 'scheduled' | 'pending' | 'running' | 'success' | 'failed';
+  status?: 'scheduled' | 'pending' | 'processing' | 'running' | 'success' | 'failed';
   keyword?: string;
   tools?: string[];
 }

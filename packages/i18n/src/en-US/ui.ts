@@ -4319,8 +4319,9 @@ const translations = {
     status: {
       all: 'All Status',
       scheduled: 'Scheduled',
-      init: 'Initializing',
-      executing: 'Running',
+      queued: 'Queued',
+      processing: 'Processing',
+      running: 'Running',
       succeeded: 'Succeeded',
       failed: 'Failed',
     },

@@ -4353,8 +4353,9 @@ const translations = {
     status: {
       all: '所有状态',
       scheduled: '已计划',
-      init: '初始化中',
-      executing: '运行中',
+      queued: '排队中',
+      processing: '处理中',
+      running: '执行中',
       succeeded: '成功',
       failed: '失败',
     },

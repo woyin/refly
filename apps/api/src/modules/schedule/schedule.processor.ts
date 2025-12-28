@@ -102,16 +102,16 @@ export class ScheduleProcessor extends WorkerHost {
             canvasId,
             workflowTitle: '',
             scheduledAt: new Date(scheduledAt),
-            status: 'pending',
+            status: 'pending', // Queued/waiting in the queue (may be rate limited)
             priority,
           },
         });
       } else if (existingRecord && existingRecord.status === 'scheduled') {
-        // Convert scheduled record to pending
+        // Convert scheduled record to pending (queued)
         await this.prisma.scheduleRecord.update({
           where: { scheduleRecordId },
           data: {
-            status: 'pending',
+            status: 'pending', // Queued/waiting in the queue
             triggeredAt: new Date(),
           },
         });
@@ -121,13 +121,22 @@ export class ScheduleProcessor extends WorkerHost {
         await this.prisma.scheduleRecord.update({
           where: { scheduleRecordId },
           data: {
-            status: 'pending',
+            status: 'pending', // Queued/waiting in the queue
             failureReason: null,
             errorDetails: null,
             triggeredAt: new Date(),
           },
         });
       }
+
+      // 4.1 Update status to 'processing' when processor starts handling the job
+      // This indicates the job has been dequeued and is being processed (creating snapshot, etc.)
+      await this.prisma.scheduleRecord.update({
+        where: { scheduleRecordId },
+        data: {
+          status: 'processing', // Processor is handling the job (creating snapshot, etc.)
+        },
+      });
 
       // 5. Get or create snapshot
       let canvasData: RawCanvasData;
@@ -152,7 +161,16 @@ export class ScheduleProcessor extends WorkerHost {
         this.logger.log(`Created new snapshot at: ${snapshotStorageKey}`);
       }
 
-      // 6. Execute workflow using WorkflowAppService
+      // 6. Update status to 'running' before executing workflow
+      // This indicates the workflow is actually being executed
+      await this.prisma.scheduleRecord.update({
+        where: { scheduleRecordId },
+        data: {
+          status: 'running', // Workflow is actually executing
+        },
+      });
+
+      // 7. Execute workflow using WorkflowAppService
       // Note: user is a simple object { uid } to avoid BigInt serialization issues
       // The methods called inside executeFromCanvasData only need user.uid
       const executionId = await this.workflowAppService.executeFromCanvasData(
@@ -166,7 +184,7 @@ export class ScheduleProcessor extends WorkerHost {
         },
       );
 
-      // 7. Update ScheduleRecord with success
+      // 8. Update ScheduleRecord with success
       const canvas = await this.prisma.canvas.findUnique({
         where: { canvasId },
         select: { title: true },

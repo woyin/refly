@@ -16,7 +16,13 @@ import { useDebouncedCallback } from 'use-debounce';
 import { useState } from 'react';
 import './index.scss';
 
-type ScheduleRecordStatus = 'scheduled' | 'pending' | 'running' | 'success' | 'failed';
+type ScheduleRecordStatus =
+  | 'scheduled'
+  | 'pending'
+  | 'processing'
+  | 'running'
+  | 'success'
+  | 'failed';
 
 interface ScheduleRecordItem {
   scheduleRecordId: string;
@@ -173,12 +179,17 @@ const RunHistoryList = memo(() => {
           textClass: 'text-gray-600',
         },
         pending: {
-          label: t('runHistory.status.init'),
+          label: t('runHistory.status.queued'),
           color: 'default' as const,
           textClass: 'text-gray-500',
         },
+        processing: {
+          label: t('runHistory.status.processing'),
+          color: 'processing' as const,
+          textClass: 'text-blue-400',
+        },
         running: {
-          label: t('runHistory.status.executing'),
+          label: t('runHistory.status.running'),
           color: 'processing' as const,
           textClass: 'text-blue-500',
         },
