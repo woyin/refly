@@ -4255,6 +4255,7 @@ const translations = {
     title: 'Schedule',
     createTitle: 'Create Schedule',
     editTitle: 'Edit Schedule',
+    editSchedule: 'Edit Schedule',
     name: 'Name',
     namePlaceholder: 'Enter schedule name',
     nameRequired: 'Name is required',

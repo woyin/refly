@@ -1,5 +1,5 @@
 import { memo, useState, useCallback, useEffect, useMemo } from 'react';
-import { Button, Tooltip, Popover, Switch, TimePicker, message } from 'antd';
+import { Button, Tooltip, Popover, Switch, TimePicker, Select, message } from 'antd';
 import { ArrowRight } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { cn } from '@refly/utils/cn';
@@ -9,7 +9,7 @@ import {
   useUpdateSchedule,
 } from '@refly-packages/ai-workspace-common/queries';
 import { useSkillResponseLoadingStatus } from '@refly-packages/ai-workspace-common/hooks/canvas/use-skill-response-loading-status';
-import { useCanvasStoreShallow } from '@refly/stores';
+import { useCanvasStoreShallow, useSubscriptionStoreShallow } from '@refly/stores';
 import { logEvent } from '@refly/telemetry-web';
 import { useNavigate } from '@refly-packages/ai-workspace-common/utils/router';
 import type { WorkflowSchedule, ListSchedulesResponse } from '@refly/openapi-schema';
@@ -33,6 +33,21 @@ interface ScheduleConfig {
   weekdays?: number[];
   monthDays?: number[];
 }
+
+const WEEKDAYS = [
+  { value: 1, label: 'Mon' },
+  { value: 2, label: 'Tue' },
+  { value: 3, label: 'Wed' },
+  { value: 4, label: 'Thu' },
+  { value: 5, label: 'Fri' },
+  { value: 6, label: 'Sat' },
+  { value: 0, label: 'Sun' },
+];
+
+const MONTH_DAYS = Array.from({ length: 31 }, (_, i) => ({
+  value: i + 1,
+  label: `${i + 1}`,
+}));
 
 function parseScheduleConfig(configStr?: string): ScheduleConfig | null {
   if (!configStr) return null;
@@ -72,11 +87,26 @@ const ScheduleButton = memo(({ canvasId }: ScheduleButtonProps) => {
   const [isEnabled, setIsEnabled] = useState(false);
   const [frequency, setFrequency] = useState<ScheduleFrequency>('daily');
   const [timeValue, setTimeValue] = useState<dayjs.Dayjs>(dayjs('08:00', 'HH:mm'));
+  const [weekdays, setWeekdays] = useState<number[]>([1]);
+  const [monthDays, setMonthDays] = useState<number[]>([1]);
+
+  // Get subscription plan type
+  const { planType } = useSubscriptionStoreShallow((state) => ({
+    planType: state.planType,
+  }));
 
   // API mutations
   const listSchedulesMutation = useListSchedules();
   const createScheduleMutation = useCreateSchedule();
   const updateScheduleMutation = useUpdateSchedule();
+
+  // State for total enabled schedules count
+  const [totalEnabledSchedules, setTotalEnabledSchedules] = useState(0);
+
+  // Calculate schedule quota based on plan type
+  const scheduleQuota = useMemo(() => {
+    return planType === 'free' ? 1 : 20;
+  }, [planType]);
 
   // Get execution status for validation
   const { nodeExecutions } = useCanvasStoreShallow((state) => ({
@@ -99,6 +129,36 @@ const ScheduleButton = memo(({ canvasId }: ScheduleButtonProps) => {
   const disabled = useMemo(() => {
     return toolbarLoading || !skillResponseNodes?.length;
   }, [toolbarLoading, skillResponseNodes]);
+
+  // Fetch all enabled schedules count
+  const fetchAllEnabledSchedulesCount = useCallback(async () => {
+    try {
+      const result = await listSchedulesMutation.mutateAsync({
+        body: {
+          // Don't pass canvasId to get all schedules for the user
+          page: 1,
+          pageSize: 1000, // Get a large number to count all
+        },
+      });
+
+      const response = result as ListSchedulesResponse;
+      let schedules: any[] = [];
+
+      if (response.data && typeof response.data === 'object' && 'data' in response.data) {
+        const nestedData = (response.data as any).data;
+        schedules = nestedData?.items || [];
+      } else if (Array.isArray(response.data)) {
+        schedules = response.data;
+      }
+
+      // Count only enabled schedules
+      const enabledCount = schedules.filter((schedule: any) => schedule.isEnabled === true).length;
+      setTotalEnabledSchedules(enabledCount);
+    } catch (error) {
+      console.error('Failed to fetch all schedules count:', error);
+      setTotalEnabledSchedules(0);
+    }
+  }, []); // Remove listSchedulesMutation from dependencies to prevent infinite loop
 
   // Fetch schedule data
   const fetchSchedule = useCallback(async () => {
@@ -137,17 +197,24 @@ const ScheduleButton = memo(({ canvasId }: ScheduleButtonProps) => {
         setIsEnabled(currentSchedule.isEnabled ?? false);
         setFrequency(config?.type || 'daily');
         setTimeValue(config?.time ? dayjs(config.time, 'HH:mm') : dayjs('08:00', 'HH:mm'));
+        setWeekdays(config?.weekdays || [1]);
+        setMonthDays(config?.monthDays || [1]);
       }
     } catch (error) {
       console.error('Failed to fetch schedule:', error);
       setSchedule(null);
     }
-  }, [canvasId]);
+  }, [canvasId]); // Remove listSchedulesMutation from dependencies to prevent infinite loop
 
-  // Fetch schedule data on mount
+  // Fetch schedule data on mount and when canvasId changes
   useEffect(() => {
     fetchSchedule();
   }, [fetchSchedule]);
+
+  // Fetch all enabled schedules count on mount only
+  useEffect(() => {
+    fetchAllEnabledSchedulesCount();
+  }, []); // Run only once on mount
 
   // Reset state when popover opens
   const handleOpenChange = useCallback(
@@ -157,6 +224,8 @@ const ScheduleButton = memo(({ canvasId }: ScheduleButtonProps) => {
         setIsEnabled(schedule?.isEnabled ?? false);
         setFrequency(config?.type || 'daily');
         setTimeValue(config?.time ? dayjs(config.time, 'HH:mm') : dayjs('08:00', 'HH:mm'));
+        setWeekdays(config?.weekdays || [1]);
+        setMonthDays(config?.monthDays || [1]);
       }
       setOpen(newOpen);
     },
@@ -184,12 +253,24 @@ const ScheduleButton = memo(({ canvasId }: ScheduleButtonProps) => {
   const handleSave = useCallback(async () => {
     if (!timeValue) return;
 
+    // Validate weekdays/monthDays selection
+    if (frequency === 'weekly' && (!weekdays || weekdays.length === 0)) {
+      message.error(t('schedule.weekdaysRequired') || 'Please select at least one weekday');
+      return;
+    }
+    if (frequency === 'monthly' && (!monthDays || monthDays.length === 0)) {
+      message.error(t('schedule.monthDaysRequired') || 'Please select at least one day of month');
+      return;
+    }
+
     try {
       const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
       const timeStr = timeValue.format('HH:mm');
       const scheduleConfig: ScheduleConfig = {
         type: frequency,
         time: timeStr,
+        ...(frequency === 'weekly' && { weekdays }),
+        ...(frequency === 'monthly' && { monthDays }),
       };
 
       const cronExpression = generateCronExpression(scheduleConfig);
@@ -225,6 +306,7 @@ const ScheduleButton = memo(({ canvasId }: ScheduleButtonProps) => {
       message.success(t('schedule.saveSuccess') || 'Schedule saved');
       setOpen(false);
       await fetchSchedule(); // Refresh schedule data
+      await fetchAllEnabledSchedulesCount(); // Refresh enabled schedules count
     } catch (error) {
       console.error('Failed to save schedule:', error);
       message.error(t('schedule.saveFailed') || 'Failed to save schedule');
@@ -235,11 +317,13 @@ const ScheduleButton = memo(({ canvasId }: ScheduleButtonProps) => {
     isEnabled,
     frequency,
     timeValue,
+    weekdays,
+    monthDays,
     createScheduleMutation,
     updateScheduleMutation,
     fetchSchedule,
     t,
-  ]);
+  ]); // Remove fetchAllEnabledSchedulesCount from dependencies
 
   // Handle view history
   const handleViewHistory = useCallback(() => {
@@ -262,7 +346,7 @@ const ScheduleButton = memo(({ canvasId }: ScheduleButtonProps) => {
 
   // Popover content
   const popoverContent = (
-    <div className="w-[340px] space-y-4" onClick={(e) => e.stopPropagation()}>
+    <div className="w-[400px] space-y-4" onClick={(e) => e.stopPropagation()}>
       {/* Header */}
       <div className="flex items-center justify-between pb-4 border-b border-gray-200 dark:border-gray-700">
         <div>
@@ -287,7 +371,15 @@ const ScheduleButton = memo(({ canvasId }: ScheduleButtonProps) => {
                 ? '!bg-teal-500 hover:!bg-teal-600 !border-teal-500 !text-white'
                 : ''
             }`}
-            onClick={() => setFrequency(freq)}
+            onClick={() => {
+              setFrequency(freq);
+              if (freq === 'weekly' && weekdays.length === 0) {
+                setWeekdays([1]); // 默认选择周一
+              }
+              if (freq === 'monthly' && monthDays.length === 0) {
+                setMonthDays([1]); // 默认选择1号
+              }
+            }}
           >
             {freq === 'daily'
               ? t('schedule.daily') || 'Daily'
@@ -298,8 +390,56 @@ const ScheduleButton = memo(({ canvasId }: ScheduleButtonProps) => {
         ))}
       </div>
 
-      {/* Time picker */}
+      {/* Time picker and selection container */}
       <div className="flex items-center gap-3 border border-gray-200 dark:border-gray-700 rounded-lg p-3 bg-gray-50 dark:bg-gray-800">
+        {/* Weekly selection */}
+        {frequency === 'weekly' && (
+          <div className="flex-1">
+            <Select
+              mode="multiple"
+              value={weekdays}
+              onChange={setWeekdays}
+              options={WEEKDAYS.map((d) => ({
+                ...d,
+                label: t(`schedule.weekday.${d.label.toLowerCase()}`) || d.label,
+              }))}
+              placeholder={`Select ${weekdays.length} day${weekdays.length !== 1 ? 's' : ''}`}
+              className="w-full"
+              maxTagCount={0}
+              maxTagPlaceholder={() =>
+                `Select ${weekdays.length} day${weekdays.length !== 1 ? 's' : ''}`
+              }
+            />
+          </div>
+        )}
+
+        {/* Monthly selection */}
+        {frequency === 'monthly' && (
+          <div className="flex-1">
+            <Select
+              mode="multiple"
+              value={monthDays}
+              onChange={setMonthDays}
+              options={MONTH_DAYS}
+              placeholder={`Select ${monthDays.length} day${monthDays.length !== 1 ? 's' : ''}`}
+              className="w-full"
+              maxTagCount={0}
+              maxTagPlaceholder={() =>
+                `Select ${monthDays.length} day${monthDays.length !== 1 ? 's' : ''}`
+              }
+            />
+          </div>
+        )}
+
+        {/* Daily selection placeholder */}
+        {frequency === 'daily' && (
+          <div className="flex-1">
+            <div className="h-8 flex items-center text-gray-500 text-sm">
+              {t('schedule.daily') || 'Daily'}
+            </div>
+          </div>
+        )}
+
         <TimePicker
           value={timeValue}
           onChange={(val) => val && setTimeValue(val)}
@@ -307,6 +447,8 @@ const ScheduleButton = memo(({ canvasId }: ScheduleButtonProps) => {
           className="flex-1"
           size="large"
           allowClear={false}
+          popupClassName="schedule-timepicker-popup"
+          popupStyle={{ width: '200px !important', minWidth: '200px !important' }}
         />
       </div>
 
@@ -339,36 +481,55 @@ const ScheduleButton = memo(({ canvasId }: ScheduleButtonProps) => {
   );
 
   return (
-    <Popover
-      content={popoverContent}
-      trigger="click"
-      open={open}
-      onOpenChange={handleOpenChange}
-      placement="bottomLeft"
-      overlayClassName="schedule-popover"
-    >
-      <Tooltip
-        title={
-          toolbarLoading
-            ? t('shareContent.waitForAgentsToFinish')
-            : !skillResponseNodes?.length
-              ? t('shareContent.noSkillResponseNodes')
-              : isScheduled
-                ? t('schedule.editSchedule') || 'Edit Schedule'
-                : t('schedule.title') || 'Schedule'
-        }
-        placement="top"
+    <>
+      <style>
+        {`
+          .schedule-timepicker-popup .ant-picker-time-panel {
+            width: 200px !important;
+            min-width: 200px !important;
+          }
+          .schedule-timepicker-popup .ant-picker-dropdown {
+            width: 200px !important;
+            min-width: 200px !important;
+          }
+        `}
+      </style>
+      <Popover
+        content={popoverContent}
+        trigger="click"
+        open={open}
+        onOpenChange={handleOpenChange}
+        placement="bottomLeft"
+        overlayClassName="schedule-popover"
       >
-        <LuAlarmClock
-          className={cn(
-            'text-lg cursor-pointer hover:text-teal-600 transition-colors',
-            disabled ? 'opacity-50 cursor-not-allowed' : '',
-            isScheduled ? 'text-teal-600' : 'text-gray-600 dark:text-gray-400',
-          )}
-          onClick={handleButtonClick}
-        />
-      </Tooltip>
-    </Popover>
+        <Tooltip
+          title={
+            toolbarLoading
+              ? t('shareContent.waitForAgentsToFinish')
+              : !skillResponseNodes?.length
+                ? t('shareContent.noSkillResponseNodes')
+                : isScheduled
+                  ? t('schedule.editSchedule') || 'Edit Schedule'
+                  : t('schedule.title') || 'Schedule'
+          }
+          placement="top"
+        >
+          <div className="flex items-center gap-2">
+            <LuAlarmClock
+              className={cn(
+                'text-lg cursor-pointer hover:text-teal-600 transition-colors',
+                disabled ? 'opacity-50 cursor-not-allowed' : '',
+                isScheduled ? 'text-teal-600' : 'text-gray-600 dark:text-gray-400',
+              )}
+              onClick={handleButtonClick}
+            />
+            <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">
+              {totalEnabledSchedules}/{scheduleQuota}
+            </span>
+          </div>
+        </Tooltip>
+      </Popover>
+    </>
   );
 });
 

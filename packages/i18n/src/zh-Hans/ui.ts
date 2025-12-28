@@ -4289,6 +4289,7 @@ const translations = {
     title: '定时任务',
     createTitle: '创建定时任务',
     editTitle: '编辑定时任务',
+    editSchedule: '编辑定时任务',
     name: '名称',
     namePlaceholder: '输入定时任务名称',
     nameRequired: '请输入名称',
