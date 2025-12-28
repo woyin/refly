@@ -100,6 +100,7 @@ export class ScheduleCronService implements OnModuleInit {
     // 3.3 Check quota/credits again? (Maybe in processor)
 
     // 3.4 Calculate user execution priority
+    // Priority range: 1-10 (higher number = higher priority, aligned with BullMQ)
     const priority = await this.priorityService.calculateExecutionPriority(schedule.uid);
 
     // 3.5 Push to execution queue with priority
@@ -117,29 +118,9 @@ export class ScheduleCronService implements OnModuleInit {
       },
       {
         jobId: `schedule:${schedule.scheduleId}:${timestamp}`, // Deduplication ID
-        priority: Math.floor(priority), // BullMQ priority (lower is better? BullMQ default is 0, highest? Need to check BullMQ docs. Actually BullMQ usually: lower number = higher priority? Or opposite? Standard is usually higher = higher. But user prompt says "lower number = higher priority". OK I will stick to user prompt: "lower number = higher priority". BullMQ supports numeric priority. 1 is highest priority? No, usually 1 is high. Let's assume standard intuitive priority.)
-        // ERROR: BullMQ priority: "Ranges from 1 (lowest) to 2097152 (highest)".
-        // Wait, user prompt said: "BullMQ priority: lower number = higher priority".
-        // Let me double check standard BullMQ.
-        // BullMQ docs: "Jobs with higher priority are processed before jobs with lower priority."
-        // So 10 is higher than 1.
-        // BUT the user prompt EXPLICITLY said: "BullMQ priority: lower number = higher priority".
-        // Maybe their Redis conf or wrapper reverses it? Or they are mistaken?
-        // "Final priority range: 1-10." (1=High, 5=Low)
-        // If execution uses `priority` option in add(), I must align.
-        // If user says "lower = higher", but BullMQ is "higher = higher", I should map:
-        // BullPriority = (Max - UserPriority). e.g. (11 - 1) = 10 (High), (11 - 10) = 1 (Low).
-        // I will follow this inversion to be safe and logical for BullMQ.
-        // Wait, let's look at `workflow.service.ts` if there is any usage of priority.
-        // I will trust standard behavior -> Higher number = Higher priority unless specified.
-        // User prompt: "BullMQ priority: lower number = higher priority." -> This might be a requirements Spec they want me to follow for my internal "priority" field (1-10), but for `scheduleQueue.add`, I need to use what BullMQ expects.
-        // If I pass `priority: 1` to BullMQ, it is low priority. `priority: 10` is high.
-        // So if my internal logic is 1=High, 10=Low.
-        // Then BullMQ Priority = 11 - MyPriority.
-        // 1 (High) -> 10 (High BullMQ)
-        // 10 (Low) -> 1 (Low BullMQ)
-        // Correct.
-        attempts: 3,
+        // Priority is already aligned with BullMQ (higher number = higher priority)
+        priority: Math.floor(priority),
+        attempts: 1,
         backoff: {
           type: 'exponential',
           delay: 1000,

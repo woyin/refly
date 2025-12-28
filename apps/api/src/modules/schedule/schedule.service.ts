@@ -5,6 +5,10 @@ import { genScheduleId } from '@refly/utils';
 import { CronExpressionParser } from 'cron-parser';
 import { ObjectStorageService } from '../common/object-storage';
 import { OSS_INTERNAL } from '../common/object-storage/tokens';
+import { InjectQueue } from '@nestjs/bullmq';
+import { Queue } from 'bullmq';
+import { QUEUE_SCHEDULE_EXECUTION } from '../../utils/const';
+import { SchedulePriorityService } from './schedule-priority.service';
 
 @Injectable()
 export class ScheduleService {
@@ -13,6 +17,8 @@ export class ScheduleService {
   constructor(
     private readonly prisma: PrismaService,
     @Inject(OSS_INTERNAL) private readonly oss: ObjectStorageService,
+    @InjectQueue(QUEUE_SCHEDULE_EXECUTION) private readonly scheduleQueue: Queue,
+    private readonly priorityService: SchedulePriorityService,
   ) {}
 
   // Helper to remove BigInt pk field from schedule objects
@@ -60,10 +66,16 @@ export class ScheduleService {
     }
 
     // 3. Calculate next run time
-    const interval = CronExpressionParser.parse(dto.cronExpression, {
-      tz: dto.timezone || 'Asia/Shanghai',
-    });
-    const nextRunAt = interval.next().toDate();
+    // Always calculate nextRunAt even if disabled, so it's ready when enabled
+    let nextRunAt: Date | null = null;
+    try {
+      const interval = CronExpressionParser.parse(dto.cronExpression, {
+        tz: dto.timezone || 'Asia/Shanghai',
+      });
+      nextRunAt = interval.next().toDate();
+    } catch {
+      throw new BadRequestException('Invalid cron expression');
+    }
 
     // 4. Get canvas title for default name if name not provided
     let scheduleName = dto.name;
@@ -77,6 +89,7 @@ export class ScheduleService {
 
     // 5. Create Schedule
     const scheduleId = genScheduleId();
+    const isEnabled = dto.isEnabled ?? false;
     const schedule = await this.prisma.workflowSchedule.create({
       data: {
         scheduleId,
@@ -86,8 +99,10 @@ export class ScheduleService {
         cronExpression: dto.cronExpression,
         scheduleConfig: dto.scheduleConfig,
         timezone: dto.timezone,
-        isEnabled: dto.isEnabled ?? false,
-        nextRunAt: dto.isEnabled ? nextRunAt : null,
+        isEnabled,
+        // Only set nextRunAt if enabled, otherwise keep it calculated but null
+        // This allows the schedule to be ready when enabled
+        nextRunAt: isEnabled ? nextRunAt : null,
       },
     });
 
@@ -104,12 +119,19 @@ export class ScheduleService {
       throw new NotFoundException('Schedule not found');
     }
 
-    let nextRunAt = schedule.nextRunAt;
-    if (dto.cronExpression || dto.isEnabled !== undefined) {
-      const cron = dto.cronExpression || schedule.cronExpression;
-      const timezone = dto.timezone || schedule.timezone;
-      const isEnabled = dto.isEnabled !== undefined ? dto.isEnabled : schedule.isEnabled;
+    // Recalculate nextRunAt if any of these fields change: cronExpression, timezone, or isEnabled
+    const cron = dto.cronExpression || schedule.cronExpression;
+    const timezone = dto.timezone || schedule.timezone;
+    const isEnabled = dto.isEnabled !== undefined ? dto.isEnabled : schedule.isEnabled;
 
+    let nextRunAt = schedule.nextRunAt;
+    const shouldRecalculate =
+      dto.cronExpression !== undefined ||
+      dto.timezone !== undefined ||
+      dto.isEnabled !== undefined ||
+      (isEnabled && !nextRunAt); // Recalculate if enabling and nextRunAt is null
+
+    if (shouldRecalculate) {
       if (isEnabled) {
         try {
           const interval = CronExpressionParser.parse(cron, { tz: timezone });
@@ -118,6 +140,7 @@ export class ScheduleService {
           throw new BadRequestException('Invalid cron expression');
         }
       } else {
+        // When disabled, keep nextRunAt as null
         nextRunAt = null;
       }
     }
@@ -259,6 +282,7 @@ export class ScheduleService {
       return {
         ...rest,
         scheduleName: scheduleNameMap.get(item.scheduleId) || item.workflowTitle || 'Untitled',
+        scheduleId: item.scheduleId, // Ensure scheduleId is included
       };
     });
 
@@ -344,5 +368,51 @@ export class ScheduleService {
     } catch {
       throw new BadRequestException('Invalid snapshot data format');
     }
+  }
+
+  async triggerScheduleManually(uid: string, scheduleId: string) {
+    // 1. Verify schedule exists and belongs to user
+    const schedule = await this.prisma.workflowSchedule.findUnique({
+      where: { scheduleId },
+    });
+
+    if (!schedule || schedule.uid !== uid || schedule.deletedAt) {
+      throw new NotFoundException('Schedule not found');
+    }
+
+    // 2. Calculate user execution priority
+    const priority = await this.priorityService.calculateExecutionPriority(uid);
+
+    // 3. Push to execution queue with priority
+    const timestamp = Date.now();
+    const scheduledAt = new Date(); // Manual trigger uses current time
+
+    await this.scheduleQueue.add(
+      'execute-scheduled-workflow',
+      {
+        scheduleId: schedule.scheduleId,
+        canvasId: schedule.canvasId,
+        uid: schedule.uid,
+        scheduledAt: scheduledAt.toISOString(),
+        priority,
+      },
+      {
+        jobId: `schedule:${schedule.scheduleId}:manual:${timestamp}`, // Deduplication ID for manual trigger
+        priority: Math.floor(priority), // BullMQ priority (higher number = higher priority)
+        attempts: 3,
+        backoff: {
+          type: 'exponential',
+          delay: 1000,
+        },
+      },
+    );
+
+    this.logger.log(`Manually triggered schedule ${schedule.scheduleId} with priority ${priority}`);
+
+    return {
+      scheduleId: schedule.scheduleId,
+      triggeredAt: scheduledAt,
+      priority,
+    };
   }
 }

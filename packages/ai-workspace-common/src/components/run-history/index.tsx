@@ -3,7 +3,7 @@ import { time } from '@refly-packages/ai-workspace-common/utils/time';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from '@refly-packages/ai-workspace-common/utils/router';
 
-import { Empty, Typography, Table } from 'antd';
+import { Empty, Typography, Table, Button, message } from 'antd';
 import { EndMessage } from '@refly-packages/ai-workspace-common/components/workspace/scroll-loading';
 import { Spin } from '@refly-packages/ai-workspace-common/components/common/spin';
 import { LOCALE } from '@refly/common-types';
@@ -20,6 +20,7 @@ type ScheduleRecordStatus = 'pending' | 'running' | 'success' | 'failed';
 
 interface ScheduleRecordItem {
   scheduleRecordId: string;
+  scheduleId?: string;
   scheduleName: string;
   workflowTitle?: string;
   status: ScheduleRecordStatus;
@@ -130,6 +131,38 @@ const RunHistoryList = memo(() => {
     [navigate],
   );
 
+  const [triggeringScheduleId, setTriggeringScheduleId] = useState<string | null>(null);
+
+  const handleTriggerSchedule = useCallback(
+    async (record: ScheduleRecordItem) => {
+      if (!record.scheduleId) {
+        message.error(t('runHistory.triggerError.noScheduleId'));
+        return;
+      }
+
+      setTriggeringScheduleId(record.scheduleId);
+      try {
+        await client.post({
+          url: '/schedule/trigger',
+          body: {
+            scheduleId: record.scheduleId,
+          },
+        });
+        message.success(t('runHistory.triggerSuccess'));
+        // Reload data after a short delay to show the new record
+        setTimeout(() => {
+          reload();
+        }, 1000);
+      } catch (error) {
+        console.error('Failed to trigger schedule:', error);
+        message.error(t('runHistory.triggerError.failed'));
+      } finally {
+        setTriggeringScheduleId(null);
+      }
+    },
+    [t, reload],
+  );
+
   // Get status display config
   const getStatusConfig = useCallback(
     (status: ScheduleRecordStatus) => {
@@ -218,23 +251,40 @@ const RunHistoryList = memo(() => {
       {
         title: t('runHistory.tableTitle.actions'),
         key: 'actions',
-        width: 120,
+        width: 180,
         align: 'left' as const,
         fixed: 'right' as const,
         render: (_: unknown, record: ScheduleRecordItem) => (
-          <Typography.Link
-            className="!text-teal-600 hover:!text-teal-700 text-sm"
-            onClick={(e) => {
-              e.stopPropagation();
-              handleViewDetail(record);
-            }}
-          >
-            {t('runHistory.viewDetail')}
-          </Typography.Link>
+          <div className="flex items-center gap-2">
+            {record.scheduleId && (
+              <Button
+                type="link"
+                size="small"
+                loading={triggeringScheduleId === record.scheduleId}
+                disabled={!!triggeringScheduleId}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleTriggerSchedule(record);
+                }}
+                className="!text-blue-600 hover:!text-blue-700 text-sm p-0"
+              >
+                {t('runHistory.triggerNow')}
+              </Button>
+            )}
+            <Typography.Link
+              className="!text-teal-600 hover:!text-teal-700 text-sm"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleViewDetail(record);
+              }}
+            >
+              {t('runHistory.viewDetail')}
+            </Typography.Link>
+          </div>
         ),
       },
     ],
-    [t, language, getStatusConfig, handleViewDetail],
+    [t, language, getStatusConfig, handleViewDetail, triggeringScheduleId, handleTriggerSchedule],
   );
 
   // Check if any filters are active

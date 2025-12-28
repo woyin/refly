@@ -38,3 +38,7 @@ export interface ListAllScheduleRecordsDto {
 export interface GetScheduleRecordDetailDto {
   scheduleRecordId: string;
 }
+
+export interface TriggerScheduleManuallyDto {
+  scheduleId: string;
+}

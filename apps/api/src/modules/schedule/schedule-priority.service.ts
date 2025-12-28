@@ -2,14 +2,15 @@ import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../common/prisma.service';
 import { Subscription } from '@prisma/client';
 
+// Priority range: 1-10 (higher number = higher priority, aligned with BullMQ)
 const PLAN_PRIORITY_MAP: Record<string, number> = {
-  enterprise: 1,
-  team: 2,
-  pro: 3,
-  maker: 3,
-  plus: 6,
-  starter: 8,
-  free: 10,
+  enterprise: 10, // Highest priority
+  team: 8,
+  pro: 6,
+  maker: 6,
+  plus: 4,
+  starter: 3,
+  free: 1, // Lowest priority
 };
 
 const ADJUSTMENT_FACTORS = {
@@ -25,6 +26,11 @@ export class SchedulePriorityService {
 
   constructor(private readonly prisma: PrismaService) {}
 
+  /**
+   * Calculate execution priority for a user
+   * @param uid - User ID
+   * @returns Priority value (1-10, higher number = higher priority, aligned with BullMQ)
+   */
   async calculateExecutionPriority(uid: string): Promise<number> {
     // 1. Get user's current subscription
     const subscription = await this.prisma.subscription.findFirst({
@@ -36,17 +42,17 @@ export class SchedulePriorityService {
       orderBy: { createdAt: 'desc' },
     });
 
-    // 2. Get base priority from plan type
+    // 2. Get base priority from plan type (higher number = higher priority)
     const planType = subscription?.planType ?? 'free';
     const basePriority = PLAN_PRIORITY_MAP[planType] ?? PLAN_PRIORITY_MAP.free;
 
     // 3. Get priority adjustment factors
     const factors = await this.getPriorityFactors(uid, subscription);
 
-    // 4. Apply priority adjustments
+    // 4. Apply priority adjustments (penalties reduce priority, bonuses increase it)
     const adjustedPriority = this.applyPriorityAdjustments(basePriority, factors);
 
-    // 5. Ensure priority is within valid range (1-10)
+    // 5. Ensure priority is within valid range (1-10, higher = higher priority)
     const finalPriority = Math.max(1, Math.min(10, adjustedPriority));
 
     this.logger.debug(
@@ -108,26 +114,26 @@ export class SchedulePriorityService {
   private applyPriorityAdjustments(basePriority: number, factors: any): number {
     let priority = basePriority;
 
-    // Penalty for consecutive failures
+    // Penalty for consecutive failures (reduce priority)
     if (factors.consecutiveFailures > 0) {
       // Max 3 penalty levels
       const penalty = Math.min(factors.consecutiveFailures, 3) * ADJUSTMENT_FACTORS.FAILURE_PENALTY;
-      priority += penalty;
+      priority -= penalty;
     }
 
-    // Penalty for high load (many active schedules)
+    // Penalty for high load (many active schedules) - reduce priority
     if (factors.activeScheduleCount > 5) {
-      priority += ADJUSTMENT_FACTORS.HIGH_LOAD_PENALTY;
+      priority -= ADJUSTMENT_FACTORS.HIGH_LOAD_PENALTY;
     }
 
-    // Penalty for low credits
+    // Penalty for low credits - reduce priority
     if (factors.lowCredits) {
-      priority += ADJUSTMENT_FACTORS.LOW_CREDIT_PENALTY;
+      priority -= ADJUSTMENT_FACTORS.LOW_CREDIT_PENALTY;
     }
 
-    // Bonus for early bird
+    // Bonus for early bird - increase priority
     if (factors.isEarlyBird) {
-      priority += ADJUSTMENT_FACTORS.EARLY_BIRD_BONUS;
+      priority -= ADJUSTMENT_FACTORS.EARLY_BIRD_BONUS; // EARLY_BIRD_BONUS is -1, so -= -1 = +1
     }
 
     return Math.floor(priority);

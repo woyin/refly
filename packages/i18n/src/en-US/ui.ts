@@ -4339,6 +4339,12 @@ const translations = {
       clearAllTools: 'Clear All Selections',
       tool: 'Tool',
     },
+    triggerNow: 'Trigger Now',
+    triggerSuccess: 'Schedule triggered successfully',
+    triggerError: {
+      noScheduleId: 'Cannot trigger: schedule ID missing',
+      failed: 'Failed to trigger schedule, please try again later',
+    },
   },
   runDetail: {
     pageTitle: 'Run Detail',

@@ -4373,6 +4373,12 @@ const translations = {
       clearAllTools: '清除所有选择',
       tool: '工具',
     },
+    triggerNow: '立即触发',
+    triggerSuccess: '触发成功',
+    triggerError: {
+      noScheduleId: '无法触发：缺少调度ID',
+      failed: '触发失败，请稍后重试',
+    },
   },
   runDetail: {
     pageTitle: '运行详情',

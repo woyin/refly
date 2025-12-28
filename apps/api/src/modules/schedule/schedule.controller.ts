@@ -8,6 +8,7 @@ import {
   GetScheduleRecordsDto,
   ListAllScheduleRecordsDto,
   GetScheduleRecordDetailDto,
+  TriggerScheduleManuallyDto,
 } from './schedule.dto';
 import { JwtAuthGuard } from '../auth/guard/jwt-auth.guard';
 import { LoginedUser } from '../../utils/decorators/user.decorator';
@@ -102,6 +103,15 @@ export class ScheduleController {
   @Post('record/snapshot')
   async getRecordSnapshot(@LoginedUser() user: User, @Body() dto: GetScheduleRecordDetailDto) {
     const result = await this.scheduleService.getRecordSnapshot(user.uid, dto.scheduleRecordId);
+    return buildSuccessResponse(result);
+  }
+
+  @Post('trigger')
+  async triggerScheduleManually(
+    @LoginedUser() user: User,
+    @Body() dto: TriggerScheduleManuallyDto,
+  ) {
+    const result = await this.scheduleService.triggerScheduleManually(user.uid, dto.scheduleId);
     return buildSuccessResponse(result);
   }
 }
