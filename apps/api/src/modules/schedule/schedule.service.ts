@@ -399,7 +399,7 @@ export class ScheduleService {
       {
         jobId: `schedule:${schedule.scheduleId}:manual:${timestamp}`, // Deduplication ID for manual trigger
         priority: Math.floor(priority), // BullMQ priority (higher number = higher priority)
-        attempts: 3,
+        attempts: 1, // No automatic retry, user must manually retry on failure
         backoff: {
           type: 'exponential',
           delay: 1000,
@@ -449,7 +449,18 @@ export class ScheduleService {
     // 4. Calculate user execution priority
     const priority = await this.priorityService.calculateExecutionPriority(uid);
 
-    // 5. Push to execution queue with the existing scheduleRecordId to reuse snapshot
+    // 5. Update ScheduleRecord status to 'pending' immediately for frontend feedback
+    await this.prisma.scheduleRecord.update({
+      where: { scheduleRecordId },
+      data: {
+        status: 'pending',
+        failureReason: null,
+        errorDetails: null,
+        triggeredAt: new Date(),
+      },
+    });
+
+    // 6. Push to execution queue with the existing scheduleRecordId to reuse snapshot
     const timestamp = Date.now();
 
     await this.scheduleQueue.add(
@@ -465,7 +476,7 @@ export class ScheduleService {
       {
         jobId: `schedule:${record.scheduleId}:retry:${scheduleRecordId}:${timestamp}`,
         priority: Math.floor(priority),
-        attempts: 3,
+        attempts: 1, // No automatic retry, user must manually retry on failure
         backoff: {
           type: 'exponential',
           delay: 1000,
@@ -480,7 +491,7 @@ export class ScheduleService {
     return {
       scheduleRecordId,
       scheduleId: record.scheduleId,
-      status: 'retrying',
+      status: 'pending',
       priority,
     };
   }

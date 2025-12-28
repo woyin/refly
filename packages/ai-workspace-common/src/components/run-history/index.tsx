@@ -131,33 +131,33 @@ const RunHistoryList = memo(() => {
     [navigate],
   );
 
-  const [triggeringScheduleId, setTriggeringScheduleId] = useState<string | null>(null);
+  const [retryingScheduleRecordId, setRetryingScheduleRecordId] = useState<string | null>(null);
 
-  const handleTriggerSchedule = useCallback(
+  const handleRetryScheduleRecord = useCallback(
     async (record: ScheduleRecordItem) => {
-      if (!record.scheduleId) {
-        message.error(t('runHistory.triggerError.noScheduleId'));
+      if (!record.scheduleRecordId) {
+        message.error(t('runHistory.retryError.noScheduleRecordId'));
         return;
       }
 
-      setTriggeringScheduleId(record.scheduleId);
+      setRetryingScheduleRecordId(record.scheduleRecordId);
       try {
         await client.post({
-          url: '/schedule/trigger',
+          url: '/schedule/record/retry',
           body: {
-            scheduleId: record.scheduleId,
+            scheduleRecordId: record.scheduleRecordId,
           },
         });
-        message.success(t('runHistory.triggerSuccess'));
-        // Reload data after a short delay to show the new record
+        message.success(t('runHistory.retrySuccess'));
+        // Reload data after a short delay to show the updated record
         setTimeout(() => {
           reload();
         }, 1000);
       } catch (error) {
-        console.error('Failed to trigger schedule:', error);
-        message.error(t('runHistory.triggerError.failed'));
+        console.error('Failed to retry schedule record:', error);
+        message.error(t('runHistory.retryError.failed'));
       } finally {
-        setTriggeringScheduleId(null);
+        setRetryingScheduleRecordId(null);
       }
     },
     [t, reload],
@@ -256,19 +256,19 @@ const RunHistoryList = memo(() => {
         fixed: 'right' as const,
         render: (_: unknown, record: ScheduleRecordItem) => (
           <div className="flex items-center gap-2">
-            {record.scheduleId && (
+            {record.scheduleRecordId && (
               <Button
                 type="link"
                 size="small"
-                loading={triggeringScheduleId === record.scheduleId}
-                disabled={!!triggeringScheduleId}
+                loading={retryingScheduleRecordId === record.scheduleRecordId}
+                disabled={!!retryingScheduleRecordId}
                 onClick={(e) => {
                   e.stopPropagation();
-                  handleTriggerSchedule(record);
+                  handleRetryScheduleRecord(record);
                 }}
                 className="!text-blue-600 hover:!text-blue-700 text-sm p-0"
               >
-                {t('runHistory.triggerNow')}
+                {t('runHistory.retry')}
               </Button>
             )}
             <Typography.Link
@@ -284,7 +284,14 @@ const RunHistoryList = memo(() => {
         ),
       },
     ],
-    [t, language, getStatusConfig, handleViewDetail, triggeringScheduleId, handleTriggerSchedule],
+    [
+      t,
+      language,
+      getStatusConfig,
+      handleViewDetail,
+      retryingScheduleRecordId,
+      handleRetryScheduleRecord,
+    ],
   );
 
   // Check if any filters are active

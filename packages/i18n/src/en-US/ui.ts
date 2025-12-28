@@ -4345,6 +4345,12 @@ const translations = {
       noScheduleId: 'Cannot trigger: schedule ID missing',
       failed: 'Failed to trigger schedule, please try again later',
     },
+    retry: 'Retry',
+    retrySuccess: 'Retry initiated successfully',
+    retryError: {
+      noScheduleRecordId: 'Cannot retry: schedule record ID missing',
+      failed: 'Failed to retry schedule record, please try again later',
+    },
   },
   runDetail: {
     pageTitle: 'Run Detail',

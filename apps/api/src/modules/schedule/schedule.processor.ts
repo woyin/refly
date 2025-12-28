@@ -89,7 +89,8 @@ export class ScheduleProcessor extends WorkerHost {
           },
         });
       } else {
-        // Update status for retry
+        // Update status for retry (status was already updated in retryScheduleRecord,
+        // but we update again here to ensure consistency and update triggeredAt timestamp)
         await this.prisma.scheduleRecord.update({
           where: { scheduleRecordId },
           data: {

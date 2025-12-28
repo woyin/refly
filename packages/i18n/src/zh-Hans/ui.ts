@@ -4379,6 +4379,12 @@ const translations = {
       noScheduleId: '无法触发：缺少调度ID',
       failed: '触发失败，请稍后重试',
     },
+    retry: '重试',
+    retrySuccess: '重试成功',
+    retryError: {
+      noScheduleRecordId: '无法重试：缺少执行记录ID',
+      failed: '重试失败，请稍后重试',
+    },
   },
   runDetail: {
     pageTitle: '运行详情',
