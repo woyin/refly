@@ -9,6 +9,7 @@ import {
   ListAllScheduleRecordsDto,
   GetScheduleRecordDetailDto,
   TriggerScheduleManuallyDto,
+  RetryScheduleRecordDto,
 } from './schedule.dto';
 import { JwtAuthGuard } from '../auth/guard/jwt-auth.guard';
 import { LoginedUser } from '../../utils/decorators/user.decorator';
@@ -112,6 +113,12 @@ export class ScheduleController {
     @Body() dto: TriggerScheduleManuallyDto,
   ) {
     const result = await this.scheduleService.triggerScheduleManually(user.uid, dto.scheduleId);
+    return buildSuccessResponse(result);
+  }
+
+  @Post('record/retry')
+  async retryScheduleRecord(@LoginedUser() user: User, @Body() dto: RetryScheduleRecordDto) {
+    const result = await this.scheduleService.retryScheduleRecord(user.uid, dto.scheduleRecordId);
     return buildSuccessResponse(result);
   }
 }

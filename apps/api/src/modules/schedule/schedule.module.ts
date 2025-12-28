@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { BullModule } from '@nestjs/bullmq';
 import { ScheduleModule as NestScheduleModule } from '@nestjs/schedule';
 import { ScheduleService } from './schedule.service';
@@ -13,6 +13,7 @@ import { SubscriptionModule } from '../subscription/subscription.module';
 import { CreditModule } from '../credit/credit.module';
 import { CanvasModule } from '../canvas/canvas.module';
 import { MiscModule } from '../misc/misc.module';
+import { WorkflowAppModule } from '../workflow-app/workflow-app.module';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { MiscModule } from '../misc/misc.module';
     CreditModule, // For credit check
     CanvasModule,
     MiscModule,
+    forwardRef(() => WorkflowAppModule), // For executeFromCanvasData
   ],
   controllers: [ScheduleController],
   providers: [ScheduleService, ScheduleCronService, SchedulePriorityService, ScheduleProcessor],

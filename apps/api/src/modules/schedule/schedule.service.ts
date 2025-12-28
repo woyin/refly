@@ -415,4 +415,73 @@ export class ScheduleService {
       priority,
     };
   }
+
+  /**
+   * Retry a failed schedule record using its existing snapshot
+   * @param uid User ID
+   * @param scheduleRecordId The schedule record ID to retry
+   * @returns Retry status
+   */
+  async retryScheduleRecord(uid: string, scheduleRecordId: string) {
+    // 1. Verify schedule record exists and belongs to user
+    const record = await this.prisma.scheduleRecord.findUnique({
+      where: { scheduleRecordId },
+    });
+
+    if (!record || record.uid !== uid) {
+      throw new NotFoundException('Schedule record not found');
+    }
+
+    // 2. Check if snapshot exists for retry
+    if (!record.snapshotStorageKey) {
+      throw new BadRequestException('No snapshot available for retry. Cannot retry this record.');
+    }
+
+    // 3. Verify the schedule still exists
+    const schedule = await this.prisma.workflowSchedule.findUnique({
+      where: { scheduleId: record.scheduleId },
+    });
+
+    if (!schedule || schedule.deletedAt) {
+      throw new NotFoundException('Associated schedule not found or has been deleted');
+    }
+
+    // 4. Calculate user execution priority
+    const priority = await this.priorityService.calculateExecutionPriority(uid);
+
+    // 5. Push to execution queue with the existing scheduleRecordId to reuse snapshot
+    const timestamp = Date.now();
+
+    await this.scheduleQueue.add(
+      'execute-scheduled-workflow',
+      {
+        scheduleId: record.scheduleId,
+        canvasId: record.canvasId,
+        uid: record.uid,
+        scheduledAt: new Date().toISOString(),
+        scheduleRecordId: record.scheduleRecordId, // Pass existing record ID to reuse snapshot
+        priority,
+      },
+      {
+        jobId: `schedule:${record.scheduleId}:retry:${scheduleRecordId}:${timestamp}`,
+        priority: Math.floor(priority),
+        attempts: 3,
+        backoff: {
+          type: 'exponential',
+          delay: 1000,
+        },
+      },
+    );
+
+    this.logger.log(
+      `Retrying schedule record ${scheduleRecordId} for schedule ${record.scheduleId} with priority ${priority}`,
+    );
+
+    return {
+      scheduleRecordId,
+      scheduleId: record.scheduleId,
+      status: 'retrying',
+      priority,
+    };
+  }
 }

@@ -42,3 +42,7 @@ export interface GetScheduleRecordDetailDto {
 export interface TriggerScheduleManuallyDto {
   scheduleId: string;
 }
+
+export interface RetryScheduleRecordDto {
+  scheduleRecordId: string;
+}
