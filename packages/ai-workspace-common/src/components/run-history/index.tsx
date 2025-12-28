@@ -16,7 +16,7 @@ import { useDebouncedCallback } from 'use-debounce';
 import { useState } from 'react';
 import './index.scss';
 
-type ScheduleRecordStatus = 'pending' | 'running' | 'success' | 'failed';
+type ScheduleRecordStatus = 'scheduled' | 'pending' | 'running' | 'success' | 'failed';
 
 interface ScheduleRecordItem {
   scheduleRecordId: string;
@@ -167,6 +167,11 @@ const RunHistoryList = memo(() => {
   const getStatusConfig = useCallback(
     (status: ScheduleRecordStatus) => {
       const configs = {
+        scheduled: {
+          label: t('runHistory.status.scheduled'),
+          color: 'default' as const,
+          textClass: 'text-gray-600',
+        },
         pending: {
           label: t('runHistory.status.init'),
           color: 'default' as const,
@@ -256,7 +261,8 @@ const RunHistoryList = memo(() => {
         fixed: 'right' as const,
         render: (_: unknown, record: ScheduleRecordItem) => (
           <div className="flex items-center gap-2">
-            {record.scheduleRecordId && (
+            {/* Only show retry button for failed records, not for scheduled or pending records */}
+            {record.scheduleRecordId && record.status === 'failed' && (
               <Button
                 type="link"
                 size="small"

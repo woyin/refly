@@ -4318,6 +4318,7 @@ const translations = {
     },
     status: {
       all: 'All Status',
+      scheduled: 'Scheduled',
       init: 'Initializing',
       executing: 'Running',
       succeeded: 'Succeeded',

@@ -62,6 +62,7 @@ export class ScheduleProcessor extends WorkerHost {
       const user = { uid };
 
       // 3. Check if this is a retry (existing scheduleRecordId with snapshot)
+      // or if there's a scheduled record to convert to pending
       let existingRecord = null;
       if (existingRecordId) {
         existingRecord = await this.prisma.scheduleRecord.findUnique({
@@ -71,10 +72,27 @@ export class ScheduleProcessor extends WorkerHost {
           isRetry = true;
           this.logger.log(`Retry detected for scheduleRecordId: ${existingRecordId}`);
         }
+      } else {
+        // Check if there's a scheduled record for this schedule that should be converted
+        existingRecord = await this.prisma.scheduleRecord.findFirst({
+          where: {
+            scheduleId,
+            status: 'scheduled',
+            workflowExecutionId: null,
+            scheduledAt: { lte: new Date(scheduledAt) }, // Only convert if scheduled time has arrived
+          },
+          orderBy: { scheduledAt: 'asc' }, // Get the earliest scheduled record
+        });
+        if (existingRecord) {
+          scheduleRecordId = existingRecord.scheduleRecordId;
+          this.logger.log(
+            `Converting scheduled record ${scheduleRecordId} to pending for execution`,
+          );
+        }
       }
 
-      // 4. Create new ScheduleRecord if not a retry
-      if (!isRetry) {
+      // 4. Create new ScheduleRecord if not a retry and no scheduled record found
+      if (!isRetry && !scheduleRecordId) {
         scheduleRecordId = genScheduleRecordId();
         await this.prisma.scheduleRecord.create({
           data: {
@@ -88,7 +106,16 @@ export class ScheduleProcessor extends WorkerHost {
             priority,
           },
         });
-      } else {
+      } else if (existingRecord && existingRecord.status === 'scheduled') {
+        // Convert scheduled record to pending
+        await this.prisma.scheduleRecord.update({
+          where: { scheduleRecordId },
+          data: {
+            status: 'pending',
+            triggeredAt: new Date(),
+          },
+        });
+      } else if (isRetry) {
         // Update status for retry (status was already updated in retryScheduleRecord,
         // but we update again here to ensure consistency and update triggeredAt timestamp)
         await this.prisma.scheduleRecord.update({

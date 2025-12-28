@@ -1,7 +1,7 @@
 import { Injectable, Logger, NotFoundException, BadRequestException, Inject } from '@nestjs/common';
 import { PrismaService } from '../common/prisma.service';
 import { CreateScheduleDto, UpdateScheduleDto } from './schedule.dto';
-import { genScheduleId } from '@refly/utils';
+import { genScheduleId, genScheduleRecordId } from '@refly/utils';
 import { CronExpressionParser } from 'cron-parser';
 import { ObjectStorageService } from '../common/object-storage';
 import { OSS_INTERNAL } from '../common/object-storage/tokens';
@@ -106,6 +106,11 @@ export class ScheduleService {
       },
     });
 
+    // 6. Create scheduled record if enabled and has nextRunAt
+    if (isEnabled && nextRunAt) {
+      await this.createOrUpdateScheduledRecord(uid, scheduleId, dto.canvasId, nextRunAt);
+    }
+
     // Remove pk field (BigInt) to avoid serialization issues
     return this.excludePk(schedule);
   }
@@ -152,6 +157,15 @@ export class ScheduleService {
         nextRunAt,
       },
     });
+
+    // Update or create scheduled record if enabled and has nextRunAt
+    if (isEnabled && nextRunAt) {
+      await this.createOrUpdateScheduledRecord(uid, scheduleId, schedule.canvasId, nextRunAt);
+    } else {
+      // Delete scheduled record if disabled or no nextRunAt
+      await this.deleteScheduledRecord(scheduleId);
+    }
+
     return this.excludePk(updated);
   }
 
@@ -230,7 +244,7 @@ export class ScheduleService {
     uid: string,
     page = 1,
     pageSize = 10,
-    status?: 'pending' | 'running' | 'success' | 'failed',
+    status?: 'scheduled' | 'pending' | 'running' | 'success' | 'failed',
     keyword?: string,
     tools?: string[],
   ) {
@@ -494,5 +508,70 @@ export class ScheduleService {
       status: 'pending',
       priority,
     };
+  }
+
+  /**
+   * Create or update a scheduled record for the next execution
+   * This record represents a future execution that hasn't started yet
+   */
+  async createOrUpdateScheduledRecord(
+    uid: string,
+    scheduleId: string,
+    canvasId: string,
+    scheduledAt: Date,
+  ): Promise<void> {
+    // Get canvas title for workflowTitle
+    const canvas = await this.prisma.canvas.findUnique({
+      where: { canvasId },
+      select: { title: true },
+    });
+
+    // Check if a scheduled record already exists for this schedule
+    const existingScheduledRecord = await this.prisma.scheduleRecord.findFirst({
+      where: {
+        scheduleId,
+        status: 'scheduled',
+        workflowExecutionId: null, // Only scheduled records without execution
+      },
+    });
+
+    if (existingScheduledRecord) {
+      // Update existing scheduled record
+      await this.prisma.scheduleRecord.update({
+        where: { scheduleRecordId: existingScheduledRecord.scheduleRecordId },
+        data: {
+          scheduledAt,
+          workflowTitle: canvas?.title || 'Untitled',
+        },
+      });
+    } else {
+      // Create new scheduled record
+      const scheduleRecordId = genScheduleRecordId();
+      await this.prisma.scheduleRecord.create({
+        data: {
+          scheduleRecordId,
+          scheduleId,
+          uid,
+          canvasId,
+          workflowTitle: canvas?.title || 'Untitled',
+          status: 'scheduled',
+          scheduledAt,
+          priority: 5, // Default priority, will be recalculated when actually executed
+        },
+      });
+    }
+  }
+
+  /**
+   * Delete scheduled record for a schedule
+   */
+  async deleteScheduledRecord(scheduleId: string): Promise<void> {
+    await this.prisma.scheduleRecord.deleteMany({
+      where: {
+        scheduleId,
+        status: 'scheduled',
+        workflowExecutionId: null,
+      },
+    });
   }
 }

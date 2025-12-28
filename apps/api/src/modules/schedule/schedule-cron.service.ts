@@ -1,7 +1,8 @@
-import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit, forwardRef, Inject } from '@nestjs/common';
 import { PrismaService } from '../common/prisma.service';
 import { RedisService } from '../common/redis.service';
 import { SchedulePriorityService } from './schedule-priority.service';
+import { ScheduleService } from './schedule.service';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { QUEUE_SCHEDULE_EXECUTION } from '../../utils/const';
@@ -16,6 +17,8 @@ export class ScheduleCronService implements OnModuleInit {
     private readonly prisma: PrismaService,
     private readonly redisService: RedisService,
     private readonly priorityService: SchedulePriorityService,
+    @Inject(forwardRef(() => ScheduleService))
+    private readonly scheduleService: ScheduleService,
     @InjectQueue(QUEUE_SCHEDULE_EXECUTION) private readonly scheduleQueue: Queue,
   ) {}
 
@@ -96,6 +99,16 @@ export class ScheduleCronService implements OnModuleInit {
         nextRunAt,
       },
     });
+
+    // 3.2.1 Create or update scheduled record for the next execution
+    if (nextRunAt) {
+      await this.scheduleService.createOrUpdateScheduledRecord(
+        schedule.uid,
+        schedule.scheduleId,
+        schedule.canvasId,
+        nextRunAt,
+      );
+    }
 
     // 3.3 Check quota/credits again? (Maybe in processor)
 

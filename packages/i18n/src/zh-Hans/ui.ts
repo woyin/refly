@@ -4352,6 +4352,7 @@ const translations = {
     },
     status: {
       all: '所有状态',
+      scheduled: '已计划',
       init: '初始化中',
       executing: '运行中',
       succeeded: '成功',
