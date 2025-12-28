@@ -54,7 +54,6 @@ export class ScheduleCronService implements OnModuleInit {
         deletedAt: null,
         nextRunAt: { lte: now },
       },
-      take: 100, // Process 100 at a time
     });
 
     if (schedules.length === 0) {

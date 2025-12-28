@@ -3,13 +3,18 @@ import { PrismaService } from '../common/prisma.service';
 import { Subscription } from '@prisma/client';
 
 const PLAN_PRIORITY_MAP: Record<string, number> = {
-  enterprise: 1,
-  team: 2,
-  pro: 3,
-  maker: 3,
-  plus: 6,
-  starter: 8,
-  free: 10,
+  refly_plus_yearly_test_v3: 1,
+  refly_plus_monthly_test_v3: 1,
+  refly_plus_yearly_test_v4: 1, // new plus
+  refly_max_yearly_limited_offer: 2, // early bird
+  refly_plus_yearly_limited_offer: 3, // early bird
+  refly_maker_monthly: 4,
+  refly_starter_monthly: 5,
+  refly_max_yearly_stable_v3: 6,
+  refly_plus_yearly_stable_v2: 7,
+  refly_plus_monthly_stable_v2: 7,
+  refly_plus_monthly_stable: 7,
+  free: 8,
 };
 
 const ADJUSTMENT_FACTORS = {
@@ -37,7 +42,7 @@ export class SchedulePriorityService {
     });
 
     // 2. Get base priority from plan type
-    const planType = subscription?.planType ?? 'free';
+    const planType = subscription?.lookupKey ?? 'free';
     const basePriority = PLAN_PRIORITY_MAP[planType] ?? PLAN_PRIORITY_MAP.free;
 
     // 3. Get priority adjustment factors

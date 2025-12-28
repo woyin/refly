@@ -9,6 +9,7 @@ import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/ca
 import { CanvasTitle, ReadonlyCanvasTitle, type CanvasTitleMode } from './canvas-title';
 // import ShareSettings from './share-settings';
 import PublishTemplateButton from './publish-template-button';
+import ScheduleButton from './schedule-button';
 import { useUserStoreShallow } from '@refly/stores';
 import './index.scss';
 import { IconLink } from '@refly-packages/ai-workspace-common/components/common/icon';
@@ -142,6 +143,7 @@ export const TopToolbar: FC<TopToolbarProps> = memo(({ canvasId }) => {
           ) : (
             <>
               {/* <ShareSettings canvasId={canvasId} canvasTitle={canvasTitle} /> */}
+              <ScheduleButton canvasId={canvasId} />
               <PublishTemplateButton canvasId={canvasId} canvasTitle={canvasTitle} />
             </>
           )}
