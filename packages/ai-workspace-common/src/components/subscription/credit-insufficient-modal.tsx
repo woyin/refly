@@ -676,7 +676,12 @@ export const CreditInsufficientModal = memo(() => {
       onCancel={handleClose}
       title={
         <span className="text-xl font-semibold text-gray-900">
-          {t('canvas.skillResponse.creditInsufficient.title', 'Insufficient Credits')}
+          {creditInsufficientTriggeredFrom === 'schedule'
+            ? t(
+                'canvas.skillResponse.creditInsufficient.scheduleTitle',
+                'Upgrade to Create More Schedules',
+              )
+            : t('canvas.skillResponse.creditInsufficient.title', 'Insufficient Credits')}
         </span>
       }
       className="credit-insufficient-modal"

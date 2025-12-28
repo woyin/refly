@@ -1,5 +1,5 @@
 import { memo, useState, useCallback, useEffect, useMemo } from 'react';
-import { Button, Tooltip, Popover, Switch, TimePicker, Select, message } from 'antd';
+import { Button, Tooltip, Popover, Switch, TimePicker, Select, message, Modal } from 'antd';
 import { ArrowRight } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { cn } from '@refly/utils/cn';
@@ -7,6 +7,7 @@ import {
   useListSchedules,
   useCreateSchedule,
   useUpdateSchedule,
+  useGetCreditUsageByCanvasId,
 } from '@refly-packages/ai-workspace-common/queries';
 import { useSkillResponseLoadingStatus } from '@refly-packages/ai-workspace-common/hooks/canvas/use-skill-response-loading-status';
 import { useCanvasStoreShallow, useSubscriptionStoreShallow } from '@refly/stores';
@@ -81,6 +82,7 @@ const ScheduleButton = memo(({ canvasId }: ScheduleButtonProps) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
+  const [scheduleLimitModalVisible, setScheduleLimitModalVisible] = useState(false);
 
   // Local state for popover form
   const [schedule, setSchedule] = useState<WorkflowSchedule | null>(null);
@@ -90,9 +92,10 @@ const ScheduleButton = memo(({ canvasId }: ScheduleButtonProps) => {
   const [weekdays, setWeekdays] = useState<number[]>([1]);
   const [monthDays, setMonthDays] = useState<number[]>([1]);
 
-  // Get subscription plan type
-  const { planType } = useSubscriptionStoreShallow((state) => ({
+  // Get subscription plan type and credit insufficient modal setter
+  const { planType, setCreditInsufficientModalVisible } = useSubscriptionStoreShallow((state) => ({
     planType: state.planType,
+    setCreditInsufficientModalVisible: state.setCreditInsufficientModalVisible,
   }));
 
   // API mutations
@@ -122,6 +125,17 @@ const ScheduleButton = memo(({ canvasId }: ScheduleButtonProps) => {
 
   const { isLoading: skillResponseLoading, skillResponseNodes } =
     useSkillResponseLoadingStatus(canvasId);
+
+  // Credit usage query
+  const { data: creditUsageData, isLoading: isCreditUsageLoading } = useGetCreditUsageByCanvasId(
+    {
+      query: { canvasId },
+    },
+    undefined,
+    {
+      enabled: !!canvasId,
+    },
+  );
 
   const toolbarLoading =
     executionStats.executing > 0 || executionStats.waiting > 0 || skillResponseLoading;
@@ -217,20 +231,12 @@ const ScheduleButton = memo(({ canvasId }: ScheduleButtonProps) => {
   }, []); // Run only once on mount
 
   // Reset state when popover opens
-  const handleOpenChange = useCallback(
-    (newOpen: boolean) => {
-      if (newOpen) {
-        const config = parseScheduleConfig(schedule?.scheduleConfig);
-        setIsEnabled(schedule?.isEnabled ?? false);
-        setFrequency(config?.type || 'daily');
-        setTimeValue(config?.time ? dayjs(config.time, 'HH:mm') : dayjs('08:00', 'HH:mm'));
-        setWeekdays(config?.weekdays || [1]);
-        setMonthDays(config?.monthDays || [1]);
-      }
-      setOpen(newOpen);
-    },
-    [schedule],
-  );
+  const handleOpenChange = useCallback((newOpen: boolean) => {
+    // Only handle closing, opening is handled by handleButtonClick
+    if (!newOpen) {
+      setOpen(false);
+    }
+  }, []);
 
   // Calculate next run time
   const nextRunTime = useMemo(() => {
@@ -338,8 +344,39 @@ const ScheduleButton = memo(({ canvasId }: ScheduleButtonProps) => {
       canvas_id: canvasId,
     });
 
+    // Check if this canvas already has a schedule (existing schedule means editing, not creating new)
+    const hasExistingSchedule = !!schedule;
+
+    // If canvas doesn't have existing schedule and quota is reached, show appropriate modal
+    if (!hasExistingSchedule && totalEnabledSchedules >= scheduleQuota) {
+      if (planType === 'free') {
+        // Free user: show credit insufficient modal
+        setCreditInsufficientModalVisible(true, undefined, 'schedule');
+      } else {
+        // Paid user: show schedule limit reached modal
+        setScheduleLimitModalVisible(true);
+      }
+      return; // Don't open popover when showing limit modals
+    }
+
+    // Initialize form state when opening popover
+    const config = parseScheduleConfig(schedule?.scheduleConfig);
+    setIsEnabled(schedule?.isEnabled ?? false);
+    setFrequency(config?.type || 'daily');
+    setTimeValue(config?.time ? dayjs(config.time, 'HH:mm') : dayjs('08:00', 'HH:mm'));
+    setWeekdays(config?.weekdays || [1]);
+    setMonthDays(config?.monthDays || [1]);
+
     setOpen(true);
-  }, [disabled, canvasId]);
+  }, [
+    disabled,
+    canvasId,
+    schedule,
+    totalEnabledSchedules,
+    scheduleQuota,
+    planType,
+    setCreditInsufficientModalVisible,
+  ]);
 
   // Determine style based on schedule status
   const isScheduled = schedule?.isEnabled;
@@ -404,11 +441,13 @@ const ScheduleButton = memo(({ canvasId }: ScheduleButtonProps) => {
                 label: t(`schedule.weekday.${d.label.toLowerCase()}`) || d.label,
               }))}
               placeholder={`Select ${weekdays.length} day${weekdays.length !== 1 ? 's' : ''}`}
-              className="w-full"
+              className="w-full h-full schedule-select"
+              size="large"
               maxTagCount={0}
               maxTagPlaceholder={() =>
                 `Select ${weekdays.length} day${weekdays.length !== 1 ? 's' : ''}`
               }
+              dropdownClassName="schedule-dropdown"
             />
           </div>
         )}
@@ -422,7 +461,8 @@ const ScheduleButton = memo(({ canvasId }: ScheduleButtonProps) => {
               onChange={setMonthDays}
               options={MONTH_DAYS}
               placeholder={`Select ${monthDays.length} day${monthDays.length !== 1 ? 's' : ''}`}
-              className="w-full"
+              className="w-full h-full"
+              size="large"
               maxTagCount={0}
               maxTagPlaceholder={() =>
                 `Select ${monthDays.length} day${monthDays.length !== 1 ? 's' : ''}`
@@ -433,8 +473,8 @@ const ScheduleButton = memo(({ canvasId }: ScheduleButtonProps) => {
 
         {/* Daily selection placeholder */}
         {frequency === 'daily' && (
-          <div className="flex-1">
-            <div className="h-8 flex items-center text-gray-500 text-sm">
+          <div className="flex-1 h-12">
+            <div className="h-full flex items-center text-gray-500 text-sm">
               {t('schedule.daily') || 'Daily'}
             </div>
           </div>
@@ -444,7 +484,7 @@ const ScheduleButton = memo(({ canvasId }: ScheduleButtonProps) => {
           value={timeValue}
           onChange={(val) => val && setTimeValue(val)}
           format="HH:mm"
-          className="flex-1"
+          className="flex-1 h-12"
           size="large"
           allowClear={false}
           popupClassName="schedule-timepicker-popup"
@@ -454,7 +494,9 @@ const ScheduleButton = memo(({ canvasId }: ScheduleButtonProps) => {
 
       {/* Cost info */}
       <div className="text-sm text-gray-500 pt-2">
-        {t('schedule.cost') || 'Cost'}: 50~ / {t('schedule.perRun') || 'run'}
+        {t('schedule.cost') || 'Cost'}:{' '}
+        {isCreditUsageLoading ? '...' : (creditUsageData?.data?.total ?? 0)} /{' '}
+        {t('schedule.perRun') || 'run'}
       </div>
 
       {/* View History link */}
@@ -514,14 +556,19 @@ const ScheduleButton = memo(({ canvasId }: ScheduleButtonProps) => {
           }
           placement="top"
         >
-          <div className="flex items-center gap-2">
+          <div
+            className={cn(
+              'flex items-center gap-2 p-1 rounded-lg transition-colors',
+              disabled ? 'cursor-not-allowed' : 'cursor-pointer hover:bg-refly-tertiary-hover',
+            )}
+            onClick={handleButtonClick}
+          >
             <LuAlarmClock
               className={cn(
-                'text-lg cursor-pointer hover:text-teal-600 transition-colors',
-                disabled ? 'opacity-50 cursor-not-allowed' : '',
+                'text-lg hover:text-teal-600 transition-colors',
+                disabled ? 'opacity-50' : '',
                 isScheduled ? 'text-teal-600' : 'text-gray-600 dark:text-gray-400',
               )}
-              onClick={handleButtonClick}
             />
             <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">
               {totalEnabledSchedules}/{scheduleQuota}
@@ -529,6 +576,24 @@ const ScheduleButton = memo(({ canvasId }: ScheduleButtonProps) => {
           </div>
         </Tooltip>
       </Popover>
+
+      {/* Schedule Limit Reached Modal */}
+      <Modal
+        title={t('schedule.limitReached.title') || 'Schedule Limit Reached'}
+        open={scheduleLimitModalVisible}
+        onOk={() => setScheduleLimitModalVisible(false)}
+        onCancel={() => setScheduleLimitModalVisible(false)}
+        footer={[
+          <Button key="ok" type="primary" onClick={() => setScheduleLimitModalVisible(false)}>
+            {t('common.confirm') || 'OK'}
+          </Button>,
+        ]}
+      >
+        <p>
+          {t('schedule.limitReached.message') ||
+            "You've reached the maximum number of scheduled workflows for your plan. You can manage or disable existing schedules to create a new one."}
+        </p>
+      </Modal>
     </>
   );
 });

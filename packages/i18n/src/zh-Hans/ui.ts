@@ -1708,6 +1708,7 @@ const translations = {
       },
       creditInsufficient: {
         title: '积分不足',
+        scheduleTitle: '升级以创建更多定时任务',
         description:
           '您当前订阅方案为 {{membershipLevel}}，积分已不足。升级套餐即可继续使用 Refly 的完整功能。',
         upgradeButton: '立即升级',
@@ -4318,6 +4319,11 @@ const translations = {
     deleteSuccess: '定时任务删除成功',
     saveFailed: '保存定时任务失败',
     deleteFailed: '删除定时任务失败',
+    limitReached: {
+      title: '定时任务数量已达上限',
+      message:
+        '您已达到当前套餐的定时任务数量上限。您可以管理或禁用现有的定时任务以创建新的定时任务。',
+    },
     weekday: {
       mon: '周一',
       tue: '周二',

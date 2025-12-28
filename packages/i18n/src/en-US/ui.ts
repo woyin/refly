@@ -1567,6 +1567,7 @@ const translations = {
       },
       creditInsufficient: {
         title: 'Insufficient Credits',
+        scheduleTitle: 'Upgrade to Create More Schedules',
         description:
           "Your current subscription plan is {{membershipLevel}}, and your credits are insufficient. Upgrade your plan to continue using Refly's full features.",
         upgradeButton: 'Upgrade Now',
@@ -4284,6 +4285,11 @@ const translations = {
     deleteSuccess: 'Schedule deleted successfully',
     saveFailed: 'Failed to save schedule',
     deleteFailed: 'Failed to delete schedule',
+    limitReached: {
+      title: 'Schedule Limit Reached',
+      message:
+        "You've reached the maximum number of scheduled workflows for your plan. You can manage or disable existing schedules to create a new one.",
+    },
     weekday: {
       mon: 'Mon',
       tue: 'Tue',
