@@ -116,6 +116,9 @@ export class WorkflowService {
       checkCanvasOwnership?: boolean;
       createNewCanvas?: boolean;
       nodeBehavior?: 'create' | 'update';
+      scheduleId?: string;
+      scheduleRecordId?: string;
+      triggerType?: string;
     },
   ): Promise<string> {
     let canvasData: RawCanvasData;
@@ -198,6 +201,9 @@ export class WorkflowService {
           status: nodeExecutions.length > 0 ? 'executing' : 'finish',
           totalNodes: nodeExecutions.length,
           appId: options?.appId,
+          scheduleId: options?.scheduleId,
+          scheduleRecordId: options?.scheduleRecordId,
+          triggerType: options?.triggerType ?? 'manual',
         },
       }),
       this.prisma.workflowNodeExecution.createMany({

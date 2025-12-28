@@ -132,7 +132,11 @@ export class ScheduleProcessor extends WorkerHost {
         user,
         canvasData,
         canvasData.variables || [],
-        { scheduleRecordId },
+        {
+          scheduleId,
+          scheduleRecordId,
+          triggerType: 'scheduled',
+        },
       );
 
       // 7. Update ScheduleRecord with success

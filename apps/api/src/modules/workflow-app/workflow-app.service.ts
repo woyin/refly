@@ -607,7 +607,9 @@ export class WorkflowAppService {
     variables?: WorkflowVariable[],
     options?: {
       appId?: string;
+      scheduleId?: string;
       scheduleRecordId?: string;
+      triggerType?: string;
     },
   ): Promise<string> {
     // Validate canvasData completeness
@@ -742,6 +744,9 @@ export class WorkflowAppService {
         sourceCanvasData,
         createNewCanvas: true,
         nodeBehavior: 'create',
+        scheduleId: options?.scheduleId,
+        scheduleRecordId: options?.scheduleRecordId,
+        triggerType: options?.triggerType,
       },
     );
 
