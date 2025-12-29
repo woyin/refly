@@ -98,6 +98,7 @@ const ScheduleButton = memo(({ canvasId }: ScheduleButtonProps) => {
   const [isEnabled, setIsEnabled] = useState(false);
   const [frequency, setFrequency] = useState<ScheduleFrequency>('daily');
   const [timeValue, setTimeValue] = useState<dayjs.Dayjs>(dayjs('08:00', 'HH:mm'));
+
   const [weekdays, setWeekdays] = useState<number[]>([1]);
   const [monthDays, setMonthDays] = useState<number[]>([1]);
 
@@ -217,9 +218,18 @@ const ScheduleButton = memo(({ canvasId }: ScheduleButtonProps) => {
 
       if (currentSchedule) {
         const config = parseScheduleConfig(currentSchedule.scheduleConfig);
+        const serverTime = config?.time ? dayjs(config.time, 'HH:mm') : dayjs('08:00', 'HH:mm');
+        const currentTime = timeValue?.format('HH:mm');
+        const serverTimeFormatted = serverTime.format('HH:mm');
+
         setIsEnabled(currentSchedule.isEnabled ?? false);
         setFrequency(config?.type || 'daily');
-        setTimeValue(config?.time ? dayjs(config.time, 'HH:mm') : dayjs('08:00', 'HH:mm'));
+
+        // Only update timeValue if it's actually different to prevent infinite loop
+        if (currentTime !== serverTimeFormatted) {
+          setTimeValue(serverTime);
+        }
+
         setWeekdays(config?.weekdays || [1]);
         setMonthDays(config?.monthDays || [1]);
       }
@@ -261,7 +271,7 @@ const ScheduleButton = memo(({ canvasId }: ScheduleButtonProps) => {
       nextRun = nextRun.add(1, 'day');
     }
 
-    return nextRun.format('YYYY/MM/DD, hh:mm:ss A');
+    return nextRun.format('YYYY/MM/DD hh:mm A');
   }, [isEnabled, timeValue]);
 
   // Auto save function (without validation for enabled state)
@@ -303,7 +313,8 @@ const ScheduleButton = memo(({ canvasId }: ScheduleButtonProps) => {
           });
         }
 
-        await fetchSchedule();
+        // Skip fetchSchedule after autoSave to prevent infinite loop
+        // The data is already up-to-date since we just saved it
         await fetchAllEnabledSchedulesCount();
       } catch (error) {
         console.error('Failed to auto save schedule:', error);
@@ -332,6 +343,8 @@ const ScheduleButton = memo(({ canvasId }: ScheduleButtonProps) => {
         // Enabling: auto save immediately
         setIsEnabled(true);
         await autoSave(true);
+        // Refresh schedule data after enabling
+        await fetchSchedule();
         message.success(t('schedule.saveSuccess') || 'Schedule saved');
       } else {
         // Disabling: show confirmation modal and close popover
@@ -339,16 +352,18 @@ const ScheduleButton = memo(({ canvasId }: ScheduleButtonProps) => {
         setDeactivateModalVisible(true);
       }
     },
-    [autoSave, t],
+    [autoSave, fetchSchedule, t],
   );
 
   // Handle confirmed deactivation
   const handleConfirmDeactivate = useCallback(async () => {
     setIsEnabled(false);
     await autoSave(false);
+    // Refresh schedule data after deactivating
+    await fetchSchedule();
     setDeactivateModalVisible(false);
     message.success(t('schedule.deactivateSuccess') || 'Schedule deactivated');
-  }, [autoSave, t]);
+  }, [autoSave, fetchSchedule, t]);
 
   // Handle auto save when other settings change (if enabled)
   useEffect(() => {
@@ -368,11 +383,11 @@ const ScheduleButton = memo(({ canvasId }: ScheduleButtonProps) => {
       canvas_id: canvasId,
     });
 
-    // Check if this canvas already has a schedule (existing schedule means editing, not creating new)
-    const hasExistingSchedule = !!schedule;
+    // Check if this canvas already has an ENABLED schedule (only enabled schedules count toward quota)
+    const hasEnabledSchedule = !!schedule?.isEnabled;
 
-    // If canvas doesn't have existing schedule and quota is reached, show appropriate modal
-    if (!hasExistingSchedule && totalEnabledSchedules >= scheduleQuota) {
+    // If canvas doesn't have enabled schedule and quota is reached, show appropriate modal
+    if (!hasEnabledSchedule && totalEnabledSchedules >= scheduleQuota) {
       if (planType === 'free') {
         // Free user: show credit insufficient modal
         setCreditInsufficientModalVisible(true, undefined, 'schedule');
@@ -511,15 +526,31 @@ const ScheduleButton = memo(({ canvasId }: ScheduleButtonProps) => {
           className="flex-1 h-10 w-[188px]"
           size="large"
           allowClear={false}
-          popupClassName="schedule-timepicker-popup w-[188px]"
+          popupClassName="schedule-timepicker-popup"
         />
       </div>
 
       {/* Cost info */}
-      <div className="text-sm text-gray-500">
-        {t('schedule.cost') || 'Cost'}:{' '}
-        {isCreditUsageLoading ? '...' : (creditUsageData?.data?.total ?? 0)} /{' '}
-        {t('schedule.perRun') || 'run'}
+      <div className="flex items-center justify-between text-sm text-gray-500">
+        <span>
+          {t('schedule.cost') || 'Cost'}:{' '}
+          {isCreditUsageLoading ? '...' : (creditUsageData?.data?.total ?? 0)} /{' '}
+          {t('schedule.perRun') || 'run'}
+        </span>
+        {planType === 'free' && (
+          <Button
+            type="text"
+            size="small"
+            onClick={(e) => {
+              e.stopPropagation();
+              setOpen(false); // Hide popover when opening modal
+              setCreditInsufficientModalVisible(true, undefined, 'schedule');
+            }}
+            className="!text-refly-primary-default hover:!text-refly-primary-hover flex-shrink-0 text-xs md:text-sm !p-1 !h-auto"
+          >
+            {t('common.upgrade') || 'Upgrade'} &gt;
+          </Button>
+        )}
       </div>
 
       {/* View History link 
@@ -539,12 +570,12 @@ const ScheduleButton = memo(({ canvasId }: ScheduleButtonProps) => {
       <style>
         {`
           .schedule-timepicker-popup .ant-picker-time-panel {
-            width: 188px !important;
-            min-width: 188px !important;
+            width: 180px !important;
+            min-width: 180px !important;
           }
           .schedule-timepicker-popup .ant-picker-dropdown {
-            width: 188px !important;
-            min-width: 188px !important;
+            width: 180px !important;
+            min-width: 180px !important;
           }
         `}
       </style>
