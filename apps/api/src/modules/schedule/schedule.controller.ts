@@ -79,6 +79,7 @@ export class ScheduleController {
       dto.status,
       dto.keyword,
       dto.tools,
+      dto.canvasId,
     );
     return buildSuccessResponse(result);
   }

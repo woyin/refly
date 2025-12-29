@@ -9,9 +9,12 @@ export type RunStatusFilter = 'all' | 'success' | 'failed';
 export type RunTypeFilter = 'all' | 'workflow' | 'template' | 'schedule';
 
 export interface RunHistoryFiltersProps {
-  // Search
-  searchValue: string;
-  onSearchChange: (value: string) => void;
+  // Search by title
+  titleFilter: string;
+  onTitleChange: (value: string) => void;
+  // Search by canvasId
+  canvasIdFilter: string;
+  onCanvasIdChange: (value: string) => void;
   // Type filter
   typeFilter: RunTypeFilter;
   onTypeChange: (type: RunTypeFilter) => void;
@@ -26,8 +29,10 @@ export interface RunHistoryFiltersProps {
 
 export const RunHistoryFilters = memo(
   ({
-    searchValue,
-    onSearchChange,
+    titleFilter,
+    onTitleChange,
+    canvasIdFilter,
+    onCanvasIdChange,
     typeFilter,
     onTypeChange,
     statusFilter,
@@ -38,12 +43,13 @@ export const RunHistoryFilters = memo(
   }: RunHistoryFiltersProps) => {
     const { t } = useTranslation();
     const [toolSearchValue, setToolSearchValue] = useState('');
+    const [searchInputValue, setSearchInputValue] = useState('');
 
     // Type options
     const typeOptions: { value: RunTypeFilter; label: string }[] = [
       { value: 'all', label: t('runHistory.filters.typeAll') },
-      { value: 'workflow', label: t('runHistory.filters.typeWorkflow') },
-      { value: 'template', label: t('runHistory.filters.typeTemplate') },
+      // { value: 'workflow', label: t('runHistory.filters.typeWorkflow') },
+      // { value: 'template', label: t('runHistory.filters.typeTemplate') },
       { value: 'schedule', label: t('runHistory.filters.typeSchedule') },
     ];
 
@@ -91,18 +97,53 @@ export const RunHistoryFilters = memo(
       onToolsChange([]);
     }, [onToolsChange]);
 
+    // Handle search input submit (Enter key or search button)
+    const handleSearchSubmit = useCallback(() => {
+      const value = searchInputValue.trim();
+      if (!value) return;
+
+      // Clear old title/canvasId filters when new search is entered
+      onTitleChange('');
+      onCanvasIdChange('');
+
+      // Parse for canvasId: prefix
+      const canvasIdMatch = value.match(/^canvasId:\s*(.+)$/i);
+      if (canvasIdMatch) {
+        onCanvasIdChange(canvasIdMatch[1].trim());
+      } else {
+        onTitleChange(value);
+      }
+
+      // Clear input after submit
+      setSearchInputValue('');
+    }, [searchInputValue, onTitleChange, onCanvasIdChange]);
+
+    // Handle input key press
+    const handleSearchKeyPress = useCallback(
+      (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === 'Enter') {
+          handleSearchSubmit();
+        }
+      },
+      [handleSearchSubmit],
+    );
+
     // Remove individual filter
     const handleRemoveFilter = useCallback(
-      (type: 'type' | 'tool' | 'status', value?: string) => {
+      (type: 'type' | 'tool' | 'status' | 'title' | 'canvasId', value?: string) => {
         if (type === 'type') {
           onTypeChange('all');
         } else if (type === 'tool' && value) {
           onToolsChange(selectedTools.filter((t) => t !== value));
         } else if (type === 'status') {
           onStatusChange('all');
+        } else if (type === 'title') {
+          onTitleChange('');
+        } else if (type === 'canvasId') {
+          onCanvasIdChange('');
         }
       },
-      [onTypeChange, onStatusChange, onToolsChange, selectedTools],
+      [onTypeChange, onStatusChange, onToolsChange, onTitleChange, onCanvasIdChange, selectedTools],
     );
 
     // Filter tools by search
@@ -177,7 +218,11 @@ export const RunHistoryFilters = memo(
 
     // Check if any filters are active
     const hasActiveFilters =
-      typeFilter !== 'all' || selectedTools.length > 0 || statusFilter !== 'all';
+      typeFilter !== 'all' ||
+      selectedTools.length > 0 ||
+      statusFilter !== 'all' ||
+      !!titleFilter ||
+      !!canvasIdFilter;
 
     return (
       <div className="run-history-filters space-y-4">
@@ -185,8 +230,10 @@ export const RunHistoryFilters = memo(
         <Input
           placeholder={t('runHistory.searchPlaceholder')}
           prefix={<Search size={16} className="text-gray-400" />}
-          value={searchValue}
-          onChange={(e) => onSearchChange(e.target.value)}
+          value={searchInputValue}
+          onChange={(e) => setSearchInputValue(e.target.value)}
+          onKeyDown={handleSearchKeyPress}
+          onPressEnter={handleSearchSubmit}
           allowClear
           className="w-full"
         />
@@ -195,30 +242,37 @@ export const RunHistoryFilters = memo(
         <div className="flex items-center gap-3">
           {/* Type filter */}
           <Dropdown menu={{ items: typeMenuItems }} trigger={['click']}>
-            <Button className="flex items-center justify-between min-w-[150px]">
-              <span className="text-gray-400 text-xs mr-2">{t('runHistory.filters.type')}</span>
+            <Button
+              color="default"
+              variant="outlined"
+              className="flex items-center justify-between min-w-[150px]"
+            >
+              <span className=" text-xs mr-2">{t('runHistory.filters.type')}</span>
               <span className="flex-1 text-left">{getTypeLabel()}</span>
-              <ChevronDown size={14} className="ml-2 text-gray-400" />
+              <ChevronDown size={14} className="ml-2 " />
             </Button>
           </Dropdown>
 
           {/* Tools filter */}
           {availableTools.length > 0 && (
             <Dropdown dropdownRender={() => toolsDropdownContent} trigger={['click']}>
-              <Button className="flex items-center justify-between min-w-[180px]">
-                <span className="text-gray-400 text-xs mr-2">{t('runHistory.filters.tools')}</span>
+              <Button
+                variant="outlined"
+                className="flex items-center justify-between min-w-[180px]"
+              >
+                <span className=" text-xs mr-2">{t('runHistory.filters.tools')}</span>
                 <span className="flex-1 text-left truncate">{getToolsLabel()}</span>
-                <ChevronDown size={14} className="ml-2 text-gray-400" />
+                <ChevronDown size={14} className="ml-2 " />
               </Button>
             </Dropdown>
           )}
 
           {/* State filter */}
           <Dropdown menu={{ items: statusMenuItems }} trigger={['click']}>
-            <Button className="flex items-center justify-between min-w-[150px]">
-              <span className="text-gray-400 text-xs mr-2">{t('runHistory.filters.state')}</span>
+            <Button variant="outlined" className="flex items-center justify-between min-w-[150px]">
+              <span className=" text-xs mr-2">{t('runHistory.filters.state')}</span>
               <span className="flex-1 text-left">{getStatusLabel()}</span>
-              <ChevronDown size={14} className="ml-2 text-gray-400" />
+              <ChevronDown size={14} className="ml-2 " />
             </Button>
           </Dropdown>
         </div>
@@ -226,6 +280,26 @@ export const RunHistoryFilters = memo(
         {/* Active filter tags */}
         {hasActiveFilters && (
           <div className="flex flex-wrap gap-2">
+            {titleFilter && (
+              <Tag
+                closable
+                onClose={() => handleRemoveFilter('title')}
+                closeIcon={<X size={12} />}
+                className="flex items-center gap-1 bg-blue-50 text-blue-700 border-blue-200"
+              >
+                {t('runHistory.filters.title')}: {titleFilter}
+              </Tag>
+            )}
+            {canvasIdFilter && (
+              <Tag
+                closable
+                onClose={() => handleRemoveFilter('canvasId')}
+                closeIcon={<X size={12} />}
+                className="flex items-center gap-1 bg-blue-50 text-blue-700 border-blue-200"
+              >
+                canvasId: {canvasIdFilter}
+              </Tag>
+            )}
             {typeFilter !== 'all' && (
               <Tag
                 closable

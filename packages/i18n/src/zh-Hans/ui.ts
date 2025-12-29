@@ -4333,6 +4333,10 @@ const translations = {
       sat: '周六',
       sun: '周日',
     },
+    runNow: '立即运行',
+    triggerSuccess: '定时任务已触发',
+    triggerFailed: '触发定时任务失败',
+    noSchedule: '请先保存定时任务',
   },
   runHistory: {
     pageTitle: '运行历史',
@@ -4381,6 +4385,7 @@ const translations = {
       noTools: '暂无工具',
       clearAllTools: '清除所有选择',
       tool: '工具',
+      title: '标题',
     },
     triggerNow: '立即触发',
     triggerSuccess: '触发成功',
@@ -4405,14 +4410,27 @@ const translations = {
     completedAt: '完成时间',
     creditUsed: '消耗积分',
     failureReason: '失败原因',
-    actions: {
-      copy: '复制',
-      remix: '再创作',
+    statusDisplay: {
+      succeeded: '运行成功',
+      failed: '运行失败',
+      running: '运行中',
     },
-    copySuccess: '工作流复制成功',
-    copyFailed: '工作流复制失败',
-    remixSuccess: '工作流再创作成功',
-    remixFailed: '工作流再创作失败',
+    failureReasons: {
+      scheduleLimited: '数量超限',
+      insufficientCredits: '积分不足',
+      runFailed: '运行失败',
+    },
+    failureActions: {
+      upgrade: '升级',
+      viewSchedule: '查看定时',
+      buyCredits: '购买积分',
+      fixWorkflow: '修复工作流',
+    },
+    actions: {
+      duplicate: '再创作',
+    },
+    duplicateSuccess: '工作流复制成功',
+    duplicateFailed: '工作流复制失败',
     noSnapshot: '暂无快照数据',
   },
   appManager: {

@@ -250,8 +250,14 @@ export class ScheduleService {
     status?: 'scheduled' | 'pending' | 'processing' | 'running' | 'success' | 'failed',
     keyword?: string,
     tools?: string[],
+    canvasId?: string,
   ) {
     const where: any = { uid };
+
+    // Filter by canvasId
+    if (canvasId) {
+      where.canvasId = canvasId;
+    }
 
     // Filter by status
     if (status) {

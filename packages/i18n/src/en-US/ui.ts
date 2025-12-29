@@ -4299,6 +4299,10 @@ const translations = {
       sat: 'Sat',
       sun: 'Sun',
     },
+    runNow: 'Run Now',
+    triggerSuccess: 'Schedule triggered successfully',
+    triggerFailed: 'Failed to trigger schedule',
+    noSchedule: 'Please save the schedule first',
   },
   runHistory: {
     pageTitle: 'Run History',
@@ -4347,6 +4351,7 @@ const translations = {
       noTools: 'No tools available',
       clearAllTools: 'Clear All Selections',
       tool: 'Tool',
+      title: 'Title',
     },
     triggerNow: 'Trigger Now',
     triggerSuccess: 'Schedule triggered successfully',
@@ -4371,14 +4376,27 @@ const translations = {
     completedAt: 'Completed At',
     creditUsed: 'Credits Used',
     failureReason: 'Failure Reason',
-    actions: {
-      copy: 'Copy',
-      remix: 'Remix',
+    statusDisplay: {
+      succeeded: 'Succeeded',
+      failed: 'Failed',
+      running: 'Running',
     },
-    copySuccess: 'Workflow copied successfully',
-    copyFailed: 'Failed to copy workflow',
-    remixSuccess: 'Workflow remixed successfully',
-    remixFailed: 'Failed to remix workflow',
+    failureReasons: {
+      scheduleLimited: 'Schedule Limited',
+      insufficientCredits: 'Insufficient Credits',
+      runFailed: 'Run Failed',
+    },
+    failureActions: {
+      upgrade: 'Upgrade',
+      viewSchedule: 'View Schedule',
+      buyCredits: 'Buy Credits',
+      fixWorkflow: 'Fix Workflow',
+    },
+    actions: {
+      duplicate: 'Copy & Remix',
+    },
+    duplicateSuccess: 'Workflow duplicated successfully',
+    duplicateFailed: 'Failed to duplicate workflow',
     noSnapshot: 'No snapshot available',
   },
   appManager: {

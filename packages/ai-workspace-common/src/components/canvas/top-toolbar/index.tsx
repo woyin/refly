@@ -23,9 +23,11 @@ import { GithubStar } from '@refly-packages/ai-workspace-common/components/commo
 
 interface TopToolbarProps {
   canvasId: string;
+  hideLogoButton?: boolean;
+  isRunDetail?: boolean;
 }
 
-export const TopToolbar: FC<TopToolbarProps> = memo(({ canvasId }) => {
+export const TopToolbar: FC<TopToolbarProps> = memo(({ canvasId, hideLogoButton, isRunDetail }) => {
   const { i18n, t } = useTranslation();
   const language = i18n.language as LOCALE;
   const { isLogin } = useUserStoreShallow((state) => ({
@@ -83,6 +85,7 @@ export const TopToolbar: FC<TopToolbarProps> = memo(({ canvasId }) => {
               canvasTitle={canvasTitle}
               isLoading={false}
               owner={shareData?.owner}
+              hideLogoButton={hideLogoButton}
             />
           ) : (
             <div className="flex items-center gap-2">
@@ -111,7 +114,12 @@ export const TopToolbar: FC<TopToolbarProps> = memo(({ canvasId }) => {
         </div>
 
         <div className="flex items-center gap-2">
-          {isPreviewCanvas ? (
+          {isRunDetail ? (
+            // Run detail mode: only show avatar/settings
+            <div className="group relative">
+              <SettingItem showName={false} avatarAlign={'right'} />
+            </div>
+          ) : isPreviewCanvas ? (
             <Button
               loading={duplicating}
               type="primary"
@@ -147,9 +155,11 @@ export const TopToolbar: FC<TopToolbarProps> = memo(({ canvasId }) => {
               <PublishTemplateButton canvasId={canvasId} canvasTitle={canvasTitle} />
             </>
           )}
-          <div className="group relative">
-            <SettingItem showName={false} avatarAlign={'right'} />
-          </div>
+          {!isRunDetail && (
+            <div className="group relative">
+              <SettingItem showName={false} avatarAlign={'right'} />
+            </div>
+          )}
         </div>
       </div>
     </>

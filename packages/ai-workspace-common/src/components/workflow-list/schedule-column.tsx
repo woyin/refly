@@ -1,6 +1,6 @@
 import { memo, useMemo, useState, useCallback } from 'react';
 import { Tag, Popover, Switch, Button, message, TimePicker } from 'antd';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, Play } from 'lucide-react';
 import { WorkflowSchedule } from '@refly/openapi-schema';
 import { client } from '@refly/openapi-schema';
 import { useTranslation } from 'react-i18next';
@@ -61,6 +61,7 @@ export const ScheduleColumn = memo(
     const navigate = useNavigate();
     const [open, setOpen] = useState(false);
     const [loading, setLoading] = useState(false);
+    const [triggerLoading, setTriggerLoading] = useState(false);
 
     // Local state for popover form
     const existingConfig = parseScheduleConfig(schedule?.scheduleConfig);
@@ -152,11 +153,34 @@ export const ScheduleColumn = memo(
       }
     }, [canvasId, schedule, isEnabled, frequency, timeValue, onScheduleChange, t]);
 
+    // Trigger schedule manually
+    const handleTriggerManually = useCallback(async () => {
+      if (!schedule?.scheduleId) {
+        message.error(t('schedule.noSchedule') || 'Please save the schedule first');
+        return;
+      }
+
+      setTriggerLoading(true);
+      try {
+        await client.post({
+          url: '/schedule/trigger',
+          body: { scheduleId: schedule.scheduleId },
+        });
+        message.success(t('schedule.triggerSuccess') || 'Schedule triggered successfully');
+        onScheduleChange?.();
+      } catch (error) {
+        console.error('Failed to trigger schedule:', error);
+        message.error(t('schedule.triggerFailed') || 'Failed to trigger schedule');
+      } finally {
+        setTriggerLoading(false);
+      }
+    }, [schedule?.scheduleId, onScheduleChange, t]);
+
     // Handle view history
     const handleViewHistory = useCallback(() => {
       setOpen(false);
-      navigate('/run-history');
-    }, [navigate]);
+      navigate(`/run-history?canvasId=${canvasId}`);
+    }, [navigate, canvasId]);
 
     // Schedule display for badge
     const scheduleDisplay = useMemo(() => {
@@ -264,16 +288,31 @@ export const ScheduleColumn = memo(
           <ArrowRight className="w-4 h-4" />
         </Button>
 
-        {/* Save button */}
-        <Button
-          type="primary"
-          block
-          loading={loading}
-          onClick={handleSave}
-          className="!bg-teal-500 hover:!bg-teal-600 !border-teal-500"
-        >
-          {t('common.save') || 'Save'}
-        </Button>
+        {/* Action buttons */}
+        <div className="flex gap-2">
+          {/* Run Now button */}
+          {schedule?.scheduleId && (
+            <Button
+              type="default"
+              loading={triggerLoading}
+              onClick={handleTriggerManually}
+              icon={<Play className="w-4 h-4" />}
+              className="flex-1 flex items-center justify-center gap-1"
+            >
+              {t('schedule.runNow') || 'Run Now'}
+            </Button>
+          )}
+
+          {/* Save button */}
+          <Button
+            type="primary"
+            loading={loading}
+            onClick={handleSave}
+            className={`!bg-teal-500 hover:!bg-teal-600 !border-teal-500 ${schedule?.scheduleId ? 'flex-1' : 'w-full'}`}
+          >
+            {t('common.save') || 'Save'}
+          </Button>
+        </div>
       </div>
     );
 
