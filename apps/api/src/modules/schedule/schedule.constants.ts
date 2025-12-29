@@ -79,3 +79,44 @@ export const PRIORITY_ADJUSTMENTS = {
   HIGH_LOAD_THRESHOLD: 5, // Threshold for high load penalty
   MAX_PRIORITY: 10, // Maximum priority value (lowest priority)
 } as const;
+
+/**
+ * Schedule execution failure reasons
+ * Used for frontend display and error tracking
+ *
+ * Frontend action buttons mapping:
+ * - INSUFFICIENT_CREDITS -> "Upgrade" button
+ * - SCHEDULE_LIMIT_EXCEEDED -> "View Schedule" button
+ * - Others -> "Debug" button
+ *
+ * Note: User rate limiting (concurrent limit) causes job delays, not failures.
+ * Delayed jobs are retried automatically by BullMQ, so no failure reason is needed.
+ */
+export enum ScheduleFailureReason {
+  /** Insufficient credits - user needs to recharge */
+  INSUFFICIENT_CREDITS = 'insufficient_credits',
+
+  /** Exceeded subscription plan's schedule limit */
+  SCHEDULE_LIMIT_EXCEEDED = 'schedule_limit_exceeded',
+
+  /** Schedule was deleted */
+  SCHEDULE_DELETED = 'schedule_deleted',
+
+  /** Schedule was disabled */
+  SCHEDULE_DISABLED = 'schedule_disabled',
+
+  /** Invalid cron expression */
+  INVALID_CRON_EXPRESSION = 'invalid_cron_expression',
+
+  /** Canvas data error (missing nodes/edges) */
+  CANVAS_DATA_ERROR = 'canvas_data_error',
+
+  /** Snapshot creation or loading failed */
+  SNAPSHOT_ERROR = 'snapshot_error',
+
+  /** Workflow execution failed */
+  WORKFLOW_EXECUTION_FAILED = 'workflow_execution_failed',
+
+  /** Other unknown error */
+  UNKNOWN_ERROR = 'unknown_error',
+}

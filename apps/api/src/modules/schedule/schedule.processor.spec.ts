@@ -230,3 +230,230 @@ describe('ScheduleProcessor Logic Tests', () => {
     });
   });
 });
+
+// Separate test suite for ScheduleFailureReason that doesn't require mocking
+import { ScheduleFailureReason } from './schedule.constants';
+
+describe('ScheduleFailureReason Enum', () => {
+  describe('Enum Values', () => {
+    it('should have all expected failure reason values', () => {
+      expect(ScheduleFailureReason.INSUFFICIENT_CREDITS).toBe('insufficient_credits');
+      expect(ScheduleFailureReason.SCHEDULE_LIMIT_EXCEEDED).toBe('schedule_limit_exceeded');
+      expect(ScheduleFailureReason.SCHEDULE_DELETED).toBe('schedule_deleted');
+      expect(ScheduleFailureReason.SCHEDULE_DISABLED).toBe('schedule_disabled');
+      expect(ScheduleFailureReason.INVALID_CRON_EXPRESSION).toBe('invalid_cron_expression');
+      expect(ScheduleFailureReason.CANVAS_DATA_ERROR).toBe('canvas_data_error');
+      expect(ScheduleFailureReason.SNAPSHOT_ERROR).toBe('snapshot_error');
+      expect(ScheduleFailureReason.WORKFLOW_EXECUTION_FAILED).toBe('workflow_execution_failed');
+      expect(ScheduleFailureReason.UNKNOWN_ERROR).toBe('unknown_error');
+    });
+
+    it('should have exactly 9 failure reason values', () => {
+      const values = Object.values(ScheduleFailureReason);
+      expect(values.length).toBe(9);
+    });
+  });
+
+  describe('Error Classification Patterns (Logic Tests)', () => {
+    // Helper function that mimics the classifyError logic
+    const classifyError = (error: unknown): ScheduleFailureReason => {
+      if (!error) {
+        return ScheduleFailureReason.UNKNOWN_ERROR;
+      }
+
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorName = error instanceof Error ? error.name : '';
+
+      if (
+        errorName === 'ModelUsageQuotaExceeded' ||
+        /credit not available/i.test(errorMessage) ||
+        /insufficient credits?/i.test(errorMessage)
+      ) {
+        return ScheduleFailureReason.INSUFFICIENT_CREDITS;
+      }
+
+      if (
+        /quota.*exceeded/i.test(errorMessage) ||
+        /schedule.*limit/i.test(errorMessage) ||
+        errorMessage === ScheduleFailureReason.SCHEDULE_LIMIT_EXCEEDED
+      ) {
+        return ScheduleFailureReason.SCHEDULE_LIMIT_EXCEEDED;
+      }
+
+      // Note: Rate limiting (concurrent limit) causes delays, not failures.
+      // DelayedError is handled separately and doesn't reach classifyError.
+
+      if (/cron|schedule.*expression|invalid.*expression/i.test(errorMessage)) {
+        return ScheduleFailureReason.INVALID_CRON_EXPRESSION;
+      }
+
+      if (
+        /canvas.*not found/i.test(errorMessage) ||
+        /invalid.*canvas/i.test(errorMessage) ||
+        /nodes.*edges/i.test(errorMessage)
+      ) {
+        return ScheduleFailureReason.CANVAS_DATA_ERROR;
+      }
+
+      if (
+        /snapshot/i.test(errorMessage) ||
+        /failed to parse/i.test(errorMessage) ||
+        /storage.*key/i.test(errorMessage)
+      ) {
+        return ScheduleFailureReason.SNAPSHOT_ERROR;
+      }
+
+      if (
+        /workflow.*execution/i.test(errorMessage) ||
+        /execution.*failed/i.test(errorMessage) ||
+        /agent.*error/i.test(errorMessage)
+      ) {
+        return ScheduleFailureReason.WORKFLOW_EXECUTION_FAILED;
+      }
+
+      return ScheduleFailureReason.UNKNOWN_ERROR;
+    };
+
+    describe('Credit-related errors', () => {
+      it('should classify "credit not available" as INSUFFICIENT_CREDITS', () => {
+        const error = new Error('credit not available: Insufficient credits.');
+        expect(classifyError(error)).toBe(ScheduleFailureReason.INSUFFICIENT_CREDITS);
+      });
+
+      it('should classify "insufficient credits" as INSUFFICIENT_CREDITS', () => {
+        const error = new Error('Insufficient credits to execute workflow');
+        expect(classifyError(error)).toBe(ScheduleFailureReason.INSUFFICIENT_CREDITS);
+      });
+
+      it('should classify ModelUsageQuotaExceeded by name as INSUFFICIENT_CREDITS', () => {
+        const error = new Error('Model usage quota exceeded');
+        (error as any).name = 'ModelUsageQuotaExceeded';
+        expect(classifyError(error)).toBe(ScheduleFailureReason.INSUFFICIENT_CREDITS);
+      });
+    });
+
+    describe('Quota/Limit exceeded errors', () => {
+      it('should classify "quota exceeded" as SCHEDULE_LIMIT_EXCEEDED', () => {
+        const error = new Error('User quota exceeded for schedules');
+        expect(classifyError(error)).toBe(ScheduleFailureReason.SCHEDULE_LIMIT_EXCEEDED);
+      });
+
+      it('should classify "schedule limit" as SCHEDULE_LIMIT_EXCEEDED', () => {
+        const error = new Error('Maximum schedule limit reached');
+        expect(classifyError(error)).toBe(ScheduleFailureReason.SCHEDULE_LIMIT_EXCEEDED);
+      });
+    });
+
+    // Note: Rate limiting tests removed - rate limiting causes job delays (DelayedError),
+    // not failures. Delayed jobs are retried automatically by BullMQ.
+
+    describe('Cron expression errors', () => {
+      it('should classify "cron" errors as INVALID_CRON_EXPRESSION', () => {
+        const error = new Error('Invalid cron expression');
+        expect(classifyError(error)).toBe(ScheduleFailureReason.INVALID_CRON_EXPRESSION);
+      });
+
+      it('should classify "schedule expression" errors as INVALID_CRON_EXPRESSION', () => {
+        const error = new Error('Invalid schedule expression syntax');
+        expect(classifyError(error)).toBe(ScheduleFailureReason.INVALID_CRON_EXPRESSION);
+      });
+    });
+
+    describe('Canvas data errors', () => {
+      it('should classify "canvas not found" as CANVAS_DATA_ERROR', () => {
+        const error = new Error('Canvas not found');
+        expect(classifyError(error)).toBe(ScheduleFailureReason.CANVAS_DATA_ERROR);
+      });
+
+      it('should classify "invalid canvas" as CANVAS_DATA_ERROR', () => {
+        const error = new Error('Invalid canvas data');
+        expect(classifyError(error)).toBe(ScheduleFailureReason.CANVAS_DATA_ERROR);
+      });
+    });
+
+    describe('Snapshot errors', () => {
+      it('should classify "snapshot" errors as SNAPSHOT_ERROR', () => {
+        const error = new Error('Failed to load snapshot');
+        expect(classifyError(error)).toBe(ScheduleFailureReason.SNAPSHOT_ERROR);
+      });
+
+      it('should classify "failed to parse" as SNAPSHOT_ERROR', () => {
+        const error = new Error('Failed to parse snapshot data');
+        expect(classifyError(error)).toBe(ScheduleFailureReason.SNAPSHOT_ERROR);
+      });
+
+      it('should classify "storage key" errors as SNAPSHOT_ERROR', () => {
+        const error = new Error('Invalid storage key');
+        expect(classifyError(error)).toBe(ScheduleFailureReason.SNAPSHOT_ERROR);
+      });
+    });
+
+    describe('Workflow execution errors', () => {
+      it('should classify "workflow execution" as WORKFLOW_EXECUTION_FAILED', () => {
+        const error = new Error('Workflow execution failed');
+        expect(classifyError(error)).toBe(ScheduleFailureReason.WORKFLOW_EXECUTION_FAILED);
+      });
+
+      it('should classify "execution failed" as WORKFLOW_EXECUTION_FAILED', () => {
+        const error = new Error('The execution failed unexpectedly');
+        expect(classifyError(error)).toBe(ScheduleFailureReason.WORKFLOW_EXECUTION_FAILED);
+      });
+
+      it('should classify "agent error" as WORKFLOW_EXECUTION_FAILED', () => {
+        const error = new Error('Agent error during processing');
+        expect(classifyError(error)).toBe(ScheduleFailureReason.WORKFLOW_EXECUTION_FAILED);
+      });
+    });
+
+    describe('Unknown errors', () => {
+      it('should classify null error as UNKNOWN_ERROR', () => {
+        expect(classifyError(null)).toBe(ScheduleFailureReason.UNKNOWN_ERROR);
+      });
+
+      it('should classify undefined error as UNKNOWN_ERROR', () => {
+        expect(classifyError(undefined)).toBe(ScheduleFailureReason.UNKNOWN_ERROR);
+      });
+
+      it('should classify unrecognized error message as UNKNOWN_ERROR', () => {
+        const error = new Error('Something completely different happened');
+        expect(classifyError(error)).toBe(ScheduleFailureReason.UNKNOWN_ERROR);
+      });
+
+      it('should handle non-Error objects gracefully', () => {
+        expect(classifyError('String error')).toBe(ScheduleFailureReason.UNKNOWN_ERROR);
+        expect(classifyError({ message: 'Object error' })).toBe(
+          ScheduleFailureReason.UNKNOWN_ERROR,
+        );
+        expect(classifyError(123)).toBe(ScheduleFailureReason.UNKNOWN_ERROR);
+      });
+    });
+  });
+
+  describe('Frontend Action Button Mapping', () => {
+    // Based on the enum documentation comments
+    const getActionButton = (reason: ScheduleFailureReason): string => {
+      switch (reason) {
+        case ScheduleFailureReason.INSUFFICIENT_CREDITS:
+          return 'Upgrade';
+        case ScheduleFailureReason.SCHEDULE_LIMIT_EXCEEDED:
+          return 'View Schedule';
+        default:
+          return 'Debug';
+      }
+    };
+
+    it('should map INSUFFICIENT_CREDITS to Upgrade button', () => {
+      expect(getActionButton(ScheduleFailureReason.INSUFFICIENT_CREDITS)).toBe('Upgrade');
+    });
+
+    it('should map SCHEDULE_LIMIT_EXCEEDED to View Schedule button', () => {
+      expect(getActionButton(ScheduleFailureReason.SCHEDULE_LIMIT_EXCEEDED)).toBe('View Schedule');
+    });
+
+    it('should map other failures to Debug button', () => {
+      expect(getActionButton(ScheduleFailureReason.WORKFLOW_EXECUTION_FAILED)).toBe('Debug');
+      expect(getActionButton(ScheduleFailureReason.UNKNOWN_ERROR)).toBe('Debug');
+      expect(getActionButton(ScheduleFailureReason.CANVAS_DATA_ERROR)).toBe('Debug');
+    });
+  });
+});

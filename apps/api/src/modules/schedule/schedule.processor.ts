@@ -6,7 +6,12 @@ import { RedisService } from '../common/redis.service';
 import { MiscService } from '../misc/misc.service';
 import { CanvasService } from '../canvas/canvas.service';
 import { WorkflowAppService } from '../workflow-app/workflow-app.service';
-import { QUEUE_SCHEDULE_EXECUTION, SCHEDULE_RATE_LIMITS } from './schedule.constants';
+import { CreditService } from '../credit/credit.service';
+import {
+  QUEUE_SCHEDULE_EXECUTION,
+  SCHEDULE_RATE_LIMITS,
+  ScheduleFailureReason,
+} from './schedule.constants';
 import { ScheduleMetrics } from './schedule.metrics';
 import { genScheduleRecordId, safeParseJSON } from '@refly/utils';
 import type { RawCanvasData } from '@refly/openapi-schema';
@@ -46,6 +51,7 @@ export class ScheduleProcessor extends WorkerHost {
     private readonly miscService: MiscService,
     private readonly canvasService: CanvasService,
     private readonly metrics: ScheduleMetrics,
+    private readonly creditService: CreditService,
     @Inject(forwardRef(() => WorkflowAppService))
     private readonly workflowAppService: WorkflowAppService,
   ) {
@@ -124,6 +130,9 @@ export class ScheduleProcessor extends WorkerHost {
           `Schedule ${scheduleId} is deleted/disabled, skipping execution for job ${job.id}`,
         );
         // Record skipped metric
+        const failureReason = schedule?.deletedAt
+          ? ScheduleFailureReason.SCHEDULE_DELETED
+          : ScheduleFailureReason.SCHEDULE_DISABLED;
         this.metrics.execution.skipped(
           schedule?.deletedAt ? 'schedule_deleted' : 'schedule_disabled',
         );
@@ -133,9 +142,12 @@ export class ScheduleProcessor extends WorkerHost {
             where: { scheduleRecordId: existingRecordId },
             data: {
               status: 'skipped',
-              failureReason: schedule?.deletedAt
-                ? 'Schedule was deleted before execution'
-                : 'Schedule was disabled before execution',
+              failureReason,
+              errorDetails: JSON.stringify({
+                reason: schedule?.deletedAt
+                  ? 'Schedule was deleted before execution'
+                  : 'Schedule was disabled before execution',
+              }),
               completedAt: new Date(),
             },
           });
@@ -243,7 +255,34 @@ export class ScheduleProcessor extends WorkerHost {
         this.logger.log(`Created new snapshot at: ${snapshotStorageKey}`);
       }
 
-      // 6. Update status to 'running' before executing workflow
+      // 6. Check credit balance before execution
+      // This prevents wasting resources on execution that will fail due to insufficient credits
+      const fullUser = await this.prisma.user.findUnique({ where: { uid } });
+      if (fullUser) {
+        const creditBalance = await this.creditService.getCreditBalance(fullUser);
+        if (creditBalance.creditBalance <= 0) {
+          this.logger.warn(
+            `User ${uid} has insufficient credits (${creditBalance.creditBalance}), failing schedule ${scheduleId}`,
+          );
+          await this.prisma.scheduleRecord.update({
+            where: { scheduleRecordId },
+            data: {
+              status: 'failed',
+              failureReason: ScheduleFailureReason.INSUFFICIENT_CREDITS,
+              errorDetails: JSON.stringify({
+                message: 'Insufficient credits to execute scheduled workflow',
+                creditBalance: creditBalance.creditBalance,
+              }),
+              snapshotStorageKey,
+              completedAt: new Date(),
+            },
+          });
+          this.metrics.execution.fail('cron', 'insufficient_credits');
+          return null;
+        }
+      }
+
+      // 7. Update status to 'running' before executing workflow
       // This indicates the workflow is actually being executed
       await this.prisma.scheduleRecord.update({
         where: { scheduleRecordId },
@@ -295,15 +334,25 @@ export class ScheduleProcessor extends WorkerHost {
       }
 
       this.logger.error(`Failed to process schedule ${scheduleId}`, error);
+
+      // Classify error and get standardized failure reason
+      const failureReason = this.classifyError(error);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+
       // Record failure metric
-      this.metrics.execution.fail('cron', error instanceof Error ? error.name : 'unknown');
+      this.metrics.execution.fail('cron', failureReason);
+
       if (scheduleRecordId) {
         await this.prisma.scheduleRecord.update({
           where: { scheduleRecordId },
           data: {
             status: 'failed',
-            failureReason: error instanceof Error ? error.message : String(error),
-            errorDetails: JSON.stringify(error),
+            failureReason,
+            errorDetails: JSON.stringify({
+              message: errorMessage,
+              name: error instanceof Error ? error.name : 'Error',
+              stack: error instanceof Error ? error.stack : undefined,
+            }),
             completedAt: new Date(),
           },
         });
@@ -440,5 +489,74 @@ export class ScheduleProcessor extends WorkerHost {
       files: files as any,
       resources: resources as any,
     } as RawCanvasData;
+  }
+
+  /**
+   * Classify error into standardized failure reason
+   * This helps frontend display appropriate error messages and action buttons
+   */
+  private classifyError(error: unknown): ScheduleFailureReason {
+    if (!error) {
+      return ScheduleFailureReason.UNKNOWN_ERROR;
+    }
+
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const errorName = error instanceof Error ? error.name : '';
+
+    // Check for credit-related errors
+    if (
+      errorName === 'ModelUsageQuotaExceeded' ||
+      /credit not available/i.test(errorMessage) ||
+      /insufficient credits?/i.test(errorMessage)
+    ) {
+      return ScheduleFailureReason.INSUFFICIENT_CREDITS;
+    }
+
+    // Check for quota/limit exceeded errors
+    if (
+      /quota.*exceeded/i.test(errorMessage) ||
+      /schedule.*limit/i.test(errorMessage) ||
+      errorMessage === ScheduleFailureReason.SCHEDULE_LIMIT_EXCEEDED
+    ) {
+      return ScheduleFailureReason.SCHEDULE_LIMIT_EXCEEDED;
+    }
+
+    // Note: Rate limiting errors (concurrent limit) are handled by DelayedError
+    // and cause job delays, not failures. No classification needed here.
+
+    // Check for cron expression errors
+    if (/cron|schedule.*expression|invalid.*expression/i.test(errorMessage)) {
+      return ScheduleFailureReason.INVALID_CRON_EXPRESSION;
+    }
+
+    // Check for canvas data errors
+    if (
+      /canvas.*not found/i.test(errorMessage) ||
+      /invalid.*canvas/i.test(errorMessage) ||
+      /nodes.*edges/i.test(errorMessage)
+    ) {
+      return ScheduleFailureReason.CANVAS_DATA_ERROR;
+    }
+
+    // Check for snapshot errors
+    if (
+      /snapshot/i.test(errorMessage) ||
+      /failed to parse/i.test(errorMessage) ||
+      /storage.*key/i.test(errorMessage)
+    ) {
+      return ScheduleFailureReason.SNAPSHOT_ERROR;
+    }
+
+    // Check for workflow execution errors
+    if (
+      /workflow.*execution/i.test(errorMessage) ||
+      /execution.*failed/i.test(errorMessage) ||
+      /agent.*error/i.test(errorMessage)
+    ) {
+      return ScheduleFailureReason.WORKFLOW_EXECUTION_FAILED;
+    }
+
+    // Default to unknown error
+    return ScheduleFailureReason.UNKNOWN_ERROR;
   }
 }
