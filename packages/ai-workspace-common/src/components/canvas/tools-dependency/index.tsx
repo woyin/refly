@@ -1,4 +1,4 @@
-import { Button, Popover, Input, Segmented, Dropdown, Badge, Typography, Tooltip } from 'antd';
+import { Button, Popover, Dropdown, Badge, Typography, Tooltip } from 'antd';
 import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { Close, Mcp, Cancelled } from 'refly-icons';
 import { useTranslation } from 'react-i18next';
@@ -18,9 +18,11 @@ import { NodeIcon } from '@refly-packages/ai-workspace-common/components/canvas/
 import { extractToolsetsWithNodes } from '@refly/canvas-common';
 import { useOpenInstallTool } from '@refly-packages/ai-workspace-common/hooks/use-open-install-tool';
 import { useOpenInstallMcp } from '@refly-packages/ai-workspace-common/hooks/use-open-install-mcp';
-import { IoWarningOutline } from 'react-icons/io5';
+import { HiMagnifyingGlass } from 'react-icons/hi2';
+import { RiPulseLine } from 'react-icons/ri';
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
 import { toolsetEmitter } from '@refly-packages/ai-workspace-common/events/toolset';
+import { NodeStatusChecker } from './node-status-checker';
 
 /**
  * Check if a toolset is authorized/installed
@@ -290,11 +292,6 @@ const ToolsDependencyContent = React.memo(
   ({
     uninstalledCount,
     handleClose,
-    searchTerm,
-    setSearchTerm,
-    options,
-    activeTab,
-    setActiveTab,
     currentTools,
     userTools,
     toolsetDefinitions,
@@ -304,14 +301,11 @@ const ToolsDependencyContent = React.memo(
     showReferencedNodesDisplay = true,
     highlightInstallButtons = false,
     isLoading = false,
+    canvasId,
+    onFailedNodesCountChange,
   }: {
     uninstalledCount: number;
     handleClose: () => void;
-    searchTerm: string;
-    setSearchTerm: (value: string) => void;
-    options: { label: string; value: string }[];
-    activeTab: string;
-    setActiveTab: (value: string) => void;
     currentTools: Array<{ toolset: any; referencedNodes: any[] }>;
     userTools: UserTool[];
     toolsetDefinitions: ToolsetDefinition[];
@@ -321,6 +315,8 @@ const ToolsDependencyContent = React.memo(
     showReferencedNodesDisplay?: boolean;
     highlightInstallButtons?: boolean;
     isLoading?: boolean;
+    canvasId?: string;
+    onFailedNodesCountChange?: (count: number) => void;
   }) => {
     const { t, i18n } = useTranslation();
     const currentLanguage = i18n.language;
@@ -386,29 +382,18 @@ const ToolsDependencyContent = React.memo(
 
         {isLoading ? null : totalCount > 0 ? (
           <>
-            <div className="flex flex-col gap-2 md:gap-3">
-              <Input
-                placeholder={t('canvas.toolsDepencency.searchPlaceholder')}
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="rounded-lg"
+            {/* Node Status Checker */}
+            {canvasId && (
+              <NodeStatusChecker
+                canvasId={canvasId}
+                onFailedNodesCountChange={onFailedNodesCountChange}
               />
-
-              {isLogin && (
-                <Segmented
-                  shape="round"
-                  options={options}
-                  value={activeTab}
-                  onChange={setActiveTab}
-                  className="w-full [&_.ant-segmented-item]:flex-1 [&_.ant-segmented-item]:text-center"
-                />
-              )}
-            </div>
+            )}
 
             {/* Tools List */}
             <div className="max-h-[400px] overflow-y-auto space-y-2 md:space-y-3">
               {currentTools.length === 0 ? (
-                <EmptyContent searchTerm={searchTerm} />
+                <EmptyContent searchTerm="" />
               ) : (
                 currentTools.map(({ toolset, referencedNodes }) => {
                   const isInstalled = isToolsetAuthorized(toolset, userTools);
@@ -531,15 +516,6 @@ export const ToolsDependencyChecker = ({
     }
   }, [externalOpen]);
 
-  // When opened externally due to missing tools, default to the "uninstalled" tab.
-  useEffect(() => {
-    if (externalOpen && highlightInstallButtons) {
-      setActiveTab('uninstalled');
-    }
-  }, [externalOpen, highlightInstallButtons]);
-
-  const [searchTerm, setSearchTerm] = useState('');
-  const [activeTab, setActiveTab] = useState('all');
   const { isLogin } = useUserStoreShallow((state) => ({
     isLogin: state.isLogin,
   }));
@@ -580,21 +556,11 @@ export const ToolsDependencyChecker = ({
     return extractToolsetsWithNodes(nodes);
   }, [nodes]);
 
-  const filteredToolsets = useMemo(() => {
-    if (!searchTerm.trim()) return toolsetsWithNodes;
-
-    return toolsetsWithNodes.filter(
-      ({ toolset }) =>
-        toolset.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        toolset.id.toLowerCase().includes(searchTerm.toLowerCase()),
-    );
-  }, [toolsetsWithNodes, searchTerm]);
-
   const categorizedTools = useMemo(() => {
     const authorized: ToolWithNodes[] = [];
     const unauthorized: ToolWithNodes[] = [];
 
-    for (const toolWithNodes of filteredToolsets) {
+    for (const toolWithNodes of toolsetsWithNodes) {
       const isAuthorized = isToolsetAuthorized(toolWithNodes.toolset, userTools);
 
       // Find the complete toolset data from userTools
@@ -623,7 +589,7 @@ export const ToolsDependencyChecker = ({
     }
 
     // Also enhance the 'all' array
-    const enhancedAll = filteredToolsets.map((toolWithNodes) => {
+    const enhancedAll = toolsetsWithNodes.map((toolWithNodes) => {
       const matchingUserTool = userTools.find(
         (ut) =>
           ut.key === toolWithNodes.toolset.toolset?.key ||
@@ -645,9 +611,9 @@ export const ToolsDependencyChecker = ({
       installed: authorized,
       uninstalled: unauthorized,
     };
-  }, [filteredToolsets, userTools]);
+  }, [toolsetsWithNodes, userTools]);
 
-  const currentTools = categorizedTools[activeTab as keyof typeof categorizedTools] || [];
+  const currentTools = categorizedTools.uninstalled || [];
 
   const currentToolsinInstalled = categorizedTools.installed || [];
 
@@ -659,33 +625,12 @@ export const ToolsDependencyChecker = ({
     }).length;
   }, [isLogin, userTools, toolsetsWithNodes]);
 
-  const options = useMemo(() => {
-    return [
-      {
-        label: t('canvas.toolsDepencency.all'),
-        value: 'all',
-      },
-      {
-        label: t('canvas.toolsDepencency.installed'),
-        value: 'installed',
-      },
-
-      {
-        label: t('canvas.toolsDepencency.uninstalled'),
-        value: 'uninstalled',
-      },
-    ];
-  }, [t]);
-
   const handleClose = useCallback(() => {
     handlePopoverOpenChange(false);
-    setSearchTerm('');
-    setActiveTab('all');
   }, [handlePopoverOpenChange]);
 
   const handleGoInstall = useCallback(() => {
     handlePopoverOpenChange(true);
-    setActiveTab('uninstalled');
   }, [handlePopoverOpenChange]);
 
   const defaultTrigger = (
@@ -751,11 +696,6 @@ export const ToolsDependencyChecker = ({
           isLogin={isLogin}
           uninstalledCount={uninstalledCount}
           handleClose={handleClose}
-          searchTerm={searchTerm}
-          setSearchTerm={setSearchTerm}
-          options={options}
-          activeTab={activeTab}
-          setActiveTab={setActiveTab}
           currentTools={currentTools}
           userTools={userTools}
           toolsetDefinitions={toolsetDefinitions}
@@ -764,6 +704,8 @@ export const ToolsDependencyChecker = ({
           showReferencedNodesDisplay={false}
           highlightInstallButtons={highlightInstallButtons}
           isLoading={toolsLoading}
+          canvasId={undefined}
+          onFailedNodesCountChange={undefined}
         />
       }
       arrow={false}
@@ -794,10 +736,8 @@ export const ToolsDependency = ({
   highlightInstallButtons?: boolean;
   onOpenChange?: (open: boolean) => void;
 }) => {
-  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [activeTab, setActiveTab] = useState('all');
+  const [failedNodesCount, setFailedNodesCount] = useState(0);
   const { isLogin } = useUserStoreShallow((state) => ({
     isLogin: state.isLogin,
   }));
@@ -854,13 +794,6 @@ export const ToolsDependency = ({
     }
   }, [externalOpen]);
 
-  // When opened externally due to missing tools, default to the "uninstalled" tab.
-  useEffect(() => {
-    if (externalOpen && highlightInstallButtons) {
-      setActiveTab('uninstalled');
-    }
-  }, [externalOpen, highlightInstallButtons]);
-
   // Build toolset definitions from userTools for display purposes
   const toolsetDefinitions = useMemo(() => {
     return userTools
@@ -873,21 +806,11 @@ export const ToolsDependency = ({
     return extractToolsetsWithNodes(nodes);
   }, [nodes]);
 
-  const filteredToolsets = useMemo(() => {
-    if (!searchTerm.trim()) return toolsetsWithNodes;
-
-    return toolsetsWithNodes.filter(
-      ({ toolset }) =>
-        toolset.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        toolset.id.toLowerCase().includes(searchTerm.toLowerCase()),
-    );
-  }, [toolsetsWithNodes, searchTerm]);
-
   const categorizedTools = useMemo(() => {
     const authorized: ToolWithNodes[] = [];
     const unauthorized: ToolWithNodes[] = [];
 
-    for (const toolWithNodes of filteredToolsets) {
+    for (const toolWithNodes of toolsetsWithNodes) {
       const isAuthorized = isToolsetAuthorized(toolWithNodes.toolset, userTools);
 
       // Find the complete toolset data from userTools
@@ -916,7 +839,7 @@ export const ToolsDependency = ({
     }
 
     // Also enhance the 'all' array
-    const enhancedAll = filteredToolsets.map((toolWithNodes) => {
+    const enhancedAll = toolsetsWithNodes.map((toolWithNodes) => {
       const matchingUserTool = userTools.find(
         (ut) =>
           ut.key === toolWithNodes.toolset.toolset?.key ||
@@ -938,44 +861,27 @@ export const ToolsDependency = ({
       installed: authorized,
       uninstalled: unauthorized,
     };
-  }, [filteredToolsets, userTools]);
+  }, [toolsetsWithNodes, userTools]);
 
-  const currentTools = categorizedTools[activeTab as keyof typeof categorizedTools] || [];
+  const currentTools = categorizedTools.uninstalled || [];
 
-  const uninstalledCount = useMemo(() => {
-    if (!isLogin) return 0;
-    if (!toolsetsWithNodes.length) return 0;
-    return toolsetsWithNodes.filter((tool) => {
-      return !isToolsetAuthorized(tool.toolset, userTools);
-    }).length;
-  }, [isLogin, userTools, toolsetsWithNodes]);
-
-  const options = useMemo(() => {
-    return [
-      {
-        label: t('canvas.toolsDepencency.all'),
-        value: 'all',
-      },
-      {
-        label: t('canvas.toolsDepencency.installed'),
-        value: 'installed',
-      },
-
-      {
-        label: t('canvas.toolsDepencency.uninstalled'),
-        value: 'uninstalled',
-      },
-    ];
-  }, [t]);
+  const totalIssuesCount = useMemo(() => {
+    let baseUninstalledCount = 0;
+    if (isLogin && toolsetsWithNodes.length > 0) {
+      baseUninstalledCount = toolsetsWithNodes.filter((tool) => {
+        return !isToolsetAuthorized(tool.toolset, userTools);
+      }).length;
+    }
+    // merge failed node count into total count
+    return baseUninstalledCount + failedNodesCount;
+  }, [isLogin, userTools, toolsetsWithNodes, failedNodesCount]);
 
   const handleClose = useCallback(() => {
     handlePopoverOpenChange(false);
-    setSearchTerm('');
-    setActiveTab('all');
   }, [handlePopoverOpenChange]);
 
-  // Only show the tools dependency button if there are uninstalled tools
-  if (uninstalledCount === 0) {
+  // Only show the tools dependency button if there are uninstalled tools or failed nodes
+  if (totalIssuesCount === 0) {
     return null;
   }
 
@@ -997,13 +903,8 @@ export const ToolsDependency = ({
       content={
         <ToolsDependencyContent
           isLogin={isLogin}
-          uninstalledCount={uninstalledCount}
+          uninstalledCount={totalIssuesCount}
           handleClose={handleClose}
-          searchTerm={searchTerm}
-          setSearchTerm={setSearchTerm}
-          options={options}
-          activeTab={activeTab}
-          setActiveTab={setActiveTab}
           currentTools={currentTools}
           userTools={userTools}
           toolsetDefinitions={toolsetDefinitions}
@@ -1011,20 +912,29 @@ export const ToolsDependency = ({
           setOpen={handlePopoverOpenChange}
           highlightInstallButtons={highlightInstallButtons}
           isLoading={canvasLoading || toolsLoading}
+          canvasId={canvasId}
+          onFailedNodesCountChange={setFailedNodesCount}
         />
       }
       arrow={false}
     >
       <div className="flex items-center">
-        <Badge count={uninstalledCount} size="small" offset={[-2, 0]}>
+        <Badge count={totalIssuesCount} size="small" offset={[-3, 3]}>
           <Button
             type="text"
             icon={
-              <IoWarningOutline
-                size={18}
-                color="var(--refly-func-warning-default)"
-                className="flex items-center"
-              />
+              <div className="relative flex items-center">
+                <HiMagnifyingGlass
+                  size={24}
+                  className="flex items-center"
+                  style={{ strokeWidth: 0.7 }}
+                />
+                <RiPulseLine
+                  size={11}
+                  className="absolute left-[5px] top-[5.5px]"
+                  style={{ strokeWidth: 2 }}
+                />
+              </div>
             }
             className="p-2 flex items-center justify-center font-semibold"
           />
