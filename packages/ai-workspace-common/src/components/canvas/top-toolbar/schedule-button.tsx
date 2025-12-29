@@ -11,11 +11,13 @@ import {
 import { useSkillResponseLoadingStatus } from '@refly-packages/ai-workspace-common/hooks/canvas/use-skill-response-loading-status';
 import { useCanvasStoreShallow, useSubscriptionStoreShallow } from '@refly/stores';
 import { logEvent } from '@refly/telemetry-web';
+import { useNavigate } from '@refly-packages/ai-workspace-common/utils/router';
 import type { WorkflowSchedule, ListSchedulesResponse } from '@refly/openapi-schema';
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 import timezone from 'dayjs/plugin/timezone';
 import { LuAlarmClock } from 'react-icons/lu';
+import { ArrowRight } from 'lucide-react';
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -78,6 +80,7 @@ function generateCronExpression(config: ScheduleConfig): string {
 
 const ScheduleButton = memo(({ canvasId }: ScheduleButtonProps) => {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [scheduleLimitModalVisible, setScheduleLimitModalVisible] = useState(false);
 
@@ -369,6 +372,12 @@ const ScheduleButton = memo(({ canvasId }: ScheduleButtonProps) => {
     setCreditInsufficientModalVisible,
   ]);
 
+  // Handle view history navigation
+  const handleViewHistory = useCallback(() => {
+    setOpen(false);
+    navigate(`/run-history?canvasId=${canvasId}`);
+  }, [navigate, canvasId]);
+
   // Determine style based on schedule status
   const isScheduled = schedule?.isEnabled;
 
@@ -489,7 +498,7 @@ const ScheduleButton = memo(({ canvasId }: ScheduleButtonProps) => {
         {t('schedule.perRun') || 'run'}
       </div>
 
-      {/* View History link 
+      {/* View History link */}
       <Button
         type="link"
         className="!p-0 !text-teal-600 hover:!text-teal-700 font-medium flex items-center gap-1"
@@ -497,7 +506,7 @@ const ScheduleButton = memo(({ canvasId }: ScheduleButtonProps) => {
       >
         {t('schedule.viewHistory') || 'View History'}
         <ArrowRight className="w-4 h-4" />
-      </Button>*/}
+      </Button>
 
       {/* Save button */}
       <Button

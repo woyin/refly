@@ -1,7 +1,9 @@
-import { memo, useCallback, useState } from 'react';
+import { memo, useCallback, useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Dropdown, Button, Checkbox, Input, Tag } from 'antd';
 import { ChevronDown, Search, X } from 'lucide-react';
+import { ToolsetIcon } from '@refly-packages/ai-workspace-common/components/canvas/common/toolset-icon';
+import { useToolsetDefinition } from '@refly-packages/ai-workspace-common/hooks/use-toolset-definition';
 import type { MenuProps } from 'antd';
 import './index.scss';
 
@@ -41,9 +43,33 @@ export const RunHistoryFilters = memo(
     onToolsChange,
     availableTools,
   }: RunHistoryFiltersProps) => {
-    const { t } = useTranslation();
+    const { t, i18n } = useTranslation();
+    const currentLanguage = (i18n.language || 'en') as 'en' | 'zh';
     const [toolSearchValue, setToolSearchValue] = useState('');
     const [searchInputValue, setSearchInputValue] = useState('');
+    const { lookupToolsetDefinitionByKey } = useToolsetDefinition();
+
+    // Get localized tool name
+    const getToolName = useCallback(
+      (toolId: string) => {
+        const definition = lookupToolsetDefinitionByKey(toolId);
+        if (definition?.labelDict?.[currentLanguage]) {
+          return definition.labelDict[currentLanguage] as string;
+        }
+        // Fallback to availableTools name or toolId
+        const tool = availableTools.find((t) => t.id === toolId);
+        return tool?.name || toolId;
+      },
+      [lookupToolsetDefinitionByKey, currentLanguage, availableTools],
+    );
+
+    // Enrich available tools with localized names
+    const enrichedTools = useMemo(() => {
+      return availableTools.map((tool) => ({
+        ...tool,
+        displayName: getToolName(tool.id),
+      }));
+    }, [availableTools, getToolName]);
 
     // Type options
     const typeOptions: { value: RunTypeFilter; label: string }[] = [
@@ -74,8 +100,7 @@ export const RunHistoryFilters = memo(
     const getToolsLabel = () => {
       if (selectedTools.length === 0) return t('runHistory.filters.selectTools');
       if (selectedTools.length === 1) {
-        const tool = availableTools.find((t) => t.id === selectedTools[0]);
-        return tool?.name || selectedTools[0];
+        return getToolName(selectedTools[0]);
       }
       return t('runHistory.filters.toolsSelected', { count: selectedTools.length });
     };
@@ -146,14 +171,15 @@ export const RunHistoryFilters = memo(
       [onTypeChange, onStatusChange, onToolsChange, onTitleChange, onCanvasIdChange, selectedTools],
     );
 
-    // Filter tools by search
-    const filteredTools = availableTools.filter((tool) =>
-      tool.name.toLowerCase().includes(toolSearchValue.toLowerCase()),
+    // Filter tools by search (using displayName for search)
+    const filteredTools = enrichedTools.filter((tool) =>
+      tool.displayName.toLowerCase().includes(toolSearchValue.toLowerCase()),
     );
 
     // Type dropdown menu
     const typeMenuItems: MenuProps['items'] = typeOptions.map((option) => ({
       key: option.value,
+      className: '!h-[36px] !leading-[36px]',
       label: (
         <div className="flex items-center justify-between">
           <span>{option.label}</span>
@@ -166,6 +192,7 @@ export const RunHistoryFilters = memo(
     // Status dropdown menu
     const statusMenuItems: MenuProps['items'] = statusOptions.map((option) => ({
       key: option.value,
+      className: '!h-[36px] !leading-[36px]',
       label: (
         <div className="flex items-center justify-between">
           <span>{option.label}</span>
@@ -185,8 +212,8 @@ export const RunHistoryFilters = memo(
             prefix={<Search size={14} className="text-gray-400" />}
             value={toolSearchValue}
             onChange={(e) => setToolSearchValue(e.target.value)}
-            size="small"
             allowClear
+            className="!h-[36px]"
           />
         </div>
         {/* Tool checkboxes */}
@@ -195,14 +222,20 @@ export const RunHistoryFilters = memo(
             filteredTools.map((tool) => (
               <div
                 key={tool.id}
-                className="px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
+                className="px-3 h-[36px] flex items-center hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
                 onClick={() => handleToolToggle(tool.id)}
               >
-                <Checkbox checked={selectedTools.includes(tool.id)}>{tool.name}</Checkbox>
+                <Checkbox checked={selectedTools.includes(tool.id)} className="mr-2" />
+                <div className="w-5 h-5 flex-shrink-0 flex items-center justify-center rounded overflow-hidden mr-2">
+                  <ToolsetIcon toolsetKey={tool.id} config={{ size: 18 }} />
+                </div>
+                <span className="truncate">{tool.displayName}</span>
               </div>
             ))
           ) : (
-            <div className="px-3 py-2 text-gray-400 text-sm">{t('runHistory.filters.noTools')}</div>
+            <div className="px-3 h-[36px] flex items-center text-gray-400 text-sm">
+              {t('runHistory.filters.noTools')}
+            </div>
           )}
         </div>
         {/* Clear all button */}
@@ -313,20 +346,20 @@ export const RunHistoryFilters = memo(
                 {t('runHistory.filters.type')}: {getTypeLabel()}
               </Tag>
             )}
-            {selectedTools.map((toolId) => {
-              const tool = availableTools.find((t) => t.id === toolId);
-              return (
-                <Tag
-                  key={toolId}
-                  closable
-                  onClose={() => handleRemoveFilter('tool', toolId)}
-                  closeIcon={<X size={12} />}
-                  className="flex items-center gap-1 bg-blue-50 text-blue-700 border-blue-200"
-                >
-                  {t('runHistory.filters.tool')}: {tool?.name || toolId}
-                </Tag>
-              );
-            })}
+            {selectedTools.map((toolId) => (
+              <Tag
+                key={toolId}
+                closable
+                onClose={() => handleRemoveFilter('tool', toolId)}
+                closeIcon={<X size={12} />}
+                className="flex items-center gap-1 bg-blue-50 text-blue-700 border-blue-200"
+              >
+                <div className="w-4 h-4 flex-shrink-0 flex items-center justify-center rounded overflow-hidden">
+                  <ToolsetIcon toolsetKey={toolId} config={{ size: 14 }} />
+                </div>
+                {getToolName(toolId)}
+              </Tag>
+            ))}
             {statusFilter !== 'all' && (
               <Tag
                 closable

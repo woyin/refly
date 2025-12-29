@@ -15,6 +15,7 @@ import {
 } from './schedule.constants';
 import { ScheduleMetrics } from './schedule.metrics';
 import { genScheduleRecordId, safeParseJSON } from '@refly/utils';
+import { extractToolsetsWithNodes } from '@refly/canvas-common';
 import type { RawCanvasData } from '@refly/openapi-schema';
 
 /**
@@ -285,12 +286,17 @@ export class ScheduleProcessor extends WorkerHost {
 
       // 7. Update status to 'running' before executing workflow
       // This indicates the workflow is actually being executed
+      // Extract used tools from canvas nodes
+      const toolsetsWithNodes = extractToolsetsWithNodes(canvasData?.nodes ?? []);
+      const usedToolIds = toolsetsWithNodes.map((t) => t.toolset?.id).filter(Boolean);
+
       await this.prisma.scheduleRecord.update({
         where: { scheduleRecordId },
         data: {
           status: 'running', // Workflow is actually executing
           snapshotStorageKey,
           workflowTitle: canvasData?.title || 'Untitled',
+          usedTools: JSON.stringify(usedToolIds),
         },
       });
 
