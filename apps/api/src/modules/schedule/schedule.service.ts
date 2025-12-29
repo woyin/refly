@@ -231,8 +231,8 @@ export class ScheduleService {
     };
 
     const [total, items] = await Promise.all([
-      this.prisma.scheduleRecord.count({ where }),
-      this.prisma.scheduleRecord.findMany({
+      this.prisma.workflowScheduleRecord.count({ where }),
+      this.prisma.workflowScheduleRecord.findMany({
         where,
         orderBy: { scheduledAt: 'desc' },
         skip: (page - 1) * pageSize,
@@ -285,8 +285,8 @@ export class ScheduleService {
     }
 
     const [total, items] = await Promise.all([
-      this.prisma.scheduleRecord.count({ where }),
-      this.prisma.scheduleRecord.findMany({
+      this.prisma.workflowScheduleRecord.count({ where }),
+      this.prisma.workflowScheduleRecord.findMany({
         where,
         orderBy: { scheduledAt: 'desc' },
         skip: (page - 1) * pageSize,
@@ -317,7 +317,7 @@ export class ScheduleService {
 
   async getAvailableTools(uid: string) {
     // Get all unique tools used across all schedule records for this user
-    const records = await this.prisma.scheduleRecord.findMany({
+    const records = await this.prisma.workflowScheduleRecord.findMany({
       where: { uid },
       select: { usedTools: true },
     });
@@ -343,7 +343,7 @@ export class ScheduleService {
   }
 
   async getScheduleRecordDetail(uid: string, scheduleRecordId: string) {
-    const record = await this.prisma.scheduleRecord.findUnique({
+    const record = await this.prisma.workflowScheduleRecord.findUnique({
       where: { scheduleRecordId },
     });
 
@@ -365,7 +365,7 @@ export class ScheduleService {
   }
 
   async getRecordSnapshot(uid: string, scheduleRecordId: string) {
-    const record = await this.prisma.scheduleRecord.findUnique({
+    const record = await this.prisma.workflowScheduleRecord.findUnique({
       where: { scheduleRecordId },
     });
 
@@ -415,18 +415,19 @@ export class ScheduleService {
       select: { title: true },
     });
 
-    // 4. Create ScheduleRecord with 'pending' status immediately
+    // 4. Create WorkflowScheduleRecord with 'pending' status immediately
     // This ensures frontend can see the task is queued
     const timestamp = Date.now();
     const scheduledAt = new Date(); // Manual trigger uses current time
     const scheduleRecordId = genScheduleRecordId();
 
-    await this.prisma.scheduleRecord.create({
+    await this.prisma.workflowScheduleRecord.create({
       data: {
         scheduleRecordId,
         scheduleId: schedule.scheduleId,
         uid,
-        canvasId: schedule.canvasId,
+        sourceCanvasId: schedule.canvasId, // Source canvas (template)
+        canvasId: '', // Will be updated after execution with actual execution canvas
         workflowTitle: canvas?.title || 'Untitled',
         status: 'pending', // Job is queued, waiting to be processed
         scheduledAt,
@@ -467,7 +468,7 @@ export class ScheduleService {
    */
   async retryScheduleRecord(uid: string, scheduleRecordId: string) {
     // 1. Verify schedule record exists and belongs to user
-    const record = await this.prisma.scheduleRecord.findUnique({
+    const record = await this.prisma.workflowScheduleRecord.findUnique({
       where: { scheduleRecordId },
     });
 
@@ -500,7 +501,7 @@ export class ScheduleService {
     const priority = await this.priorityService.calculateExecutionPriority(uid);
 
     // 5. Update ScheduleRecord status to 'pending' immediately for frontend feedback
-    await this.prisma.scheduleRecord.update({
+    await this.prisma.workflowScheduleRecord.update({
       where: { scheduleRecordId },
       data: {
         status: 'pending',
@@ -555,7 +556,7 @@ export class ScheduleService {
     });
 
     // Check if a scheduled record already exists for this schedule
-    const existingScheduledRecord = await this.prisma.scheduleRecord.findFirst({
+    const existingScheduledRecord = await this.prisma.workflowScheduleRecord.findFirst({
       where: {
         scheduleId,
         status: 'scheduled',
@@ -565,7 +566,7 @@ export class ScheduleService {
 
     if (existingScheduledRecord) {
       // Update existing scheduled record
-      await this.prisma.scheduleRecord.update({
+      await this.prisma.workflowScheduleRecord.update({
         where: { scheduleRecordId: existingScheduledRecord.scheduleRecordId },
         data: {
           scheduledAt,
@@ -575,7 +576,7 @@ export class ScheduleService {
     } else {
       // Create new scheduled record
       const scheduleRecordId = genScheduleRecordId();
-      await this.prisma.scheduleRecord.create({
+      await this.prisma.workflowScheduleRecord.create({
         data: {
           scheduleRecordId,
           scheduleId,
@@ -594,7 +595,7 @@ export class ScheduleService {
    * Delete scheduled record for a schedule
    */
   async deleteScheduledRecord(scheduleId: string): Promise<void> {
-    await this.prisma.scheduleRecord.deleteMany({
+    await this.prisma.workflowScheduleRecord.deleteMany({
       where: {
         scheduleId,
         status: 'scheduled',

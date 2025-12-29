@@ -128,9 +128,9 @@ export class ScheduleCronService implements OnModuleInit {
       },
     });
 
-    // 3.3 Find or create the ScheduleRecord for this execution
+    // 3.3 Find or create the WorkflowScheduleRecord for this execution
     // First, check if there's a 'scheduled' record that should be converted
-    const scheduleRecord = await this.prisma.scheduleRecord.findFirst({
+    const scheduleRecord = await this.prisma.workflowScheduleRecord.findFirst({
       where: {
         scheduleId: schedule.scheduleId,
         status: 'scheduled',
@@ -143,7 +143,7 @@ export class ScheduleCronService implements OnModuleInit {
 
     if (scheduleRecord) {
       // Update existing scheduled record to 'pending' (queued in BullMQ)
-      await this.prisma.scheduleRecord.update({
+      await this.prisma.workflowScheduleRecord.update({
         where: { scheduleRecordId: scheduleRecord.scheduleRecordId },
         data: {
           status: 'pending', // Job is now in the BullMQ queue, waiting to be processed
@@ -158,12 +158,13 @@ export class ScheduleCronService implements OnModuleInit {
         where: { canvasId: schedule.canvasId },
         select: { title: true },
       });
-      await this.prisma.scheduleRecord.create({
+      await this.prisma.workflowScheduleRecord.create({
         data: {
           scheduleRecordId: currentRecordId,
           scheduleId: schedule.scheduleId,
           uid: schedule.uid,
-          canvasId: schedule.canvasId,
+          sourceCanvasId: schedule.canvasId, // Source canvas (template)
+          canvasId: '', // Will be updated after execution with actual execution canvas
           workflowTitle: canvas?.title || 'Untitled',
           scheduledAt: schedule.nextRunAt,
           status: 'pending', // Job is queued in BullMQ

@@ -54,7 +54,7 @@ export class SchedulePriorityService {
 
   private async getPriorityFactors(uid: string): Promise<PriorityFactors> {
     // 1. Check recent failures (last 5 records)
-    const recentRecords = await this.prisma.scheduleRecord.findMany({
+    const recentRecords = await this.prisma.workflowScheduleRecord.findMany({
       where: { uid },
       orderBy: { scheduledAt: 'desc' },
       take: 5,

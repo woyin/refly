@@ -100,8 +100,8 @@ describe('ScheduleCronService', () => {
         .fn()
         .mockResolvedValue([mockSchedule, { ...mockSchedule, scheduleId: 'schedule-456' }]);
       prismaService.workflowSchedule.update = jest.fn().mockResolvedValue(mockSchedule);
-      prismaService.scheduleRecord.findFirst = jest.fn().mockResolvedValue(null);
-      prismaService.scheduleRecord.create = jest.fn().mockResolvedValue({});
+      prismaService.workflowScheduleRecord.findFirst = jest.fn().mockResolvedValue(null);
+      prismaService.workflowScheduleRecord.create = jest.fn().mockResolvedValue({});
       prismaService.canvas.findUnique = jest.fn().mockResolvedValue({ title: 'Test' });
       priorityService.calculateExecutionPriority = jest.fn().mockResolvedValue(5);
       scheduleService.createOrUpdateScheduledRecord = jest.fn().mockResolvedValue(undefined);
@@ -141,8 +141,8 @@ describe('ScheduleCronService', () => {
     it('should update nextRunAt and lastRunAt when triggering', async () => {
       prismaService.workflowSchedule.findMany = jest.fn().mockResolvedValue([mockSchedule]);
       prismaService.workflowSchedule.update = jest.fn().mockResolvedValue(mockSchedule);
-      prismaService.scheduleRecord.findFirst = jest.fn().mockResolvedValue(null);
-      prismaService.scheduleRecord.create = jest.fn().mockResolvedValue({});
+      prismaService.workflowScheduleRecord.findFirst = jest.fn().mockResolvedValue(null);
+      prismaService.workflowScheduleRecord.create = jest.fn().mockResolvedValue({});
       prismaService.canvas.findUnique = jest.fn().mockResolvedValue({ title: 'Test' });
       priorityService.calculateExecutionPriority = jest.fn().mockResolvedValue(5);
       scheduleService.createOrUpdateScheduledRecord = jest.fn().mockResolvedValue(undefined);
@@ -167,14 +167,14 @@ describe('ScheduleCronService', () => {
       };
       prismaService.workflowSchedule.findMany = jest.fn().mockResolvedValue([mockSchedule]);
       prismaService.workflowSchedule.update = jest.fn().mockResolvedValue(mockSchedule);
-      prismaService.scheduleRecord.findFirst = jest.fn().mockResolvedValue(existingRecord);
-      prismaService.scheduleRecord.update = jest.fn().mockResolvedValue({});
+      prismaService.workflowScheduleRecord.findFirst = jest.fn().mockResolvedValue(existingRecord);
+      prismaService.workflowScheduleRecord.update = jest.fn().mockResolvedValue({});
       priorityService.calculateExecutionPriority = jest.fn().mockResolvedValue(5);
       scheduleService.createOrUpdateScheduledRecord = jest.fn().mockResolvedValue(undefined);
 
       await service.scanAndTriggerSchedules();
 
-      expect(prismaService.scheduleRecord.update).toHaveBeenCalledWith(
+      expect(prismaService.workflowScheduleRecord.update).toHaveBeenCalledWith(
         expect.objectContaining({
           where: { scheduleRecordId: 'record-123' },
           data: expect.objectContaining({
@@ -188,20 +188,21 @@ describe('ScheduleCronService', () => {
     it('should create new pending record if none exists', async () => {
       prismaService.workflowSchedule.findMany = jest.fn().mockResolvedValue([mockSchedule]);
       prismaService.workflowSchedule.update = jest.fn().mockResolvedValue(mockSchedule);
-      prismaService.scheduleRecord.findFirst = jest.fn().mockResolvedValue(null);
-      prismaService.scheduleRecord.create = jest.fn().mockResolvedValue({});
+      prismaService.workflowScheduleRecord.findFirst = jest.fn().mockResolvedValue(null);
+      prismaService.workflowScheduleRecord.create = jest.fn().mockResolvedValue({});
       prismaService.canvas.findUnique = jest.fn().mockResolvedValue({ title: 'Test' });
       priorityService.calculateExecutionPriority = jest.fn().mockResolvedValue(5);
       scheduleService.createOrUpdateScheduledRecord = jest.fn().mockResolvedValue(undefined);
 
       await service.scanAndTriggerSchedules();
 
-      expect(prismaService.scheduleRecord.create).toHaveBeenCalledWith(
+      expect(prismaService.workflowScheduleRecord.create).toHaveBeenCalledWith(
         expect.objectContaining({
           data: expect.objectContaining({
             status: 'pending',
             uid: mockSchedule.uid,
-            canvasId: mockSchedule.canvasId,
+            sourceCanvasId: mockSchedule.canvasId, // Source canvas (template)
+            canvasId: '', // Empty initially, will be updated after execution
           }),
         }),
       );
@@ -210,8 +211,8 @@ describe('ScheduleCronService', () => {
     it('should add job to queue with correct priority', async () => {
       prismaService.workflowSchedule.findMany = jest.fn().mockResolvedValue([mockSchedule]);
       prismaService.workflowSchedule.update = jest.fn().mockResolvedValue(mockSchedule);
-      prismaService.scheduleRecord.findFirst = jest.fn().mockResolvedValue(null);
-      prismaService.scheduleRecord.create = jest.fn().mockResolvedValue({});
+      prismaService.workflowScheduleRecord.findFirst = jest.fn().mockResolvedValue(null);
+      prismaService.workflowScheduleRecord.create = jest.fn().mockResolvedValue({});
       prismaService.canvas.findUnique = jest.fn().mockResolvedValue({ title: 'Test' });
       priorityService.calculateExecutionPriority = jest.fn().mockResolvedValue(3);
       scheduleService.createOrUpdateScheduledRecord = jest.fn().mockResolvedValue(undefined);
@@ -233,8 +234,8 @@ describe('ScheduleCronService', () => {
     it('should create scheduled record for next execution', async () => {
       prismaService.workflowSchedule.findMany = jest.fn().mockResolvedValue([mockSchedule]);
       prismaService.workflowSchedule.update = jest.fn().mockResolvedValue(mockSchedule);
-      prismaService.scheduleRecord.findFirst = jest.fn().mockResolvedValue(null);
-      prismaService.scheduleRecord.create = jest.fn().mockResolvedValue({});
+      prismaService.workflowScheduleRecord.findFirst = jest.fn().mockResolvedValue(null);
+      prismaService.workflowScheduleRecord.create = jest.fn().mockResolvedValue({});
       prismaService.canvas.findUnique = jest.fn().mockResolvedValue({ title: 'Test' });
       priorityService.calculateExecutionPriority = jest.fn().mockResolvedValue(5);
       scheduleService.createOrUpdateScheduledRecord = jest.fn().mockResolvedValue(undefined);

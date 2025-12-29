@@ -70,8 +70,8 @@ describe('ScheduleService', () => {
         ...validDto,
         nextRunAt: new Date(),
       });
-      prismaService.scheduleRecord.findFirst = jest.fn().mockResolvedValue(null);
-      prismaService.scheduleRecord.create = jest.fn().mockResolvedValue({});
+      prismaService.workflowScheduleRecord.findFirst = jest.fn().mockResolvedValue(null);
+      prismaService.workflowScheduleRecord.create = jest.fn().mockResolvedValue({});
 
       const result = await service.createSchedule(mockUser.uid, validDto);
 
@@ -105,8 +105,8 @@ describe('ScheduleService', () => {
         ...validDto,
         nextRunAt: new Date(),
       });
-      prismaService.scheduleRecord.findFirst = jest.fn().mockResolvedValue(null);
-      prismaService.scheduleRecord.create = jest.fn().mockResolvedValue({});
+      prismaService.workflowScheduleRecord.findFirst = jest.fn().mockResolvedValue(null);
+      prismaService.workflowScheduleRecord.create = jest.fn().mockResolvedValue({});
 
       const _result = await service.createSchedule(mockUser.uid, validDto);
 
@@ -137,8 +137,8 @@ describe('ScheduleService', () => {
           ...args.data,
         });
       });
-      prismaService.scheduleRecord.findFirst = jest.fn().mockResolvedValue(null);
-      prismaService.scheduleRecord.create = jest.fn().mockResolvedValue({});
+      prismaService.workflowScheduleRecord.findFirst = jest.fn().mockResolvedValue(null);
+      prismaService.workflowScheduleRecord.create = jest.fn().mockResolvedValue({});
 
       await service.createSchedule(mockUser.uid, dtoWithoutName as any);
 
@@ -193,8 +193,8 @@ describe('ScheduleService', () => {
         ...existingSchedule,
         cronExpression: '0 0 * * *',
       });
-      prismaService.scheduleRecord.findFirst = jest.fn().mockResolvedValue(null);
-      prismaService.scheduleRecord.create = jest.fn().mockResolvedValue({});
+      prismaService.workflowScheduleRecord.findFirst = jest.fn().mockResolvedValue(null);
+      prismaService.workflowScheduleRecord.create = jest.fn().mockResolvedValue({});
 
       const _result = await service.updateSchedule(mockUser.uid, mockScheduleId, {
         cronExpression: '0 0 * * *',
@@ -246,7 +246,7 @@ describe('ScheduleService', () => {
       prismaService.workflowSchedule.update = jest.fn().mockImplementation((args) => {
         return Promise.resolve({ ...existingSchedule, ...args.data });
       });
-      prismaService.scheduleRecord.deleteMany = jest.fn().mockResolvedValue({ count: 0 });
+      prismaService.workflowScheduleRecord.deleteMany = jest.fn().mockResolvedValue({ count: 0 });
 
       await service.updateSchedule(mockUser.uid, mockScheduleId, { isEnabled: false });
 
@@ -264,8 +264,8 @@ describe('ScheduleService', () => {
       prismaService.workflowSchedule.update = jest.fn().mockImplementation((args) => {
         return Promise.resolve({ ...existingSchedule, ...args.data });
       });
-      prismaService.scheduleRecord.findFirst = jest.fn().mockResolvedValue(null);
-      prismaService.scheduleRecord.create = jest.fn().mockResolvedValue({});
+      prismaService.workflowScheduleRecord.findFirst = jest.fn().mockResolvedValue(null);
+      prismaService.workflowScheduleRecord.create = jest.fn().mockResolvedValue({});
 
       await service.updateSchedule(mockUser.uid, mockScheduleId, { cronExpression: '0 0 * * *' });
 
@@ -353,7 +353,7 @@ describe('ScheduleService', () => {
     it('should trigger schedule manually and add to queue', async () => {
       prismaService.workflowSchedule.findUnique = jest.fn().mockResolvedValue(schedule);
       prismaService.canvas.findUnique = jest.fn().mockResolvedValue({ title: 'Test Canvas' });
-      prismaService.scheduleRecord.create = jest.fn().mockResolvedValue({
+      prismaService.workflowScheduleRecord.create = jest.fn().mockResolvedValue({
         scheduleRecordId: 'record-123',
       });
       priorityService.calculateExecutionPriority = jest.fn().mockResolvedValue(5);
@@ -384,12 +384,12 @@ describe('ScheduleService', () => {
     it('should create schedule record with pending status', async () => {
       prismaService.workflowSchedule.findUnique = jest.fn().mockResolvedValue(schedule);
       prismaService.canvas.findUnique = jest.fn().mockResolvedValue({ title: 'Test Canvas' });
-      prismaService.scheduleRecord.create = jest.fn().mockResolvedValue({});
+      prismaService.workflowScheduleRecord.create = jest.fn().mockResolvedValue({});
       priorityService.calculateExecutionPriority = jest.fn().mockResolvedValue(5);
 
       await service.triggerScheduleManually(mockUser.uid, mockScheduleId);
 
-      expect(prismaService.scheduleRecord.create).toHaveBeenCalledWith(
+      expect(prismaService.workflowScheduleRecord.create).toHaveBeenCalledWith(
         expect.objectContaining({
           data: expect.objectContaining({
             status: 'pending',
@@ -416,9 +416,9 @@ describe('ScheduleService', () => {
     };
 
     it('should retry failed record successfully', async () => {
-      prismaService.scheduleRecord.findUnique = jest.fn().mockResolvedValue(failedRecord);
+      prismaService.workflowScheduleRecord.findUnique = jest.fn().mockResolvedValue(failedRecord);
       prismaService.workflowSchedule.findUnique = jest.fn().mockResolvedValue(schedule);
-      prismaService.scheduleRecord.update = jest.fn().mockResolvedValue({});
+      prismaService.workflowScheduleRecord.update = jest.fn().mockResolvedValue({});
       priorityService.calculateExecutionPriority = jest.fn().mockResolvedValue(5);
 
       const result = await service.retryScheduleRecord(mockUser.uid, failedRecord.scheduleRecordId);
@@ -428,7 +428,7 @@ describe('ScheduleService', () => {
     });
 
     it('should throw NotFoundException for non-existent record', async () => {
-      prismaService.scheduleRecord.findUnique = jest.fn().mockResolvedValue(null);
+      prismaService.workflowScheduleRecord.findUnique = jest.fn().mockResolvedValue(null);
 
       await expect(
         service.retryScheduleRecord(mockUser.uid, 'non-existent-record'),
@@ -436,7 +436,7 @@ describe('ScheduleService', () => {
     });
 
     it('should throw BadRequestException for non-failed record', async () => {
-      prismaService.scheduleRecord.findUnique = jest.fn().mockResolvedValue({
+      prismaService.workflowScheduleRecord.findUnique = jest.fn().mockResolvedValue({
         ...failedRecord,
         status: 'success',
       });
@@ -447,7 +447,7 @@ describe('ScheduleService', () => {
     });
 
     it('should throw BadRequestException when no snapshot available', async () => {
-      prismaService.scheduleRecord.findUnique = jest.fn().mockResolvedValue({
+      prismaService.workflowScheduleRecord.findUnique = jest.fn().mockResolvedValue({
         ...failedRecord,
         snapshotStorageKey: null,
       });
@@ -458,7 +458,7 @@ describe('ScheduleService', () => {
     });
 
     it('should throw NotFoundException when associated schedule is deleted', async () => {
-      prismaService.scheduleRecord.findUnique = jest.fn().mockResolvedValue(failedRecord);
+      prismaService.workflowScheduleRecord.findUnique = jest.fn().mockResolvedValue(failedRecord);
       prismaService.workflowSchedule.findUnique = jest.fn().mockResolvedValue({
         ...schedule,
         deletedAt: new Date(),
@@ -511,7 +511,7 @@ describe('ScheduleService', () => {
       };
       const snapshotData = { title: 'Test Canvas', nodes: [], edges: [] };
 
-      prismaService.scheduleRecord.findUnique = jest.fn().mockResolvedValue(record);
+      prismaService.workflowScheduleRecord.findUnique = jest.fn().mockResolvedValue(record);
       ossService.getObject = jest.fn().mockResolvedValue({
         async *[Symbol.asyncIterator]() {
           yield Buffer.from(JSON.stringify(snapshotData));
@@ -524,7 +524,7 @@ describe('ScheduleService', () => {
     });
 
     it('should throw NotFoundException when no snapshot key', async () => {
-      prismaService.scheduleRecord.findUnique = jest.fn().mockResolvedValue({
+      prismaService.workflowScheduleRecord.findUnique = jest.fn().mockResolvedValue({
         scheduleRecordId: 'record-123',
         uid: mockUser.uid,
         snapshotStorageKey: null,
@@ -542,7 +542,7 @@ describe('ScheduleService', () => {
         snapshotStorageKey: 'schedules/test-uid/record-123/snapshot.json',
       };
 
-      prismaService.scheduleRecord.findUnique = jest.fn().mockResolvedValue(record);
+      prismaService.workflowScheduleRecord.findUnique = jest.fn().mockResolvedValue(record);
       ossService.getObject = jest.fn().mockResolvedValue({
         async *[Symbol.asyncIterator]() {
           yield Buffer.from('invalid-json');

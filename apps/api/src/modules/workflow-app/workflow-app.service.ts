@@ -611,7 +611,7 @@ export class WorkflowAppService {
       scheduleRecordId?: string;
       triggerType?: string;
     },
-  ): Promise<string> {
+  ): Promise<{ executionId: string; canvasId: string }> {
     // Validate canvasData completeness
     if (!canvasData.nodes || canvasData.nodes.length === 0) {
       this.logger.warn('Canvas data has no nodes, workflow execution may fail');
@@ -753,7 +753,7 @@ export class WorkflowAppService {
     this.logger.log(
       `Started workflow execution: ${executionId}${options?.appId ? ` for appId: ${options.appId}` : ''}${options?.scheduleRecordId ? ` for scheduleRecordId: ${options.scheduleRecordId}` : ''}`,
     );
-    return executionId;
+    return { executionId, canvasId: newCanvasId };
   }
 
   async executeWorkflowApp(user: User, shareId: string, variables: WorkflowVariable[]) {
@@ -868,7 +868,7 @@ export class WorkflowAppService {
     }
 
     // Use the shared execution logic
-    const executionId = await this.executeFromCanvasData(user, canvasData, variables, {
+    const { executionId } = await this.executeFromCanvasData(user, canvasData, variables, {
       appId: workflowApp.appId,
     });
 

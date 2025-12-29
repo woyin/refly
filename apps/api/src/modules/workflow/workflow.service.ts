@@ -551,7 +551,7 @@ export class WorkflowService {
           createdAt: true,
           appId: true,
           canvasId: true,
-          scheduleRecordId: true, // For syncing ScheduleRecord status
+          scheduleRecordId: true, // For syncing WorkflowScheduleRecord status
         },
         where: { executionId },
       });
@@ -809,7 +809,7 @@ export class WorkflowService {
             `[pollWorkflow] Updated workflow ${executionId}: status=${newStatus}, executed=${executedNodes}, failed=${failedNodes}`,
           );
 
-          // Sync ScheduleRecord status when workflow reaches terminal state
+          // Sync WorkflowScheduleRecord status when workflow reaches terminal state
           if (
             workflowExecution.scheduleRecordId &&
             (newStatus === 'finish' || newStatus === 'failed')
@@ -859,7 +859,7 @@ export class WorkflowService {
                 );
               }
 
-              await this.prisma.scheduleRecord.update({
+              await this.prisma.workflowScheduleRecord.update({
                 where: { scheduleRecordId: workflowExecution.scheduleRecordId },
                 data: {
                   status: newStatus === 'finish' ? 'success' : 'failed',
@@ -872,11 +872,11 @@ export class WorkflowService {
                 },
               });
               this.logger.log(
-                `[pollWorkflow] Synced ScheduleRecord ${workflowExecution.scheduleRecordId}: status=${newStatus === 'finish' ? 'success' : 'failed'}, creditUsed=${creditUsed}${newStatus === 'failed' ? `, reason=${failureReason}` : ''}`,
+                `[pollWorkflow] Synced WorkflowScheduleRecord ${workflowExecution.scheduleRecordId}: status=${newStatus === 'finish' ? 'success' : 'failed'}${newStatus === 'failed' ? `, reason=${failureReason}` : ''}`,
               );
             } catch (syncErr: any) {
               this.logger.warn(
-                `[pollWorkflow] Failed to sync ScheduleRecord status: ${syncErr?.message}`,
+                `[pollWorkflow] Failed to sync WorkflowScheduleRecord status: ${syncErr?.message}`,
               );
             }
           }
