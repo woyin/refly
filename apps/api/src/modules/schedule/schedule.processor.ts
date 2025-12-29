@@ -7,6 +7,7 @@ import { MiscService } from '../misc/misc.service';
 import { CanvasService } from '../canvas/canvas.service';
 import { WorkflowAppService } from '../workflow-app/workflow-app.service';
 import { QUEUE_SCHEDULE_EXECUTION, SCHEDULE_RATE_LIMITS } from './schedule.constants';
+import { ScheduleMetrics } from './schedule.metrics';
 import { genScheduleRecordId, safeParseJSON } from '@refly/utils';
 import type { RawCanvasData } from '@refly/openapi-schema';
 
@@ -44,6 +45,7 @@ export class ScheduleProcessor extends WorkerHost {
     private readonly redisService: RedisService,
     private readonly miscService: MiscService,
     private readonly canvasService: CanvasService,
+    private readonly metrics: ScheduleMetrics,
     @Inject(forwardRef(() => WorkflowAppService))
     private readonly workflowAppService: WorkflowAppService,
   ) {
@@ -120,6 +122,10 @@ export class ScheduleProcessor extends WorkerHost {
       if (!schedule || schedule.deletedAt || !schedule.isEnabled) {
         this.logger.warn(
           `Schedule ${scheduleId} is deleted/disabled, skipping execution for job ${job.id}`,
+        );
+        // Record skipped metric
+        this.metrics.execution.skipped(
+          schedule?.deletedAt ? 'schedule_deleted' : 'schedule_disabled',
         );
         // Update ScheduleRecord to 'skipped' if exists
         if (existingRecordId) {
@@ -278,14 +284,19 @@ export class ScheduleProcessor extends WorkerHost {
       });
 
       this.logger.log(`Successfully executed schedule ${scheduleId}, executionId: ${executionId}`);
+      // Record success metric
+      this.metrics.execution.success('cron');
       return executionId;
     } catch (error) {
       // Don't log or update record for DelayedError (rate limiting)
       if (error instanceof DelayedError) {
+        this.metrics.queue.delayed();
         throw error;
       }
 
       this.logger.error(`Failed to process schedule ${scheduleId}`, error);
+      // Record failure metric
+      this.metrics.execution.fail('cron', error instanceof Error ? error.name : 'unknown');
       if (scheduleRecordId) {
         await this.prisma.scheduleRecord.update({
           where: { scheduleRecordId },

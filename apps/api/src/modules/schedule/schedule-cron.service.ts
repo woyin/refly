@@ -88,7 +88,33 @@ export class ScheduleCronService implements OnModuleInit {
       nextRunAt = interval.next().toDate();
     } catch (e) {
       this.logger.error(`Invalid cron for schedule ${schedule.scheduleId}`, e);
-      // Disable invalid schedule?
+      // Auto-disable invalid schedule to prevent repeated failures
+      const disabledReason = `Invalid cron expression: ${e instanceof Error ? e.message : String(e)}`;
+      // Parse existing config if it's a JSON string, merge with disabled info
+      let existingConfig = {};
+      try {
+        existingConfig = schedule.scheduleConfig
+          ? JSON.parse(schedule.scheduleConfig as string)
+          : {};
+      } catch {
+        // If parsing fails, start fresh
+      }
+      await this.prisma.workflowSchedule.update({
+        where: { scheduleId: schedule.scheduleId },
+        data: {
+          isEnabled: false,
+          nextRunAt: null,
+          // Store the reason in scheduleConfig for transparency
+          scheduleConfig: JSON.stringify({
+            ...existingConfig,
+            _disabledReason: disabledReason,
+            _disabledAt: new Date().toISOString(),
+          }),
+        },
+      });
+      this.logger.warn(
+        `Auto-disabled schedule ${schedule.scheduleId} due to invalid cron expression`,
+      );
       return;
     }
 
