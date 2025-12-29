@@ -117,6 +117,84 @@ export enum ScheduleFailureReason {
   /** Workflow execution failed */
   WORKFLOW_EXECUTION_FAILED = 'workflow_execution_failed',
 
+  /** Workflow execution timeout */
+  WORKFLOW_EXECUTION_TIMEOUT = 'workflow_execution_timeout',
+
   /** Other unknown error */
   UNKNOWN_ERROR = 'unknown_error',
+}
+
+/**
+ * Classify error into standardized failure reason
+ * This helps frontend display appropriate error messages and action buttons
+ *
+ * @param error - Error object or error message string
+ * @returns ScheduleFailureReason - Standardized failure reason
+ */
+export function classifyScheduleError(error: unknown): ScheduleFailureReason {
+  if (!error) {
+    return ScheduleFailureReason.UNKNOWN_ERROR;
+  }
+
+  const errorMessage = error instanceof Error ? error.message : String(error);
+  const errorName = error instanceof Error ? error.name : '';
+
+  // Check for credit-related errors
+  if (
+    errorName === 'ModelUsageQuotaExceeded' ||
+    /credit not available/i.test(errorMessage) ||
+    /insufficient credits?/i.test(errorMessage) ||
+    /ModelUsageQuotaExceeded/i.test(errorMessage)
+  ) {
+    return ScheduleFailureReason.INSUFFICIENT_CREDITS;
+  }
+
+  // Check for quota/limit exceeded errors
+  if (
+    /quota.*exceeded/i.test(errorMessage) ||
+    /schedule.*limit/i.test(errorMessage) ||
+    errorMessage === ScheduleFailureReason.SCHEDULE_LIMIT_EXCEEDED
+  ) {
+    return ScheduleFailureReason.SCHEDULE_LIMIT_EXCEEDED;
+  }
+
+  // Check for timeout errors
+  if (/timeout/i.test(errorMessage)) {
+    return ScheduleFailureReason.WORKFLOW_EXECUTION_TIMEOUT;
+  }
+
+  // Check for cron expression errors
+  if (/cron|schedule.*expression|invalid.*expression/i.test(errorMessage)) {
+    return ScheduleFailureReason.INVALID_CRON_EXPRESSION;
+  }
+
+  // Check for canvas data errors
+  if (
+    /canvas.*not found/i.test(errorMessage) ||
+    /invalid.*canvas/i.test(errorMessage) ||
+    /nodes.*edges/i.test(errorMessage)
+  ) {
+    return ScheduleFailureReason.CANVAS_DATA_ERROR;
+  }
+
+  // Check for snapshot errors
+  if (
+    /snapshot/i.test(errorMessage) ||
+    /failed to parse/i.test(errorMessage) ||
+    /storage.*key/i.test(errorMessage)
+  ) {
+    return ScheduleFailureReason.SNAPSHOT_ERROR;
+  }
+
+  // Check for workflow execution errors
+  if (
+    /workflow.*execution/i.test(errorMessage) ||
+    /execution.*failed/i.test(errorMessage) ||
+    /agent.*error/i.test(errorMessage)
+  ) {
+    return ScheduleFailureReason.WORKFLOW_EXECUTION_FAILED;
+  }
+
+  // Default to unknown error
+  return ScheduleFailureReason.UNKNOWN_ERROR;
 }

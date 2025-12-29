@@ -549,6 +549,7 @@ export class WorkflowService {
           createdAt: true,
           appId: true,
           canvasId: true,
+          scheduleRecordId: true, // For syncing ScheduleRecord status
         },
         where: { executionId },
       });
@@ -805,6 +806,59 @@ export class WorkflowService {
           this.logger.log(
             `[pollWorkflow] Updated workflow ${executionId}: status=${newStatus}, executed=${executedNodes}, failed=${failedNodes}`,
           );
+
+          // Sync ScheduleRecord status when workflow reaches terminal state
+          if (
+            workflowExecution.scheduleRecordId &&
+            (newStatus === 'finish' || newStatus === 'failed')
+          ) {
+            try {
+              let failureReason = 'WORKFLOW_EXECUTION_FAILED';
+              const errorDetails: any = {
+                message: 'Workflow execution failed',
+                executedNodes,
+                failedNodes,
+              };
+
+              // If failed, get the first failed node's error message for classification
+              if (newStatus === 'failed') {
+                const firstFailedNode = await this.prisma.workflowNodeExecution.findFirst({
+                  where: { executionId, status: 'failed' },
+                  select: { errorMessage: true, nodeId: true, title: true },
+                  orderBy: { endTime: 'asc' },
+                });
+
+                if (firstFailedNode?.errorMessage) {
+                  errorDetails.nodeId = firstFailedNode.nodeId;
+                  errorDetails.nodeTitle = firstFailedNode.title;
+                  errorDetails.errorMessage = firstFailedNode.errorMessage;
+
+                  // Use shared classifyScheduleError utility
+                  const { classifyScheduleError } = await import('../schedule/schedule.constants');
+                  failureReason = classifyScheduleError(firstFailedNode.errorMessage);
+                }
+              }
+
+              await this.prisma.scheduleRecord.update({
+                where: { scheduleRecordId: workflowExecution.scheduleRecordId },
+                data: {
+                  status: newStatus === 'finish' ? 'success' : 'failed',
+                  completedAt: new Date(),
+                  ...(newStatus === 'failed' && {
+                    failureReason,
+                    errorDetails: JSON.stringify(errorDetails),
+                  }),
+                },
+              });
+              this.logger.log(
+                `[pollWorkflow] Synced ScheduleRecord ${workflowExecution.scheduleRecordId}: status=${newStatus === 'finish' ? 'success' : 'failed'}${newStatus === 'failed' ? `, reason=${failureReason}` : ''}`,
+              );
+            } catch (syncErr: any) {
+              this.logger.warn(
+                `[pollWorkflow] Failed to sync ScheduleRecord status: ${syncErr?.message}`,
+              );
+            }
+          }
         }
       } catch (err: any) {
         this.logger.warn(`[pollWorkflow] Failed to update execution stats: ${err?.message ?? err}`);

@@ -11,6 +11,7 @@ import {
   QUEUE_SCHEDULE_EXECUTION,
   SCHEDULE_RATE_LIMITS,
   ScheduleFailureReason,
+  classifyScheduleError,
 } from './schedule.constants';
 import { ScheduleMetrics } from './schedule.metrics';
 import { genScheduleRecordId, safeParseJSON } from '@refly/utils';
@@ -288,6 +289,8 @@ export class ScheduleProcessor extends WorkerHost {
         where: { scheduleRecordId },
         data: {
           status: 'running', // Workflow is actually executing
+          snapshotStorageKey,
+          workflowTitle: canvasData?.title || 'Untitled',
         },
       });
 
@@ -305,25 +308,20 @@ export class ScheduleProcessor extends WorkerHost {
         },
       );
 
-      // 8. Update ScheduleRecord with success
-      const canvas = await this.prisma.canvas.findUnique({
-        where: { canvasId },
-        select: { title: true },
-      });
-
+      // 8. Update ScheduleRecord to running - workflow has been started
+      // Final status (success/failed) will be updated by pollWorkflow when execution completes
       await this.prisma.scheduleRecord.update({
         where: { scheduleRecordId },
         data: {
           workflowExecutionId: executionId,
-          status: 'success',
-          workflowTitle: canvas?.title || 'Untitled',
-          snapshotStorageKey,
-          completedAt: new Date(),
+          // Note: completedAt will be set by pollWorkflow when workflow finishes
         },
       });
 
-      this.logger.log(`Successfully executed schedule ${scheduleId}, executionId: ${executionId}`);
-      // Record success metric
+      this.logger.log(
+        `Successfully started workflow for schedule ${scheduleId}, executionId: ${executionId}`,
+      );
+      // Record started metric (not success - that will be recorded by pollWorkflow)
       this.metrics.execution.success('cron');
       return executionId;
     } catch (error) {
@@ -336,7 +334,7 @@ export class ScheduleProcessor extends WorkerHost {
       this.logger.error(`Failed to process schedule ${scheduleId}`, error);
 
       // Classify error and get standardized failure reason
-      const failureReason = this.classifyError(error);
+      const failureReason = classifyScheduleError(error);
       const errorMessage = error instanceof Error ? error.message : String(error);
 
       // Record failure metric
@@ -491,72 +489,5 @@ export class ScheduleProcessor extends WorkerHost {
     } as RawCanvasData;
   }
 
-  /**
-   * Classify error into standardized failure reason
-   * This helps frontend display appropriate error messages and action buttons
-   */
-  private classifyError(error: unknown): ScheduleFailureReason {
-    if (!error) {
-      return ScheduleFailureReason.UNKNOWN_ERROR;
-    }
-
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    const errorName = error instanceof Error ? error.name : '';
-
-    // Check for credit-related errors
-    if (
-      errorName === 'ModelUsageQuotaExceeded' ||
-      /credit not available/i.test(errorMessage) ||
-      /insufficient credits?/i.test(errorMessage)
-    ) {
-      return ScheduleFailureReason.INSUFFICIENT_CREDITS;
-    }
-
-    // Check for quota/limit exceeded errors
-    if (
-      /quota.*exceeded/i.test(errorMessage) ||
-      /schedule.*limit/i.test(errorMessage) ||
-      errorMessage === ScheduleFailureReason.SCHEDULE_LIMIT_EXCEEDED
-    ) {
-      return ScheduleFailureReason.SCHEDULE_LIMIT_EXCEEDED;
-    }
-
-    // Note: Rate limiting errors (concurrent limit) are handled by DelayedError
-    // and cause job delays, not failures. No classification needed here.
-
-    // Check for cron expression errors
-    if (/cron|schedule.*expression|invalid.*expression/i.test(errorMessage)) {
-      return ScheduleFailureReason.INVALID_CRON_EXPRESSION;
-    }
-
-    // Check for canvas data errors
-    if (
-      /canvas.*not found/i.test(errorMessage) ||
-      /invalid.*canvas/i.test(errorMessage) ||
-      /nodes.*edges/i.test(errorMessage)
-    ) {
-      return ScheduleFailureReason.CANVAS_DATA_ERROR;
-    }
-
-    // Check for snapshot errors
-    if (
-      /snapshot/i.test(errorMessage) ||
-      /failed to parse/i.test(errorMessage) ||
-      /storage.*key/i.test(errorMessage)
-    ) {
-      return ScheduleFailureReason.SNAPSHOT_ERROR;
-    }
-
-    // Check for workflow execution errors
-    if (
-      /workflow.*execution/i.test(errorMessage) ||
-      /execution.*failed/i.test(errorMessage) ||
-      /agent.*error/i.test(errorMessage)
-    ) {
-      return ScheduleFailureReason.WORKFLOW_EXECUTION_FAILED;
-    }
-
-    // Default to unknown error
-    return ScheduleFailureReason.UNKNOWN_ERROR;
-  }
+  // classifyError moved to schedule.constants.ts as classifyScheduleError
 }
