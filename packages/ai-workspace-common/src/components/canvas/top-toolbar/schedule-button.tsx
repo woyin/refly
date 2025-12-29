@@ -1,5 +1,15 @@
 import { memo, useState, useCallback, useEffect, useMemo } from 'react';
-import { Button, Tooltip, Popover, Switch, TimePicker, Select, message, Modal } from 'antd';
+import {
+  Button,
+  Tooltip,
+  Popover,
+  Switch,
+  TimePicker,
+  Select,
+  message,
+  Modal,
+  Divider,
+} from 'antd';
 import { useTranslation } from 'react-i18next';
 import { cn } from '@refly/utils/cn';
 import {
@@ -249,7 +259,7 @@ const ScheduleButton = memo(({ canvasId }: ScheduleButtonProps) => {
       nextRun = nextRun.add(1, 'day');
     }
 
-    return nextRun.format('DD/MM/YYYY, hh:mm:ss A');
+    return nextRun.format('YYYY/MM/DD, hh:mm:ss A');
   }, [isEnabled, timeValue]);
 
   // Save schedule
@@ -374,11 +384,11 @@ const ScheduleButton = memo(({ canvasId }: ScheduleButtonProps) => {
 
   // Popover content
   const popoverContent = (
-    <div className="w-[400px] space-y-3" onClick={(e) => e.stopPropagation()}>
+    <div className="w-[400px] space-y-3 p-3" onClick={(e) => e.stopPropagation()}>
       {/* Header */}
-      <div className="flex items-center justify-between pb-4 border-b border-gray-200 dark:border-gray-700">
-        <div>
-          <div className="text-base font-semibold mb-1">{t('schedule.title') || 'Schedule'}</div>
+      <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-700">
+        <div className="flex items-center gap-3">
+          <div className="text-base font-semibold">{t('schedule.title') || 'Schedule'}</div>
           {nextRunTime && (
             <div className="text-xs text-gray-500">
               {t('schedule.nextRun') || 'Next run'}: {nextRunTime}
@@ -394,7 +404,7 @@ const ScheduleButton = memo(({ canvasId }: ScheduleButtonProps) => {
           <Button
             key={freq}
             type="default"
-            className={`flex-1 h-12 ${
+            className={`flex-1 h-11 ${
               frequency === freq
                 ? '!bg-transparent !border-teal-500 !text-teal-600 hover:!border-teal-600 hover:!text-teal-700 hover:!bg-transparent'
                 : '!bg-transparent hover:!bg-transparent hover:border-gray-300 hover:text-gray-700 dark:hover:border-gray-600 dark:hover:text-gray-300'
@@ -419,7 +429,7 @@ const ScheduleButton = memo(({ canvasId }: ScheduleButtonProps) => {
       </div>
 
       {/* Time picker and selection container */}
-      <div className="flex items-center gap-3 border border-gray-200 dark:border-gray-700 rounded-lg p-3 bg-gray-50 dark:bg-gray-800">
+      <div className="flex items-center gap-3 border border-gray-200 dark:border-gray-700 rounded-lg p-3">
         {/* Weekly selection */}
         {frequency === 'weekly' && (
           <div className="flex-1">
@@ -470,15 +480,15 @@ const ScheduleButton = memo(({ canvasId }: ScheduleButtonProps) => {
             </div>
           </div>
         )}
-
+        <Divider type="vertical" className="m-0 h-5 bg-refly-Card-Border" />
         <TimePicker
           value={timeValue}
           onChange={(val) => val && setTimeValue(val)}
           format="HH:mm"
-          className="flex-1 h-10"
+          className="flex-1 h-10 w-[188px]"
           size="large"
           allowClear={false}
-          popupClassName="schedule-timepicker-popup"
+          popupClassName="schedule-timepicker-popup w-[188px]"
         />
       </div>
 
@@ -505,7 +515,6 @@ const ScheduleButton = memo(({ canvasId }: ScheduleButtonProps) => {
         block
         loading={createScheduleMutation.isPending || updateScheduleMutation.isPending}
         onClick={handleSave}
-        className="!bg-teal-500 hover:!bg-teal-600 !border-teal-500"
       >
         {t('common.save') || 'Save'}
       </Button>
@@ -517,12 +526,12 @@ const ScheduleButton = memo(({ canvasId }: ScheduleButtonProps) => {
       <style>
         {`
           .schedule-timepicker-popup .ant-picker-time-panel {
-            width: 195px !important;
-            min-width: 195px !important;
+            width: 188px !important;
+            min-width: 188px !important;
           }
           .schedule-timepicker-popup .ant-picker-dropdown {
-            width: 195px !important;
-            min-width: 195px !important;
+            width: 188px !important;
+            min-width: 188px !important;
           }
         `}
       </style>
