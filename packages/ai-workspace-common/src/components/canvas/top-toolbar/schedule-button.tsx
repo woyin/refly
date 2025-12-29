@@ -1,6 +1,5 @@
 import { memo, useState, useCallback, useEffect, useMemo } from 'react';
 import { Button, Tooltip, Popover, Switch, TimePicker, Select, message, Modal } from 'antd';
-import { ArrowRight } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { cn } from '@refly/utils/cn';
 import {
@@ -12,7 +11,6 @@ import {
 import { useSkillResponseLoadingStatus } from '@refly-packages/ai-workspace-common/hooks/canvas/use-skill-response-loading-status';
 import { useCanvasStoreShallow, useSubscriptionStoreShallow } from '@refly/stores';
 import { logEvent } from '@refly/telemetry-web';
-import { useNavigate } from '@refly-packages/ai-workspace-common/utils/router';
 import type { WorkflowSchedule, ListSchedulesResponse } from '@refly/openapi-schema';
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
@@ -80,7 +78,6 @@ function generateCronExpression(config: ScheduleConfig): string {
 
 const ScheduleButton = memo(({ canvasId }: ScheduleButtonProps) => {
   const { t } = useTranslation();
-  const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [scheduleLimitModalVisible, setScheduleLimitModalVisible] = useState(false);
 
@@ -331,12 +328,6 @@ const ScheduleButton = memo(({ canvasId }: ScheduleButtonProps) => {
     t,
   ]); // Remove fetchAllEnabledSchedulesCount from dependencies
 
-  // Handle view history
-  const handleViewHistory = useCallback(() => {
-    setOpen(false);
-    navigate('/run-history');
-  }, [navigate]);
-
   const handleButtonClick = useCallback(() => {
     if (disabled) return;
 
@@ -383,7 +374,7 @@ const ScheduleButton = memo(({ canvasId }: ScheduleButtonProps) => {
 
   // Popover content
   const popoverContent = (
-    <div className="w-[400px] space-y-4" onClick={(e) => e.stopPropagation()}>
+    <div className="w-[400px] space-y-3" onClick={(e) => e.stopPropagation()}>
       {/* Header */}
       <div className="flex items-center justify-between pb-4 border-b border-gray-200 dark:border-gray-700">
         <div>
@@ -402,11 +393,11 @@ const ScheduleButton = memo(({ canvasId }: ScheduleButtonProps) => {
         {(['daily', 'weekly', 'monthly'] as ScheduleFrequency[]).map((freq) => (
           <Button
             key={freq}
-            type={frequency === freq ? 'primary' : 'default'}
-            className={`flex-1 ${
+            type="default"
+            className={`flex-1 h-12 ${
               frequency === freq
-                ? '!bg-teal-500 hover:!bg-teal-600 !border-teal-500 !text-white'
-                : ''
+                ? '!bg-transparent !border-teal-500 !text-teal-600 hover:!border-teal-600 hover:!text-teal-700 hover:!bg-transparent'
+                : '!bg-transparent hover:!bg-transparent hover:border-gray-300 hover:text-gray-700 dark:hover:border-gray-600 dark:hover:text-gray-300'
             }`}
             onClick={() => {
               setFrequency(freq);
@@ -473,7 +464,7 @@ const ScheduleButton = memo(({ canvasId }: ScheduleButtonProps) => {
 
         {/* Daily selection placeholder */}
         {frequency === 'daily' && (
-          <div className="flex-1 h-12">
+          <div className="flex-1 h-10">
             <div className="h-full flex items-center text-gray-500 text-sm">
               {t('schedule.daily') || 'Daily'}
             </div>
@@ -484,22 +475,21 @@ const ScheduleButton = memo(({ canvasId }: ScheduleButtonProps) => {
           value={timeValue}
           onChange={(val) => val && setTimeValue(val)}
           format="HH:mm"
-          className="flex-1 h-12"
+          className="flex-1 h-10"
           size="large"
           allowClear={false}
           popupClassName="schedule-timepicker-popup"
-          popupStyle={{ width: '200px !important', minWidth: '200px !important' }}
         />
       </div>
 
       {/* Cost info */}
-      <div className="text-sm text-gray-500 pt-2">
+      <div className="text-sm text-gray-500">
         {t('schedule.cost') || 'Cost'}:{' '}
         {isCreditUsageLoading ? '...' : (creditUsageData?.data?.total ?? 0)} /{' '}
         {t('schedule.perRun') || 'run'}
       </div>
 
-      {/* View History link */}
+      {/* View History link 
       <Button
         type="link"
         className="!p-0 !text-teal-600 hover:!text-teal-700 font-medium flex items-center gap-1"
@@ -507,7 +497,7 @@ const ScheduleButton = memo(({ canvasId }: ScheduleButtonProps) => {
       >
         {t('schedule.viewHistory') || 'View History'}
         <ArrowRight className="w-4 h-4" />
-      </Button>
+      </Button>*/}
 
       {/* Save button */}
       <Button
@@ -527,12 +517,12 @@ const ScheduleButton = memo(({ canvasId }: ScheduleButtonProps) => {
       <style>
         {`
           .schedule-timepicker-popup .ant-picker-time-panel {
-            width: 200px !important;
-            min-width: 200px !important;
+            width: 195px !important;
+            min-width: 195px !important;
           }
           .schedule-timepicker-popup .ant-picker-dropdown {
-            width: 200px !important;
-            min-width: 200px !important;
+            width: 195px !important;
+            min-width: 195px !important;
           }
         `}
       </style>
