@@ -7,7 +7,12 @@ import { ObjectStorageService } from '../common/object-storage';
 import { OSS_INTERNAL } from '../common/object-storage/tokens';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
-import { QUEUE_SCHEDULE_EXECUTION } from './schedule.constants';
+import {
+  QUEUE_SCHEDULE_EXECUTION,
+  SCHEDULE_QUOTA,
+  SCHEDULE_JOB_OPTIONS,
+  toBullMQPriority,
+} from './schedule.constants';
 import { SchedulePriorityService } from './schedule-priority.service';
 
 @Injectable()
@@ -60,8 +65,7 @@ export class ScheduleService {
       where: { uid, status: 'active' },
     });
     // Simplified quota check (future: fetch actual limit from plan)
-    const maxSchedules = 10; // Default limit
-    if (activeSchedulesCount >= maxSchedules) {
+    if (activeSchedulesCount >= SCHEDULE_QUOTA.MAX_ACTIVE_SCHEDULES) {
       throw new BadRequestException('Schedule quota exceeded');
     }
 
@@ -424,27 +428,17 @@ export class ScheduleService {
     });
 
     // 5. Push to execution queue with priority
-    await this.scheduleQueue.add(
-      'execute-scheduled-workflow',
+    await this.addToExecutionQueue(
       {
         scheduleId: schedule.scheduleId,
         canvasId: schedule.canvasId,
         uid: schedule.uid,
         scheduledAt: scheduledAt.toISOString(),
         priority,
-        scheduleRecordId, // Pass the record ID so processor doesn't create a new one
+        scheduleRecordId,
       },
-      {
-        jobId: `schedule:${schedule.scheduleId}:manual:${timestamp}`, // Deduplication ID for manual trigger
-        // BullMQ priority: lower number = higher priority
-        // Convert our priority (1-10, higher = higher) to BullMQ (lower = higher)
-        priority: 11 - Math.floor(priority),
-        attempts: 1, // No automatic retry, user must manually retry on failure
-        backoff: {
-          type: 'exponential',
-          delay: 1000,
-        },
-      },
+      `schedule:${schedule.scheduleId}:manual:${timestamp}`,
+      priority,
     );
 
     this.logger.log(`Manually triggered schedule ${schedule.scheduleId} with priority ${priority}`);
@@ -511,27 +505,17 @@ export class ScheduleService {
     // 6. Push to execution queue with the existing scheduleRecordId to reuse snapshot
     const timestamp = Date.now();
 
-    await this.scheduleQueue.add(
-      'execute-scheduled-workflow',
+    await this.addToExecutionQueue(
       {
         scheduleId: record.scheduleId,
         canvasId: record.canvasId,
         uid: record.uid,
         scheduledAt: new Date().toISOString(),
-        scheduleRecordId: record.scheduleRecordId, // Pass existing record ID to reuse snapshot
+        scheduleRecordId: record.scheduleRecordId,
         priority,
       },
-      {
-        jobId: `schedule:${record.scheduleId}:retry:${scheduleRecordId}:${timestamp}`,
-        // BullMQ priority: lower number = higher priority
-        // Convert our priority (1-10, higher = higher) to BullMQ (lower = higher)
-        priority: 11 - Math.floor(priority),
-        attempts: 1, // No automatic retry, user must manually retry on failure
-        backoff: {
-          type: 'exponential',
-          delay: 1000,
-        },
-      },
+      `schedule:${record.scheduleId}:retry:${scheduleRecordId}:${timestamp}`,
+      priority,
     );
 
     this.logger.log(
@@ -608,6 +592,28 @@ export class ScheduleService {
         status: 'scheduled',
         workflowExecutionId: null,
       },
+    });
+  }
+
+  /**
+   * Helper to add a job to the execution queue with standard options
+   */
+  private async addToExecutionQueue(
+    data: {
+      scheduleId: string;
+      canvasId: string;
+      uid: string;
+      scheduledAt: string;
+      priority: number;
+      scheduleRecordId: string;
+    },
+    jobId: string,
+    priority: number,
+  ): Promise<void> {
+    await this.scheduleQueue.add('execute-scheduled-workflow', data, {
+      jobId,
+      priority: toBullMQPriority(priority),
+      ...SCHEDULE_JOB_OPTIONS,
     });
   }
 }
