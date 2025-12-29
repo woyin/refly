@@ -38,7 +38,7 @@ describe('SchedulePriorityService', () => {
           lookupKey: 'refly_max_yearly_stable_v3',
           status: 'active',
         });
-        prismaService.scheduleRecord.findMany = jest.fn().mockResolvedValue([]);
+        prismaService.workflowScheduleRecord.findMany = jest.fn().mockResolvedValue([]);
         prismaService.workflowSchedule.count = jest.fn().mockResolvedValue(0);
 
         const priority = await service.calculateExecutionPriority('test-uid');
@@ -50,7 +50,7 @@ describe('SchedulePriorityService', () => {
           lookupKey: 'refly_plus_yearly_stable_v2',
           status: 'active',
         });
-        prismaService.scheduleRecord.findMany = jest.fn().mockResolvedValue([]);
+        prismaService.workflowScheduleRecord.findMany = jest.fn().mockResolvedValue([]);
         prismaService.workflowSchedule.count = jest.fn().mockResolvedValue(0);
 
         const priority = await service.calculateExecutionPriority('test-uid');
@@ -62,7 +62,7 @@ describe('SchedulePriorityService', () => {
           lookupKey: 'refly_starter_monthly',
           status: 'active',
         });
-        prismaService.scheduleRecord.findMany = jest.fn().mockResolvedValue([]);
+        prismaService.workflowScheduleRecord.findMany = jest.fn().mockResolvedValue([]);
         prismaService.workflowSchedule.count = jest.fn().mockResolvedValue(0);
 
         const priority = await service.calculateExecutionPriority('test-uid');
@@ -74,7 +74,7 @@ describe('SchedulePriorityService', () => {
           lookupKey: 'refly_maker_monthly',
           status: 'active',
         });
-        prismaService.scheduleRecord.findMany = jest.fn().mockResolvedValue([]);
+        prismaService.workflowScheduleRecord.findMany = jest.fn().mockResolvedValue([]);
         prismaService.workflowSchedule.count = jest.fn().mockResolvedValue(0);
 
         const priority = await service.calculateExecutionPriority('test-uid');
@@ -83,7 +83,7 @@ describe('SchedulePriorityService', () => {
 
       it('should return priority 10 (DEFAULT_PRIORITY) for free tier users', async () => {
         prismaService.subscription.findFirst = jest.fn().mockResolvedValue(null);
-        prismaService.scheduleRecord.findMany = jest.fn().mockResolvedValue([]);
+        prismaService.workflowScheduleRecord.findMany = jest.fn().mockResolvedValue([]);
         prismaService.workflowSchedule.count = jest.fn().mockResolvedValue(0);
 
         const priority = await service.calculateExecutionPriority('test-uid');
@@ -95,7 +95,7 @@ describe('SchedulePriorityService', () => {
           lookupKey: 'unknown_plan',
           status: 'active',
         });
-        prismaService.scheduleRecord.findMany = jest.fn().mockResolvedValue([]);
+        prismaService.workflowScheduleRecord.findMany = jest.fn().mockResolvedValue([]);
         prismaService.workflowSchedule.count = jest.fn().mockResolvedValue(0);
 
         const priority = await service.calculateExecutionPriority('test-uid');
@@ -107,7 +107,7 @@ describe('SchedulePriorityService', () => {
           lookupKey: 'refly_plus_yearly_test_v3',
           status: 'active',
         });
-        prismaService.scheduleRecord.findMany = jest.fn().mockResolvedValue([]);
+        prismaService.workflowScheduleRecord.findMany = jest.fn().mockResolvedValue([]);
         prismaService.workflowSchedule.count = jest.fn().mockResolvedValue(0);
 
         const priority = await service.calculateExecutionPriority('test-uid');
@@ -121,7 +121,9 @@ describe('SchedulePriorityService', () => {
           lookupKey: 'refly_plus_yearly_stable_v2',
           status: 'active',
         });
-        prismaService.scheduleRecord.findMany = jest.fn().mockResolvedValue([{ status: 'failed' }]);
+        prismaService.workflowScheduleRecord.findMany = jest
+          .fn()
+          .mockResolvedValue([{ status: 'failed' }]);
         prismaService.workflowSchedule.count = jest.fn().mockResolvedValue(0);
 
         const priority = await service.calculateExecutionPriority('test-uid');
@@ -134,7 +136,7 @@ describe('SchedulePriorityService', () => {
           lookupKey: 'refly_plus_yearly_stable_v2',
           status: 'active',
         });
-        prismaService.scheduleRecord.findMany = jest
+        prismaService.workflowScheduleRecord.findMany = jest
           .fn()
           .mockResolvedValue([{ status: 'failed' }, { status: 'failed' }, { status: 'failed' }]);
         prismaService.workflowSchedule.count = jest.fn().mockResolvedValue(0);
@@ -152,7 +154,7 @@ describe('SchedulePriorityService', () => {
           status: 'active',
         });
         // 5 consecutive failures - should be capped at 3
-        prismaService.scheduleRecord.findMany = jest
+        prismaService.workflowScheduleRecord.findMany = jest
           .fn()
           .mockResolvedValue([
             { status: 'failed' },
@@ -175,7 +177,7 @@ describe('SchedulePriorityService', () => {
           lookupKey: 'refly_plus_yearly_stable_v2',
           status: 'active',
         });
-        prismaService.scheduleRecord.findMany = jest.fn().mockResolvedValue([
+        prismaService.workflowScheduleRecord.findMany = jest.fn().mockResolvedValue([
           { status: 'failed' },
           { status: 'success' }, // This breaks the consecutive count
           { status: 'failed' },
@@ -193,7 +195,7 @@ describe('SchedulePriorityService', () => {
           lookupKey: 'refly_plus_yearly_stable_v2',
           status: 'active',
         });
-        prismaService.scheduleRecord.findMany = jest
+        prismaService.workflowScheduleRecord.findMany = jest
           .fn()
           .mockResolvedValue([{ status: 'success' }, { status: 'failed' }, { status: 'failed' }]);
         prismaService.workflowSchedule.count = jest.fn().mockResolvedValue(0);
@@ -210,7 +212,7 @@ describe('SchedulePriorityService', () => {
           lookupKey: 'refly_plus_yearly_stable_v2',
           status: 'active',
         });
-        prismaService.scheduleRecord.findMany = jest.fn().mockResolvedValue([]);
+        prismaService.workflowScheduleRecord.findMany = jest.fn().mockResolvedValue([]);
         prismaService.workflowSchedule.count = jest
           .fn()
           .mockResolvedValue(PRIORITY_ADJUSTMENTS.HIGH_LOAD_THRESHOLD);
@@ -224,7 +226,7 @@ describe('SchedulePriorityService', () => {
           lookupKey: 'refly_plus_yearly_stable_v2',
           status: 'active',
         });
-        prismaService.scheduleRecord.findMany = jest.fn().mockResolvedValue([]);
+        prismaService.workflowScheduleRecord.findMany = jest.fn().mockResolvedValue([]);
         prismaService.workflowSchedule.count = jest
           .fn()
           .mockResolvedValue(PRIORITY_ADJUSTMENTS.HIGH_LOAD_THRESHOLD + 1);
@@ -241,7 +243,7 @@ describe('SchedulePriorityService', () => {
           lookupKey: 'refly_plus_yearly_stable_v2',
           status: 'active',
         });
-        prismaService.scheduleRecord.findMany = jest
+        prismaService.workflowScheduleRecord.findMany = jest
           .fn()
           .mockResolvedValue([{ status: 'failed' }, { status: 'failed' }]);
         prismaService.workflowSchedule.count = jest
@@ -263,7 +265,7 @@ describe('SchedulePriorityService', () => {
           lookupKey: 'refly_max_yearly_stable_v3',
           status: 'active',
         });
-        prismaService.scheduleRecord.findMany = jest.fn().mockResolvedValue([]);
+        prismaService.workflowScheduleRecord.findMany = jest.fn().mockResolvedValue([]);
         prismaService.workflowSchedule.count = jest.fn().mockResolvedValue(0);
 
         const priority = await service.calculateExecutionPriority('test-uid');
@@ -273,7 +275,7 @@ describe('SchedulePriorityService', () => {
       it('should never return priority greater than MAX_PRIORITY', async () => {
         // Free tier + max failures + high load should still cap at 10
         prismaService.subscription.findFirst = jest.fn().mockResolvedValue(null);
-        prismaService.scheduleRecord.findMany = jest
+        prismaService.workflowScheduleRecord.findMany = jest
           .fn()
           .mockResolvedValue([
             { status: 'failed' },
@@ -293,7 +295,7 @@ describe('SchedulePriorityService', () => {
           lookupKey: 'refly_plus_yearly_stable_v2',
           status: 'active',
         });
-        prismaService.scheduleRecord.findMany = jest.fn().mockResolvedValue([]);
+        prismaService.workflowScheduleRecord.findMany = jest.fn().mockResolvedValue([]);
         prismaService.workflowSchedule.count = jest.fn().mockResolvedValue(0);
 
         const priority = await service.calculateExecutionPriority('test-uid');

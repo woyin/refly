@@ -137,9 +137,9 @@ export class ScheduleProcessor extends WorkerHost {
         this.metrics.execution.skipped(
           schedule?.deletedAt ? 'schedule_deleted' : 'schedule_disabled',
         );
-        // Update ScheduleRecord to 'skipped' if exists
+        // Update WorkflowScheduleRecord to 'skipped' if exists
         if (existingRecordId) {
-          await this.prisma.scheduleRecord.update({
+          await this.prisma.workflowScheduleRecord.update({
             where: { scheduleRecordId: existingRecordId },
             data: {
               status: 'skipped',
@@ -160,11 +160,11 @@ export class ScheduleProcessor extends WorkerHost {
       // Note: We don't query the full user object to avoid passing BigInt fields to queues
       const user = { uid };
 
-      // 3. Find or verify the ScheduleRecord for this execution
+      // 3. Find or verify the WorkflowScheduleRecord for this execution
       // The record should already exist with 'pending' status (set by CronService when job was queued)
       let existingRecord = null;
       if (existingRecordId) {
-        existingRecord = await this.prisma.scheduleRecord.findUnique({
+        existingRecord = await this.prisma.workflowScheduleRecord.findUnique({
           where: { scheduleRecordId: existingRecordId },
         });
         if (existingRecord?.snapshotStorageKey) {
@@ -178,7 +178,7 @@ export class ScheduleProcessor extends WorkerHost {
 
       // If no record ID was passed, try to find a pending record for this schedule
       if (!scheduleRecordId) {
-        existingRecord = await this.prisma.scheduleRecord.findFirst({
+        existingRecord = await this.prisma.workflowScheduleRecord.findFirst({
           where: {
             scheduleId,
             status: { in: ['pending', 'scheduled'] }, // Could be pending (queued) or scheduled (waiting)
@@ -192,16 +192,17 @@ export class ScheduleProcessor extends WorkerHost {
         }
       }
 
-      // 4. Create new ScheduleRecord only if no existing record was found
+      // 4. Create new WorkflowScheduleRecord only if no existing record was found
       // This is a fallback for edge cases (e.g., manual trigger without scheduled record)
       if (!scheduleRecordId) {
         scheduleRecordId = genScheduleRecordId();
-        await this.prisma.scheduleRecord.create({
+        await this.prisma.workflowScheduleRecord.create({
           data: {
             scheduleRecordId,
             scheduleId,
             uid,
-            canvasId,
+            sourceCanvasId: canvasId, // Source canvas (template)
+            canvasId: '', // Will be updated after execution with actual execution canvas
             workflowTitle: '',
             scheduledAt: new Date(scheduledAt),
             status: 'processing', // Skip pending since we're already in processor
@@ -212,7 +213,7 @@ export class ScheduleProcessor extends WorkerHost {
         this.logger.log(`Created new schedule record ${scheduleRecordId}`);
       } else if (isRetry) {
         // Update status for retry
-        await this.prisma.scheduleRecord.update({
+        await this.prisma.workflowScheduleRecord.update({
           where: { scheduleRecordId },
           data: {
             status: 'processing',
@@ -224,7 +225,7 @@ export class ScheduleProcessor extends WorkerHost {
       } else {
         // 4.1 Update status to 'processing' - job has been dequeued from BullMQ
         // This indicates the job is now actively being handled by the processor
-        await this.prisma.scheduleRecord.update({
+        await this.prisma.workflowScheduleRecord.update({
           where: { scheduleRecordId },
           data: {
             status: 'processing', // Processor is handling the job (creating snapshot, etc.)
@@ -265,7 +266,7 @@ export class ScheduleProcessor extends WorkerHost {
           this.logger.warn(
             `User ${uid} has insufficient credits (${creditBalance.creditBalance}), failing schedule ${scheduleId}`,
           );
-          await this.prisma.scheduleRecord.update({
+          await this.prisma.workflowScheduleRecord.update({
             where: { scheduleRecordId },
             data: {
               status: 'failed',
@@ -285,7 +286,7 @@ export class ScheduleProcessor extends WorkerHost {
 
       // 7. Update status to 'running' before executing workflow
       // This indicates the workflow is actually being executed
-      await this.prisma.scheduleRecord.update({
+      await this.prisma.workflowScheduleRecord.update({
         where: { scheduleRecordId },
         data: {
           status: 'running', // Workflow is actually executing
@@ -297,22 +298,24 @@ export class ScheduleProcessor extends WorkerHost {
       // 7. Execute workflow using WorkflowAppService
       // Note: user is a simple object { uid } to avoid BigInt serialization issues
       // The methods called inside executeFromCanvasData only need user.uid
-      const executionId = await this.workflowAppService.executeFromCanvasData(
-        user,
-        canvasData,
-        canvasData.variables || [],
-        {
-          scheduleId,
-          scheduleRecordId,
-          triggerType: 'scheduled',
-        },
-      );
+      const { executionId, canvasId: newCanvasId } =
+        await this.workflowAppService.executeFromCanvasData(
+          user,
+          canvasData,
+          canvasData.variables || [],
+          {
+            scheduleId,
+            scheduleRecordId,
+            triggerType: 'scheduled',
+          },
+        );
 
-      // 8. Update ScheduleRecord to running - workflow has been started
+      // 8. Update WorkflowScheduleRecord with execution canvas ID and workflow execution ID
       // Final status (success/failed) will be updated by pollWorkflow when execution completes
-      await this.prisma.scheduleRecord.update({
+      await this.prisma.workflowScheduleRecord.update({
         where: { scheduleRecordId },
         data: {
+          canvasId: newCanvasId, // Actual execution canvas (newly created)
           workflowExecutionId: executionId,
           // Note: completedAt will be set by pollWorkflow when workflow finishes
         },
@@ -341,7 +344,7 @@ export class ScheduleProcessor extends WorkerHost {
       this.metrics.execution.fail('cron', failureReason);
 
       if (scheduleRecordId) {
-        await this.prisma.scheduleRecord.update({
+        await this.prisma.workflowScheduleRecord.update({
           where: { scheduleRecordId },
           data: {
             status: 'failed',

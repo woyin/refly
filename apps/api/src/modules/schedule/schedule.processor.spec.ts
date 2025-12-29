@@ -245,12 +245,13 @@ describe('ScheduleFailureReason Enum', () => {
       expect(ScheduleFailureReason.CANVAS_DATA_ERROR).toBe('canvas_data_error');
       expect(ScheduleFailureReason.SNAPSHOT_ERROR).toBe('snapshot_error');
       expect(ScheduleFailureReason.WORKFLOW_EXECUTION_FAILED).toBe('workflow_execution_failed');
+      expect(ScheduleFailureReason.WORKFLOW_EXECUTION_TIMEOUT).toBe('workflow_execution_timeout');
       expect(ScheduleFailureReason.UNKNOWN_ERROR).toBe('unknown_error');
     });
 
-    it('should have exactly 9 failure reason values', () => {
+    it('should have exactly 10 failure reason values', () => {
       const values = Object.values(ScheduleFailureReason);
-      expect(values.length).toBe(9);
+      expect(values.length).toBe(10);
     });
   });
 

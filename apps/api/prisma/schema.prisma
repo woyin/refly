@@ -2312,7 +2312,7 @@ model WorkflowSchedule {
   @@map("workflow_schedules")
 }
 
-model ScheduleRecord {
+model WorkflowScheduleRecord {
   // ========== Primary Key ==========
   pk               BigInt @id @default(autoincrement())
   scheduleRecordId String @unique @map("schedule_record_id")
@@ -2327,8 +2327,11 @@ model ScheduleRecord {
   /// User ID (redundant for querying)
   uid String @map("uid")
 
-  /// Canvas ID (redundant for querying)
+  /// Canvas ID (actual execution canvas - newly created for each execution)
   canvasId String @map("canvas_id")
+
+  /// Source canvas ID (template/original canvas from which workflow is initialized)
+  sourceCanvasId String @default("") @map("source_canvas_id")
 
   // ========== Execution Info ==========
 
@@ -2381,5 +2384,6 @@ model ScheduleRecord {
   @@index([status, createdAt])
   @@index([workflowExecutionId])
   @@index([priority, scheduledAt])
-  @@map("schedule_records")
+  @@index([sourceCanvasId])
+  @@map("workflow_schedule_records")
 }
