@@ -247,7 +247,7 @@ export class ScheduleService {
     uid: string,
     page = 1,
     pageSize = 10,
-    status?: 'scheduled' | 'pending' | 'processing' | 'running' | 'success' | 'failed',
+    status?: 'scheduled' | 'pending' | 'processing' | 'running' | 'success' | 'failed' | 'skipped',
     keyword?: string,
     tools?: string[],
     canvasId?: string,
