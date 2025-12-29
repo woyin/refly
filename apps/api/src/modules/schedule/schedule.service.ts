@@ -259,9 +259,12 @@ export class ScheduleService {
       where.canvasId = canvasId;
     }
 
-    // Filter by status
+    // Filter by status - only show completed records (success/failed) by default
     if (status) {
       where.status = status;
+    } else {
+      // Default: only show success or failed records
+      where.status = { in: ['success', 'failed'] };
     }
 
     // Filter by keyword (search in workflowTitle)

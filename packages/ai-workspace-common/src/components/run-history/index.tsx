@@ -397,7 +397,7 @@ const RunHistoryList = memo(() => {
       </div>
 
       {/* Search and Filters Bar */}
-      <div className="px-4 pb-4">
+      <div className={`px-4 ${hasActiveFilters ? 'pb-6' : 'pb-5'}`}>
         <RunHistoryFilters
           titleFilter={titleFilter}
           onTitleChange={handleTitleChange}

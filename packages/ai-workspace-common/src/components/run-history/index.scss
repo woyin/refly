@@ -1,22 +1,16 @@
-// .run-history-list {
-//   .run-history-table {
-//     .ant-table {
-//       background: transparent;
-//     }
+.run-history-list {
+  .run-history-table {
+    .ant-table {
+      background: transparent;
+      border: 1px solid var(--refly-Card-Border);
+    }
 
-//     .ant-table-thead > tr > th {
-//       background: transparent;
-//       border-bottom: 1px solid var(--refly-Card-Border);
-//       font-weight: 500;
-//       color: var(--refly-text-2);
-//     }
+    .ant-table-tbody>tr>td {
+      border-bottom: 1px solid var(--refly-Card-Border);
+    }
 
-//     .ant-table-tbody > tr > td {
-//       border-bottom: 1px solid var(--refly-Card-Border);
-//     }
-
-//     .ant-table-tbody > tr:last-child > td {
-//       border-bottom: none;
-//     }
-//   }
-// }
+    .ant-table-tbody>tr:last-child>td {
+      border-bottom: none;
+    }
+  }
+}

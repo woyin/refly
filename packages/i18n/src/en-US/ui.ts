@@ -4247,9 +4247,7 @@ const translations = {
       actions: 'Actions',
     },
     filters: {
-      scheduleAll: 'All Schedules',
-      scheduleActive: 'Scheduled',
-      scheduleInactive: 'Not Scheduled',
+      hasSchedule: 'Schedule',
     },
   },
   schedule: {

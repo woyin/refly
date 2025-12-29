@@ -225,7 +225,7 @@ export const RunHistoryFilters = memo(
       !!canvasIdFilter;
 
     return (
-      <div className="run-history-filters space-y-4">
+      <div className="run-history-filters">
         {/* Search bar - full width */}
         <Input
           placeholder={t('runHistory.searchPlaceholder')}
@@ -235,17 +235,17 @@ export const RunHistoryFilters = memo(
           onKeyDown={handleSearchKeyPress}
           onPressEnter={handleSearchSubmit}
           allowClear
-          className="w-full"
+          className="w-full !h-[42px]"
         />
 
         {/* Filter dropdowns row */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 mt-4">
           {/* Type filter */}
           <Dropdown menu={{ items: typeMenuItems }} trigger={['click']}>
             <Button
               color="default"
               variant="outlined"
-              className="flex items-center justify-between min-w-[150px]"
+              className="flex items-center justify-between min-w-[150px] !h-[42px]"
             >
               <span className=" text-xs mr-2">{t('runHistory.filters.type')}</span>
               <span className="flex-1 text-left">{getTypeLabel()}</span>
@@ -258,7 +258,7 @@ export const RunHistoryFilters = memo(
             <Dropdown dropdownRender={() => toolsDropdownContent} trigger={['click']}>
               <Button
                 variant="outlined"
-                className="flex items-center justify-between min-w-[180px]"
+                className="flex items-center justify-between min-w-[180px] !h-[42px]"
               >
                 <span className=" text-xs mr-2">{t('runHistory.filters.tools')}</span>
                 <span className="flex-1 text-left truncate">{getToolsLabel()}</span>
@@ -269,7 +269,10 @@ export const RunHistoryFilters = memo(
 
           {/* State filter */}
           <Dropdown menu={{ items: statusMenuItems }} trigger={['click']}>
-            <Button variant="outlined" className="flex items-center justify-between min-w-[150px]">
+            <Button
+              variant="outlined"
+              className="flex items-center justify-between min-w-[150px] !h-[42px]"
+            >
               <span className=" text-xs mr-2">{t('runHistory.filters.state')}</span>
               <span className="flex-1 text-left">{getStatusLabel()}</span>
               <ChevronDown size={14} className="ml-2 " />
@@ -279,7 +282,7 @@ export const RunHistoryFilters = memo(
 
         {/* Active filter tags */}
         {hasActiveFilters && (
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2 mt-[18px]">
             {titleFilter && (
               <Tag
                 closable

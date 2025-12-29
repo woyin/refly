@@ -4281,9 +4281,7 @@ const translations = {
       actions: '操作',
     },
     filters: {
-      scheduleAll: '全部',
-      scheduleActive: '已设置定时',
-      scheduleInactive: '未设置定时',
+      hasSchedule: '定时任务',
     },
   },
   schedule: {

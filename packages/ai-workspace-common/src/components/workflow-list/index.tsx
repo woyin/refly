@@ -19,10 +19,7 @@ import { useCreateCanvas } from '@refly-packages/ai-workspace-common/hooks/canva
 import { ListOrder, ShareUser, WorkflowSchedule } from '@refly/openapi-schema';
 import { UsedToolsets } from '@refly-packages/ai-workspace-common/components/workflow-list/used-toolsets';
 import { ScheduleColumn } from '@refly-packages/ai-workspace-common/components/workflow-list/schedule-column';
-import {
-  WorkflowFilters,
-  ScheduleStatusFilter,
-} from '@refly-packages/ai-workspace-common/components/workflow-list/workflow-filters';
+import { WorkflowFilters } from '@refly-packages/ai-workspace-common/components/workflow-list/workflow-filters';
 import defaultAvatar from '@refly-packages/ai-workspace-common/assets/refly_default_avatar.png';
 import { useDebouncedCallback } from 'use-debounce';
 import { useSiderStoreShallow } from '@refly/stores';
@@ -38,7 +35,7 @@ const WorkflowList = memo(() => {
   const [orderType, setOrderType] = useState<ListOrder>('updationDesc');
 
   // Filter state
-  const [scheduleStatusFilter, setScheduleStatusFilter] = useState<ScheduleStatusFilter>('all');
+  const [hasScheduleFilter, setHasScheduleFilter] = useState(false);
 
   const { debouncedCreateCanvas, isCreating: createCanvasLoading } = useCreateCanvas({});
 
@@ -53,13 +50,13 @@ const WorkflowList = memo(() => {
           ...queryPayload,
           order: orderType,
           keyword: debouncedSearchValue?.trim() || undefined,
-          scheduleStatus: scheduleStatusFilter !== 'all' ? scheduleStatusFilter : undefined,
+          hasSchedule: hasScheduleFilter ? true : undefined,
         } as any,
       });
       return res?.data ?? { success: true, data: [] };
     },
     pageSize: 20,
-    dependencies: [orderType, debouncedSearchValue, scheduleStatusFilter],
+    dependencies: [orderType, debouncedSearchValue, hasScheduleFilter],
   });
 
   const debouncedSetSearchValue = useDebouncedCallback((value: string) => {
@@ -298,19 +295,19 @@ const WorkflowList = memo(() => {
           prefix={<Search size={16} color="var(--refly-text-2)" />}
           value={searchValue}
           onChange={(e) => handleSearch(e.target.value)}
-          className="flex-1"
+          className="flex-1 !h-[42px]"
           allowClear
         />
 
         {/* Schedule Filter */}
         <WorkflowFilters
-          scheduleStatus={scheduleStatusFilter}
-          onScheduleStatusChange={setScheduleStatusFilter}
+          hasScheduleFilter={hasScheduleFilter}
+          onHasScheduleFilterChange={setHasScheduleFilter}
         />
 
         {/* Sort Button */}
         <Button
-          className="flex-shrink-0 w-8 h-8 p-0 flex items-center justify-center"
+          className="flex-shrink-0 w-[42px] h-[42px] p-0 flex items-center justify-center"
           onClick={handleOrderType}
         >
           {orderType === 'updationAsc' ? (

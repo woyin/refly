@@ -90,6 +90,7 @@ export class CanvasService {
       order = 'updationDesc',
       keyword,
       scheduleStatus,
+      hasSchedule,
     } = param as any;
 
     // Build orderBy based on order parameter
@@ -158,6 +159,13 @@ export class CanvasService {
       canvases = canvases.filter((canvas) => {
         const schedule = scheduleMap.get(canvas.canvasId);
         return !schedule || !schedule.isEnabled;
+      });
+    }
+
+    // Filter by hasSchedule if provided (canvases that have any schedule)
+    if (hasSchedule) {
+      canvases = canvases.filter((canvas) => {
+        return scheduleMap.has(canvas.canvasId);
       });
     }
 
