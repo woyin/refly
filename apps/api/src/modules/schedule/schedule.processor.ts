@@ -1,12 +1,12 @@
 import { Processor, WorkerHost } from '@nestjs/bullmq';
-import { Job } from 'bullmq';
+import { DelayedError, Job } from 'bullmq';
 import { Inject, Logger, forwardRef } from '@nestjs/common';
 import { PrismaService } from '../common/prisma.service';
 import { RedisService } from '../common/redis.service';
 import { MiscService } from '../misc/misc.service';
 import { CanvasService } from '../canvas/canvas.service';
 import { WorkflowAppService } from '../workflow-app/workflow-app.service';
-import { QUEUE_SCHEDULE_EXECUTION } from '../../utils/const';
+import { QUEUE_SCHEDULE_EXECUTION, SCHEDULE_RATE_LIMITS } from './schedule.constants';
 import { genScheduleRecordId, safeParseJSON } from '@refly/utils';
 import type { RawCanvasData } from '@refly/openapi-schema';
 
@@ -23,10 +23,21 @@ interface ScheduleExecutionJobData {
   scheduleRecordId?: string;
 }
 
-@Processor(QUEUE_SCHEDULE_EXECUTION)
+@Processor(QUEUE_SCHEDULE_EXECUTION, {
+  // Worker concurrency: max concurrent jobs this worker can process
+  // Jobs beyond this limit stay in queue and wait for available slots
+  concurrency: SCHEDULE_RATE_LIMITS.GLOBAL_MAX_CONCURRENT,
+  // Rate limiter: limit jobs processed per duration
+  // - max: maximum number of jobs to process
+  // - duration: time window in milliseconds
+  // Jobs exceeding this rate are automatically delayed, NOT rejected
+  limiter: {
+    max: SCHEDULE_RATE_LIMITS.RATE_LIMIT_MAX,
+    duration: SCHEDULE_RATE_LIMITS.RATE_LIMIT_DURATION_MS,
+  },
+})
 export class ScheduleProcessor extends WorkerHost {
   private readonly logger = new Logger(ScheduleProcessor.name);
-  private readonly CONCURRENT_LIMIT_KEY = 'schedule:concurrent:global';
 
   constructor(
     private readonly prisma: PrismaService,
@@ -52,17 +63,36 @@ export class ScheduleProcessor extends WorkerHost {
 
     let scheduleRecordId = existingRecordId || '';
     let isRetry = false;
+    let shouldDecrementCounter = false; // Track if we need to decrement counter in finally
+    const userConcurrentKey = `${SCHEDULE_RATE_LIMITS.REDIS_PREFIX_USER_CONCURRENT}${uid}`;
 
     try {
-      // 1. Global Rate Limiting Check
-      await this.redisService.incrementWithExpire(this.CONCURRENT_LIMIT_KEY, 3600);
+      // 1. User-level concurrency check
+      // If this user has too many concurrent executions, delay the job
+      const userConcurrent = await this.redisService.incrementWithExpire(userConcurrentKey, 3600);
+
+      if (userConcurrent > SCHEDULE_RATE_LIMITS.USER_MAX_CONCURRENT) {
+        // Decrement counter since we're not processing this job now
+        await this.decrementCounter(userConcurrentKey);
+
+        // Delay the job by 10 seconds and retry
+        // BullMQ will automatically re-queue the job after the delay
+        this.logger.warn(
+          `User ${uid} has ${userConcurrent - 1} concurrent executions, delaying job ${job.id}`,
+        );
+        await job.moveToDelayed(Date.now() + 10000, job.token);
+        throw new DelayedError();
+      }
+
+      // Mark that we've committed to processing and should decrement counter in finally
+      shouldDecrementCounter = true;
 
       // 2. Create simple user object (only uid needed, avoid BigInt serialization issues)
       // Note: We don't query the full user object to avoid passing BigInt fields to queues
       const user = { uid };
 
-      // 3. Check if this is a retry (existing scheduleRecordId with snapshot)
-      // or if there's a scheduled record to convert to pending
+      // 3. Find or verify the ScheduleRecord for this execution
+      // The record should already exist with 'pending' status (set by CronService when job was queued)
       let existingRecord = null;
       if (existingRecordId) {
         existingRecord = await this.prisma.scheduleRecord.findUnique({
@@ -72,27 +102,30 @@ export class ScheduleProcessor extends WorkerHost {
           isRetry = true;
           this.logger.log(`Retry detected for scheduleRecordId: ${existingRecordId}`);
         }
-      } else {
-        // Check if there's a scheduled record for this schedule that should be converted
-        existingRecord = await this.prisma.scheduleRecord.findFirst({
-          where: {
-            scheduleId,
-            status: 'scheduled',
-            workflowExecutionId: null,
-            scheduledAt: { lte: new Date(scheduledAt) }, // Only convert if scheduled time has arrived
-          },
-          orderBy: { scheduledAt: 'asc' }, // Get the earliest scheduled record
-        });
         if (existingRecord) {
           scheduleRecordId = existingRecord.scheduleRecordId;
-          this.logger.log(
-            `Converting scheduled record ${scheduleRecordId} to pending for execution`,
-          );
         }
       }
 
-      // 4. Create new ScheduleRecord if not a retry and no scheduled record found
-      if (!isRetry && !scheduleRecordId) {
+      // If no record ID was passed, try to find a pending record for this schedule
+      if (!scheduleRecordId) {
+        existingRecord = await this.prisma.scheduleRecord.findFirst({
+          where: {
+            scheduleId,
+            status: { in: ['pending', 'scheduled'] }, // Could be pending (queued) or scheduled (waiting)
+            workflowExecutionId: null,
+          },
+          orderBy: { scheduledAt: 'asc' },
+        });
+        if (existingRecord) {
+          scheduleRecordId = existingRecord.scheduleRecordId;
+          this.logger.log(`Found existing record ${scheduleRecordId} for execution`);
+        }
+      }
+
+      // 4. Create new ScheduleRecord only if no existing record was found
+      // This is a fallback for edge cases (e.g., manual trigger without scheduled record)
+      if (!scheduleRecordId) {
         scheduleRecordId = genScheduleRecordId();
         await this.prisma.scheduleRecord.create({
           data: {
@@ -102,41 +135,34 @@ export class ScheduleProcessor extends WorkerHost {
             canvasId,
             workflowTitle: '',
             scheduledAt: new Date(scheduledAt),
-            status: 'pending', // Queued/waiting in the queue (may be rate limited)
+            status: 'processing', // Skip pending since we're already in processor
             priority,
-          },
-        });
-      } else if (existingRecord && existingRecord.status === 'scheduled') {
-        // Convert scheduled record to pending (queued)
-        await this.prisma.scheduleRecord.update({
-          where: { scheduleRecordId },
-          data: {
-            status: 'pending', // Queued/waiting in the queue
             triggeredAt: new Date(),
           },
         });
+        this.logger.log(`Created new schedule record ${scheduleRecordId}`);
       } else if (isRetry) {
-        // Update status for retry (status was already updated in retryScheduleRecord,
-        // but we update again here to ensure consistency and update triggeredAt timestamp)
+        // Update status for retry
         await this.prisma.scheduleRecord.update({
           where: { scheduleRecordId },
           data: {
-            status: 'pending', // Queued/waiting in the queue
+            status: 'processing',
             failureReason: null,
             errorDetails: null,
             triggeredAt: new Date(),
           },
         });
+      } else {
+        // 4.1 Update status to 'processing' - job has been dequeued from BullMQ
+        // This indicates the job is now actively being handled by the processor
+        await this.prisma.scheduleRecord.update({
+          where: { scheduleRecordId },
+          data: {
+            status: 'processing', // Processor is handling the job (creating snapshot, etc.)
+            triggeredAt: existingRecord?.triggeredAt ? undefined : new Date(),
+          },
+        });
       }
-
-      // 4.1 Update status to 'processing' when processor starts handling the job
-      // This indicates the job has been dequeued and is being processed (creating snapshot, etc.)
-      await this.prisma.scheduleRecord.update({
-        where: { scheduleRecordId },
-        data: {
-          status: 'processing', // Processor is handling the job (creating snapshot, etc.)
-        },
-      });
 
       // 5. Get or create snapshot
       let canvasData: RawCanvasData;
@@ -204,6 +230,11 @@ export class ScheduleProcessor extends WorkerHost {
       this.logger.log(`Successfully executed schedule ${scheduleId}, executionId: ${executionId}`);
       return executionId;
     } catch (error) {
+      // Don't log or update record for DelayedError (rate limiting)
+      if (error instanceof DelayedError) {
+        throw error;
+      }
+
       this.logger.error(`Failed to process schedule ${scheduleId}`, error);
       if (scheduleRecordId) {
         await this.prisma.scheduleRecord.update({
@@ -217,7 +248,36 @@ export class ScheduleProcessor extends WorkerHost {
         });
       }
       throw error;
+    } finally {
+      // Only decrement counter if we actually started processing
+      // (not if we were delayed due to rate limiting)
+      if (shouldDecrementCounter) {
+        await this.decrementCounter(userConcurrentKey).catch((err) => {
+          this.logger.warn(`Failed to decrement user concurrent counter: ${err}`);
+        });
+      }
     }
+  }
+
+  /**
+   * Decrement a Redis counter (used for rate limiting cleanup)
+   * Uses DECR command which is atomic and handles edge cases
+   */
+  private async decrementCounter(key: string): Promise<number> {
+    const client = this.redisService.getClient();
+    if (!client) {
+      return 0;
+    }
+
+    // Use DECR to atomically decrement, and prevent going below 0
+    const script = `
+      local count = redis.call('GET', KEYS[1])
+      if count and tonumber(count) > 0 then
+        return redis.call('DECR', KEYS[1])
+      end
+      return 0
+    `;
+    return client.eval(script, 1, key) as unknown as number;
   }
 
   /**
