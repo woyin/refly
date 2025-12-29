@@ -2108,7 +2108,7 @@ const translations = {
       installed: '已安装',
       all: '全部',
       noSearchResults: '未找到匹配的工具',
-      noToolsDependency: '暂无工具依赖',
+      noToolsDependency: '暂无工作流依赖',
       descriptionPlaceholder: '工具介绍,最多二十个中文字',
       referencedNodes: '被引用节点',
       more: '更多',

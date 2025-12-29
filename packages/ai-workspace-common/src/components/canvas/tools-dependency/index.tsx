@@ -303,34 +303,9 @@ const useFailedNodesCount = () => {
 
 // Custom hook to get required inputs that are not filled
 const useRequiredInputsCheck = (canvasId: string) => {
-  const { data: workflowVariables, isLoading } = useVariablesManagement(canvasId);
-
-  console.log('🔍 [Debug] useVariablesManagement result:', {
-    canvasId,
-    isLoading,
-    hasData: !!workflowVariables,
-    dataLength: workflowVariables?.length,
-  });
+  const { data: workflowVariables } = useVariablesManagement(canvasId);
 
   return useMemo(() => {
-    console.log('🔍 [Debug] useRequiredInputsCheck:', {
-      canvasId,
-      workflowVariables,
-      variablesCount: workflowVariables?.length || 0,
-      allVariables: workflowVariables?.map((v) => ({
-        name: v.name,
-        required: v.required,
-        variableId: v.variableId,
-        value: v.value,
-        hasValue: v.value && v.value.length > 0,
-        valueDetails: v.value?.map((val) => ({
-          text: val.text,
-          resource: val.resource,
-          hasContent: !!val.text || !!val.resource,
-        })),
-      })),
-    });
-
     const requiredVariables =
       workflowVariables?.filter((variable) => {
         const isRequired = variable.required;
@@ -338,22 +313,8 @@ const useRequiredInputsCheck = (canvasId: string) => {
         const hasEmptyValue = variable.value?.every((v) => !v.text && !v.resource);
         const shouldInclude = isRequired && (hasNoValue || hasEmptyValue);
 
-        console.log('🔍 [Debug] Variable check:', {
-          name: variable.name,
-          isRequired,
-          hasNoValue,
-          hasEmptyValue,
-          shouldInclude,
-          value: variable.value,
-        });
-
         return shouldInclude;
       }) ?? [];
-
-    console.log('🔍 [Debug] Required variables result:', {
-      requiredVariablesCount: requiredVariables.length,
-      requiredVariables: requiredVariables.map((v) => ({ name: v.name, variableId: v.variableId })),
-    });
 
     return {
       count: requiredVariables.length,
@@ -387,7 +348,7 @@ const CreditInsufficientBlock = React.memo(
           </span>
         </div>
         <Button
-          className="text-white bg-refly-text-0 text-sm leading-5 font-semibold cursor-pointer active:bg-refly-text-2 whitespace-nowrap px-4 py-2 rounded-lg h-auto"
+          className="text-white bg-refly-text-0 text-xs leading-5 font-semibold cursor-pointer active:bg-refly-text-2 whitespace-nowrap px-3 py-1 rounded-md h-auto"
           size="small"
           onClick={onUpgradeClick}
         >
@@ -429,7 +390,7 @@ const RequiredInputBlock = React.memo(
           </span>
         </div>
         <Button
-          className="text-white bg-refly-text-0 text-sm leading-5 font-semibold cursor-pointer active:bg-refly-text-2 whitespace-nowrap px-4 py-2 rounded-lg h-auto"
+          className="text-white bg-refly-text-0 text-xs leading-5 font-semibold cursor-pointer active:bg-refly-text-2 whitespace-nowrap px-3 py-1 rounded-md h-auto"
           size="small"
           onClick={() => onConfigureClick(variable)}
         >
@@ -502,13 +463,6 @@ const ToolsDependencyContent = React.memo(
 
     // Get required inputs check
     const requiredInputsCheck = useRequiredInputsCheck(canvasId || '');
-
-    console.log('🔍 [Debug] ToolsDependencyContent render:', {
-      canvasId,
-      requiredInputsCheckCount: requiredInputsCheck.count,
-      requiredInputsCheckVariables: requiredInputsCheck.variables,
-      hasCanvasId: !!canvasId,
-    });
 
     const { openInstallToolByKey } = useOpenInstallTool();
     const { openInstallMcp } = useOpenInstallMcp();
@@ -583,7 +537,7 @@ const ToolsDependencyContent = React.memo(
               {t('canvas.workflowDepencency.title')}
             </div>
             {uninstalledCount > 0 && isLogin && (
-              <div className="max-w-[120px] md:max-w-[200px] truncate bg-refly-Colorful-red-light text-refly-func-danger-default rounded-[99px] px-2 text-xs leading-[18px] flex-shrink-0">
+              <div className="max-w-[120px] md:max-w-[200px] truncate bg-refly-Colorful-red-light text-refly-func-danger-default rounded-[99px] px-2 text-xs leading-[18px] flex-shrink-0 ml-2">
                 {t('canvas.workflowDepencency.uninstalledToolsCount', {
                   count: uninstalledCount,
                 })}
@@ -611,12 +565,6 @@ const ToolsDependencyContent = React.memo(
             {/* Required Inputs Check */}
             {canvasId &&
               requiredInputsCheck.variables.map((variable) => {
-                console.log('🔍 [Debug] Rendering RequiredInputBlock for variable:', {
-                  variableId: variable.variableId,
-                  name: variable.name,
-                  required: variable.required,
-                  value: variable.value,
-                });
                 return (
                   <RequiredInputBlock
                     key={variable.variableId}
@@ -1165,18 +1113,6 @@ export const ToolsDependency = ({
     const creditInsufficientCount = isCreditInsufficient ? 1 : 0;
     // Add required inputs count
     const requiredInputsCount = requiredInputsCheck.count;
-
-    console.log('🔍 [Debug] totalIssuesCount calculation (ToolsDependency):', {
-      canvasId,
-      baseUninstalledCount,
-      failedNodesCount,
-      creditInsufficientCount,
-      requiredInputsCount,
-      isCreditInsufficient,
-      isLogin,
-      total:
-        baseUninstalledCount + failedNodesCount + creditInsufficientCount + requiredInputsCount,
-    });
 
     // merge all counts into total count
     return baseUninstalledCount + failedNodesCount + creditInsufficientCount + requiredInputsCount;

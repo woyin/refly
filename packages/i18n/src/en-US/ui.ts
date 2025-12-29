@@ -1979,7 +1979,7 @@ const translations = {
       installed: 'Installed',
       all: 'All',
       noSearchResults: 'No search results',
-      noToolsDependency: 'No tools dependency',
+      noToolsDependency: 'No workflow dependency',
       descriptionPlaceholder: 'Tool description, up to 20 Chinese characters',
       referencedNodes: 'Referenced nodes',
       more: 'More',
