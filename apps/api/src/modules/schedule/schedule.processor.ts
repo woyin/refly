@@ -67,20 +67,38 @@ export class ScheduleProcessor extends WorkerHost {
     const userConcurrentKey = `${SCHEDULE_RATE_LIMITS.REDIS_PREFIX_USER_CONCURRENT}${uid}`;
 
     try {
-      // 1. User-level concurrency check
-      // If this user has too many concurrent executions, delay the job
-      const userConcurrent = await this.redisService.incrementWithExpire(userConcurrentKey, 3600);
+      // 1. User-level concurrency check with Redis degradation
+      // If Redis fails, we allow the job to proceed (graceful degradation)
+      let userConcurrent = 0;
+      try {
+        userConcurrent = await this.redisService.incrementWithExpire(
+          userConcurrentKey,
+          SCHEDULE_RATE_LIMITS.COUNTER_TTL_SECONDS, // Use longer TTL for long-running workflows
+        );
+      } catch (redisError) {
+        // Redis connection failed - graceful degradation: allow execution
+        this.logger.warn(
+          `Redis error during concurrency check for user ${uid}, allowing execution (degraded mode): ${redisError}`,
+        );
+        // Set to 1 so we'll try to decrement in finally (even if it fails)
+        userConcurrent = 1;
+      }
 
       if (userConcurrent > SCHEDULE_RATE_LIMITS.USER_MAX_CONCURRENT) {
         // Decrement counter since we're not processing this job now
-        await this.decrementCounter(userConcurrentKey);
+        await this.decrementCounter(userConcurrentKey).catch((err) => {
+          this.logger.warn(`Failed to decrement counter after rate limit: ${err}`);
+        });
 
-        // Delay the job by 10 seconds and retry
+        // Delay the job and retry later
         // BullMQ will automatically re-queue the job after the delay
         this.logger.warn(
           `User ${uid} has ${userConcurrent - 1} concurrent executions, delaying job ${job.id}`,
         );
-        await job.moveToDelayed(Date.now() + 10000, job.token);
+        await job.moveToDelayed(
+          Date.now() + SCHEDULE_RATE_LIMITS.USER_RATE_LIMIT_DELAY_MS,
+          job.token,
+        );
         throw new DelayedError();
       }
 
