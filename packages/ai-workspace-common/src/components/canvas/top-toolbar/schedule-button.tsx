@@ -28,21 +28,18 @@ import utc from 'dayjs/plugin/utc';
 import timezone from 'dayjs/plugin/timezone';
 import { LuAlarmClock } from 'react-icons/lu';
 import { ArrowRight } from 'lucide-react';
+import {
+  parseScheduleConfig,
+  generateCronExpression,
+  type ScheduleFrequency,
+  type ScheduleConfig,
+} from '@refly-packages/ai-workspace-common/components/common/schedule-popover-content';
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
 
 interface ScheduleButtonProps {
   canvasId: string;
-}
-
-type ScheduleFrequency = 'daily' | 'weekly' | 'monthly';
-
-interface ScheduleConfig {
-  type: ScheduleFrequency;
-  time: string;
-  weekdays?: number[];
-  monthDays?: number[];
 }
 
 const WEEKDAYS = [
@@ -59,34 +56,6 @@ const MONTH_DAYS = Array.from({ length: 31 }, (_, i) => ({
   value: i + 1,
   label: `${i + 1}`,
 }));
-
-function parseScheduleConfig(configStr?: string): ScheduleConfig | null {
-  if (!configStr) return null;
-  try {
-    return JSON.parse(configStr) as ScheduleConfig;
-  } catch {
-    return null;
-  }
-}
-
-function generateCronExpression(config: ScheduleConfig): string {
-  const [hour, minute] = config.time.split(':').map(Number);
-
-  switch (config.type) {
-    case 'daily':
-      return `${minute} ${hour} * * *`;
-    case 'weekly': {
-      const weekdays = config.weekdays?.join(',') || '1';
-      return `${minute} ${hour} * * ${weekdays}`;
-    }
-    case 'monthly': {
-      const monthDays = config.monthDays?.join(',') || '1';
-      return `${minute} ${hour} ${monthDays} * *`;
-    }
-    default:
-      return `${minute} ${hour} * * *`;
-  }
-}
 
 const ScheduleButton = memo(({ canvasId }: ScheduleButtonProps) => {
   const { t } = useTranslation();

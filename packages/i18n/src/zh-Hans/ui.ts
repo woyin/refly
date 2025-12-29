@@ -4447,7 +4447,7 @@ const translations = {
       fixWorkflow: '修复原工作流',
     },
     actions: {
-      duplicate: '基于此次运行再创作（副本）',
+      duplicate: '基于此次运行再创作',
     },
     duplicateSuccess: '工作流复制成功',
     duplicateFailed: '工作流复制失败',
