@@ -433,7 +433,7 @@ const ToolsDependencyContent = React.memo(
     setOpen,
     isLogin,
     totalCount,
-    showReferencedNodesDisplay = true,
+    showReferencedNodesDisplay = false,
     highlightInstallButtons = false,
     isLoading = false,
     canvasId,
