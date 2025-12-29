@@ -16,7 +16,7 @@ export class SchedulePriorityService {
   /**
    * Calculate execution priority for a user
    * @param uid - User ID
-   * @returns Priority value (1-10, higher number = higher priority)
+   * @returns Priority value (1-10, lower number = higher priority, matching BullMQ convention)
    */
   async calculateExecutionPriority(uid: string): Promise<number> {
     // 1. Get user's current subscription
@@ -36,11 +36,14 @@ export class SchedulePriorityService {
     // 3. Get priority adjustment factors
     const factors = await this.getPriorityFactors(uid);
 
-    // 4. Apply priority adjustments (penalties reduce priority)
+    // 4. Apply priority adjustments (penalties increase priority number = lower priority)
     const adjustedPriority = this.applyPriorityAdjustments(basePriority, factors);
 
-    // 5. Ensure priority is within valid range (1-10)
-    const finalPriority = Math.max(1, Math.min(10, adjustedPriority));
+    // 5. Ensure priority is within valid range (1-10, where 1 is highest priority)
+    const finalPriority = Math.max(
+      1,
+      Math.min(PRIORITY_ADJUSTMENTS.MAX_PRIORITY, adjustedPriority),
+    );
 
     this.logger.debug(
       `Priority calculated for user ${uid}: base=${basePriority}, adjusted=${finalPriority}, factors=${JSON.stringify(factors)}`,
@@ -82,17 +85,17 @@ export class SchedulePriorityService {
   private applyPriorityAdjustments(basePriority: number, factors: PriorityFactors): number {
     let priority = basePriority;
 
-    // Penalty for consecutive failures (reduce priority)
+    // Penalty for consecutive failures (increase priority number = lower priority)
     if (factors.consecutiveFailures > 0) {
       const penalty =
         Math.min(factors.consecutiveFailures, PRIORITY_ADJUSTMENTS.MAX_FAILURE_LEVELS) *
         PRIORITY_ADJUSTMENTS.FAILURE_PENALTY;
-      priority -= penalty;
+      priority += penalty;
     }
 
-    // Penalty for high load (many active schedules) - reduce priority
+    // Penalty for high load (many active schedules) - increase priority number = lower priority
     if (factors.activeScheduleCount > PRIORITY_ADJUSTMENTS.HIGH_LOAD_THRESHOLD) {
-      priority -= PRIORITY_ADJUSTMENTS.HIGH_LOAD_PENALTY;
+      priority += PRIORITY_ADJUSTMENTS.HIGH_LOAD_PENALTY;
     }
 
     return Math.floor(priority);

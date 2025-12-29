@@ -11,7 +11,6 @@ import {
   QUEUE_SCHEDULE_EXECUTION,
   SCHEDULE_QUOTA,
   SCHEDULE_JOB_OPTIONS,
-  toBullMQPriority,
 } from './schedule.constants';
 import { SchedulePriorityService } from './schedule-priority.service';
 
@@ -612,7 +611,7 @@ export class ScheduleService {
   ): Promise<void> {
     await this.scheduleQueue.add('execute-scheduled-workflow', data, {
       jobId,
-      priority: toBullMQPriority(priority),
+      priority,
       ...SCHEDULE_JOB_OPTIONS,
     });
   }

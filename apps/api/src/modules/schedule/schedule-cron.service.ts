@@ -5,11 +5,7 @@ import { SchedulePriorityService } from './schedule-priority.service';
 import { ScheduleService } from './schedule.service';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
-import {
-  QUEUE_SCHEDULE_EXECUTION,
-  SCHEDULE_JOB_OPTIONS,
-  toBullMQPriority,
-} from './schedule.constants';
+import { QUEUE_SCHEDULE_EXECUTION, SCHEDULE_JOB_OPTIONS } from './schedule.constants';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { CronExpressionParser } from 'cron-parser';
 import { genScheduleRecordId } from '@refly/utils';
@@ -191,8 +187,7 @@ export class ScheduleCronService implements OnModuleInit {
     }
 
     // 3.5 Calculate user execution priority
-    // Priority range: 1-10 (higher number = higher priority in our system)
-    // Note: BullMQ uses lower number = higher priority, conversion happens when adding to queue
+    // Priority range: 1-10 (lower number = higher priority, matching BullMQ convention)
     const priority = await this.priorityService.calculateExecutionPriority(schedule.uid);
 
     // 3.6 Push to execution queue with priority
@@ -211,7 +206,7 @@ export class ScheduleCronService implements OnModuleInit {
       },
       {
         jobId: `schedule:${schedule.scheduleId}:${timestamp}`,
-        priority: toBullMQPriority(priority),
+        priority,
         ...SCHEDULE_JOB_OPTIONS,
       },
     );
