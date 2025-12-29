@@ -6,7 +6,7 @@ import { ScheduleController } from './schedule.controller';
 import { ScheduleCronService } from './schedule-cron.service';
 import { SchedulePriorityService } from './schedule-priority.service';
 import { ScheduleProcessor } from './schedule.processor';
-import { QUEUE_SCHEDULE_EXECUTION } from '../../utils/const';
+import { QUEUE_SCHEDULE_EXECUTION } from './schedule.constants';
 import { CommonModule } from '../common/common.module';
 import { WorkflowModule } from '../workflow/workflow.module';
 import { SubscriptionModule } from '../subscription/subscription.module';
@@ -21,6 +21,15 @@ import { WorkflowAppModule } from '../workflow-app/workflow-app.module';
     NestScheduleModule.forRoot(), // For @Cron
     BullModule.registerQueue({
       name: QUEUE_SCHEDULE_EXECUTION,
+      // Rate limiter configuration:
+      // - Jobs exceeding the limit will be delayed (queued), not rejected
+      // - BullMQ handles this transparently: jobs wait until rate limit allows
+      defaultJobOptions: {
+        attempts: 1, // No automatic retry on failure, user must manually retry
+        backoff: { type: 'exponential', delay: 1000 },
+        removeOnComplete: true,
+        removeOnFail: false, // Keep failed jobs for debugging/retry
+      },
     }),
     WorkflowModule,
     SubscriptionModule, // For priority check

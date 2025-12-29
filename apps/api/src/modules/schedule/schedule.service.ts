@@ -7,7 +7,7 @@ import { ObjectStorageService } from '../common/object-storage';
 import { OSS_INTERNAL } from '../common/object-storage/tokens';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
-import { QUEUE_SCHEDULE_EXECUTION } from '../../utils/const';
+import { QUEUE_SCHEDULE_EXECUTION } from './schedule.constants';
 import { SchedulePriorityService } from './schedule-priority.service';
 
 @Injectable()
@@ -397,10 +397,33 @@ export class ScheduleService {
     // 2. Calculate user execution priority
     const priority = await this.priorityService.calculateExecutionPriority(uid);
 
-    // 3. Push to execution queue with priority
+    // 3. Get canvas title for workflowTitle
+    const canvas = await this.prisma.canvas.findUnique({
+      where: { canvasId: schedule.canvasId },
+      select: { title: true },
+    });
+
+    // 4. Create ScheduleRecord with 'pending' status immediately
+    // This ensures frontend can see the task is queued
     const timestamp = Date.now();
     const scheduledAt = new Date(); // Manual trigger uses current time
+    const scheduleRecordId = genScheduleRecordId();
 
+    await this.prisma.scheduleRecord.create({
+      data: {
+        scheduleRecordId,
+        scheduleId: schedule.scheduleId,
+        uid,
+        canvasId: schedule.canvasId,
+        workflowTitle: canvas?.title || 'Untitled',
+        status: 'pending', // Job is queued, waiting to be processed
+        scheduledAt,
+        triggeredAt: scheduledAt,
+        priority,
+      },
+    });
+
+    // 5. Push to execution queue with priority
     await this.scheduleQueue.add(
       'execute-scheduled-workflow',
       {
@@ -409,6 +432,7 @@ export class ScheduleService {
         uid: schedule.uid,
         scheduledAt: scheduledAt.toISOString(),
         priority,
+        scheduleRecordId, // Pass the record ID so processor doesn't create a new one
       },
       {
         jobId: `schedule:${schedule.scheduleId}:manual:${timestamp}`, // Deduplication ID for manual trigger
@@ -425,6 +449,7 @@ export class ScheduleService {
 
     return {
       scheduleId: schedule.scheduleId,
+      scheduleRecordId,
       triggeredAt: scheduledAt,
       priority,
     };

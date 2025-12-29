@@ -3,19 +3,31 @@ import { PrismaService } from '../common/prisma.service';
 import { Subscription } from '@prisma/client';
 
 // Priority range: 1-10 (higher number = higher priority, aligned with BullMQ)
+// Priority order: Max > Plus > Starter > Maker > Free
 const PLAN_PRIORITY_MAP: Record<string, number> = {
-  refly_plus_yearly_test_v3: 1,
-  refly_plus_monthly_test_v3: 1,
-  refly_plus_yearly_test_v4: 1, // new plus
-  refly_max_yearly_limited_offer: 2, // early bird
-  refly_plus_yearly_limited_offer: 3, // early bird
+  // Max tier - highest priority (10)
+  refly_max_yearly_stable_v3: 10,
+  refly_max_yearly_limited_offer: 10, // early bird max
+
+  // Plus tier - high priority (8)
+  refly_plus_yearly_stable_v2: 8,
+  refly_plus_monthly_stable_v2: 8,
+  refly_plus_monthly_stable: 8,
+  refly_plus_yearly_limited_offer: 8, // early bird plus
+
+  // Starter tier - medium priority (6)
+  refly_starter_monthly: 6,
+
+  // Maker tier - low-medium priority (4)
   refly_maker_monthly: 4,
-  refly_starter_monthly: 5,
-  refly_max_yearly_stable_v3: 6,
-  refly_plus_yearly_stable_v2: 7,
-  refly_plus_monthly_stable_v2: 7,
-  refly_plus_monthly_stable: 7,
-  free: 8,
+
+  // Test/Trial plans - lower priority (3)
+  refly_plus_yearly_test_v3: 3,
+  refly_plus_monthly_test_v3: 3,
+  refly_plus_yearly_test_v4: 3,
+
+  // Free tier - lowest priority (1)
+  free: 1,
 };
 
 const ADJUSTMENT_FACTORS = {
