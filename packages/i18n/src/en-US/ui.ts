@@ -4289,6 +4289,7 @@ const translations = {
     createSuccess: 'Schedule created successfully',
     updateSuccess: 'Schedule updated successfully',
     deleteSuccess: 'Schedule deleted successfully',
+    deactivateSuccess: 'Schedule deactivated successfully',
     saveFailed: 'Failed to save schedule',
     deleteFailed: 'Failed to delete schedule',
     limitReached: {
@@ -4304,6 +4305,14 @@ const translations = {
       fri: 'Fri',
       sat: 'Sat',
       sun: 'Sun',
+    },
+    deactivate: {
+      title: 'Deactivate Schedule',
+      message:
+        'Are you sure you want to deactivate this schedule?The workflow will no longer run automatically until you activate it again.',
+      confirm: 'Deactivate',
+      cancel: 'Cancel',
+      deactivate: 'Deactivate',
     },
   },
   runHistory: {

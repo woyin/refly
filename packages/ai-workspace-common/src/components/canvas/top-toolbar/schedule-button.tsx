@@ -90,6 +90,8 @@ const ScheduleButton = memo(({ canvasId }: ScheduleButtonProps) => {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [scheduleLimitModalVisible, setScheduleLimitModalVisible] = useState(false);
+  const [deactivateModalVisible, setDeactivateModalVisible] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
 
   // Local state for popover form
   const [schedule, setSchedule] = useState<WorkflowSchedule | null>(null);
@@ -262,81 +264,102 @@ const ScheduleButton = memo(({ canvasId }: ScheduleButtonProps) => {
     return nextRun.format('YYYY/MM/DD, hh:mm:ss A');
   }, [isEnabled, timeValue]);
 
-  // Save schedule
-  const handleSave = useCallback(async () => {
-    if (!timeValue) return;
+  // Auto save function (without validation for enabled state)
+  const autoSave = useCallback(
+    async (enabled: boolean) => {
+      if (!timeValue) return;
 
-    // Validate weekdays/monthDays selection
-    if (frequency === 'weekly' && (!weekdays || weekdays.length === 0)) {
-      message.error(t('schedule.weekdaysRequired') || 'Please select at least one weekday');
-      return;
-    }
-    if (frequency === 'monthly' && (!monthDays || monthDays.length === 0)) {
-      message.error(t('schedule.monthDaysRequired') || 'Please select at least one day of month');
-      return;
-    }
+      try {
+        const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        const timeStr = timeValue.format('HH:mm');
+        const scheduleConfig: ScheduleConfig = {
+          type: frequency,
+          time: timeStr,
+          ...(frequency === 'weekly' && { weekdays }),
+          ...(frequency === 'monthly' && { monthDays }),
+        };
 
-    try {
-      const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-      const timeStr = timeValue.format('HH:mm');
-      const scheduleConfig: ScheduleConfig = {
-        type: frequency,
-        time: timeStr,
-        ...(frequency === 'weekly' && { weekdays }),
-        ...(frequency === 'monthly' && { monthDays }),
-      };
+        const cronExpression = generateCronExpression(scheduleConfig);
 
-      const cronExpression = generateCronExpression(scheduleConfig);
+        const requestData = {
+          canvasId,
+          name: `Schedule for ${canvasId}`,
+          cronExpression,
+          scheduleConfig: JSON.stringify(scheduleConfig),
+          timezone: userTimezone,
+          isEnabled: enabled,
+        };
 
-      const requestData = {
-        canvasId,
-        name: `Schedule for ${canvasId}`, // Simple name, could be made configurable
-        cronExpression,
-        scheduleConfig: JSON.stringify(scheduleConfig),
-        timezone: userTimezone,
-        isEnabled,
-      };
+        if (schedule?.scheduleId) {
+          await updateScheduleMutation.mutateAsync({
+            body: {
+              scheduleId: schedule.scheduleId,
+              ...requestData,
+            },
+          });
+        } else {
+          await createScheduleMutation.mutateAsync({
+            body: requestData,
+          });
+        }
 
-      console.log('requestData', requestData);
-
-      if (schedule?.scheduleId) {
-        console.log('update schedule');
-        // Update existing schedule
-        await updateScheduleMutation.mutateAsync({
-          body: {
-            scheduleId: schedule.scheduleId,
-            ...requestData,
-          },
-        });
-      } else {
-        // Create new schedule
-        console.log('create schedule');
-        await createScheduleMutation.mutateAsync({
-          body: requestData,
-        });
+        await fetchSchedule();
+        await fetchAllEnabledSchedulesCount();
+      } catch (error) {
+        console.error('Failed to auto save schedule:', error);
+        message.error(t('schedule.saveFailed') || 'Failed to save schedule');
       }
+    },
+    [
+      canvasId,
+      schedule,
+      frequency,
+      timeValue,
+      weekdays,
+      monthDays,
+      createScheduleMutation,
+      updateScheduleMutation,
+      fetchSchedule,
+      fetchAllEnabledSchedulesCount,
+      t,
+    ],
+  );
 
-      message.success(t('schedule.saveSuccess') || 'Schedule saved');
-      setOpen(false);
-      await fetchSchedule(); // Refresh schedule data
-      await fetchAllEnabledSchedulesCount(); // Refresh enabled schedules count
-    } catch (error) {
-      console.error('Failed to save schedule:', error);
-      message.error(t('schedule.saveFailed') || 'Failed to save schedule');
+  // Handle switch change with auto save and deactivate confirmation
+  const handleSwitchChange = useCallback(
+    async (checked: boolean) => {
+      if (checked) {
+        // Enabling: auto save immediately
+        setIsEnabled(true);
+        await autoSave(true);
+        message.success(t('schedule.saveSuccess') || 'Schedule saved');
+      } else {
+        // Disabling: show confirmation modal and close popover
+        setOpen(false);
+        setDeactivateModalVisible(true);
+      }
+    },
+    [autoSave, t],
+  );
+
+  // Handle confirmed deactivation
+  const handleConfirmDeactivate = useCallback(async () => {
+    setIsEnabled(false);
+    await autoSave(false);
+    setDeactivateModalVisible(false);
+    message.success(t('schedule.deactivateSuccess') || 'Schedule deactivated');
+  }, [autoSave, t]);
+
+  // Handle auto save when other settings change (if enabled)
+  useEffect(() => {
+    if (isEnabled && schedule?.scheduleId) {
+      // Only auto save if schedule is enabled and exists
+      const timer = setTimeout(() => {
+        autoSave(true);
+      }, 500); // Debounce auto save
+      return () => clearTimeout(timer);
     }
-  }, [
-    canvasId,
-    schedule,
-    isEnabled,
-    frequency,
-    timeValue,
-    weekdays,
-    monthDays,
-    createScheduleMutation,
-    updateScheduleMutation,
-    fetchSchedule,
-    t,
-  ]); // Remove fetchAllEnabledSchedulesCount from dependencies
+  }, [frequency, timeValue, weekdays, monthDays, isEnabled, schedule?.scheduleId, autoSave]);
 
   const handleButtonClick = useCallback(() => {
     if (disabled) return;
@@ -395,7 +418,7 @@ const ScheduleButton = memo(({ canvasId }: ScheduleButtonProps) => {
             </div>
           )}
         </div>
-        <Switch checked={isEnabled} onChange={setIsEnabled} />
+        <Switch checked={isEnabled} onChange={handleSwitchChange} />
       </div>
 
       {/* Frequency buttons */}
@@ -508,16 +531,6 @@ const ScheduleButton = memo(({ canvasId }: ScheduleButtonProps) => {
         {t('schedule.viewHistory') || 'View History'}
         <ArrowRight className="w-4 h-4" />
       </Button>*/}
-
-      {/* Save button */}
-      <Button
-        type="primary"
-        block
-        loading={createScheduleMutation.isPending || updateScheduleMutation.isPending}
-        onClick={handleSave}
-      >
-        {t('common.save') || 'Save'}
-      </Button>
     </div>
   );
 
@@ -545,13 +558,16 @@ const ScheduleButton = memo(({ canvasId }: ScheduleButtonProps) => {
       >
         <Tooltip
           title={
-            toolbarLoading
-              ? t('shareContent.waitForAgentsToFinish')
-              : !skillResponseNodes?.length
-                ? t('shareContent.noSkillResponseNodes')
-                : isScheduled
-                  ? t('schedule.editSchedule') || 'Edit Schedule'
-                  : t('schedule.title') || 'Schedule'
+            open || !isHovered
+              ? ''
+              : // Only show tooltip when hovering and popover is not open
+                toolbarLoading
+                ? t('shareContent.waitForAgentsToFinish')
+                : !skillResponseNodes?.length
+                  ? t('shareContent.noSkillResponseNodes')
+                  : isScheduled
+                    ? t('schedule.editSchedule') || 'Edit Schedule'
+                    : t('schedule.title') || 'Schedule'
           }
           placement="top"
         >
@@ -561,6 +577,8 @@ const ScheduleButton = memo(({ canvasId }: ScheduleButtonProps) => {
               disabled ? 'cursor-not-allowed' : 'cursor-pointer hover:bg-refly-tertiary-hover',
             )}
             onClick={handleButtonClick}
+            onMouseEnter={() => setIsHovered(true)}
+            onMouseLeave={() => setIsHovered(false)}
           >
             <LuAlarmClock
               className={cn(
@@ -591,6 +609,32 @@ const ScheduleButton = memo(({ canvasId }: ScheduleButtonProps) => {
         <p>
           {t('schedule.limitReached.message') ||
             "You've reached the maximum number of scheduled workflows for your plan. You can manage or disable existing schedules to create a new one."}
+        </p>
+      </Modal>
+
+      {/* Deactivate Schedule Confirmation Modal */}
+      <Modal
+        title={t('schedule.deactivate.title') || 'Deactivate Schedule'}
+        open={deactivateModalVisible}
+        onCancel={() => setDeactivateModalVisible(false)}
+        centered
+        footer={[
+          <Button key="cancel" onClick={() => setDeactivateModalVisible(false)}>
+            {t('common.cancel') || 'Cancel'}
+          </Button>,
+          <Button
+            key="deactivate"
+            type="primary"
+            onClick={handleConfirmDeactivate}
+            className="!bg-gray-600 hover:!bg-gray-700 !border-gray-600"
+          >
+            {t('schedule.deactivate.confirm') || 'Deactivate'}
+          </Button>,
+        ]}
+      >
+        <p>
+          {t('schedule.deactivate.message') ||
+            'Are you sure you want to deactivate this schedule? The workflow will no longer run automatically until you activate it again.'}
         </p>
       </Modal>
     </>
