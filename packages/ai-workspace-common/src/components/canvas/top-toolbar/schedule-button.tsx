@@ -467,7 +467,7 @@ const ScheduleButton = memo(({ canvasId }: ScheduleButtonProps) => {
       </div>
 
       {/* Time picker and selection container */}
-      <div className="flex items-center gap-3 border border-gray-200 dark:border-gray-700 rounded-lg p-3">
+      <div className="flex items-center gap-3 border border-gray-200 dark:border-gray-700 rounded-lg">
         {/* Weekly selection */}
         {frequency === 'weekly' && (
           <div className="flex-1">
@@ -514,24 +514,34 @@ const ScheduleButton = memo(({ canvasId }: ScheduleButtonProps) => {
           </div>
         )}
 
-        {/* Daily selection placeholder */}
+        {/* Daily selection - time picker only, left aligned */}
         {frequency === 'daily' && (
-          <div className="flex-1 h-10">
-            <div className="h-full flex items-center text-gray-500 text-sm">
-              {t('schedule.daily') || 'Daily'}
-            </div>
-          </div>
+          <TimePicker
+            value={timeValue}
+            onChange={(val) => val && setTimeValue(val)}
+            format="HH:mm"
+            className="h-10 w-[180px]"
+            size="large"
+            allowClear={false}
+            popupClassName="schedule-timepicker-popup"
+          />
         )}
-        <Divider type="vertical" className="m-0 h-5 bg-refly-Card-Border" />
-        <TimePicker
-          value={timeValue}
-          onChange={(val) => val && setTimeValue(val)}
-          format="HH:mm"
-          className="flex-1 h-10 w-[188px]"
-          size="large"
-          allowClear={false}
-          popupClassName="schedule-timepicker-popup"
-        />
+
+        {/* Weekly and Monthly - with divider and time picker */}
+        {(frequency === 'weekly' || frequency === 'monthly') && (
+          <>
+            <Divider type="vertical" className="m-0 h-5 bg-refly-Card-Border" />
+            <TimePicker
+              value={timeValue}
+              onChange={(val) => val && setTimeValue(val)}
+              format="HH:mm"
+              className="flex-1 h-10 w-[188px]"
+              size="large"
+              allowClear={false}
+              popupClassName="schedule-timepicker-popup"
+            />
+          </>
+        )}
       </div>
 
       {/* Cost info */}
@@ -550,7 +560,16 @@ const ScheduleButton = memo(({ canvasId }: ScheduleButtonProps) => {
               setOpen(false); // Hide popover when opening modal
               setCreditInsufficientModalVisible(true, undefined, 'schedule');
             }}
-            className="!text-refly-primary-default hover:!text-refly-primary-hover flex-shrink-0 text-xs md:text-sm !p-1 !h-auto"
+            className="flex-shrink-0 text-xs md:text-sm !p-1 !h-auto"
+            style={{
+              color: '#1C1F23CC !important',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.color = '#1C1F23CC';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.color = '#1C1F23CC';
+            }}
           >
             {t('common.upgrade') || 'Upgrade'} &gt;
           </Button>
