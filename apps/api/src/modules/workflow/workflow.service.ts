@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../common/prisma.service';
 import {
   User,
@@ -52,6 +53,7 @@ export class WorkflowService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly redis: RedisService,
+    private readonly configService: ConfigService,
     private readonly skillService: SkillService,
     private readonly actionService: ActionService,
     private readonly canvasService: CanvasService,
@@ -839,11 +841,30 @@ export class WorkflowService {
                 }
               }
 
+              // Calculate credit usage for this execution
+              let creditUsed = 0;
+              try {
+                const rawCreditUsage =
+                  await this.creditService.countExecutionCreditUsageByExecutionId(
+                    user,
+                    executionId,
+                  );
+                // Apply markup from config
+                creditUsed = ceil(
+                  rawCreditUsage * this.configService.get('credit.executionCreditMarkup'),
+                );
+              } catch (creditErr: any) {
+                this.logger.warn(
+                  `[pollWorkflow] Failed to calculate credit usage: ${creditErr?.message}`,
+                );
+              }
+
               await this.prisma.scheduleRecord.update({
                 where: { scheduleRecordId: workflowExecution.scheduleRecordId },
                 data: {
                   status: newStatus === 'finish' ? 'success' : 'failed',
                   completedAt: new Date(),
+                  creditUsed,
                   ...(newStatus === 'failed' && {
                     failureReason,
                     errorDetails: JSON.stringify(errorDetails),
@@ -851,7 +872,7 @@ export class WorkflowService {
                 },
               });
               this.logger.log(
-                `[pollWorkflow] Synced ScheduleRecord ${workflowExecution.scheduleRecordId}: status=${newStatus === 'finish' ? 'success' : 'failed'}${newStatus === 'failed' ? `, reason=${failureReason}` : ''}`,
+                `[pollWorkflow] Synced ScheduleRecord ${workflowExecution.scheduleRecordId}: status=${newStatus === 'finish' ? 'success' : 'failed'}, creditUsed=${creditUsed}${newStatus === 'failed' ? `, reason=${failureReason}` : ''}`,
               );
             } catch (syncErr: any) {
               this.logger.warn(
