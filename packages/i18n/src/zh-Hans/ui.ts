@@ -2099,7 +2099,7 @@ const translations = {
       oauthTimeout: '授权超时，请重试',
       authorizing: '授权中...',
     },
-    toolsDepencency: {
+    workflowDepencency: {
       title: '工作流就绪检查',
       description: '工具依赖将显示在此处',
       uninstalledToolsCount: '{{count}}个工作流问题',

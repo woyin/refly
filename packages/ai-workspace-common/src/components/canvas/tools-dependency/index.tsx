@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import {
   useListUserTools,
   useGetCanvasData,
+  useGetCreditUsageByCanvasId,
 } from '@refly-packages/ai-workspace-common/queries/queries';
 import { GenericToolset, RawCanvasData, ToolsetDefinition, UserTool } from '@refly/openapi-schema';
 import EmptyImage from '@refly-packages/ai-workspace-common/assets/noResource.svg';
@@ -23,7 +24,13 @@ import { RiPulseLine } from 'react-icons/ri';
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
 import { toolsetEmitter } from '@refly-packages/ai-workspace-common/events/toolset';
 import { NodeStatusChecker } from './node-status-checker';
-
+import { useSubscriptionUsage } from '@refly-packages/ai-workspace-common/hooks/use-subscription-usage';
+import { useSubscriptionStoreShallow } from '@refly/stores';
+import { useRealtimeCanvasData } from '@refly-packages/ai-workspace-common/hooks/canvas/use-realtime-canvas-data';
+import { IoIosWarning } from 'react-icons/io';
+import { useVariablesManagement } from '@refly-packages/ai-workspace-common/hooks/use-variables-management';
+import { CreateVariablesModal } from '@refly-packages/ai-workspace-common/components/canvas/workflow-variables';
+import { RiErrorWarningFill } from 'react-icons/ri';
 /**
  * Check if a toolset is authorized/installed
  * - External OAuth tools: need authorization (check userTools.authorized)
@@ -177,7 +184,7 @@ const ReferencedNodesDisplay = React.memo(({ nodes }: { nodes: Array<ReferencedN
   return (
     <div className="px-2 py-1 bg-refly-bg-control-z0 rounded-lg mt-3 flex items-center gap-1">
       <div className="text-refly-text-2 text-xs leading-4 flex-shrink-0 whitespace-nowrap">
-        {t('canvas.toolsDepencency.referencedNodes')}:
+        {t('canvas.workflowDepencency.referencedNodes')}:
       </div>
       <div ref={containerRef} className="flex items-center min-w-0 flex-1 overflow-hidden">
         {visibleNodes.map((node, index) => (
@@ -269,6 +276,172 @@ const NoticeBlock = React.memo(
 
 NoticeBlock.displayName = 'NoticeBlock';
 
+// Custom hook to get failed/unrun nodes count without rendering UI
+const useFailedNodesCount = () => {
+  const { nodes } = useRealtimeCanvasData();
+
+  return useMemo(() => {
+    const skillResponseNodes = nodes?.filter((node) => node.type === 'skillResponse') ?? [];
+
+    const failedOrUnrunNodes = skillResponseNodes
+      .map((node) => {
+        const status = (node.data?.metadata as any)?.status;
+        if (
+          status === 'failed' ||
+          status === 'init' ||
+          (status !== 'running' && status !== 'success')
+        ) {
+          return { id: node.id, status };
+        }
+        return null;
+      })
+      .filter(Boolean);
+
+    return failedOrUnrunNodes.length;
+  }, [nodes]);
+};
+
+// Custom hook to get required inputs that are not filled
+const useRequiredInputsCheck = (canvasId: string) => {
+  const { data: workflowVariables, isLoading } = useVariablesManagement(canvasId);
+
+  console.log('🔍 [Debug] useVariablesManagement result:', {
+    canvasId,
+    isLoading,
+    hasData: !!workflowVariables,
+    dataLength: workflowVariables?.length,
+  });
+
+  return useMemo(() => {
+    console.log('🔍 [Debug] useRequiredInputsCheck:', {
+      canvasId,
+      workflowVariables,
+      variablesCount: workflowVariables?.length || 0,
+      allVariables: workflowVariables?.map((v) => ({
+        name: v.name,
+        required: v.required,
+        variableId: v.variableId,
+        value: v.value,
+        hasValue: v.value && v.value.length > 0,
+        valueDetails: v.value?.map((val) => ({
+          text: val.text,
+          resource: val.resource,
+          hasContent: !!val.text || !!val.resource,
+        })),
+      })),
+    });
+
+    const requiredVariables =
+      workflowVariables?.filter((variable) => {
+        const isRequired = variable.required;
+        const hasNoValue = !variable.value || variable.value.length === 0;
+        const hasEmptyValue = variable.value?.every((v) => !v.text && !v.resource);
+        const shouldInclude = isRequired && (hasNoValue || hasEmptyValue);
+
+        console.log('🔍 [Debug] Variable check:', {
+          name: variable.name,
+          isRequired,
+          hasNoValue,
+          hasEmptyValue,
+          shouldInclude,
+          value: variable.value,
+        });
+
+        return shouldInclude;
+      }) ?? [];
+
+    console.log('🔍 [Debug] Required variables result:', {
+      requiredVariablesCount: requiredVariables.length,
+      requiredVariables: requiredVariables.map((v) => ({ name: v.name, variableId: v.variableId })),
+    });
+
+    return {
+      count: requiredVariables.length,
+      variables: requiredVariables,
+    };
+  }, [workflowVariables]);
+};
+
+// Credit Insufficient Block component for showing insufficient credits warning
+const CreditInsufficientBlock = React.memo(
+  ({
+    creditUsage,
+    onUpgradeClick,
+  }: {
+    creditUsage: number;
+    onUpgradeClick: () => void;
+  }) => {
+    const { t } = useTranslation();
+
+    return (
+      <div className="flex items-center gap-3 px-4 py-3 bg-transparent rounded-xl border border-solid border-[1px] border-refly-Card-Border">
+        <div className="flex items-center gap-2 flex-1 min-w-0">
+          <div className="flex items-center gap-1 text-refly-func-danger-default text-sm leading-5 whitespace-nowrap">
+            <IoIosWarning size={26} color="#fc8800" />
+          </div>
+          <span className="text-refly-text-0 text-sm leading-5 whitespace-nowrap font-medium">
+            {t('canvas.workflowDependency.notEnoughCredits', 'Not enough credits to run')}
+          </span>
+          <span className="text-refly-text-2 text-sm leading-5 whitespace-nowrap">
+            {t('canvas.workflowDependency.runCost', 'Run cost: {{cost}}', { cost: creditUsage })}
+          </span>
+        </div>
+        <Button
+          className="text-white bg-refly-text-0 text-sm leading-5 font-semibold cursor-pointer active:bg-refly-text-2 whitespace-nowrap px-4 py-2 rounded-lg h-auto"
+          size="small"
+          onClick={onUpgradeClick}
+        >
+          {t('canvas.workflowDependency.upgrade', 'Upgrade')}
+        </Button>
+      </div>
+    );
+  },
+);
+
+CreditInsufficientBlock.displayName = 'CreditInsufficientBlock';
+
+// Required Input Block component for showing required inputs that are not filled
+const RequiredInputBlock = React.memo(
+  ({
+    variable,
+    onConfigureClick,
+  }: {
+    variable: any; // WorkflowVariable type
+    onConfigureClick: (variable: any) => void;
+  }) => {
+    const { t } = useTranslation();
+
+    return (
+      <div className="flex items-center gap-3 px-4 py-3 bg-transparent rounded-xl border border-solid border-[1px] border-refly-Card-Border">
+        <div className="flex items-center gap-2 flex-1 min-w-0">
+          <div className="flex items-center gap-1 text-refly-func-danger-default text-sm leading-5 whitespace-nowrap">
+            <RiErrorWarningFill size={26} color="#f93920" />
+          </div>
+          <span className="text-refly-text-0 text-sm leading-5 whitespace-nowrap font-medium">
+            Input
+          </span>
+          <span className="text-refly-text-2 text-sm leading-5 whitespace-nowrap">
+            {t(
+              'canvas.workflowDependency.requiredInputNotFilled',
+              'Required input not filled: {{input_name}}',
+              { input_name: variable.name },
+            )}
+          </span>
+        </div>
+        <Button
+          className="text-white bg-refly-text-0 text-sm leading-5 font-semibold cursor-pointer active:bg-refly-text-2 whitespace-nowrap px-4 py-2 rounded-lg h-auto"
+          size="small"
+          onClick={() => onConfigureClick(variable)}
+        >
+          {t('canvas.workflowDependency.configure', 'Configure')}
+        </Button>
+      </div>
+    );
+  },
+);
+
+RequiredInputBlock.displayName = 'RequiredInputBlock';
+
 const EmptyContent = (props: { searchTerm: string }) => {
   const { searchTerm } = props;
   const { t } = useTranslation();
@@ -281,8 +454,8 @@ const EmptyContent = (props: { searchTerm: string }) => {
       />
       <div className="text-center text-refly-text-2 text-sm">
         {searchTerm
-          ? t('canvas.toolsDepencency.noSearchResults')
-          : t('canvas.toolsDepencency.noToolsDependency')}
+          ? t('canvas.workflowDepencency.noSearchResults')
+          : t('canvas.workflowDepencency.noToolsDependency')}
       </div>
     </div>
   );
@@ -303,6 +476,7 @@ const ToolsDependencyContent = React.memo(
     isLoading = false,
     canvasId,
     onFailedNodesCountChange,
+    creditUsage,
   }: {
     uninstalledCount: number;
     handleClose: () => void;
@@ -317,12 +491,41 @@ const ToolsDependencyContent = React.memo(
     isLoading?: boolean;
     canvasId?: string;
     onFailedNodesCountChange?: (count: number) => void;
+    creditUsage?: number;
   }) => {
     const { t, i18n } = useTranslation();
     const currentLanguage = i18n.language;
 
+    // State for managing CreateVariablesModal
+    const [createVariableModalVisible, setCreateVariableModalVisible] = useState(false);
+    const [selectedVariable, setSelectedVariable] = useState<any>(null);
+
+    // Get required inputs check
+    const requiredInputsCheck = useRequiredInputsCheck(canvasId || '');
+
+    console.log('🔍 [Debug] ToolsDependencyContent render:', {
+      canvasId,
+      requiredInputsCheckCount: requiredInputsCheck.count,
+      requiredInputsCheckVariables: requiredInputsCheck.variables,
+      hasCanvasId: !!canvasId,
+    });
+
     const { openInstallToolByKey } = useOpenInstallTool();
     const { openInstallMcp } = useOpenInstallMcp();
+
+    // Get credit balance and subscription store
+    const { creditBalance, isBalanceSuccess } = useSubscriptionUsage();
+    const { setCreditInsufficientModalVisible } = useSubscriptionStoreShallow((state) => ({
+      setCreditInsufficientModalVisible: state.setCreditInsufficientModalVisible,
+    }));
+
+    // Check if credits are insufficient
+    const isCreditInsufficient = useMemo(() => {
+      if (!isLogin || !isBalanceSuccess || !creditUsage) return false;
+      const requiredCredits = Number(creditUsage);
+      const isRequiredCreditsValid = Number.isFinite(requiredCredits) && requiredCredits > 0;
+      return isRequiredCreditsValid && creditBalance < requiredCredits;
+    }, [isLogin, isBalanceSuccess, creditUsage, creditBalance]);
 
     // Helper function to get complete toolset definition
     const getToolsetDefinition = useCallback(
@@ -357,16 +560,31 @@ const ToolsDependencyContent = React.memo(
       [openInstallToolByKey, openInstallMcp, setOpen],
     );
 
+    const handleCreditUpgrade = useCallback(() => {
+      setCreditInsufficientModalVisible(true, undefined, 'canvas');
+      setOpen(false);
+    }, [setCreditInsufficientModalVisible, setOpen]);
+
+    const handleConfigureVariable = useCallback((variable: any) => {
+      setSelectedVariable(variable);
+      setCreateVariableModalVisible(true);
+    }, []);
+
+    const handleCloseVariableModal = useCallback(() => {
+      setCreateVariableModalVisible(false);
+      setSelectedVariable(null);
+    }, []);
+
     return (
       <div className="flex flex-col gap-3 md:gap-4 w-[calc(100vw-32px)] max-w-[480px] p-4 md:p-6">
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-1 min-w-0 flex-1">
             <div className="text-base md:text-lg font-semibold truncate">
-              {t('canvas.toolsDepencency.title')}
+              {t('canvas.workflowDepencency.title')}
             </div>
             {uninstalledCount > 0 && isLogin && (
               <div className="max-w-[120px] md:max-w-[200px] truncate bg-refly-Colorful-red-light text-refly-func-danger-default rounded-[99px] px-2 text-xs leading-[18px] flex-shrink-0">
-                {t('canvas.toolsDepencency.uninstalledToolsCount', {
+                {t('canvas.workflowDepencency.uninstalledToolsCount', {
                   count: uninstalledCount,
                 })}
               </div>
@@ -380,8 +598,34 @@ const ToolsDependencyContent = React.memo(
           />
         </div>
 
-        {isLoading ? null : totalCount > 0 ? (
+        {isLoading ? null : (
           <>
+            {/* Credit Insufficient Check */}
+            {isCreditInsufficient && creditUsage && (
+              <CreditInsufficientBlock
+                creditUsage={creditUsage}
+                onUpgradeClick={handleCreditUpgrade}
+              />
+            )}
+
+            {/* Required Inputs Check */}
+            {canvasId &&
+              requiredInputsCheck.variables.map((variable) => {
+                console.log('🔍 [Debug] Rendering RequiredInputBlock for variable:', {
+                  variableId: variable.variableId,
+                  name: variable.name,
+                  required: variable.required,
+                  value: variable.value,
+                });
+                return (
+                  <RequiredInputBlock
+                    key={variable.variableId}
+                    variable={variable}
+                    onConfigureClick={handleConfigureVariable}
+                  />
+                );
+              })}
+
             {/* Node Status Checker */}
             {canvasId && (
               <NodeStatusChecker
@@ -391,11 +635,9 @@ const ToolsDependencyContent = React.memo(
             )}
 
             {/* Tools List */}
-            <div className="max-h-[400px] overflow-y-auto space-y-2 md:space-y-3">
-              {currentTools.length === 0 ? (
-                <EmptyContent searchTerm="" />
-              ) : (
-                currentTools.map(({ toolset, referencedNodes }) => {
+            {totalCount > 0 && currentTools.length > 0 && (
+              <div className="max-h-[400px] overflow-y-auto space-y-2 md:space-y-3">
+                {currentTools.map(({ toolset, referencedNodes }) => {
                   const isInstalled = isToolsetAuthorized(toolset, userTools);
                   const toolsetDefinition = getToolsetDefinition(toolset);
                   const description =
@@ -447,8 +689,8 @@ const ToolsDependencyContent = React.memo(
                                 )}
                               >
                                 {isInstalled
-                                  ? t('canvas.toolsDepencency.installed')
-                                  : t('canvas.toolsDepencency.uninstalled')}
+                                  ? t('canvas.workflowDepencency.installed')
+                                  : t('canvas.workflowDepencency.uninstalled')}
                               </div>
                             )}
                           </div>
@@ -464,7 +706,7 @@ const ToolsDependencyContent = React.memo(
                             className="text-refly-primary-default hover:!text-refly-primary-hover flex-shrink-0 text-xs md:text-sm"
                             onClick={() => handleInstallTool(toolset)}
                           >
-                            {t('canvas.toolsDepencency.goToInstall')}
+                            {t('canvas.workflowDepencency.goToInstall')}
                           </Button>
                         )}
                       </div>
@@ -475,12 +717,26 @@ const ToolsDependencyContent = React.memo(
                       )}
                     </div>
                   );
-                })
-              )}
-            </div>
+                })}
+              </div>
+            )}
+
+            {/* Show empty content only if no tools and no other issues */}
+            {totalCount === 0 &&
+              !isCreditInsufficient &&
+              !canvasId &&
+              requiredInputsCheck.count === 0 && <EmptyContent searchTerm="" />}
           </>
-        ) : (
-          <EmptyContent searchTerm="" />
+        )}
+
+        {/* Create Variables Modal */}
+        {createVariableModalVisible && selectedVariable && (
+          <CreateVariablesModal
+            visible={createVariableModalVisible}
+            onCancel={handleCloseVariableModal}
+            defaultValue={selectedVariable}
+            mode="edit"
+          />
         )}
       </div>
     );
@@ -492,11 +748,13 @@ export const ToolsDependencyChecker = ({
   externalOpen,
   highlightInstallButtons,
   onOpenChange,
+  creditUsage,
 }: {
   canvasData?: RawCanvasData;
   externalOpen?: boolean;
   highlightInstallButtons?: boolean;
   onOpenChange?: (open: boolean) => void;
+  creditUsage?: number;
 }) => {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
@@ -706,6 +964,7 @@ export const ToolsDependencyChecker = ({
           isLoading={toolsLoading}
           canvasId={undefined}
           onFailedNodesCountChange={undefined}
+          creditUsage={creditUsage}
         />
       }
       arrow={false}
@@ -737,11 +996,33 @@ export const ToolsDependency = ({
   onOpenChange?: (open: boolean) => void;
 }) => {
   const [open, setOpen] = useState(false);
-  const [failedNodesCount, setFailedNodesCount] = useState(0);
   const { isLogin } = useUserStoreShallow((state) => ({
     isLogin: state.isLogin,
   }));
   const { shareData, readonly } = useCanvasContext();
+
+  // Get failed nodes count using custom hook
+  const failedNodesCount = useFailedNodesCount();
+
+  // Get required inputs check
+  const requiredInputsCheck = useRequiredInputsCheck(canvasId);
+
+  // Get credit balance for checking insufficient credits
+  const { creditBalance, isBalanceSuccess } = useSubscriptionUsage();
+
+  // Get credit usage estimation for this canvas
+  const { data: creditUsageData } = useGetCreditUsageByCanvasId(
+    {
+      query: { canvasId },
+    },
+    undefined,
+    {
+      enabled: !!canvasId && isLogin,
+      refetchOnWindowFocus: false,
+    },
+  );
+
+  const estimatedCreditUsage = creditUsageData?.data?.total ?? 0;
 
   const { data: canvasResponse, isLoading: canvasLoading } = useGetCanvasData(
     { query: { canvasId } },
@@ -865,6 +1146,14 @@ export const ToolsDependency = ({
 
   const currentTools = categorizedTools.uninstalled || [];
 
+  // Check if credits are insufficient
+  const isCreditInsufficient = useMemo(() => {
+    if (!isLogin || !isBalanceSuccess) return false;
+    const requiredCredits = Number(estimatedCreditUsage);
+    const isRequiredCreditsValid = Number.isFinite(requiredCredits) && requiredCredits > 0;
+    return isRequiredCreditsValid && creditBalance < requiredCredits;
+  }, [isLogin, isBalanceSuccess, estimatedCreditUsage, creditBalance]);
+
   const totalIssuesCount = useMemo(() => {
     let baseUninstalledCount = 0;
     if (isLogin && toolsetsWithNodes.length > 0) {
@@ -872,15 +1161,39 @@ export const ToolsDependency = ({
         return !isToolsetAuthorized(tool.toolset, userTools);
       }).length;
     }
-    // merge failed node count into total count
-    return baseUninstalledCount + failedNodesCount;
-  }, [isLogin, userTools, toolsetsWithNodes, failedNodesCount]);
+    // Add credit insufficient count (1 if insufficient, 0 if not)
+    const creditInsufficientCount = isCreditInsufficient ? 1 : 0;
+    // Add required inputs count
+    const requiredInputsCount = requiredInputsCheck.count;
+
+    console.log('🔍 [Debug] totalIssuesCount calculation (ToolsDependency):', {
+      canvasId,
+      baseUninstalledCount,
+      failedNodesCount,
+      creditInsufficientCount,
+      requiredInputsCount,
+      isCreditInsufficient,
+      isLogin,
+      total:
+        baseUninstalledCount + failedNodesCount + creditInsufficientCount + requiredInputsCount,
+    });
+
+    // merge all counts into total count
+    return baseUninstalledCount + failedNodesCount + creditInsufficientCount + requiredInputsCount;
+  }, [
+    isLogin,
+    userTools,
+    toolsetsWithNodes,
+    failedNodesCount,
+    isCreditInsufficient,
+    requiredInputsCheck.count,
+  ]);
 
   const handleClose = useCallback(() => {
     handlePopoverOpenChange(false);
   }, [handlePopoverOpenChange]);
 
-  // Only show the tools dependency button if there are uninstalled tools or failed nodes
+  // Only show the tools dependency button if there are uninstalled tools, failed nodes, or insufficient credits
   if (totalIssuesCount === 0) {
     return null;
   }
@@ -913,7 +1226,8 @@ export const ToolsDependency = ({
           highlightInstallButtons={highlightInstallButtons}
           isLoading={canvasLoading || toolsLoading}
           canvasId={canvasId}
-          onFailedNodesCountChange={setFailedNodesCount}
+          onFailedNodesCountChange={undefined}
+          creditUsage={estimatedCreditUsage}
         />
       }
       arrow={false}

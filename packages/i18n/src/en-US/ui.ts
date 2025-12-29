@@ -1970,7 +1970,7 @@ const translations = {
       oauthTimeout: 'Authorization timeout, please try again',
       authorizing: 'Authorizing...',
     },
-    toolsDepencency: {
+    workflowDepencency: {
       title: 'Workflow readiness check',
       description: 'Tool dependencies will be displayed here',
       uninstalledToolsCount: '{{count}} workflow issues',

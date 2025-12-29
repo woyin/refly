@@ -44,8 +44,13 @@ export const NodeStatusChecker: React.FC<NodeStatusCheckerProps> = ({
         const title = node.data?.title || `Agent ${node.id}`;
         const entityId = node.data?.entityId || node.id;
 
-        // check status: failed, init, or undefined are considered nodes to process
-        if (status === 'failed' || status === 'init' || !status) {
+        // check status: failed, init, or any status that's not running/success are considered nodes to process
+        // This should match the logic in useFailedNodesCount
+        if (
+          status === 'failed' ||
+          status === 'init' ||
+          (status !== 'running' && status !== 'success')
+        ) {
           return {
             id: node.id,
             entityId,
@@ -113,7 +118,6 @@ export const NodeStatusChecker: React.FC<NodeStatusCheckerProps> = ({
   if (failedOrUnrunNodes.length === 0) {
     return null;
   }
-
   return (
     <div className="space-y-2 md:space-y-3">
       {failedOrUnrunNodes.map((node) => {

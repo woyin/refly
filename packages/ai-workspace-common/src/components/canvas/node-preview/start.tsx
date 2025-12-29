@@ -181,6 +181,25 @@ const VariableTypeSection = ({
   const [showFileUploadError, setShowFileUploadError] = useState(false);
   const { setVariables } = useVariablesManagement(canvasId);
 
+  console.log('🔍 [Debug] VariableTypeSection props:', {
+    canvasId,
+    type,
+    variables: variables.map((v) => ({
+      name: v.name,
+      required: v.required,
+      variableId: v.variableId,
+      value: v.value,
+      hasValue: v.value && v.value.length > 0,
+      valueDetails: v.value?.map((val) => ({
+        text: val.text,
+        resource: val.resource,
+        hasContent: !!val.text || !!val.resource,
+      })),
+    })),
+    totalVariables: totalVariables.length,
+    readonly,
+  });
+
   // Handle auto-edit when variable is passed
   useEffect(() => {
     if (autoEditVariable) {
@@ -292,6 +311,26 @@ export const StartNodePreview = () => {
   const { setNodePreview } = useCanvasStoreShallow((state) => ({
     setNodePreview: state.setNodePreview,
   }));
+
+  console.log('🔍 [Debug] StartNodePreview variables:', {
+    canvasId,
+    variables,
+    variablesCount: variables?.length || 0,
+    isLoading: variablesLoading,
+    shareData: shareData?.variables,
+    allVariables: variables?.map((v) => ({
+      name: v.name,
+      required: v.required,
+      variableId: v.variableId,
+      value: v.value,
+      hasValue: v.value && v.value.length > 0,
+      valueDetails: v.value?.map((val) => ({
+        text: val.text,
+        resource: val.resource,
+        hasContent: !!val.text || !!val.resource,
+      })),
+    })),
+  });
 
   const workflowVariables = shareData?.variables ?? variables;
   const workflowVariablesLoading = shareLoading || variablesLoading;
