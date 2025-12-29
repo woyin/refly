@@ -222,7 +222,7 @@ export const RunHistoryFilters = memo(
             filteredTools.map((tool) => (
               <div
                 key={tool.id}
-                className="px-3 h-[36px] flex items-center hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
+                className="px-3 h-[40px] flex items-center hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
                 onClick={() => handleToolToggle(tool.id)}
               >
                 <Checkbox checked={selectedTools.includes(tool.id)} className="mr-2" />
@@ -233,7 +233,7 @@ export const RunHistoryFilters = memo(
               </div>
             ))
           ) : (
-            <div className="px-3 h-[36px] flex items-center text-gray-400 text-sm">
+            <div className="px-3 h-[40px] flex items-center text-gray-400 text-sm">
               {t('runHistory.filters.noTools')}
             </div>
           )}

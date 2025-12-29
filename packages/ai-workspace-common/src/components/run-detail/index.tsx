@@ -6,8 +6,12 @@ import { Canvas, SnapshotData } from '@refly-packages/ai-workspace-common/compon
 import { RunDetailInfo } from '@refly-packages/ai-workspace-common/components/canvas/run-detail-panel';
 import { Spin } from '@refly-packages/ai-workspace-common/components/common/spin';
 import { useDuplicateCanvas } from '@refly-packages/ai-workspace-common/hooks/use-duplicate-canvas';
+import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
+import { logEvent } from '@refly/telemetry-web';
 import EmptyImage from '@refly-packages/ai-workspace-common/assets/noResource.svg';
 import './index.scss';
+
+export type RunDetailType = 'workflow' | 'template' | 'schedule';
 
 interface ScheduleRecordDetail {
   scheduleRecordId: string;
@@ -15,6 +19,7 @@ interface ScheduleRecordDetail {
   workflowExecutionId?: string;
   uid: string;
   canvasId: string;
+  sourceCanvasId?: string;
   workflowTitle: string;
   usedTools?: string;
   status: string;
@@ -29,18 +34,32 @@ interface ScheduleRecordDetail {
 
 interface RunDetailProps {
   recordId: string;
+  type?: RunDetailType;
 }
 
-const RunDetail = memo(({ recordId }: RunDetailProps) => {
+const RunDetail = memo(({ recordId, type = 'schedule' }: RunDetailProps) => {
   const { t } = useTranslation();
 
   const [loading, setLoading] = useState(true);
-  const [snapshotLoading, setSnapshotLoading] = useState(false);
+  const [canvasDataLoading, setCanvasDataLoading] = useState(false);
   const [record, setRecord] = useState<ScheduleRecordDetail | null>(null);
-  const [snapshot, setSnapshot] = useState<SnapshotData | null>(null);
+  const [canvasData, setCanvasData] = useState<SnapshotData | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const { duplicateCanvas, loading: duplicateLoading } = useDuplicateCanvas();
+
+  // Log run_detail_view event when record is loaded
+  useEffect(() => {
+    if (record) {
+      logEvent('run_detail_view', Date.now(), {
+        type,
+        recordId,
+        canvasId: record.canvasId,
+        sourceCanvasId: record.sourceCanvasId,
+        status: record.status,
+      });
+    }
+  }, [record, type, recordId]);
 
   // Fetch record detail
   useEffect(() => {
@@ -73,47 +92,50 @@ const RunDetail = memo(({ recordId }: RunDetailProps) => {
     fetchRecordDetail();
   }, [recordId, t]);
 
-  // Fetch snapshot data after record is loaded
-  // Always try to fetch snapshot, even for failed runs
+  // Fetch canvas data directly using canvasId from record
   useEffect(() => {
-    const fetchSnapshot = async () => {
-      if (!record) return;
+    const fetchCanvasData = async () => {
+      if (!record?.canvasId) return;
 
-      // Try to fetch snapshot regardless of status or snapshotStorageKey
-      // The backend will return the snapshot if it exists
-      setSnapshotLoading(true);
+      setCanvasDataLoading(true);
 
       try {
-        const response = await client.post({
-          url: '/schedule/record/snapshot',
-          body: { scheduleRecordId: recordId },
+        const response = await getClient().getCanvasData({
+          query: { canvasId: record.canvasId },
         });
 
-        const responseData = (response.data as any)?.data;
+        const responseData = response.data?.data;
         if (responseData) {
-          // Ensure the snapshot has the title from record for display
-          const snapshotWithTitle = {
-            ...responseData,
-            title: responseData.title || record.workflowTitle || record.scheduleName,
-          };
-          setSnapshot(snapshotWithTitle as SnapshotData);
+          setCanvasData({
+            title: responseData.title || record.workflowTitle,
+            nodes: responseData.nodes || [],
+            edges: responseData.edges || [],
+          } as SnapshotData);
         }
       } catch (err) {
-        console.error('Failed to fetch snapshot:', err);
-        // Snapshot error is not critical, we can still show a message
+        console.error('Failed to fetch canvas data:', err);
+        // Canvas data error is not critical, we can still show the record info
       } finally {
-        setSnapshotLoading(false);
+        setCanvasDataLoading(false);
       }
     };
 
-    fetchSnapshot();
-  }, [record, recordId]);
+    fetchCanvasData();
+  }, [record?.canvasId]);
 
   const handleDuplicate = useCallback(() => {
     if (!record?.canvasId) {
       message.error(t('runDetail.duplicateFailed'));
       return;
     }
+
+    // Log run_make_copy event
+    logEvent('run_make_copy', Date.now(), {
+      type,
+      recordId,
+      canvasId: record.canvasId,
+      sourceCanvasId: record.sourceCanvasId,
+    });
 
     duplicateCanvas({
       canvasId: record.canvasId,
@@ -123,9 +145,10 @@ const RunDetail = memo(({ recordId }: RunDetailProps) => {
         message.success(t('runDetail.duplicateSuccess'));
       },
     });
-  }, [record, duplicateCanvas, t]);
+  }, [record, duplicateCanvas, t, type, recordId]);
 
   // Build runDetailInfo from record
+  // Use sourceCanvasId for navigation to the original canvas (template)
   const runDetailInfo: RunDetailInfo | undefined = record
     ? {
         status: record.status,
@@ -133,7 +156,7 @@ const RunDetail = memo(({ recordId }: RunDetailProps) => {
         completedAt: record.completedAt,
         creditUsed: record.creditUsed,
         failureReason: record.failureReason,
-        canvasId: record.canvasId,
+        canvasId: record.sourceCanvasId || record.canvasId,
         workflowTitle: record.workflowTitle,
       }
     : undefined;
@@ -160,15 +183,15 @@ const RunDetail = memo(({ recordId }: RunDetailProps) => {
 
   return (
     <div className="run-detail w-full h-full flex flex-col overflow-hidden">
-      {snapshotLoading ? (
+      {canvasDataLoading ? (
         <div className="w-full h-full flex items-center justify-center bg-refly-bg-main-z1">
           <Spin size="large" />
         </div>
-      ) : snapshot ? (
+      ) : canvasData ? (
         <Canvas
           canvasId={record.canvasId}
           readonly
-          snapshotData={snapshot}
+          snapshotData={canvasData}
           hideLogoButton
           runDetailInfo={runDetailInfo}
           onDuplicate={handleDuplicate}

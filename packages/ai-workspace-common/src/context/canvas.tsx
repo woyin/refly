@@ -155,6 +155,7 @@ const getInternalState = ({
 };
 
 export interface SnapshotData {
+  title?: string;
   nodes: CanvasNode[];
   edges: CanvasEdge[];
 }

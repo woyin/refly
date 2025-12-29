@@ -254,9 +254,9 @@ export class ScheduleService {
   ) {
     const where: any = { uid };
 
-    // Filter by canvasId
+    // Filter by sourceCanvasId (the original canvas, not the cloned execution canvas)
     if (canvasId) {
-      where.canvasId = canvasId;
+      where.sourceCanvasId = canvasId;
     }
 
     // Filter by status - only show completed records (success/failed) by default

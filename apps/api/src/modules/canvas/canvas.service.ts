@@ -35,6 +35,7 @@ import {
   genResourceID,
   genCodeArtifactID,
   batchReplaceRegex,
+  genCanvasVersionId,
 } from '@refly/utils';
 import { DeleteKnowledgeEntityJobData } from '../knowledge/knowledge.dto';
 import { QUEUE_DELETE_KNOWLEDGE_ENTITY, QUEUE_POST_DELETE_CANVAS } from '../../utils/const';
@@ -672,9 +673,27 @@ export class CanvasService {
     return updatedCanvas;
   }
 
-  async createCanvas(user: User, param: UpsertCanvasRequest) {
+  async createCanvas(
+    user: User,
+    param: UpsertCanvasRequest,
+    options?: { skipDefaultNodes?: boolean },
+  ) {
     // Use the canvasId from param if provided, otherwise generate a new one
     param.canvasId ||= genCanvasID();
+
+    // Skip default nodes for workflow execution canvases
+    if (options?.skipDefaultNodes) {
+      const state: CanvasState = {
+        version: genCanvasVersionId(),
+        nodes: [],
+        edges: [],
+        transactions: [],
+        history: [],
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+      };
+      return this.createCanvasWithState(user, param, state);
+    }
 
     // Get default agent model for the initial skillResponse node
     const defaultAgentItem = await this.providerService.findDefaultProviderItem(user, 'agent');

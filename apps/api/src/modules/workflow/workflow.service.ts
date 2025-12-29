@@ -151,12 +151,16 @@ export class WorkflowService {
 
     // Note: Canvas creation is now handled on the frontend to avoid version conflicts
     if (createNewCanvas) {
-      const newCanvas = await this.canvasService.createCanvas(user, {
-        canvasId: canvasId,
-        title: canvasData.title,
-        variables: finalVariables,
-        visibility: false, // Workflow execution result canvas should not be visible
-      });
+      const newCanvas = await this.canvasService.createCanvas(
+        user,
+        {
+          canvasId: canvasId,
+          title: canvasData.title,
+          variables: finalVariables,
+          visibility: false, // Workflow execution result canvas should not be visible
+        },
+        { skipDefaultNodes: true }, // Skip default start/skillResponse nodes for workflow execution
+      );
       finalVariables = safeParseJSON(newCanvas.workflow)?.variables ?? [];
     } else {
       finalVariables = await this.canvasService.updateWorkflowVariables(user, {

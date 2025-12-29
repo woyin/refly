@@ -1,5 +1,5 @@
 import { memo, useMemo, useState, useCallback } from 'react';
-import { Tag, Popover, Switch, Button, message, TimePicker } from 'antd';
+import { Popover, Switch, Button, message, TimePicker } from 'antd';
 import { ArrowRight, Play } from 'lucide-react';
 import { WorkflowSchedule } from '@refly/openapi-schema';
 import { client } from '@refly/openapi-schema';
@@ -191,37 +191,48 @@ export const ScheduleColumn = memo(
       const config = parseScheduleConfig(schedule.scheduleConfig);
       const typeLabel =
         config?.type === 'daily'
-          ? 'Daily'
+          ? t('schedule.daily')
           : config?.type === 'weekly'
-            ? 'Weekly'
+            ? t('schedule.weekly')
             : config?.type === 'monthly'
-              ? 'Monthly'
-              : 'Schedule';
+              ? t('schedule.monthly')
+              : t('schedule.title');
       const enabled = schedule.isEnabled ?? false;
 
       return {
         label: typeLabel,
         isEnabled: enabled,
       };
-    }, [schedule]);
+    }, [schedule, t]);
 
     // Render badge
     const renderBadge = () => {
       if (!scheduleDisplay) {
-        return <span className="text-gray-400">-</span>;
+        return null;
       }
 
       const { label, isEnabled: enabled } = scheduleDisplay;
 
       return (
-        <Tag
-          color={enabled ? 'cyan' : 'default'}
-          className={`text-xs m-0 ${enabled ? 'bg-teal-500 text-white border-teal-500' : 'bg-gray-100 text-gray-500'}`}
-        >
-          {label} {enabled ? 'ON' : 'OFF'}
-        </Tag>
+        <div className="flex items-center gap-1 bg-[#F6F6F6] rounded-[6px] px-2 h-[26px]">
+          <span className="text-xs font-normal leading-[18px] text-refly-text-0">{label}</span>
+          <span
+            className={`px-1 py-0.5 flex items-center text-[9px] font-bold leading-[11px] rounded-sm ${
+              enabled
+                ? 'bg-refly-primary-default text-refly-bg-body-z0'
+                : 'bg-[#E6E8EA] text-refly-text-3'
+            }`}
+          >
+            {enabled ? t('schedule.status.on') : t('schedule.status.off')}
+          </span>
+        </div>
       );
     };
+
+    // If no schedule, show "-" without popover
+    if (!schedule?.scheduleId) {
+      return <span className="text-gray-400 select-none">-</span>;
+    }
 
     // Popover content
     const popoverContent = (
@@ -326,7 +337,7 @@ export const ScheduleColumn = memo(
         overlayClassName="schedule-popover"
       >
         <div
-          className="flex items-center gap-1 cursor-pointer hover:opacity-70 transition-opacity"
+          className="flex items-center gap-1 cursor-pointer hover:opacity-70 transition-opacity select-none"
           onClick={(e) => e.stopPropagation()}
         >
           {renderBadge()}

@@ -344,7 +344,9 @@ const RunHistoryList = memo(() => {
         key: 'creditUsed',
         width: 100,
         render: (creditUsed: number) => (
-          <span className="text-sm text-gray-500">{creditUsed ?? 0} Credit</span>
+          <span className="text-sm text-gray-500">
+            {creditUsed ?? 0} {t('runDetail.creditUnit')}
+          </span>
         ),
       },
       {
