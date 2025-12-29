@@ -13,6 +13,8 @@ import {
   ScheduleFailureReason,
   classifyScheduleError,
 } from './schedule.constants';
+import { generateInsufficientCreditsEmail } from './schedule-email-templates';
+import { NotificationService } from '../notification/notification.service';
 import { ScheduleMetrics } from './schedule.metrics';
 import { genScheduleRecordId, safeParseJSON } from '@refly/utils';
 import type { RawCanvasData } from '@refly/openapi-schema';
@@ -53,6 +55,7 @@ export class ScheduleProcessor extends WorkerHost {
     private readonly canvasService: CanvasService,
     private readonly metrics: ScheduleMetrics,
     private readonly creditService: CreditService,
+    private readonly notificationService: NotificationService,
     @Inject(forwardRef(() => WorkflowAppService))
     private readonly workflowAppService: WorkflowAppService,
   ) {
@@ -280,6 +283,26 @@ export class ScheduleProcessor extends WorkerHost {
             },
           });
           this.metrics.execution.fail('cron', 'insufficient_credits');
+
+          // Send Email
+          if (fullUser.email) {
+            const { subject, html } = generateInsufficientCreditsEmail({
+              userName: fullUser.nickname || 'User',
+              scheduleName: 'Scheduled Workflow', // We might want to fetch schedule name properly if possible, but for now generic
+              creditsNeeded: 1, // Default cost
+              currentBalance: creditBalance.creditBalance,
+              schedulesLink: 'https://refly.ai/settings/billing',
+            });
+            await this.notificationService.sendEmail(
+              {
+                to: fullUser.email,
+                subject,
+                html,
+              },
+              fullUser,
+            );
+          }
+
           return null;
         }
       }

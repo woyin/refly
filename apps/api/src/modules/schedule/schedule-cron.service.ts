@@ -1,11 +1,17 @@
 import { Injectable, Logger, OnModuleInit, forwardRef, Inject } from '@nestjs/common';
 import { PrismaService } from '../common/prisma.service';
 import { RedisService } from '../common/redis.service';
+import { NotificationService } from '../notification/notification.service';
+import { generateLimitExceededEmail } from './schedule-email-templates';
 import { SchedulePriorityService } from './schedule-priority.service';
 import { ScheduleService } from './schedule.service';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
-import { QUEUE_SCHEDULE_EXECUTION, SCHEDULE_JOB_OPTIONS } from './schedule.constants';
+import {
+  QUEUE_SCHEDULE_EXECUTION,
+  SCHEDULE_JOB_OPTIONS,
+  ScheduleFailureReason,
+} from './schedule.constants';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { CronExpressionParser } from 'cron-parser';
 import { genScheduleRecordId } from '@refly/utils';
@@ -21,6 +27,7 @@ export class ScheduleCronService implements OnModuleInit {
     @Inject(forwardRef(() => ScheduleService))
     private readonly scheduleService: ScheduleService,
     @InjectQueue(QUEUE_SCHEDULE_EXECUTION) private readonly scheduleQueue: Queue,
+    private readonly notificationService: NotificationService,
   ) {}
 
   onModuleInit() {
@@ -116,6 +123,81 @@ export class ScheduleCronService implements OnModuleInit {
         `Auto-disabled schedule ${schedule.scheduleId} due to invalid cron expression`,
       );
       return;
+    }
+
+    // 3.1.5 Check Schedule Limit
+    // TODO: Fetch actual limit from subscription plan. Currently mocking Free=1, Plus=20.
+    const userSubscription = await this.prisma.subscription.findFirst({
+      where: { uid: schedule.uid, status: 'active' },
+    });
+    // Simple logic: if has active subscription -> 20, else 1
+    const limit = userSubscription ? 20 : 1;
+
+    const activeSchedulesCount = await this.prisma.workflowSchedule.count({
+      where: { uid: schedule.uid, isEnabled: true, deletedAt: null },
+    });
+
+    if (activeSchedulesCount > limit) {
+      // Check if this schedule is among the allowed set (earliest created)
+      const allowedSchedules = await this.prisma.workflowSchedule.findMany({
+        where: { uid: schedule.uid, isEnabled: true, deletedAt: null },
+        orderBy: { createdAt: 'asc' },
+        take: limit,
+        select: { scheduleId: true },
+      });
+
+      const isAllowed = allowedSchedules.some((s) => s.scheduleId === schedule.scheduleId);
+
+      if (!isAllowed) {
+        this.logger.warn(
+          `Schedule ${schedule.scheduleId} excluded from execution due to limit exceeded (${activeSchedulesCount}/${limit})`,
+        );
+
+        // Update record to failed if exists (or create one for history)
+        const recordId = genScheduleRecordId();
+        await this.prisma.workflowScheduleRecord.create({
+          data: {
+            scheduleRecordId: recordId,
+            scheduleId: schedule.scheduleId,
+            uid: schedule.uid,
+            sourceCanvasId: schedule.canvasId,
+            canvasId: '',
+            workflowTitle: 'Schedule Limit Exceeded',
+            status: 'failed',
+            failureReason: ScheduleFailureReason.SCHEDULE_LIMIT_EXCEEDED,
+            errorDetails: JSON.stringify({
+              message: `Active schedule limit exceeded (${activeSchedulesCount}/${limit}). This schedule is not among the earliest ${limit}.`,
+            }),
+            scheduledAt: schedule.nextRunAt ?? new Date(),
+            triggeredAt: new Date(),
+            completedAt: new Date(),
+            priority: 0,
+          },
+        });
+
+        // Send Email
+        const user = await this.prisma.user.findUnique({ where: { uid: schedule.uid } });
+        if (user?.email) {
+          const { subject, html } = generateLimitExceededEmail({
+            userName: user.nickname || 'User',
+            scheduleName: schedule.name || 'Untitled Schedule',
+            limit,
+            currentCount: activeSchedulesCount,
+            schedulesLink: 'https://refly.ai/schedules', // Placeholder link
+          });
+
+          await this.notificationService.sendEmail(
+            {
+              to: user.email,
+              subject,
+              html,
+            },
+            user,
+          );
+        }
+
+        return; // Skip execution
+      }
     }
 
     // 3.2 Update schedule with next run time (Optimistic locking via updateMany not strictly needed if we process sequentially or have row lock, but safe enough here)
