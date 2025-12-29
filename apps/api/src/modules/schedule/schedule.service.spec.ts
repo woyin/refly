@@ -114,16 +114,55 @@ describe('ScheduleService', () => {
       expect(prismaService.workflowSchedule.create).not.toHaveBeenCalled();
     });
 
-    it('should throw BadRequestException when quota exceeded', async () => {
+    it('should throw BadRequestException when quota exceeded for free user', async () => {
       prismaService.workflowSchedule.findFirst = jest.fn().mockResolvedValue(null);
+      // Free user (no subscription) has quota of 1
       prismaService.workflowSchedule.count = jest
         .fn()
-        .mockResolvedValue(SCHEDULE_QUOTA.MAX_ACTIVE_SCHEDULES);
+        .mockResolvedValue(SCHEDULE_QUOTA.FREE_MAX_ACTIVE_SCHEDULES);
       prismaService.subscription.findFirst = jest.fn().mockResolvedValue(null);
 
       await expect(service.createSchedule(mockUser.uid, validDto)).rejects.toThrow(
         'Schedule quota exceeded',
       );
+    });
+
+    it('should throw BadRequestException when quota exceeded for paid user', async () => {
+      prismaService.workflowSchedule.findFirst = jest.fn().mockResolvedValue(null);
+      // Paid user has quota of 20
+      prismaService.workflowSchedule.count = jest
+        .fn()
+        .mockResolvedValue(SCHEDULE_QUOTA.PAID_MAX_ACTIVE_SCHEDULES);
+      prismaService.subscription.findFirst = jest.fn().mockResolvedValue({
+        lookupKey: 'refly_plus_monthly_stable_v2',
+        status: 'active',
+      });
+
+      await expect(service.createSchedule(mockUser.uid, validDto)).rejects.toThrow(
+        'Schedule quota exceeded',
+      );
+    });
+
+    it('should allow paid user to create more schedules than free user', async () => {
+      prismaService.workflowSchedule.findFirst = jest.fn().mockResolvedValue(null);
+      // 5 schedules - exceeds free limit (1) but under paid limit (20)
+      prismaService.workflowSchedule.count = jest.fn().mockResolvedValue(5);
+      prismaService.subscription.findFirst = jest.fn().mockResolvedValue({
+        lookupKey: 'refly_plus_monthly_stable_v2',
+        status: 'active',
+      });
+      prismaService.canvas.findUnique = jest.fn().mockResolvedValue({ title: 'Test Canvas' });
+      prismaService.workflowSchedule.create = jest.fn().mockResolvedValue({
+        scheduleId: mockScheduleId,
+        ...validDto,
+        nextRunAt: new Date(),
+      });
+      prismaService.workflowScheduleRecord.findFirst = jest.fn().mockResolvedValue(null);
+      prismaService.workflowScheduleRecord.create = jest.fn().mockResolvedValue({});
+
+      // Should NOT throw for paid user with 5 schedules
+      const result = await service.createSchedule(mockUser.uid, validDto);
+      expect(result.scheduleId).toBe(mockScheduleId);
     });
 
     it('should use canvas title as default name if name not provided', async () => {

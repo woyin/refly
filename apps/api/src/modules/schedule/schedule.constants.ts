@@ -24,10 +24,25 @@ export const SCHEDULE_RATE_LIMITS = {
   REDIS_PREFIX_USER_CONCURRENT: 'schedule:concurrent:user:',
 } as const;
 
-// Default schedule quota per user
+// Schedule quota per user based on subscription plan
 export const SCHEDULE_QUOTA = {
-  MAX_ACTIVE_SCHEDULES: 10,
+  FREE_MAX_ACTIVE_SCHEDULES: 1, // Free tier: max 1 active schedule
+  PAID_MAX_ACTIVE_SCHEDULES: 20, // Paid tiers: max 20 active schedules
 } as const;
+
+/**
+ * Get maximum active schedules quota for a given plan
+ * @param planType - The subscription plan lookup key (e.g., 'free', 'refly_plus_monthly_stable_v2')
+ * @returns Maximum number of active schedules allowed
+ */
+export function getScheduleQuota(planType: string | null | undefined): number {
+  // Free tier or no plan
+  if (!planType || planType === 'free') {
+    return SCHEDULE_QUOTA.FREE_MAX_ACTIVE_SCHEDULES;
+  }
+  // All paid plans get the same quota
+  return SCHEDULE_QUOTA.PAID_MAX_ACTIVE_SCHEDULES;
+}
 
 // Default job options for BullMQ schedule execution queue
 export const SCHEDULE_JOB_OPTIONS = {

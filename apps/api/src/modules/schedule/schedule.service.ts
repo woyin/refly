@@ -9,8 +9,8 @@ import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import {
   QUEUE_SCHEDULE_EXECUTION,
-  SCHEDULE_QUOTA,
   SCHEDULE_JOB_OPTIONS,
+  getScheduleQuota,
 } from './schedule.constants';
 import { SchedulePriorityService } from './schedule-priority.service';
 
@@ -59,12 +59,12 @@ export class ScheduleService {
       where: { uid, isEnabled: true, deletedAt: null },
     });
 
-    // Check user subscription for quota (reserved for future plan-based limits)
-    await this.prisma.subscription.findFirst({
+    // Check user subscription for quota
+    const subscription = await this.prisma.subscription.findFirst({
       where: { uid, status: 'active' },
     });
-    // Simplified quota check (future: fetch actual limit from plan)
-    if (activeSchedulesCount >= SCHEDULE_QUOTA.MAX_ACTIVE_SCHEDULES) {
+    const maxSchedules = getScheduleQuota(subscription?.lookupKey);
+    if (activeSchedulesCount >= maxSchedules) {
       throw new BadRequestException('Schedule quota exceeded');
     }
 
