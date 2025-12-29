@@ -70,25 +70,30 @@ export class ScheduleProcessor extends WorkerHost {
       // 1. User-level concurrency check with Redis degradation
       // If Redis fails, we allow the job to proceed (graceful degradation)
       let userConcurrent = 0;
+      let redisSucceeded = false; // Track if Redis increment was successful
       try {
         userConcurrent = await this.redisService.incrementWithExpire(
           userConcurrentKey,
           SCHEDULE_RATE_LIMITS.COUNTER_TTL_SECONDS, // Use longer TTL for long-running workflows
         );
+        redisSucceeded = true; // Redis increment succeeded
       } catch (redisError) {
         // Redis connection failed - graceful degradation: allow execution
         this.logger.warn(
           `Redis error during concurrency check for user ${uid}, allowing execution (degraded mode): ${redisError}`,
         );
-        // Set to 1 so we'll try to decrement in finally (even if it fails)
-        userConcurrent = 1;
+        // Don't set redisSucceeded, so we won't try to decrement in finally
+        userConcurrent = 1; // Assume 1 for rate limit check (will pass since limit is 3)
       }
 
       if (userConcurrent > SCHEDULE_RATE_LIMITS.USER_MAX_CONCURRENT) {
         // Decrement counter since we're not processing this job now
-        await this.decrementCounter(userConcurrentKey).catch((err) => {
-          this.logger.warn(`Failed to decrement counter after rate limit: ${err}`);
-        });
+        // Only decrement if Redis succeeded (otherwise there's nothing to decrement)
+        if (redisSucceeded) {
+          await this.decrementCounter(userConcurrentKey).catch((err) => {
+            this.logger.warn(`Failed to decrement counter after rate limit: ${err}`);
+          });
+        }
 
         // Delay the job and retry later
         // BullMQ will automatically re-queue the job after the delay
@@ -103,9 +108,36 @@ export class ScheduleProcessor extends WorkerHost {
       }
 
       // Mark that we've committed to processing and should decrement counter in finally
-      shouldDecrementCounter = true;
+      // Only if Redis succeeded (otherwise there's no counter to decrement)
+      shouldDecrementCounter = redisSucceeded;
 
-      // 2. Create simple user object (only uid needed, avoid BigInt serialization issues)
+      // 2. Check if schedule still exists and is enabled
+      // This prevents execution of tasks for deleted/disabled schedules
+      const schedule = await this.prisma.workflowSchedule.findUnique({
+        where: { scheduleId },
+      });
+
+      if (!schedule || schedule.deletedAt || !schedule.isEnabled) {
+        this.logger.warn(
+          `Schedule ${scheduleId} is deleted/disabled, skipping execution for job ${job.id}`,
+        );
+        // Update ScheduleRecord to 'skipped' if exists
+        if (existingRecordId) {
+          await this.prisma.scheduleRecord.update({
+            where: { scheduleRecordId: existingRecordId },
+            data: {
+              status: 'skipped',
+              failureReason: schedule?.deletedAt
+                ? 'Schedule was deleted before execution'
+                : 'Schedule was disabled before execution',
+              completedAt: new Date(),
+            },
+          });
+        }
+        return null; // Exit gracefully without error
+      }
+
+      // 3. Create simple user object (only uid needed, avoid BigInt serialization issues)
       // Note: We don't query the full user object to avoid passing BigInt fields to queues
       const user = { uid };
 

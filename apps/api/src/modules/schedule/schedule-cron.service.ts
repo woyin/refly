@@ -8,6 +8,7 @@ import { Queue } from 'bullmq';
 import { QUEUE_SCHEDULE_EXECUTION } from './schedule.constants';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { CronExpressionParser } from 'cron-parser';
+import { genScheduleRecordId } from '@refly/utils';
 
 @Injectable()
 export class ScheduleCronService implements OnModuleInit {
@@ -30,7 +31,8 @@ export class ScheduleCronService implements OnModuleInit {
   @Cron(CronExpression.EVERY_MINUTE)
   async scanAndTriggerSchedules() {
     const lockKey = 'lock:schedule:scan';
-    const releaseLock = await this.redisService.acquireLock(lockKey, 30); // 30s lock
+    // Lock for 2 minutes to handle large batches of due schedules
+    const releaseLock = await this.redisService.acquireLock(lockKey, 120);
 
     if (!releaseLock) {
       this.logger.debug('Schedule scan lock not acquired, skipping');
@@ -57,6 +59,7 @@ export class ScheduleCronService implements OnModuleInit {
         deletedAt: null,
         nextRunAt: { lte: now },
       },
+      orderBy: { nextRunAt: 'asc' },
     });
 
     if (schedules.length === 0) {
@@ -110,6 +113,8 @@ export class ScheduleCronService implements OnModuleInit {
       orderBy: { scheduledAt: 'asc' },
     });
 
+    let currentRecordId = scheduleRecord?.scheduleRecordId;
+
     if (scheduleRecord) {
       // Update existing scheduled record to 'pending' (queued in BullMQ)
       await this.prisma.scheduleRecord.update({
@@ -119,8 +124,31 @@ export class ScheduleCronService implements OnModuleInit {
           triggeredAt: new Date(),
         },
       });
+    } else {
+      // No existing record - create a new 'pending' record now
+      // This ensures frontend can always see the job is queued
+      currentRecordId = genScheduleRecordId();
+      const canvas = await this.prisma.canvas.findUnique({
+        where: { canvasId: schedule.canvasId },
+        select: { title: true },
+      });
+      await this.prisma.scheduleRecord.create({
+        data: {
+          scheduleRecordId: currentRecordId,
+          scheduleId: schedule.scheduleId,
+          uid: schedule.uid,
+          canvasId: schedule.canvasId,
+          workflowTitle: canvas?.title || 'Untitled',
+          scheduledAt: schedule.nextRunAt,
+          status: 'pending', // Job is queued in BullMQ
+          triggeredAt: new Date(),
+          priority: 5, // Default, will be updated by processor
+        },
+      });
+      this.logger.log(
+        `Created pending record ${currentRecordId} for schedule ${schedule.scheduleId}`,
+      );
     }
-    // Note: If no scheduled record exists, Processor will create one with 'pending' status
 
     // 3.4 Create or update scheduled record for the NEXT execution (future)
     if (nextRunAt) {
@@ -133,7 +161,8 @@ export class ScheduleCronService implements OnModuleInit {
     }
 
     // 3.5 Calculate user execution priority
-    // Priority range: 1-10 (higher number = higher priority, aligned with BullMQ)
+    // Priority range: 1-10 (higher number = higher priority in our system)
+    // Note: BullMQ uses lower number = higher priority, conversion happens when adding to queue
     const priority = await this.priorityService.calculateExecutionPriority(schedule.uid);
 
     // 3.6 Push to execution queue with priority
@@ -147,13 +176,14 @@ export class ScheduleCronService implements OnModuleInit {
         canvasId: schedule.canvasId,
         uid: schedule.uid,
         scheduledAt: schedule.nextRunAt!.toISOString(), // The time it was supposed to run
-        priority, // Include priority in job data
-        scheduleRecordId: scheduleRecord?.scheduleRecordId, // Pass record ID if exists
+        priority, // Include priority in job data (1-10, higher = higher priority in our system)
+        scheduleRecordId: currentRecordId, // Always pass record ID now
       },
       {
         jobId: `schedule:${schedule.scheduleId}:${timestamp}`, // Deduplication ID
-        // Priority is already aligned with BullMQ (higher number = higher priority)
-        priority: Math.floor(priority),
+        // BullMQ priority: lower number = higher priority
+        // Convert our priority (1-10, higher = higher) to BullMQ (lower = higher)
+        priority: 11 - Math.floor(priority),
         attempts: 1,
         backoff: {
           type: 'exponential',

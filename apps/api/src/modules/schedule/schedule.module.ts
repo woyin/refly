@@ -26,7 +26,6 @@ import { WorkflowAppModule } from '../workflow-app/workflow-app.module';
       // - BullMQ handles this transparently: jobs wait until rate limit allows
       defaultJobOptions: {
         attempts: 1, // No automatic retry on failure, user must manually retry
-        backoff: { type: 'exponential', delay: 1000 },
         removeOnComplete: true,
         removeOnFail: false, // Keep failed jobs for debugging/retry
       },

@@ -436,7 +436,9 @@ export class ScheduleService {
       },
       {
         jobId: `schedule:${schedule.scheduleId}:manual:${timestamp}`, // Deduplication ID for manual trigger
-        priority: Math.floor(priority), // BullMQ priority (higher number = higher priority)
+        // BullMQ priority: lower number = higher priority
+        // Convert our priority (1-10, higher = higher) to BullMQ (lower = higher)
+        priority: 11 - Math.floor(priority),
         attempts: 1, // No automatic retry, user must manually retry on failure
         backoff: {
           type: 'exponential',
@@ -471,7 +473,14 @@ export class ScheduleService {
       throw new NotFoundException('Schedule record not found');
     }
 
-    // 2. Check if snapshot exists for retry
+    // 2. Check if record is in a retryable state
+    if (record.status !== 'failed') {
+      throw new BadRequestException(
+        `Cannot retry record with status '${record.status}'. Only 'failed' records can be retried.`,
+      );
+    }
+
+    // 3. Check if snapshot exists for retry
     if (!record.snapshotStorageKey) {
       throw new BadRequestException('No snapshot available for retry. Cannot retry this record.');
     }
@@ -514,7 +523,9 @@ export class ScheduleService {
       },
       {
         jobId: `schedule:${record.scheduleId}:retry:${scheduleRecordId}:${timestamp}`,
-        priority: Math.floor(priority),
+        // BullMQ priority: lower number = higher priority
+        // Convert our priority (1-10, higher = higher) to BullMQ (lower = higher)
+        priority: 11 - Math.floor(priority),
         attempts: 1, // No automatic retry, user must manually retry on failure
         backoff: {
           type: 'exponential',

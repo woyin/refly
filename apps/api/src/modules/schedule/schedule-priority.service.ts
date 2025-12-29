@@ -2,7 +2,8 @@ import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../common/prisma.service';
 import { Subscription } from '@prisma/client';
 
-// Priority range: 1-10 (higher number = higher priority, aligned with BullMQ)
+// Priority range: 1-10 (higher number = higher priority in our system)
+// Note: BullMQ uses lower number = higher priority, but we convert when adding to queue
 // Priority order: Max > Plus > Starter > Maker > Free
 const PLAN_PRIORITY_MAP: Record<string, number> = {
   // Max tier - highest priority (10)
