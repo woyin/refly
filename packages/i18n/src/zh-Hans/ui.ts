@@ -4325,6 +4325,7 @@ const translations = {
     createSuccess: '定时任务创建成功',
     updateSuccess: '定时任务更新成功',
     deleteSuccess: '定时任务删除成功',
+    deactivateSuccess: '定时任务停用成功',
     saveFailed: '保存定时任务失败',
     deleteFailed: '删除定时任务失败',
     limitReached: {
@@ -4345,6 +4346,13 @@ const translations = {
     triggerSuccess: '定时任务已触发',
     triggerFailed: '触发定时任务失败',
     noSchedule: '请先保存定时任务',
+    deactivate: {
+      title: '停用定时任务',
+      message: '确定要停用该定时任务吗？该定时任务将不再自动运行，直到您再次启用它。',
+      confirm: '停用',
+      cancel: '取消',
+      deactivate: '停用',
+    },
   },
   runHistory: {
     pageTitle: '运行历史',
