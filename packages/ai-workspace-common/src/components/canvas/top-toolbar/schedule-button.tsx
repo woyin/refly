@@ -479,12 +479,14 @@ const ScheduleButton = memo(({ canvasId }: ScheduleButtonProps) => {
                 ...d,
                 label: t(`schedule.weekday.${d.label.toLowerCase()}`) || d.label,
               }))}
-              placeholder={`Select ${weekdays.length} day${weekdays.length !== 1 ? 's' : ''}`}
+              placeholder="Select Date"
               className="w-full h-full schedule-select"
               size="large"
               maxTagCount={0}
               maxTagPlaceholder={() =>
-                `Select ${weekdays.length} day${weekdays.length !== 1 ? 's' : ''}`
+                weekdays.length === 0
+                  ? 'Select Date'
+                  : `Select ${weekdays.length} day${weekdays.length !== 1 ? 's' : ''}`
               }
               dropdownClassName="schedule-dropdown"
             />
@@ -499,12 +501,14 @@ const ScheduleButton = memo(({ canvasId }: ScheduleButtonProps) => {
               value={monthDays}
               onChange={setMonthDays}
               options={MONTH_DAYS}
-              placeholder={`Select ${monthDays.length} day${monthDays.length !== 1 ? 's' : ''}`}
-              className="w-full h-full"
+              placeholder="Select Date"
+              className="w-full h-full schedule-monthly-select"
               size="large"
               maxTagCount={0}
               maxTagPlaceholder={() =>
-                `Select ${monthDays.length} day${monthDays.length !== 1 ? 's' : ''}`
+                monthDays.length === 0
+                  ? 'Select Date'
+                  : `Select ${monthDays.length} day${monthDays.length !== 1 ? 's' : ''}`
               }
             />
           </div>
