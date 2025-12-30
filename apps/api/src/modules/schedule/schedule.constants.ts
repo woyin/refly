@@ -4,30 +4,39 @@ export const QUEUE_SCHEDULE_EXECUTION = 'scheduleExecution';
 // Global concurrency limits for schedule execution
 export const SCHEDULE_RATE_LIMITS = {
   // Maximum number of concurrent jobs processed globally across all workers
-  GLOBAL_MAX_CONCURRENT: 10,
+  GLOBAL_MAX_CONCURRENT: 50,
 
-  // Rate limiter: max jobs per duration (e.g., 100 jobs per 60 seconds)
+  // Rate limiter: max jobs per duration
   RATE_LIMIT_MAX: 100,
-  RATE_LIMIT_DURATION_MS: 60 * 1000, // 1 minute
+  RATE_LIMIT_DURATION_MS: 60 * 1000, // 60 seconds
 
   // Per-user max concurrent executions (to prevent one user from monopolizing)
+  // Concurrency is controlled by querying database for 'processing' and 'running' status records
   USER_MAX_CONCURRENT: 3,
-
-  // Counter TTL in seconds (should be longer than max expected execution time)
-  // 2 hours to handle long-running workflows
-  COUNTER_TTL_SECONDS: 2 * 60 * 60,
 
   // Delay time in ms when user is rate limited
   USER_RATE_LIMIT_DELAY_MS: 10 * 1000, // 10 seconds
-
-  // Redis key prefix for user concurrent tracking
-  REDIS_PREFIX_USER_CONCURRENT: 'schedule:concurrent:user:',
 } as const;
 
-// Default schedule quota per user
+// Schedule quota per user based on subscription plan
 export const SCHEDULE_QUOTA = {
-  MAX_ACTIVE_SCHEDULES: 10,
+  FREE_MAX_ACTIVE_SCHEDULES: 1, // Free tier: max 1 active schedule
+  PAID_MAX_ACTIVE_SCHEDULES: 20, // Paid tiers: max 20 active schedules
 } as const;
+
+/**
+ * Get maximum active schedules quota for a given plan
+ * @param planType - The subscription plan lookup key (e.g., 'free', 'refly_plus_monthly_stable_v2')
+ * @returns Maximum number of active schedules allowed
+ */
+export function getScheduleQuota(planType: string | null | undefined): number {
+  // Free tier or no plan
+  if (!planType || planType === 'free') {
+    return SCHEDULE_QUOTA.FREE_MAX_ACTIVE_SCHEDULES;
+  }
+  // All paid plans get the same quota
+  return SCHEDULE_QUOTA.PAID_MAX_ACTIVE_SCHEDULES;
+}
 
 // Default job options for BullMQ schedule execution queue
 export const SCHEDULE_JOB_OPTIONS = {
@@ -198,3 +207,23 @@ export function classifyScheduleError(error: unknown): ScheduleFailureReason {
   // Default to unknown error
   return ScheduleFailureReason.UNKNOWN_ERROR;
 }
+
+/**
+ * Schedule period types for analytics tracking
+ */
+export const SchedulePeriodType = {
+  DAILY: 'daily',
+  WEEKLY: 'weekly',
+  MONTHLY: 'monthly',
+  CUSTOM: 'custom', // For complex schedules or when parsing fails
+} as const;
+
+export type SchedulePeriodTypeValue = (typeof SchedulePeriodType)[keyof typeof SchedulePeriodType];
+
+/**
+ * Analytics event names for schedule module
+ */
+export const ScheduleAnalyticsEvents = {
+  /** Schedule execution triggered at Next Run Time */
+  SCHEDULE_RUN_TRIGGERED: 'schedule_run_triggered',
+} as const;

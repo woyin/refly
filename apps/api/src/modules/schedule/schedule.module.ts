@@ -15,6 +15,8 @@ import { CreditModule } from '../credit/credit.module';
 import { CanvasModule } from '../canvas/canvas.module';
 import { MiscModule } from '../misc/misc.module';
 import { WorkflowAppModule } from '../workflow-app/workflow-app.module';
+import { NotificationModule } from '../notification/notification.module';
+import { ScheduleEventListener } from './schedule.listener';
 
 @Module({
   imports: [
@@ -36,6 +38,7 @@ import { WorkflowAppModule } from '../workflow-app/workflow-app.module';
     CreditModule, // For credit check
     CanvasModule,
     MiscModule,
+    NotificationModule,
     forwardRef(() => WorkflowAppModule), // For executeFromCanvasData
   ],
   controllers: [ScheduleController],
@@ -45,6 +48,7 @@ import { WorkflowAppModule } from '../workflow-app/workflow-app.module';
     SchedulePriorityService,
     ScheduleProcessor,
     ScheduleMetrics,
+    ScheduleEventListener,
   ],
   exports: [ScheduleService],
 })

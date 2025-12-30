@@ -1,14 +1,44 @@
 import { Injectable, Logger, OnModuleInit, forwardRef, Inject } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../common/prisma.service';
 import { RedisService } from '../common/redis.service';
+import { NotificationService } from '../notification/notification.service';
+import { generateLimitExceededEmail } from './schedule-email-templates';
 import { SchedulePriorityService } from './schedule-priority.service';
 import { ScheduleService } from './schedule.service';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
-import { QUEUE_SCHEDULE_EXECUTION, SCHEDULE_JOB_OPTIONS } from './schedule.constants';
+import {
+  QUEUE_SCHEDULE_EXECUTION,
+  SCHEDULE_JOB_OPTIONS,
+  ScheduleFailureReason,
+  ScheduleAnalyticsEvents,
+  SchedulePeriodType,
+  getScheduleQuota,
+} from './schedule.constants';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { CronExpressionParser } from 'cron-parser';
 import { genScheduleRecordId } from '@refly/utils';
+
+/**
+ * Extract schedule type from scheduleConfig JSON
+ * @param scheduleConfig - JSON string like { type: 'daily|weekly|monthly', ... }
+ * @returns Schedule period type
+ */
+function getScheduleType(scheduleConfig: string | null | undefined): string {
+  if (!scheduleConfig) {
+    return SchedulePeriodType.CUSTOM;
+  }
+  try {
+    const config = JSON.parse(scheduleConfig);
+    if (config.type && ['daily', 'weekly', 'monthly'].includes(config.type)) {
+      return config.type;
+    }
+    return SchedulePeriodType.CUSTOM;
+  } catch {
+    return SchedulePeriodType.CUSTOM;
+  }
+}
 
 @Injectable()
 export class ScheduleCronService implements OnModuleInit {
@@ -21,6 +51,8 @@ export class ScheduleCronService implements OnModuleInit {
     @Inject(forwardRef(() => ScheduleService))
     private readonly scheduleService: ScheduleService,
     @InjectQueue(QUEUE_SCHEDULE_EXECUTION) private readonly scheduleQueue: Queue,
+    private readonly notificationService: NotificationService,
+    private readonly config: ConfigService,
   ) {}
 
   onModuleInit() {
@@ -118,6 +150,81 @@ export class ScheduleCronService implements OnModuleInit {
       return;
     }
 
+    // 3.1.5 Check Schedule Limit
+    //  Fetch actual limit from subscription plan. Currently mocking Free=1, Plus=20.
+    const userSubscription = await this.prisma.subscription.findFirst({
+      where: { uid: schedule.uid, status: 'active' },
+    });
+    // Simple logic: if has active subscription -> 20, else 1
+    const limit = getScheduleQuota(userSubscription?.lookupKey);
+
+    const activeSchedulesCount = await this.prisma.workflowSchedule.count({
+      where: { uid: schedule.uid, isEnabled: true, deletedAt: null },
+    });
+
+    if (activeSchedulesCount > limit) {
+      // Check if this schedule is among the allowed set (earliest created)
+      const allowedSchedules = await this.prisma.workflowSchedule.findMany({
+        where: { uid: schedule.uid, isEnabled: true, deletedAt: null },
+        orderBy: { createdAt: 'asc' },
+        take: limit,
+        select: { scheduleId: true },
+      });
+
+      const isAllowed = allowedSchedules.some((s) => s.scheduleId === schedule.scheduleId);
+
+      if (!isAllowed) {
+        this.logger.warn(
+          `Schedule ${schedule.scheduleId} excluded from execution due to limit exceeded (${activeSchedulesCount}/${limit})`,
+        );
+
+        // Update record to failed if exists (or create one for history)
+        const recordId = genScheduleRecordId();
+        await this.prisma.workflowScheduleRecord.create({
+          data: {
+            scheduleRecordId: recordId,
+            scheduleId: schedule.scheduleId,
+            uid: schedule.uid,
+            sourceCanvasId: schedule.canvasId,
+            canvasId: '',
+            workflowTitle: 'Schedule Limit Exceeded',
+            status: 'failed',
+            failureReason: ScheduleFailureReason.SCHEDULE_LIMIT_EXCEEDED,
+            errorDetails: JSON.stringify({
+              message: `Active schedule limit exceeded (${activeSchedulesCount}/${limit}). This schedule is not among the earliest ${limit}.`,
+            }),
+            scheduledAt: schedule.nextRunAt ?? new Date(),
+            triggeredAt: new Date(),
+            completedAt: new Date(),
+            priority: 0,
+          },
+        });
+
+        // Send Email
+        const user = await this.prisma.user.findUnique({ where: { uid: schedule.uid } });
+        if (user?.email) {
+          const { subject, html } = generateLimitExceededEmail({
+            userName: user.nickname || 'User',
+            scheduleName: schedule.name || 'Untitled Schedule',
+            limit,
+            currentCount: activeSchedulesCount,
+            schedulesLink: `${this.config.get<string>('origin')}/workflow/${schedule.canvasId}`,
+          });
+
+          await this.notificationService.sendEmail(
+            {
+              to: user.email,
+              subject,
+              html,
+            },
+            user,
+          );
+        }
+
+        return; // Skip execution
+      }
+    }
+
     // 3.2 Update schedule with next run time (Optimistic locking via updateMany not strictly needed if we process sequentially or have row lock, but safe enough here)
     // We update first to avoid double triggering if this takes long
     await this.prisma.workflowSchedule.update({
@@ -213,5 +320,24 @@ export class ScheduleCronService implements OnModuleInit {
     );
 
     this.logger.log(`Triggered schedule ${schedule.scheduleId} with priority ${priority}`);
+
+    // Track analytics event for schedule trigger
+    this.trackScheduleEvent(ScheduleAnalyticsEvents.SCHEDULE_RUN_TRIGGERED, {
+      uid: schedule.uid,
+      scheduleId: schedule.scheduleId,
+      scheduleRecordId: currentRecordId,
+      type: getScheduleType(schedule.scheduleConfig),
+      priority,
+    });
+  }
+
+  /**
+   * Track analytics event (placeholder - integrate with actual analytics service)
+   * @param eventName - Event name from ScheduleAnalyticsEvents
+   * @param properties - Event properties
+   */
+  private trackScheduleEvent(eventName: string, properties: Record<string, any>): void {
+    this.logger.debug(`Analytics event: ${eventName}`, properties);
+    // TODO: Integrate with actual analytics service (e.g., Mixpanel, Amplitude)
   }
 }

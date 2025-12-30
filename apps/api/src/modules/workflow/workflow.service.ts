@@ -10,12 +10,14 @@ import {
   RawCanvasData,
   ToolsetDefinition,
 } from '@refly/openapi-schema';
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import { WorkflowCompletedEvent, WorkflowFailedEvent } from './workflow.events';
 import {
-  CanvasNodeFilter,
   prepareNodeExecutions,
   convertContextItemsToInvokeParams,
   ResponseNodeMeta,
   sortNodeExecutionsByExecutionOrder,
+  CanvasNodeFilter,
 } from '@refly/canvas-common';
 import { SkillService } from '../skill/skill.service';
 import { ActionService } from '../action/action.service';
@@ -40,11 +42,7 @@ import { PollWorkflowJobData, RunWorkflowJobData } from './workflow.dto';
 import { CreditService } from '../credit/credit.service';
 import { ceil } from 'lodash';
 import { SkillInvokerService } from '../skill/skill-invoker.service';
-
-const WORKFLOW_POLL_INTERVAL = 1500;
-const WORKFLOW_EXECUTION_TIMEOUT_MS = 30 * 60 * 1000; // 30 minutes
-const NODE_EXECUTION_TIMEOUT_MS = 10 * 60 * 1000; // 10 minutes
-const POLL_LOCK_TTL_MS = 5000; // 5 seconds
+import { WORKFLOW_EXECUTION_CONSTANTS } from './workflow.constants';
 
 @Injectable()
 export class WorkflowService {
@@ -62,6 +60,7 @@ export class WorkflowService {
     private readonly toolService: ToolService,
     private readonly creditService: CreditService,
     private readonly skillInvokerService: SkillInvokerService,
+    private readonly eventEmitter: EventEmitter2,
     @InjectQueue(QUEUE_RUN_WORKFLOW) private readonly runWorkflowQueue?: Queue<RunWorkflowJobData>,
     @InjectQueue(QUEUE_POLL_WORKFLOW)
     private readonly pollWorkflowQueue?: Queue<PollWorkflowJobData>,
@@ -264,7 +263,7 @@ export class WorkflowService {
       await this.pollWorkflowQueue.add(
         'pollWorkflow',
         { user, executionId, nodeBehavior },
-        { delay: WORKFLOW_POLL_INTERVAL, removeOnComplete: true },
+        { delay: WORKFLOW_EXECUTION_CONSTANTS.POLL_INTERVAL_MS, removeOnComplete: true },
       );
     }
 
@@ -540,7 +539,10 @@ export class WorkflowService {
 
     // Acquire distributed lock to prevent multiple pods from polling the same execution
     const lockKey = `workflow:poll:${executionId}`;
-    const releaseLock = await this.redis.acquireLock(lockKey, POLL_LOCK_TTL_MS);
+    const releaseLock = await this.redis.acquireLock(
+      lockKey,
+      WORKFLOW_EXECUTION_CONSTANTS.POLL_LOCK_TTL_MS,
+    );
     if (!releaseLock) {
       this.logger.debug(`[pollWorkflow] Lock not acquired for ${executionId}, skipping`);
       return;
@@ -556,6 +558,9 @@ export class WorkflowService {
           appId: true,
           canvasId: true,
           scheduleRecordId: true, // For syncing WorkflowScheduleRecord status
+          title: true,
+          uid: true,
+          triggerType: true,
         },
         where: { executionId },
       });
@@ -575,9 +580,9 @@ export class WorkflowService {
 
       // Check if workflow execution has exceeded timeout
       const executionAge = Date.now() - workflowExecution.createdAt.getTime();
-      if (executionAge > WORKFLOW_EXECUTION_TIMEOUT_MS) {
+      if (executionAge > WORKFLOW_EXECUTION_CONSTANTS.EXECUTION_TIMEOUT_MS) {
         this.logger.warn(
-          `[pollWorkflow] Workflow ${executionId} timed out after ${executionAge}ms (limit: ${WORKFLOW_EXECUTION_TIMEOUT_MS}ms)`,
+          `[pollWorkflow] Workflow ${executionId} timed out after ${executionAge}ms (limit: ${WORKFLOW_EXECUTION_CONSTANTS.EXECUTION_TIMEOUT_MS}ms)`,
         );
 
         // Mark all non-terminal nodes as failed
@@ -626,7 +631,7 @@ export class WorkflowService {
       const stuckExecutingNodes = allNodes.filter((n) => {
         if (n.status !== 'executing' || !n.startTime) return false;
         const nodeAge = now.getTime() - n.startTime.getTime();
-        return nodeAge > NODE_EXECUTION_TIMEOUT_MS;
+        return nodeAge > WORKFLOW_EXECUTION_CONSTANTS.NODE_EXECUTION_TIMEOUT_MS;
       });
 
       if (stuckExecutingNodes.length > 0) {
@@ -635,7 +640,7 @@ export class WorkflowService {
           where: { nodeExecutionId: { in: timedOutNodeIds } },
           data: {
             status: 'failed',
-            errorMessage: `Node execution timeout exceeded (${Math.floor(NODE_EXECUTION_TIMEOUT_MS / 1000)}s)`,
+            errorMessage: `Node execution timeout exceeded (${Math.floor(WORKFLOW_EXECUTION_CONSTANTS.NODE_EXECUTION_TIMEOUT_MS / 1000)}s)`,
             endTime: now,
           },
         });
@@ -813,36 +818,52 @@ export class WorkflowService {
             `[pollWorkflow] Updated workflow ${executionId}: status=${newStatus}, executed=${executedNodes}, failed=${failedNodes}`,
           );
 
-          // Sync WorkflowScheduleRecord status when workflow reaches terminal state
+          // Sync WorkflowScheduleRecord status and send notifications via events
           if (
             workflowExecution.scheduleRecordId &&
             (newStatus === 'finish' || newStatus === 'failed')
           ) {
             try {
-              let failureReason = 'WORKFLOW_EXECUTION_FAILED';
-              const errorDetails: any = {
-                message: 'Workflow execution failed',
-                executedNodes,
-                failedNodes,
-              };
-
-              // If failed, get the first failed node's error message for classification
               if (newStatus === 'failed') {
+                // Get error details if failed
                 const firstFailedNode = await this.prisma.workflowNodeExecution.findFirst({
                   where: { executionId, status: 'failed' },
                   select: { errorMessage: true, nodeId: true, title: true },
                   orderBy: { endTime: 'asc' },
                 });
 
-                if (firstFailedNode?.errorMessage) {
-                  errorDetails.nodeId = firstFailedNode.nodeId;
-                  errorDetails.nodeTitle = firstFailedNode.title;
-                  errorDetails.errorMessage = firstFailedNode.errorMessage;
-
-                  // Use shared classifyScheduleError utility
-                  const { classifyScheduleError } = await import('../schedule/schedule.constants');
-                  failureReason = classifyScheduleError(firstFailedNode.errorMessage);
-                }
+                this.eventEmitter.emit(
+                  'workflow.failed',
+                  new WorkflowFailedEvent(
+                    executionId,
+                    workflowExecution.canvasId,
+                    workflowExecution.uid,
+                    workflowExecution.triggerType,
+                    {
+                      message: 'Workflow execution failed',
+                      executedNodes,
+                      failedNodes,
+                      nodeId: firstFailedNode?.nodeId,
+                      nodeTitle: firstFailedNode?.title,
+                      errorMessage: firstFailedNode?.errorMessage,
+                    },
+                    new Date().getTime() - workflowExecution.createdAt.getTime(),
+                    workflowExecution.scheduleRecordId,
+                  ),
+                );
+              } else {
+                this.eventEmitter.emit(
+                  'workflow.completed',
+                  new WorkflowCompletedEvent(
+                    executionId,
+                    workflowExecution.canvasId,
+                    workflowExecution.uid,
+                    workflowExecution.triggerType,
+                    { executedNodes, failedNodes },
+                    new Date().getTime() - workflowExecution.createdAt.getTime(),
+                    workflowExecution.scheduleRecordId,
+                  ),
+                );
               }
 
               // Calculate credit usage for this execution
@@ -863,6 +884,23 @@ export class WorkflowService {
                 );
               }
 
+              // Get failure details if failed
+              let failureReason: string | undefined;
+              let errorDetails: Record<string, any> | undefined;
+              if (newStatus === 'failed') {
+                const firstFailedNode = await this.prisma.workflowNodeExecution.findFirst({
+                  where: { executionId, status: 'failed' },
+                  select: { errorMessage: true, nodeId: true, title: true },
+                  orderBy: { endTime: 'asc' },
+                });
+                failureReason = 'workflow_execution_failed';
+                errorDetails = {
+                  nodeId: firstFailedNode?.nodeId,
+                  nodeTitle: firstFailedNode?.title,
+                  errorMessage: firstFailedNode?.errorMessage,
+                };
+              }
+
               await this.prisma.workflowScheduleRecord.update({
                 where: { scheduleRecordId: workflowExecution.scheduleRecordId },
                 data: {
@@ -880,7 +918,7 @@ export class WorkflowService {
               );
             } catch (syncErr: any) {
               this.logger.warn(
-                `[pollWorkflow] Failed to sync WorkflowScheduleRecord status: ${syncErr?.message}`,
+                `[pollWorkflow] Failed to sync WorkflowScheduleRecord status or emit event: ${syncErr?.message}`,
               );
             }
           }
@@ -897,7 +935,7 @@ export class WorkflowService {
         await this.pollWorkflowQueue.add(
           'pollWorkflow',
           { user, executionId, nodeBehavior },
-          { delay: WORKFLOW_POLL_INTERVAL, removeOnComplete: true },
+          { delay: WORKFLOW_EXECUTION_CONSTANTS.POLL_INTERVAL_MS, removeOnComplete: true },
         );
       } else {
         this.logger.log(

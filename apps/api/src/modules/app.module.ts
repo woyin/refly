@@ -4,6 +4,7 @@ import { APP_GUARD } from '@nestjs/core';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { LoggerModule } from 'nestjs-pino';
 import { SkipThrottle, ThrottlerGuard, ThrottlerModule, seconds } from '@nestjs/throttler';
+import { EventEmitterModule } from '@nestjs/event-emitter';
 import api from '@opentelemetry/api';
 
 import { AuthModule } from './auth/auth.module';
@@ -142,6 +143,7 @@ class CustomThrottlerGuard extends ThrottlerGuard {
     FormModule,
     VoucherModule,
     ScheduleModule,
+    EventEmitterModule.forRoot(),
     ...(isDesktop()
       ? []
       : [
