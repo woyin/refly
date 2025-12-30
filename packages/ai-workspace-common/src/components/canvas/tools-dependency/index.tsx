@@ -392,8 +392,8 @@ const RequiredInputBlock = React.memo(
           </span>
         </div>
         <Button
-          className="text-white bg-refly-text-0 text-xs leading-5 font-semibold cursor-pointer active:bg-refly-text-2 whitespace-nowrap px-3 py-1 rounded-md h-auto"
-          size="small"
+          className="custom-configure-button text-xs leading-5 font-semibold cursor-pointer whitespace-nowrap px-3 py-1 rounded-md h-auto"
+          size="middle"
           onClick={() => onConfigureClick(variable)}
         >
           {t('canvas.workflowDependency.configure', 'Configure')}
@@ -567,29 +567,36 @@ const ToolsDependencyContent = React.memo(
 
     return (
       <div className="flex flex-col gap-3 md:gap-4 w-[calc(100vw-32px)] max-w-[480px] p-4 md:p-6">
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-1 min-w-0 flex-1">
-            <div className="text-base md:text-lg font-semibold truncate">
-              {t('canvas.workflowDepencency.title')}
-            </div>
-            {uninstalledCount > 0 && isLogin && (
-              <div className="max-w-[120px] md:max-w-[200px] truncate bg-refly-Colorful-red-light text-refly-func-danger-default rounded-[99px] px-2 text-xs leading-[18px] flex-shrink-0 ml-2">
-                {t('canvas.workflowDepencency.uninstalledToolsCount', {
-                  count: uninstalledCount,
-                })}
+        <div className="flex flex-col gap-2">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-1 min-w-0 flex-1">
+              <div className="text-base md:text-lg font-semibold truncate">
+                {t('canvas.workflowDepencency.title')}
               </div>
-            )}
+              {uninstalledCount > 0 && isLogin && (
+                <span className="text-refly-text-0 text-base font-bold">({uninstalledCount})</span>
+              )}
+            </div>
+            <Button
+              type="text"
+              icon={<Close size={20} />}
+              onClick={handleClose}
+              className="flex-shrink-0"
+            />
           </div>
-          <Button
-            type="text"
-            icon={<Close size={20} />}
-            onClick={handleClose}
-            className="flex-shrink-0"
-          />
+
+          {/* Subtitle - only show when there are issues to fix */}
+          {(uninstalledCount > 0 ||
+            isCreditInsufficient ||
+            (canvasId && requiredInputsCheck.count > 0)) && (
+            <div className="text-refly-text-2 text-xs font-normal">
+              {t('canvas.workflowDepencency.subtitle')}
+            </div>
+          )}
         </div>
 
         {isLoading ? null : (
-          <>
+          <div className="max-h-[400px] overflow-y-auto space-y-3">
             {/* Credit Insufficient Check */}
             {isCreditInsufficient && creditUsage && (
               <CreditInsufficientBlock
@@ -610,7 +617,7 @@ const ToolsDependencyContent = React.memo(
                 );
               })}
 
-            {/* Node Status Checker 
+            {/* Node Status Checker
             {canvasId && (
               <NodeStatusChecker
                 canvasId={canvasId}
@@ -620,14 +627,14 @@ const ToolsDependencyContent = React.memo(
 
             {/* Tools List */}
             {totalCount > 0 && currentTools.length > 0 && (
-              <div className="max-h-[400px] overflow-y-auto space-y-2 md:space-y-3">
+              <div className="space-y-2 md:space-y-3">
                 {currentTools.map(({ toolset, referencedNodes }) => {
                   const isInstalled = isToolsetAuthorized(toolset, userTools);
                   const toolsetDefinition = getToolsetDefinition(toolset);
-                  const description =
+                  /*const description =
                     toolset?.type === 'mcp'
                       ? toolset.mcpServer.url
-                      : toolsetDefinition?.descriptionDict?.[currentLanguage || 'en'];
+                      : toolsetDefinition?.descriptionDict?.[currentLanguage || 'en'];*/
 
                   return (
                     <div
@@ -672,22 +679,21 @@ const ToolsDependencyContent = React.memo(
                                     : 'text-refly-func-danger-default bg-refly-Colorful-red-light',
                                 )}
                               >
-                                {isInstalled
-                                  ? t('canvas.workflowDepencency.installed')
-                                  : t('canvas.workflowDepencency.uninstalled')}
+                                {isInstalled ? t('canvas.workflowDepencency.installed') : null}
                               </div>
                             )}
                           </div>
                           <div className="text-refly-text-2 text-xs leading-4 truncate">
-                            {description ? description : <>&nbsp;</>}
+                            {toolset.type === 'mcp'
+                              ? t('canvas.workflowDepencency.mcpUnavailable')
+                              : t('canvas.workflowDepencency.notAuthorized')}
                           </div>
                         </div>
 
                         {!isInstalled && isLogin && (
                           <Button
-                            type="text"
-                            size="small"
-                            className="text-refly-primary-default hover:!text-refly-primary-hover flex-shrink-0 text-xs md:text-sm"
+                            size="middle"
+                            className="custom-configure-button flex-shrink-0 md:text-sm"
                             loading={isPolling || isOpening}
                             disabled={isPolling || isOpening}
                             onClick={() => handleInstallTool(toolset)}
@@ -714,7 +720,7 @@ const ToolsDependencyContent = React.memo(
               !isCreditInsufficient &&
               !canvasId &&
               requiredInputsCheck.count === 0 && <EmptyContent searchTerm="" />}
-          </>
+          </div>
         )}
 
         {/* Create Variables Modal */}
@@ -724,6 +730,7 @@ const ToolsDependencyContent = React.memo(
             onCancel={handleCloseVariableModal}
             defaultValue={selectedVariable}
             mode="edit"
+            fromToolsDependency={true}
           />
         )}
       </div>
