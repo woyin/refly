@@ -3,7 +3,6 @@ import { DelayedError, Job } from 'bullmq';
 import { Inject, Logger, forwardRef } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../common/prisma.service';
-import { RedisService } from '../common/redis.service';
 import { MiscService } from '../misc/misc.service';
 import { CanvasService } from '../canvas/canvas.service';
 import { WorkflowAppService } from '../workflow-app/workflow-app.service';
@@ -52,7 +51,6 @@ export class ScheduleProcessor extends WorkerHost {
 
   constructor(
     private readonly prisma: PrismaService,
-    private readonly redisService: RedisService,
     private readonly miscService: MiscService,
     private readonly canvasService: CanvasService,
     private readonly metrics: ScheduleMetrics,
@@ -78,42 +76,23 @@ export class ScheduleProcessor extends WorkerHost {
 
     let scheduleRecordId = existingRecordId || '';
     let isRetry = false;
-    let shouldDecrementCounter = false; // Track if we need to decrement counter in finally
-    const userConcurrentKey = `${SCHEDULE_RATE_LIMITS.REDIS_PREFIX_USER_CONCURRENT}${uid}`;
 
     try {
-      // 1. User-level concurrency check with Redis degradation
-      // If Redis fails, we allow the job to proceed (graceful degradation)
-      let userConcurrent = 0;
-      let redisSucceeded = false; // Track if Redis increment was successful
-      try {
-        userConcurrent = await this.redisService.incrementWithExpire(
-          userConcurrentKey,
-          SCHEDULE_RATE_LIMITS.COUNTER_TTL_SECONDS, // Use longer TTL for long-running workflows
-        );
-        redisSucceeded = true; // Redis increment succeeded
-      } catch (redisError) {
-        // Redis connection failed - graceful degradation: allow execution
-        this.logger.warn(
-          `Redis error during concurrency check for user ${uid}, allowing execution (degraded mode): ${redisError}`,
-        );
-        // Don't set redisSucceeded, so we won't try to decrement in finally
-        userConcurrent = 1; // Assume 1 for rate limit check (will pass since limit is 3)
-      }
+      // 1. User-level concurrency check using database query
+      // Count records in 'processing' or 'running' status (both indicate active execution)
+      // This is more reliable than Redis counters as it's always consistent with actual state
+      const runningCount = await this.prisma.workflowScheduleRecord.count({
+        where: {
+          uid,
+          status: { in: ['processing', 'running'] },
+        },
+      });
 
-      if (userConcurrent > SCHEDULE_RATE_LIMITS.USER_MAX_CONCURRENT) {
-        // Decrement counter since we're not processing this job now
-        // Only decrement if Redis succeeded (otherwise there's nothing to decrement)
-        if (redisSucceeded) {
-          await this.decrementCounter(userConcurrentKey).catch((err) => {
-            this.logger.warn(`Failed to decrement counter after rate limit: ${err}`);
-          });
-        }
-
+      if (runningCount >= SCHEDULE_RATE_LIMITS.USER_MAX_CONCURRENT) {
         // Delay the job and retry later
         // BullMQ will automatically re-queue the job after the delay
         this.logger.warn(
-          `User ${uid} has ${userConcurrent - 1} concurrent executions, delaying job ${job.id}`,
+          `User ${uid} has ${runningCount} concurrent executions, delaying job ${job.id}`,
         );
         await job.moveToDelayed(
           Date.now() + SCHEDULE_RATE_LIMITS.USER_RATE_LIMIT_DELAY_MS,
@@ -121,10 +100,6 @@ export class ScheduleProcessor extends WorkerHost {
         );
         throw new DelayedError();
       }
-
-      // Mark that we've committed to processing and should decrement counter in finally
-      // Only if Redis succeeded (otherwise there's no counter to decrement)
-      shouldDecrementCounter = redisSucceeded;
 
       // 2. Check if schedule still exists and is enabled
       // This prevents execution of tasks for deleted/disabled schedules
@@ -398,36 +373,11 @@ export class ScheduleProcessor extends WorkerHost {
         });
       }
       throw error;
-    } finally {
-      // Only decrement counter if we actually started processing
-      // (not if we were delayed due to rate limiting)
-      if (shouldDecrementCounter) {
-        await this.decrementCounter(userConcurrentKey).catch((err) => {
-          this.logger.warn(`Failed to decrement user concurrent counter: ${err}`);
-        });
-      }
     }
-  }
-
-  /**
-   * Decrement a Redis counter (used for rate limiting cleanup)
-   * Uses DECR command which is atomic and handles edge cases
-   */
-  private async decrementCounter(key: string): Promise<number> {
-    const client = this.redisService.getClient();
-    if (!client) {
-      return 0;
-    }
-
-    // Use DECR to atomically decrement, and prevent going below 0
-    const script = `
-      local count = redis.call('GET', KEYS[1])
-      if count and tonumber(count) > 0 then
-        return redis.call('DECR', KEYS[1])
-      end
-      return 0
-    `;
-    return client.eval(script, 1, key) as unknown as number;
+    // Note: No need to decrement any counter here.
+    // Concurrency control is now based on database status query.
+    // When workflow completes/fails, the ScheduleEventListener updates the record status,
+    // which automatically "releases" the concurrency slot for subsequent database queries.
   }
 
   /**

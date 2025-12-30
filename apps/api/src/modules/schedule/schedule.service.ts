@@ -11,6 +11,7 @@ import {
   QUEUE_SCHEDULE_EXECUTION,
   SCHEDULE_JOB_OPTIONS,
   getScheduleQuota,
+  ScheduleFailureReason,
 } from './schedule.constants';
 import { SchedulePriorityService } from './schedule-priority.service';
 
@@ -31,15 +32,81 @@ export class ScheduleService {
     return result;
   }
 
-  async createSchedule(uid: string, dto: CreateScheduleDto) {
-    // 1. Validate Cron Expression
+  /**
+   * Validate cron expression
+   * @param cronExpression Cron expression string
+   * @param timezone Optional timezone
+   * @throws BadRequestException if invalid
+   */
+  private validateCronExpression(cronExpression: string, timezone?: string): void {
     try {
-      CronExpressionParser.parse(dto.cronExpression);
+      CronExpressionParser.parse(cronExpression, timezone ? { tz: timezone } : undefined);
     } catch {
-      throw new BadRequestException('Invalid cron expression');
+      throw new BadRequestException(ScheduleFailureReason.INVALID_CRON_EXPRESSION);
+    }
+  }
+
+  /**
+   * Validate canvas exists and belongs to user
+   * @param uid User ID
+   * @param canvasId Canvas ID
+   * @throws NotFoundException if canvas not found or doesn't belong to user
+   */
+  private async validateCanvas(uid: string, canvasId: string): Promise<void> {
+    const canvas = await this.prisma.canvas.findUnique({
+      where: { canvasId },
+      select: { uid: true },
+    });
+
+    if (!canvas) {
+      throw new NotFoundException(ScheduleFailureReason.CANVAS_DATA_ERROR);
     }
 
-    // Check if schedule already exists for this canvas
+    if (canvas.uid !== uid) {
+      throw new NotFoundException(ScheduleFailureReason.CANVAS_DATA_ERROR);
+    }
+  }
+
+  /**
+   * Check if user has quota to enable a schedule
+   * @param uid User ID
+   * @param excludeScheduleId Optional schedule ID to exclude from count (for update scenarios)
+   * @throws BadRequestException if quota exceeded
+   */
+  private async checkScheduleQuota(uid: string, excludeScheduleId?: string): Promise<void> {
+    const where: any = {
+      uid,
+      isEnabled: true,
+      deletedAt: null,
+    };
+
+    // Exclude current schedule from count when updating
+    if (excludeScheduleId) {
+      where.scheduleId = { not: excludeScheduleId };
+    }
+
+    const activeSchedulesCount = await this.prisma.workflowSchedule.count({ where });
+
+    // Check user subscription for quota
+    const subscription = await this.prisma.subscription.findFirst({
+      where: { uid, status: 'active' },
+    });
+
+    const maxSchedules = getScheduleQuota(subscription?.lookupKey);
+
+    if (activeSchedulesCount >= maxSchedules) {
+      throw new BadRequestException(ScheduleFailureReason.SCHEDULE_LIMIT_EXCEEDED);
+    }
+  }
+
+  async createSchedule(uid: string, dto: CreateScheduleDto) {
+    // 1. Validate Cron Expression
+    this.validateCronExpression(dto.cronExpression, dto.timezone);
+
+    // 2. Validate Canvas exists and belongs to user
+    await this.validateCanvas(uid, dto.canvasId);
+
+    // 3. Check if schedule already exists for this canvas
     const existingSchedule = await this.prisma.workflowSchedule.findFirst({
       where: { canvasId: dto.canvasId, uid, deletedAt: null },
     });
@@ -54,21 +121,13 @@ export class ScheduleService {
       });
     }
 
-    // 2. Check Plan Quota
-    const activeSchedulesCount = await this.prisma.workflowSchedule.count({
-      where: { uid, isEnabled: true, deletedAt: null },
-    });
-
-    // Check user subscription for quota
-    const subscription = await this.prisma.subscription.findFirst({
-      where: { uid, status: 'active' },
-    });
-    const maxSchedules = getScheduleQuota(subscription?.lookupKey);
-    if (activeSchedulesCount >= maxSchedules) {
-      throw new BadRequestException('Schedule quota exceeded');
+    // 4. Check Plan Quota (only if enabling the schedule)
+    const isEnabled = dto.isEnabled ?? false;
+    if (isEnabled) {
+      await this.checkScheduleQuota(uid);
     }
 
-    // 3. Calculate next run time
+    // 5. Calculate next run time
     // Always calculate nextRunAt even if disabled, so it's ready when enabled
     let nextRunAt: Date | null = null;
     try {
@@ -77,10 +136,10 @@ export class ScheduleService {
       });
       nextRunAt = interval.next().toDate();
     } catch {
-      throw new BadRequestException('Invalid cron expression');
+      throw new BadRequestException(ScheduleFailureReason.INVALID_CRON_EXPRESSION);
     }
 
-    // 4. Get canvas title for default name if name not provided
+    // 6. Get canvas title for default name if name not provided
     let scheduleName = dto.name;
     if (!scheduleName) {
       const canvas = await this.prisma.canvas.findUnique({
@@ -90,9 +149,8 @@ export class ScheduleService {
       scheduleName = canvas?.title || 'Scheduled Task';
     }
 
-    // 5. Create Schedule
+    // 7. Create Schedule
     const scheduleId = genScheduleId();
-    const isEnabled = dto.isEnabled ?? false;
     const schedule = await this.prisma.workflowSchedule.create({
       data: {
         scheduleId,
@@ -109,7 +167,7 @@ export class ScheduleService {
       },
     });
 
-    // 6. Create scheduled record if enabled and has nextRunAt
+    // 8. Create scheduled record if enabled and has nextRunAt
     if (isEnabled && nextRunAt) {
       await this.createOrUpdateScheduledRecord(uid, scheduleId, dto.canvasId, nextRunAt);
     }
@@ -127,10 +185,20 @@ export class ScheduleService {
       throw new NotFoundException('Schedule not found');
     }
 
-    // Recalculate nextRunAt if any of these fields change: cronExpression, timezone, or isEnabled
+    // 1. Validate cron expression if updated
+    if (dto.cronExpression !== undefined) {
+      this.validateCronExpression(dto.cronExpression, dto.timezone || schedule.timezone);
+    }
+
+    // 2. Check quota if enabling the schedule (from disabled to enabled)
+    const isEnabled = dto.isEnabled !== undefined ? dto.isEnabled : schedule.isEnabled;
+    if (schedule.isEnabled === false && isEnabled === true) {
+      await this.checkScheduleQuota(uid, scheduleId);
+    }
+
+    // 3. Recalculate nextRunAt if any of these fields change: cronExpression, timezone, or isEnabled
     const cron = dto.cronExpression || schedule.cronExpression;
     const timezone = dto.timezone || schedule.timezone;
-    const isEnabled = dto.isEnabled !== undefined ? dto.isEnabled : schedule.isEnabled;
 
     let nextRunAt = schedule.nextRunAt;
     const shouldRecalculate =
@@ -145,7 +213,7 @@ export class ScheduleService {
           const interval = CronExpressionParser.parse(cron, { tz: timezone });
           nextRunAt = interval.next().toDate();
         } catch {
-          throw new BadRequestException('Invalid cron expression');
+          throw new BadRequestException(ScheduleFailureReason.INVALID_CRON_EXPRESSION);
         }
       } else {
         // When disabled, keep nextRunAt as null

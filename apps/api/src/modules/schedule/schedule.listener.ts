@@ -108,7 +108,7 @@ export class ScheduleEventListener {
 
     if (status === 'success') {
       // Get the execution canvas ID for the run-history link
-      const executionCanvasId = scheduleRecord?.canvasId || '';
+      const scheduleRecordId = scheduleRecord?.scheduleRecordId || '';
       const origin = this.config.get<string>('origin');
 
       const { subject, html } = generateScheduleSuccessEmail({
@@ -116,8 +116,8 @@ export class ScheduleEventListener {
         scheduleName: scheduleName,
         runTime: new Date().toLocaleString(),
         nextRunTime: nextRunTime,
-        schedulesLink: `${origin}/run-history/${executionCanvasId}`,
-        runDetailsLink: `${origin}/run-history/${executionCanvasId}`,
+        schedulesLink: `${origin}/run-history/${scheduleRecordId}`,
+        runDetailsLink: `${origin}/run-history/${scheduleRecordId}`,
       });
       await this.notificationService.sendEmail(
         {
@@ -129,7 +129,7 @@ export class ScheduleEventListener {
       );
     } else {
       // Get the execution canvas ID for the run-history link
-      const executionCanvasId = scheduleRecord?.canvasId || '';
+      const scheduleRecordId = scheduleRecord?.scheduleRecordId || '';
       const origin = this.config.get<string>('origin');
 
       const { subject, html } = generateScheduleFailedEmail({
@@ -137,8 +137,8 @@ export class ScheduleEventListener {
         scheduleName: scheduleName,
         runTime: new Date().toLocaleString(),
         nextRunTime: nextRunTime,
-        schedulesLink: `${origin}/run-history/${executionCanvasId}`,
-        runDetailsLink: `${origin}/run-history/${executionCanvasId}`,
+        schedulesLink: `${origin}/run-history/${scheduleRecordId}`,
+        runDetailsLink: `${origin}/run-history/${scheduleRecordId}`,
       });
       await this.notificationService.sendEmail(
         {

@@ -14,6 +14,7 @@ import {
   ScheduleFailureReason,
   ScheduleAnalyticsEvents,
   SchedulePeriodType,
+  getScheduleQuota,
 } from './schedule.constants';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { CronExpressionParser } from 'cron-parser';
@@ -150,12 +151,12 @@ export class ScheduleCronService implements OnModuleInit {
     }
 
     // 3.1.5 Check Schedule Limit
-    // TODO: Fetch actual limit from subscription plan. Currently mocking Free=1, Plus=20.
+    //  Fetch actual limit from subscription plan. Currently mocking Free=1, Plus=20.
     const userSubscription = await this.prisma.subscription.findFirst({
       where: { uid: schedule.uid, status: 'active' },
     });
     // Simple logic: if has active subscription -> 20, else 1
-    const limit = userSubscription ? 20 : 1;
+    const limit = getScheduleQuota(userSubscription?.lookupKey);
 
     const activeSchedulesCount = await this.prisma.workflowSchedule.count({
       where: { uid: schedule.uid, isEnabled: true, deletedAt: null },
