@@ -197,13 +197,26 @@ const Flow = memo(
     useEffect(() => {
       const handleToolsetInstalled = ({ toolset }: { toolset: any }) => {
         // Update toolsetId for all nodes that have this toolset key across the entire canvas
-        updateToolsetIdForAllNodes(toolset.key, toolset.toolsetId);
+        updateToolsetIdForAllNodes(toolset.key, toolset.toolsetId || toolset.id);
+      };
+
+      const handleUpdateNodeToolset = ({
+        toolsetKey,
+        newToolsetId,
+      }: {
+        toolsetKey: string;
+        newToolsetId: string;
+      }) => {
+        // Update toolsetId for all nodes that have this toolset key
+        updateToolsetIdForAllNodes(toolsetKey, newToolsetId);
       };
 
       toolsetEmitter.on('toolsetInstalled', handleToolsetInstalled);
+      toolsetEmitter.on('updateNodeToolset', handleUpdateNodeToolset);
 
       return () => {
         toolsetEmitter.off('toolsetInstalled', handleToolsetInstalled);
+        toolsetEmitter.off('updateNodeToolset', handleUpdateNodeToolset);
       };
     }, [updateToolsetIdForAllNodes]);
 

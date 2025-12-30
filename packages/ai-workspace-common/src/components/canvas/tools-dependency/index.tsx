@@ -20,14 +20,15 @@ import { NodeIcon } from '@refly-packages/ai-workspace-common/components/canvas/
 import { extractToolsetsWithNodes } from '@refly/canvas-common';
 import { useOpenInstallTool } from '@refly-packages/ai-workspace-common/hooks/use-open-install-tool';
 import { useOpenInstallMcp } from '@refly-packages/ai-workspace-common/hooks/use-open-install-mcp';
+import { useOAuthPopup } from '@refly-packages/ai-workspace-common/hooks/use-oauth-popup';
 import { HiMagnifyingGlass } from 'react-icons/hi2';
 import { RiPulseLine } from 'react-icons/ri';
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
 import { toolsetEmitter } from '@refly-packages/ai-workspace-common/events/toolset';
-import { NodeStatusChecker } from './node-status-checker';
+//import { NodeStatusChecker } from './node-status-checker';
 import { useSubscriptionUsage } from '@refly-packages/ai-workspace-common/hooks/use-subscription-usage';
 import { useSubscriptionStoreShallow } from '@refly/stores';
-import { useRealtimeCanvasData } from '@refly-packages/ai-workspace-common/hooks/canvas/use-realtime-canvas-data';
+//import { useRealtimeCanvasData } from '@refly-packages/ai-workspace-common/hooks/canvas/use-realtime-canvas-data';
 import { IoIosWarning } from 'react-icons/io';
 import { useVariablesManagement } from '@refly-packages/ai-workspace-common/hooks/use-variables-management';
 import { CreateVariablesModal } from '@refly-packages/ai-workspace-common/components/canvas/workflow-variables';
@@ -278,7 +279,7 @@ const NoticeBlock = React.memo(
 NoticeBlock.displayName = 'NoticeBlock';
 
 // Custom hook to get failed/unrun nodes count without rendering UI
-const useFailedNodesCount = () => {
+/*const useFailedNodesCount = () => {
   const { nodes } = useRealtimeCanvasData();
 
   return useMemo(() => {
@@ -300,7 +301,7 @@ const useFailedNodesCount = () => {
 
     return failedOrUnrunNodes.length;
   }, [nodes]);
-};
+};*/
 
 // Custom hook to get required inputs that are not filled
 const useRequiredInputsCheck = (canvasId: string) => {
@@ -437,7 +438,7 @@ const ToolsDependencyContent = React.memo(
     highlightInstallButtons = false,
     isLoading = false,
     canvasId,
-    onFailedNodesCountChange,
+    //onFailedNodesCountChange,
     creditUsage,
   }: {
     uninstalledCount: number;
@@ -452,7 +453,7 @@ const ToolsDependencyContent = React.memo(
     highlightInstallButtons?: boolean;
     isLoading?: boolean;
     canvasId?: string;
-    onFailedNodesCountChange?: (count: number) => void;
+    //onFailedNodesCountChange?: (count: number) => void;
     creditUsage?: number;
   }) => {
     const { t, i18n } = useTranslation();
@@ -467,6 +468,13 @@ const ToolsDependencyContent = React.memo(
 
     const { openInstallToolByKey } = useOpenInstallTool();
     const { openInstallMcp } = useOpenInstallMcp();
+
+    // OAuth popup for direct tool authorization (like mentionList)
+    const { openOAuthPopup, isPolling, isOpening } = useOAuthPopup({
+      onSuccess: (_toolsetKey) => {
+        // OAuth success is handled by the event system, no additional action needed
+      },
+    });
 
     // Get credit balance and subscription store
     const { creditBalance, isBalanceSuccess } = useSubscriptionUsage();
@@ -504,15 +512,42 @@ const ToolsDependencyContent = React.memo(
     );
 
     const handleInstallTool = useCallback(
-      (toolset: GenericToolset) => {
+      async (toolset: GenericToolset) => {
         if (toolset.type === 'mcp') {
+          // MCP tools still use the install modal
           openInstallMcp(toolset.mcpServer);
+          setOpen(false);
         } else {
-          openInstallToolByKey(toolset.toolset?.key);
+          // For regular toolsets, use the same authorization check as the component
+          const isAuthorized = isToolsetAuthorized(toolset, userTools);
+          const toolsetKey = toolset.toolset?.key;
+
+          if (toolsetKey) {
+            if (!isAuthorized) {
+              // Tool is not authorized - use direct OAuth popup like mentionList
+              if (isPolling || isOpening) {
+                return;
+              }
+              // Use direct OAuth authorization like mentionList
+              await openOAuthPopup(toolsetKey);
+              setOpen(false);
+            } else {
+              // Tool is already authorized, fall back to install modal for configuration
+              openInstallToolByKey(toolsetKey);
+              setOpen(false);
+            }
+          }
         }
-        setOpen(false);
       },
-      [openInstallToolByKey, openInstallMcp, setOpen],
+      [
+        openInstallToolByKey,
+        openInstallMcp,
+        setOpen,
+        openOAuthPopup,
+        isPolling,
+        isOpening,
+        userTools,
+      ],
     );
 
     const handleCreditUpgrade = useCallback(() => {
@@ -575,13 +610,13 @@ const ToolsDependencyContent = React.memo(
                 );
               })}
 
-            {/* Node Status Checker */}
+            {/* Node Status Checker 
             {canvasId && (
               <NodeStatusChecker
                 canvasId={canvasId}
                 onFailedNodesCountChange={onFailedNodesCountChange}
               />
-            )}
+            )}*/}
 
             {/* Tools List */}
             {totalCount > 0 && currentTools.length > 0 && (
@@ -653,9 +688,13 @@ const ToolsDependencyContent = React.memo(
                             type="text"
                             size="small"
                             className="text-refly-primary-default hover:!text-refly-primary-hover flex-shrink-0 text-xs md:text-sm"
+                            loading={isPolling || isOpening}
+                            disabled={isPolling || isOpening}
                             onClick={() => handleInstallTool(toolset)}
                           >
-                            {t('canvas.workflowDepencency.goToInstall')}
+                            {isPolling || isOpening
+                              ? t('canvas.richChatInput.authorizing', '授权中...')
+                              : t('canvas.workflowDepencency.goToInstall')}
                           </Button>
                         )}
                       </div>
@@ -912,7 +951,7 @@ export const ToolsDependencyChecker = ({
           highlightInstallButtons={highlightInstallButtons}
           isLoading={toolsLoading}
           canvasId={undefined}
-          onFailedNodesCountChange={undefined}
+          //onFailedNodesCountChange={undefined}
           creditUsage={creditUsage}
         />
       }
@@ -951,7 +990,7 @@ export const ToolsDependency = ({
   const { shareData, readonly } = useCanvasContext();
 
   // Get failed nodes count using custom hook
-  const failedNodesCount = useFailedNodesCount();
+  //const failedNodesCount = useFailedNodesCount();
 
   // Get required inputs check
   const requiredInputsCheck = useRequiredInputsCheck(canvasId);
@@ -997,17 +1036,21 @@ export const ToolsDependency = ({
 
   // Listen for toolset installation events and refetch user tools
   useEffect(() => {
-    const handleToolsetInstalled = () => {
+    const handleToolsetInstalled = (_event) => {
       // Refetch user tools when a toolset is installed
       refetchUserTools();
     };
 
+    const handleUpdateNodeToolset = (_event) => {};
+
     toolsetEmitter.on('toolsetInstalled', handleToolsetInstalled);
+    toolsetEmitter.on('updateNodeToolset', handleUpdateNodeToolset);
 
     return () => {
       toolsetEmitter.off('toolsetInstalled', handleToolsetInstalled);
+      toolsetEmitter.off('updateNodeToolset', handleUpdateNodeToolset);
     };
-  }, [refetchUserTools]);
+  }, [refetchUserTools, canvasId]);
 
   const handlePopoverOpenChange = useCallback(
     (nextOpen: boolean) => {
@@ -1116,12 +1159,12 @@ export const ToolsDependency = ({
     const requiredInputsCount = requiredInputsCheck.count;
 
     // merge all counts into total count
-    return baseUninstalledCount + failedNodesCount + creditInsufficientCount + requiredInputsCount;
+    return baseUninstalledCount + creditInsufficientCount + requiredInputsCount;
   }, [
     isLogin,
     userTools,
     toolsetsWithNodes,
-    failedNodesCount,
+    //failedNodesCount,
     isCreditInsufficient,
     requiredInputsCheck.count,
   ]);
@@ -1163,7 +1206,7 @@ export const ToolsDependency = ({
           highlightInstallButtons={highlightInstallButtons}
           isLoading={canvasLoading || toolsLoading}
           canvasId={canvasId}
-          onFailedNodesCountChange={undefined}
+          //onFailedNodesCountChange={undefined}
           creditUsage={estimatedCreditUsage}
         />
       }
