@@ -2101,6 +2101,7 @@ const translations = {
     },
     workflowDepencency: {
       title: '工作流就绪检查',
+      subtitle: '运行前请先解决以下问题',
       description: '工具依赖将显示在此处',
       uninstalledToolsCount: '{{count}}个工作流问题',
       searchPlaceholder: '搜索工具',
@@ -2112,7 +2113,11 @@ const translations = {
       descriptionPlaceholder: '工具介绍,最多二十个中文字',
       referencedNodes: '被引用节点',
       more: '更多',
-      goToInstall: '去安装',
+      goToInstall: '安装',
+      notAuthorized: '工具未授权',
+      mcpUnavailable: '工具当前不可用',
+      notEnoughCredits: '积分不足，无法运行',
+      requiredInputNotFilled: '必填输入项未填写: {{input_name}}',
     },
   },
   resource: {

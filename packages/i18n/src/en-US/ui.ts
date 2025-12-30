@@ -1972,6 +1972,7 @@ const translations = {
     },
     workflowDepencency: {
       title: 'Workflow readiness check',
+      subtitle: 'Fix the following issues before running',
       description: 'Tool dependencies will be displayed here',
       uninstalledToolsCount: '{{count}} workflow issues',
       searchPlaceholder: 'Search tools',
@@ -1983,7 +1984,11 @@ const translations = {
       descriptionPlaceholder: 'Tool description, up to 20 Chinese characters',
       referencedNodes: 'Referenced nodes',
       more: 'More',
-      goToInstall: 'Go to Install',
+      goToInstall: 'Install',
+      notAuthorized: 'Tool not authorized',
+      mcpUnavailable: 'Tool is unavailable',
+      notEnoughCredits: 'Not enough credits to run',
+      requiredInputNotFilled: 'Required input not filled: {{input_name}}',
     },
   },
   resource: {
