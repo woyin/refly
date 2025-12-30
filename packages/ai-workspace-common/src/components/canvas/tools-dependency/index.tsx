@@ -25,10 +25,10 @@ import { HiMagnifyingGlass } from 'react-icons/hi2';
 import { RiPulseLine } from 'react-icons/ri';
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
 import { toolsetEmitter } from '@refly-packages/ai-workspace-common/events/toolset';
-import { NodeStatusChecker } from './node-status-checker';
+//import { NodeStatusChecker } from './node-status-checker';
 import { useSubscriptionUsage } from '@refly-packages/ai-workspace-common/hooks/use-subscription-usage';
 import { useSubscriptionStoreShallow } from '@refly/stores';
-import { useRealtimeCanvasData } from '@refly-packages/ai-workspace-common/hooks/canvas/use-realtime-canvas-data';
+//import { useRealtimeCanvasData } from '@refly-packages/ai-workspace-common/hooks/canvas/use-realtime-canvas-data';
 import { IoIosWarning } from 'react-icons/io';
 import { useVariablesManagement } from '@refly-packages/ai-workspace-common/hooks/use-variables-management';
 import { CreateVariablesModal } from '@refly-packages/ai-workspace-common/components/canvas/workflow-variables';
@@ -279,7 +279,7 @@ const NoticeBlock = React.memo(
 NoticeBlock.displayName = 'NoticeBlock';
 
 // Custom hook to get failed/unrun nodes count without rendering UI
-const useFailedNodesCount = () => {
+/*const useFailedNodesCount = () => {
   const { nodes } = useRealtimeCanvasData();
 
   return useMemo(() => {
@@ -301,7 +301,7 @@ const useFailedNodesCount = () => {
 
     return failedOrUnrunNodes.length;
   }, [nodes]);
-};
+};*/
 
 // Custom hook to get required inputs that are not filled
 const useRequiredInputsCheck = (canvasId: string) => {
@@ -438,7 +438,7 @@ const ToolsDependencyContent = React.memo(
     highlightInstallButtons = false,
     isLoading = false,
     canvasId,
-    onFailedNodesCountChange,
+    //onFailedNodesCountChange,
     creditUsage,
   }: {
     uninstalledCount: number;
@@ -453,7 +453,7 @@ const ToolsDependencyContent = React.memo(
     highlightInstallButtons?: boolean;
     isLoading?: boolean;
     canvasId?: string;
-    onFailedNodesCountChange?: (count: number) => void;
+    //onFailedNodesCountChange?: (count: number) => void;
     creditUsage?: number;
   }) => {
     const { t, i18n } = useTranslation();
@@ -610,13 +610,13 @@ const ToolsDependencyContent = React.memo(
                 );
               })}
 
-            {/* Node Status Checker */}
+            {/* Node Status Checker 
             {canvasId && (
               <NodeStatusChecker
                 canvasId={canvasId}
                 onFailedNodesCountChange={onFailedNodesCountChange}
               />
-            )}
+            )}*/}
 
             {/* Tools List */}
             {totalCount > 0 && currentTools.length > 0 && (
@@ -951,7 +951,7 @@ export const ToolsDependencyChecker = ({
           highlightInstallButtons={highlightInstallButtons}
           isLoading={toolsLoading}
           canvasId={undefined}
-          onFailedNodesCountChange={undefined}
+          //onFailedNodesCountChange={undefined}
           creditUsage={creditUsage}
         />
       }
@@ -990,7 +990,7 @@ export const ToolsDependency = ({
   const { shareData, readonly } = useCanvasContext();
 
   // Get failed nodes count using custom hook
-  const failedNodesCount = useFailedNodesCount();
+  //const failedNodesCount = useFailedNodesCount();
 
   // Get required inputs check
   const requiredInputsCheck = useRequiredInputsCheck(canvasId);
@@ -1159,12 +1159,12 @@ export const ToolsDependency = ({
     const requiredInputsCount = requiredInputsCheck.count;
 
     // merge all counts into total count
-    return baseUninstalledCount + failedNodesCount + creditInsufficientCount + requiredInputsCount;
+    return baseUninstalledCount + creditInsufficientCount + requiredInputsCount;
   }, [
     isLogin,
     userTools,
     toolsetsWithNodes,
-    failedNodesCount,
+    //failedNodesCount,
     isCreditInsufficient,
     requiredInputsCheck.count,
   ]);
@@ -1206,7 +1206,7 @@ export const ToolsDependency = ({
           highlightInstallButtons={highlightInstallButtons}
           isLoading={canvasLoading || toolsLoading}
           canvasId={canvasId}
-          onFailedNodesCountChange={undefined}
+          //onFailedNodesCountChange={undefined}
           creditUsage={estimatedCreditUsage}
         />
       }
