@@ -1,5 +1,6 @@
 import { Injectable, Logger, NotFoundException, BadRequestException, Inject } from '@nestjs/common';
 import { PrismaService } from '../common/prisma.service';
+import { Prisma } from '@prisma/client';
 import { CreateScheduleDto, UpdateScheduleDto } from './schedule.dto';
 import { genScheduleId, genScheduleRecordId } from '@refly/utils';
 import { CronExpressionParser } from 'cron-parser';
@@ -111,101 +112,27 @@ export class ScheduleService {
       where: { canvasId: dto.canvasId, uid, deletedAt: null },
     });
 
-    if (existingSchedule) {
-      // Update existing schedule instead of creating a new one
-      return this.updateSchedule(uid, existingSchedule.scheduleId, {
-        cronExpression: dto.cronExpression,
-        scheduleConfig: dto.scheduleConfig,
-        timezone: dto.timezone,
-        isEnabled: dto.isEnabled,
-      });
-    }
+    // 4. Determine if schedule should be enabled
+    const isEnabled = dto.isEnabled ?? existingSchedule?.isEnabled ?? false;
 
-    // 4. Check Plan Quota (only if enabling the schedule)
-    const isEnabled = dto.isEnabled ?? false;
-    if (isEnabled) {
+    // 5. Check Plan Quota (only if enabling the schedule from disabled state)
+    if (existingSchedule?.isEnabled === false && isEnabled === true) {
+      await this.checkScheduleQuota(uid, existingSchedule.scheduleId);
+    } else if (!existingSchedule && isEnabled) {
       await this.checkScheduleQuota(uid);
     }
 
-    // 5. Calculate next run time
-    // Always calculate nextRunAt even if disabled, so it's ready when enabled
+    // 6. Calculate next run time
+    const cron = dto.cronExpression;
+    const timezone = dto.timezone || existingSchedule?.timezone || 'Asia/Shanghai';
     let nextRunAt: Date | null = null;
-    try {
-      const interval = CronExpressionParser.parse(dto.cronExpression, {
-        tz: dto.timezone || 'Asia/Shanghai',
-      });
-      nextRunAt = interval.next().toDate();
-    } catch {
-      throw new BadRequestException(ScheduleFailureReason.INVALID_CRON_EXPRESSION);
-    }
 
-    // 6. Get canvas title for default name if name not provided
-    let scheduleName = dto.name;
-    if (!scheduleName) {
-      const canvas = await this.prisma.canvas.findUnique({
-        where: { canvasId: dto.canvasId },
-        select: { title: true },
-      });
-      scheduleName = canvas?.title || 'Scheduled Task';
-    }
-
-    // 7. Create Schedule
-    const scheduleId = genScheduleId();
-    const schedule = await this.prisma.workflowSchedule.create({
-      data: {
-        scheduleId,
-        uid,
-        canvasId: dto.canvasId,
-        name: scheduleName,
-        cronExpression: dto.cronExpression,
-        scheduleConfig: dto.scheduleConfig,
-        timezone: dto.timezone,
-        isEnabled,
-        // Only set nextRunAt if enabled, otherwise keep it calculated but null
-        // This allows the schedule to be ready when enabled
-        nextRunAt: isEnabled ? nextRunAt : null,
-      },
-    });
-
-    // 8. Create scheduled record if enabled and has nextRunAt
-    if (isEnabled && nextRunAt) {
-      await this.createOrUpdateScheduledRecord(uid, scheduleId, dto.canvasId, nextRunAt);
-    }
-
-    // Remove pk field (BigInt) to avoid serialization issues
-    return this.excludePk(schedule);
-  }
-
-  async updateSchedule(uid: string, scheduleId: string, dto: UpdateScheduleDto) {
-    const schedule = await this.prisma.workflowSchedule.findUnique({
-      where: { scheduleId },
-    });
-
-    if (!schedule || schedule.uid !== uid || schedule.deletedAt) {
-      throw new NotFoundException('Schedule not found');
-    }
-
-    // 1. Validate cron expression if updated
-    if (dto.cronExpression !== undefined) {
-      this.validateCronExpression(dto.cronExpression, dto.timezone || schedule.timezone);
-    }
-
-    // 2. Check quota if enabling the schedule (from disabled to enabled)
-    const isEnabled = dto.isEnabled !== undefined ? dto.isEnabled : schedule.isEnabled;
-    if (schedule.isEnabled === false && isEnabled === true) {
-      await this.checkScheduleQuota(uid, scheduleId);
-    }
-
-    // 3. Recalculate nextRunAt if any of these fields change: cronExpression, timezone, or isEnabled
-    const cron = dto.cronExpression || schedule.cronExpression;
-    const timezone = dto.timezone || schedule.timezone;
-
-    let nextRunAt = schedule.nextRunAt;
     const shouldRecalculate =
-      dto.cronExpression !== undefined ||
-      dto.timezone !== undefined ||
+      !existingSchedule || // New schedule always needs calculation
+      dto.cronExpression !== existingSchedule.cronExpression ||
+      (dto.timezone !== undefined && dto.timezone !== existingSchedule.timezone) ||
       dto.isEnabled !== undefined ||
-      (isEnabled && !nextRunAt); // Recalculate if enabling and nextRunAt is null
+      (isEnabled && !existingSchedule.nextRunAt); // Recalculate if enabling and nextRunAt is null
 
     if (shouldRecalculate) {
       if (isEnabled) {
@@ -219,25 +146,118 @@ export class ScheduleService {
         // When disabled, keep nextRunAt as null
         nextRunAt = null;
       }
+    } else {
+      // Use existing nextRunAt if no recalculation needed
+      nextRunAt = existingSchedule?.nextRunAt ?? null;
     }
 
-    const updated = await this.prisma.workflowSchedule.update({
+    // 7. Get canvas title for default name if name not provided
+    let scheduleName = dto.name;
+    if (!scheduleName) {
+      if (existingSchedule?.name) {
+        scheduleName = existingSchedule.name;
+      } else {
+        const canvas = await this.prisma.canvas.findUnique({
+          where: { canvasId: dto.canvasId },
+          select: { title: true },
+        });
+        scheduleName = canvas?.title || 'Scheduled Task';
+      }
+    }
+
+    // 8. Create or update Schedule
+    const scheduleId = existingSchedule?.scheduleId ?? genScheduleId();
+
+    if (existingSchedule) {
+      // Update existing schedule
+      const updated = await this.prisma.workflowSchedule.update({
+        where: { scheduleId },
+        data: {
+          name: scheduleName,
+          cronExpression: dto.cronExpression,
+          scheduleConfig: dto.scheduleConfig,
+          timezone: dto.timezone ?? existingSchedule.timezone,
+          isEnabled,
+          nextRunAt,
+        },
+      });
+
+      // Update or create scheduled record if enabled and has nextRunAt
+      if (isEnabled && nextRunAt) {
+        await this.createOrUpdateScheduledRecord(uid, scheduleId, dto.canvasId, nextRunAt);
+      } else {
+        // Delete scheduled record if disabled or no nextRunAt
+        await this.deleteScheduledRecord(scheduleId);
+      }
+
+      return this.excludePk(updated);
+    } else {
+      // Create new schedule
+      try {
+        const schedule = await this.prisma.workflowSchedule.create({
+          data: {
+            scheduleId,
+            uid,
+            canvasId: dto.canvasId,
+            name: scheduleName,
+            cronExpression: dto.cronExpression,
+            scheduleConfig: dto.scheduleConfig,
+            timezone: dto.timezone || 'Asia/Shanghai',
+            isEnabled,
+            nextRunAt: isEnabled ? nextRunAt : null,
+          },
+        });
+
+        // Create scheduled record if enabled and has nextRunAt
+        if (isEnabled && nextRunAt) {
+          await this.createOrUpdateScheduledRecord(uid, scheduleId, dto.canvasId, nextRunAt);
+        }
+
+        return this.excludePk(schedule);
+      } catch (error) {
+        // Handle unique constraint violation (P2002) from concurrent requests
+        if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+          const target = error.meta?.target;
+          const isCanvasUidConstraint =
+            Array.isArray(target) && target.includes('canvasId') && target.includes('uid');
+
+          if (isCanvasUidConstraint) {
+            // Another request created the schedule concurrently, fetch and retry
+            this.logger.warn(
+              `Concurrent schedule creation detected for canvas ${dto.canvasId}, retrying with existing schedule`,
+            );
+            // Recursively call createSchedule to handle the update path
+            return this.createSchedule(uid, dto);
+          }
+        }
+        // Re-throw if it's not a unique constraint violation
+        throw error;
+      }
+    }
+  }
+
+  async updateSchedule(uid: string, scheduleId: string, dto: UpdateScheduleDto) {
+    // Find existing schedule to get canvasId and merge with update data
+    const schedule = await this.prisma.workflowSchedule.findUnique({
       where: { scheduleId },
-      data: {
-        ...dto,
-        nextRunAt,
-      },
     });
 
-    // Update or create scheduled record if enabled and has nextRunAt
-    if (isEnabled && nextRunAt) {
-      await this.createOrUpdateScheduledRecord(uid, scheduleId, schedule.canvasId, nextRunAt);
-    } else {
-      // Delete scheduled record if disabled or no nextRunAt
-      await this.deleteScheduledRecord(scheduleId);
+    if (!schedule || schedule.uid !== uid || schedule.deletedAt) {
+      throw new NotFoundException('Schedule not found');
     }
 
-    return this.excludePk(updated);
+    // Merge update data with existing schedule data to create a complete CreateScheduleDto
+    const createDto: CreateScheduleDto = {
+      canvasId: schedule.canvasId,
+      name: dto.name ?? schedule.name,
+      cronExpression: dto.cronExpression ?? schedule.cronExpression,
+      scheduleConfig: dto.scheduleConfig ?? schedule.scheduleConfig,
+      timezone: dto.timezone ?? schedule.timezone,
+      isEnabled: dto.isEnabled ?? schedule.isEnabled,
+    };
+
+    // Reuse createSchedule logic which handles both create and update
+    return this.createSchedule(uid, createDto);
   }
 
   async deleteSchedule(uid: string, scheduleId: string) {

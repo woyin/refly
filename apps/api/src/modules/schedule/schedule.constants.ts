@@ -12,7 +12,7 @@ export const SCHEDULE_RATE_LIMITS = {
 
   // Per-user max concurrent executions (to prevent one user from monopolizing)
   // Concurrency is controlled by Redis atomic operations (INCR/DECR) with database fallback
-  USER_MAX_CONCURRENT: 3,
+  USER_MAX_CONCURRENT: 20,
 
   // Delay time in ms when user is rate limited
   USER_RATE_LIMIT_DELAY_MS: 10 * 1000, // 10 seconds

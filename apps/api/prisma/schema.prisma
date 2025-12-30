@@ -2305,6 +2305,9 @@ model WorkflowSchedule {
   updatedAt DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz()
   deletedAt DateTime? @map("deleted_at") @db.Timestamptz()
 
+  // ========== Unique Constraints ==========
+  /// Ensure one schedule per canvas per user (prevents concurrent creation race condition)
+  @@unique([canvasId, uid])
   // ========== Indexes ==========
   @@index([uid, isEnabled, deletedAt])
   @@index([isEnabled, nextRunAt, deletedAt])
