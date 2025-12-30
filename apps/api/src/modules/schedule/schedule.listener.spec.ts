@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { ScheduleEventListener } from './schedule.listener';
 import { PrismaService } from '../common/prisma.service';
 import { NotificationService } from '../notification/notification.service';
+import { ConfigService } from '@nestjs/config';
 import { WorkflowCompletedEvent, WorkflowFailedEvent } from '../workflow/workflow.events';
 import {
   generateScheduleSuccessEmail,
@@ -48,6 +49,12 @@ describe('ScheduleEventListener', () => {
           provide: NotificationService,
           useValue: {
             sendEmail: jest.fn(),
+          },
+        },
+        {
+          provide: ConfigService,
+          useValue: {
+            get: jest.fn().mockReturnValue('https://refly.ai'),
           },
         },
       ],

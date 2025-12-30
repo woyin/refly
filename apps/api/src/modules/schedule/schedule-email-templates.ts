@@ -23,7 +23,7 @@ const STYLES = {
   cardValue: 'font-size: 13px; font-weight: 500; color: #1C2024; margin-left: auto;',
   buttonContainer: 'margin-top: 32px; text-align: left;',
   button:
-    'display: inline-block; background-color: #000000; color: #ffffff; padding: 12px 24px; border-radius: 6px; font-size: 14px; font-weight: 600; text-decoration: none; transition: background-color 0.2s;',
+    'display: inline-block; background-color: #0e9f77; color: #ffffff; padding: 12px 24px; border-radius: 6px; font-size: 14px; font-weight: 600; text-decoration: none; transition: background-color 0.2s;',
   footer:
     'padding: 24px 32px; background-color: #F9FAFB; border-top: 1px solid #EFF1F3; text-align: center;',
   footerText: 'font-size: 12px; color: #8C9196; margin-bottom: 8px;',
@@ -114,7 +114,7 @@ export function generateLimitExceededEmail(data: LimitExceededData): {
     </ul>
 
     <p style="${STYLES.paragraph}">
-      Once your active schedule count is within your plan's limit, you can manually re-enable this schedule.
+      Once your active schedule count is within your plan's limit, this schedule will automatically resume.
     </p>
 
     <div style="${STYLES.buttonContainer}">
@@ -128,7 +128,6 @@ export function generateLimitExceededEmail(data: LimitExceededData): {
 // 2. Insufficient Credits
 export interface InsufficientCreditsData extends ScheduleEmailCommonData {
   nextRunTime?: string; // Formatted date string
-  creditsNeeded: number;
   currentBalance: number;
 }
 
@@ -142,18 +141,18 @@ export function generateInsufficientCreditsEmail(data: InsufficientCreditsData):
     `
     <h1 style="${STYLES.greeting}">Hi ${data.userName},</h1>
     <p style="${STYLES.paragraph}">
-      Your scheduled workflow <strong>“${data.scheduleName}”</strong> was unable to run because your account doesn’t have enough credits.
+      Your scheduled workflow <strong>"${data.scheduleName}"</strong> was unable to run because your account doesn't have enough credits.
     </p>
 
     <div style="${STYLES.card}">
       <table role="presentation" style="width: 100%;">
         <tr>
-          <td style="${STYLES.cardLabel}">Credits Needed</td>
-          <td align="right" style="${STYLES.cardValue}">${data.creditsNeeded}</td>
+          <td style="${STYLES.cardLabel}">What happened</td>
+          <td align="right" style="${STYLES.cardValue}">The workflow requires credits to execute</td>
         </tr>
         <tr>
           <td style="${STYLES.cardLabel}">Current Balance</td>
-          <td align="right" style="${STYLES.cardValue}">${data.currentBalance}</td>
+          <td align="right" style="${STYLES.cardValue}">${data.currentBalance} credits</td>
         </tr>
         ${
           data.nextRunTime
@@ -167,11 +166,11 @@ export function generateInsufficientCreditsEmail(data: InsufficientCreditsData):
     </div>
 
     <p style="${STYLES.paragraph}">
-      This schedule execution didn't happen. The schedule remains active, but future runs will also fail if credits are not replenished.
+      This schedule has been temporarily paused and will not run until your credits are replenished. Once your credit balance is restored, the schedule will automatically resume and continue running as planned.
     </p>
 
     <div style="${STYLES.buttonContainer}">
-      <a href="${data.schedulesLink}" style="${STYLES.button}">Get Credits & Manage</a>
+      <a href="${data.schedulesLink}" style="${STYLES.button}">View Workflow</a>
     </div>
   `,
   );
@@ -189,7 +188,7 @@ export function generateScheduleSuccessEmail(data: ScheduleSuccessData): {
   subject: string;
   html: string;
 } {
-  const subject = 'Scheduled workflow ran successfully';
+  const subject = 'Scheduled workflow Succeeded successfully';
   const html = wrapEmail(
     subject,
     `
@@ -265,7 +264,7 @@ export function generateScheduleFailedEmail(data: ScheduleFailedData): {
     </div>
 
     <p style="${STYLES.paragraph}">
-      The schedule itself is significantly active and will attempt to run again at the next scheduled time.
+      The schedule itself is still active and will attempt to run again at the next scheduled time.
     </p>
 
     <div style="${STYLES.buttonContainer}">

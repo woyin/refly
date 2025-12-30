@@ -1,4 +1,5 @@
 import { Injectable, Logger, OnModuleInit, forwardRef, Inject } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../common/prisma.service';
 import { RedisService } from '../common/redis.service';
 import { NotificationService } from '../notification/notification.service';
@@ -11,10 +12,32 @@ import {
   QUEUE_SCHEDULE_EXECUTION,
   SCHEDULE_JOB_OPTIONS,
   ScheduleFailureReason,
+  ScheduleAnalyticsEvents,
+  SchedulePeriodType,
 } from './schedule.constants';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { CronExpressionParser } from 'cron-parser';
 import { genScheduleRecordId } from '@refly/utils';
+
+/**
+ * Extract schedule type from scheduleConfig JSON
+ * @param scheduleConfig - JSON string like { type: 'daily|weekly|monthly', ... }
+ * @returns Schedule period type
+ */
+function getScheduleType(scheduleConfig: string | null | undefined): string {
+  if (!scheduleConfig) {
+    return SchedulePeriodType.CUSTOM;
+  }
+  try {
+    const config = JSON.parse(scheduleConfig);
+    if (config.type && ['daily', 'weekly', 'monthly'].includes(config.type)) {
+      return config.type;
+    }
+    return SchedulePeriodType.CUSTOM;
+  } catch {
+    return SchedulePeriodType.CUSTOM;
+  }
+}
 
 @Injectable()
 export class ScheduleCronService implements OnModuleInit {
@@ -28,6 +51,7 @@ export class ScheduleCronService implements OnModuleInit {
     private readonly scheduleService: ScheduleService,
     @InjectQueue(QUEUE_SCHEDULE_EXECUTION) private readonly scheduleQueue: Queue,
     private readonly notificationService: NotificationService,
+    private readonly config: ConfigService,
   ) {}
 
   onModuleInit() {
@@ -183,7 +207,7 @@ export class ScheduleCronService implements OnModuleInit {
             scheduleName: schedule.name || 'Untitled Schedule',
             limit,
             currentCount: activeSchedulesCount,
-            schedulesLink: 'https://refly.ai/schedules', // Placeholder link
+            schedulesLink: `${this.config.get<string>('origin')}/workflow/${schedule.canvasId}`,
           });
 
           await this.notificationService.sendEmail(
@@ -295,5 +319,24 @@ export class ScheduleCronService implements OnModuleInit {
     );
 
     this.logger.log(`Triggered schedule ${schedule.scheduleId} with priority ${priority}`);
+
+    // Track analytics event for schedule trigger
+    this.trackScheduleEvent(ScheduleAnalyticsEvents.SCHEDULE_RUN_TRIGGERED, {
+      uid: schedule.uid,
+      scheduleId: schedule.scheduleId,
+      scheduleRecordId: currentRecordId,
+      type: getScheduleType(schedule.scheduleConfig),
+      priority,
+    });
+  }
+
+  /**
+   * Track analytics event (placeholder - integrate with actual analytics service)
+   * @param eventName - Event name from ScheduleAnalyticsEvents
+   * @param properties - Event properties
+   */
+  private trackScheduleEvent(eventName: string, properties: Record<string, any>): void {
+    this.logger.debug(`Analytics event: ${eventName}`, properties);
+    // TODO: Integrate with actual analytics service (e.g., Mixpanel, Amplitude)
   }
 }

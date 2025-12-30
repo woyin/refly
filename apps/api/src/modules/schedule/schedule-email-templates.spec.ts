@@ -31,22 +31,20 @@ describe('Schedule Email Templates', () => {
     it('should generate correct HTML', () => {
       const result = generateInsufficientCreditsEmail({
         ...commonData,
-        creditsNeeded: 1,
         currentBalance: 0,
         nextRunTime: '2024-01-01 10:00:00',
       });
 
       expect(result.subject).toContain('insufficient credits');
       expect(result.html).toContain('Test User');
-      expect(result.html).toContain('Credits Needed');
-      expect(result.html).toContain('0');
+      expect(result.html).toContain('requires credits to execute');
+      expect(result.html).toContain('0 credits');
       expect(result.html).toContain('2024-01-01');
     });
 
     it('should handle missing nextRunTime', () => {
       const result = generateInsufficientCreditsEmail({
         ...commonData,
-        creditsNeeded: 1,
         currentBalance: 0,
       });
       expect(result.html).not.toContain('Next Scheduled Run');

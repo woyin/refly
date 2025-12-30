@@ -1,6 +1,7 @@
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { DelayedError, Job } from 'bullmq';
 import { Inject, Logger, forwardRef } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../common/prisma.service';
 import { RedisService } from '../common/redis.service';
 import { MiscService } from '../misc/misc.service';
@@ -18,6 +19,7 @@ import { NotificationService } from '../notification/notification.service';
 import { ScheduleMetrics } from './schedule.metrics';
 import { genScheduleRecordId, safeParseJSON } from '@refly/utils';
 import type { RawCanvasData } from '@refly/openapi-schema';
+import { CronExpressionParser } from 'cron-parser';
 
 /**
  * Job data structure for schedule execution
@@ -58,6 +60,7 @@ export class ScheduleProcessor extends WorkerHost {
     private readonly notificationService: NotificationService,
     @Inject(forwardRef(() => WorkflowAppService))
     private readonly workflowAppService: WorkflowAppService,
+    private readonly config: ConfigService,
   ) {
     super();
   }
@@ -286,12 +289,25 @@ export class ScheduleProcessor extends WorkerHost {
 
           // Send Email
           if (fullUser.email) {
+            // Calculate next run time from cron expression
+            let nextRunTime: string | undefined;
+            if (schedule.cronExpression) {
+              try {
+                const interval = CronExpressionParser.parse(schedule.cronExpression, {
+                  tz: schedule.timezone || 'Asia/Shanghai',
+                });
+                nextRunTime = interval.next().toDate().toLocaleString();
+              } catch (err) {
+                this.logger.warn(`Failed to calculate next run time for email: ${err}`);
+              }
+            }
+
             const { subject, html } = generateInsufficientCreditsEmail({
               userName: fullUser.nickname || 'User',
-              scheduleName: 'Scheduled Workflow', // We might want to fetch schedule name properly if possible, but for now generic
-              creditsNeeded: 1, // Default cost
+              scheduleName: schedule.name || 'Scheduled Workflow',
               currentBalance: creditBalance.creditBalance,
-              schedulesLink: 'https://refly.ai/settings/billing',
+              schedulesLink: `${this.config.get<string>('origin')}/workflow/${canvasId}`,
+              nextRunTime,
             });
             await this.notificationService.sendEmail(
               {

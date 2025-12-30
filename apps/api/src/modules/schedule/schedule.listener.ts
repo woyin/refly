@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { OnEvent } from '@nestjs/event-emitter';
 import { WorkflowCompletedEvent, WorkflowFailedEvent } from '../workflow/workflow.events';
 import { PrismaService } from '../common/prisma.service';
@@ -17,6 +18,7 @@ export class ScheduleEventListener {
   constructor(
     private readonly prisma: PrismaService,
     private readonly notificationService: NotificationService,
+    private readonly config: ConfigService,
   ) {}
 
   @OnEvent('workflow.completed')
@@ -105,13 +107,17 @@ export class ScheduleEventListener {
     }
 
     if (status === 'success') {
+      // Get the execution canvas ID for the run-history link
+      const executionCanvasId = scheduleRecord?.canvasId || '';
+      const origin = this.config.get<string>('origin');
+
       const { subject, html } = generateScheduleSuccessEmail({
         userName: fullUser.nickname || 'User',
         scheduleName: scheduleName,
         runTime: new Date().toLocaleString(),
         nextRunTime: nextRunTime,
-        schedulesLink: 'https://refly.ai/schedules',
-        runDetailsLink: `https://refly.ai/schedules/${event.scheduleId}`,
+        schedulesLink: `${origin}/run-history/${executionCanvasId}`,
+        runDetailsLink: `${origin}/run-history/${executionCanvasId}`,
       });
       await this.notificationService.sendEmail(
         {
@@ -122,13 +128,17 @@ export class ScheduleEventListener {
         fullUser,
       );
     } else {
+      // Get the execution canvas ID for the run-history link
+      const executionCanvasId = scheduleRecord?.canvasId || '';
+      const origin = this.config.get<string>('origin');
+
       const { subject, html } = generateScheduleFailedEmail({
         userName: fullUser.nickname || 'User',
         scheduleName: scheduleName,
         runTime: new Date().toLocaleString(),
         nextRunTime: nextRunTime,
-        schedulesLink: 'https://refly.ai/schedules',
-        runDetailsLink: `https://refly.ai/schedules/${event.scheduleId}`,
+        schedulesLink: `${origin}/run-history/${executionCanvasId}`,
+        runDetailsLink: `${origin}/run-history/${executionCanvasId}`,
       });
       await this.notificationService.sendEmail(
         {

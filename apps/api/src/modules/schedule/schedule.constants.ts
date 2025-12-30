@@ -4,7 +4,7 @@ export const QUEUE_SCHEDULE_EXECUTION = 'scheduleExecution';
 // Global concurrency limits for schedule execution
 export const SCHEDULE_RATE_LIMITS = {
   // Maximum number of concurrent jobs processed globally across all workers
-  GLOBAL_MAX_CONCURRENT: 10,
+  GLOBAL_MAX_CONCURRENT: 50,
 
   // Rate limiter: max jobs per duration (e.g., 100 jobs per 60 seconds)
   RATE_LIMIT_MAX: 100,
@@ -213,3 +213,23 @@ export function classifyScheduleError(error: unknown): ScheduleFailureReason {
   // Default to unknown error
   return ScheduleFailureReason.UNKNOWN_ERROR;
 }
+
+/**
+ * Schedule period types for analytics tracking
+ */
+export const SchedulePeriodType = {
+  DAILY: 'daily',
+  WEEKLY: 'weekly',
+  MONTHLY: 'monthly',
+  CUSTOM: 'custom', // For complex schedules or when parsing fails
+} as const;
+
+export type SchedulePeriodTypeValue = (typeof SchedulePeriodType)[keyof typeof SchedulePeriodType];
+
+/**
+ * Analytics event names for schedule module
+ */
+export const ScheduleAnalyticsEvents = {
+  /** Schedule execution triggered at Next Run Time */
+  SCHEDULE_RUN_TRIGGERED: 'schedule_run_triggered',
+} as const;

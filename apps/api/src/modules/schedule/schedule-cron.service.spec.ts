@@ -10,6 +10,7 @@ import { getQueueToken } from '@nestjs/bullmq';
 import { QUEUE_SCHEDULE_EXECUTION } from './schedule.constants';
 
 import { NotificationService } from '../notification/notification.service';
+import { ConfigService } from '@nestjs/config';
 
 describe('ScheduleCronService', () => {
   let service: ScheduleCronService;
@@ -52,6 +53,12 @@ describe('ScheduleCronService', () => {
         { provide: ScheduleService, useValue: mockScheduleService },
         { provide: NotificationService, useValue: mockNotificationService },
         { provide: getQueueToken(QUEUE_SCHEDULE_EXECUTION), useValue: mockQueue },
+        {
+          provide: ConfigService,
+          useValue: {
+            get: jest.fn().mockReturnValue('https://refly.ai'),
+          },
+        },
       ],
     }).compile();
 
