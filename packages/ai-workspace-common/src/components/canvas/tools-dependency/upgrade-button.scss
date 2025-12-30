@@ -1,0 +1,14 @@
+/* Custom styles for upgrade button to override Ant Design defaults */
+.custom-upgrade-button {
+  background-color: var(--refly-text-0) !important;
+  color: white !important;
+  border: none !important;
+
+  &:hover,
+  &:focus {
+    background-color: var(--refly-text-2) !important;
+    color: white !important;
+    border: none !important;
+  }
+
+}

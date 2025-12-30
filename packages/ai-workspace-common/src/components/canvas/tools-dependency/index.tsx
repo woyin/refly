@@ -2,6 +2,7 @@ import { Button, Popover, Dropdown, Badge, Typography, Tooltip } from 'antd';
 import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { Close, Mcp, Cancelled } from 'refly-icons';
 import { useTranslation } from 'react-i18next';
+import './upgrade-button.scss';
 import {
   useListUserTools,
   useGetCanvasData,
@@ -348,7 +349,7 @@ const CreditInsufficientBlock = React.memo(
           </span>
         </div>
         <Button
-          className="text-white bg-refly-text-0 text-xs leading-5 font-semibold cursor-pointer active:bg-refly-text-2 whitespace-nowrap px-3 py-1 rounded-md h-auto"
+          className="custom-upgrade-button text-xs leading-5 font-semibold cursor-pointer whitespace-nowrap px-3 py-1 rounded-md h-auto"
           size="small"
           onClick={onUpgradeClick}
         >
@@ -432,7 +433,7 @@ const ToolsDependencyContent = React.memo(
     setOpen,
     isLogin,
     totalCount,
-    showReferencedNodesDisplay = true,
+    showReferencedNodesDisplay = false,
     highlightInstallButtons = false,
     isLoading = false,
     canvasId,
