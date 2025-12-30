@@ -77,6 +77,17 @@ export const ScheduleColumn = memo(
     const handleOpenChange = useCallback(
       (newOpen: boolean) => {
         if (newOpen) {
+          // Check quota before opening for disabled schedules
+          // If schedule is disabled and user already reached quota, show modal instead
+          if (!schedule?.isEnabled && totalEnabledSchedules >= scheduleQuota) {
+            if (planType === 'free') {
+              setCreditInsufficientModalVisible(true);
+            } else {
+              setScheduleLimitModalVisible(true);
+            }
+            return; // Don't open popover
+          }
+
           const config = parseScheduleConfig(schedule?.scheduleConfig);
           setIsEnabled(schedule?.isEnabled ?? false);
           setFrequency(config?.type || 'daily');
@@ -86,7 +97,7 @@ export const ScheduleColumn = memo(
         }
         setOpen(newOpen);
       },
-      [schedule],
+      [schedule, totalEnabledSchedules, scheduleQuota, planType, setCreditInsufficientModalVisible],
     );
 
     // Handle enabled change - auto save
