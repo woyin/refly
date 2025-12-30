@@ -20,6 +20,7 @@ import { NodeIcon } from '@refly-packages/ai-workspace-common/components/canvas/
 import { extractToolsetsWithNodes } from '@refly/canvas-common';
 import { useOpenInstallTool } from '@refly-packages/ai-workspace-common/hooks/use-open-install-tool';
 import { useOpenInstallMcp } from '@refly-packages/ai-workspace-common/hooks/use-open-install-mcp';
+import { useOAuthPopup } from '@refly-packages/ai-workspace-common/hooks/use-oauth-popup';
 import { HiMagnifyingGlass } from 'react-icons/hi2';
 import { RiPulseLine } from 'react-icons/ri';
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
@@ -468,6 +469,14 @@ const ToolsDependencyContent = React.memo(
     const { openInstallToolByKey } = useOpenInstallTool();
     const { openInstallMcp } = useOpenInstallMcp();
 
+    // OAuth popup for direct tool authorization (like mentionList)
+    const { openOAuthPopup, isPolling, isOpening } = useOAuthPopup({
+      onSuccess: (toolsetKey) => {
+        // OAuth success is handled by the event system, no additional action needed
+        console.log(`Tool ${toolsetKey} authorized successfully`);
+      },
+    });
+
     // Get credit balance and subscription store
     const { creditBalance, isBalanceSuccess } = useSubscriptionUsage();
     const { setCreditInsufficientModalVisible } = useSubscriptionStoreShallow((state) => ({
@@ -504,15 +513,43 @@ const ToolsDependencyContent = React.memo(
     );
 
     const handleInstallTool = useCallback(
-      (toolset: GenericToolset) => {
+      async (toolset: GenericToolset) => {
+        console.log('handleInstallTool', toolset);
         if (toolset.type === 'mcp') {
+          // MCP tools still use the install modal
           openInstallMcp(toolset.mcpServer);
+          setOpen(false);
         } else {
-          openInstallToolByKey(toolset.toolset?.key);
+          // For regular toolsets, use the same authorization check as the component
+          const isAuthorized = isToolsetAuthorized(toolset, userTools);
+          const toolsetKey = toolset.toolset?.key;
+
+          if (toolsetKey) {
+            if (!isAuthorized) {
+              // Tool is not authorized - use direct OAuth popup like mentionList
+              if (isPolling || isOpening) {
+                return;
+              }
+              // Use direct OAuth authorization like mentionList
+              await openOAuthPopup(toolsetKey);
+              setOpen(false);
+            } else {
+              // Tool is already authorized, fall back to install modal for configuration
+              openInstallToolByKey(toolsetKey);
+              setOpen(false);
+            }
+          }
         }
-        setOpen(false);
       },
-      [openInstallToolByKey, openInstallMcp, setOpen],
+      [
+        openInstallToolByKey,
+        openInstallMcp,
+        setOpen,
+        openOAuthPopup,
+        isPolling,
+        isOpening,
+        userTools,
+      ],
     );
 
     const handleCreditUpgrade = useCallback(() => {
@@ -653,9 +690,13 @@ const ToolsDependencyContent = React.memo(
                             type="text"
                             size="small"
                             className="text-refly-primary-default hover:!text-refly-primary-hover flex-shrink-0 text-xs md:text-sm"
+                            loading={isPolling || isOpening}
+                            disabled={isPolling || isOpening}
                             onClick={() => handleInstallTool(toolset)}
                           >
-                            {t('canvas.workflowDepencency.goToInstall')}
+                            {isPolling || isOpening
+                              ? t('canvas.richChatInput.authorizing', '授权中...')
+                              : t('canvas.workflowDepencency.goToInstall')}
                           </Button>
                         )}
                       </div>
