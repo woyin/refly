@@ -213,13 +213,3 @@ export function classifyScheduleError(error: unknown): ScheduleFailureReason {
   // Default to unknown error
   return ScheduleFailureReason.UNKNOWN_ERROR;
 }
-
-/**
- * Workflow execution constants
- */
-export const WORKFLOW_EXECUTION_CONSTANTS = {
-  POLL_INTERVAL_MS: 1500,
-  EXECUTION_TIMEOUT_MS: 30 * 60 * 1000, // 30 minutes
-  NODE_EXECUTION_TIMEOUT_MS: 10 * 60 * 1000, // 10 minutes
-  POLL_LOCK_TTL_MS: 5000, // 5 seconds
-} as const;

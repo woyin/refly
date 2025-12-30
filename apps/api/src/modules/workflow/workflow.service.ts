@@ -41,7 +41,7 @@ import { PollWorkflowJobData, RunWorkflowJobData } from './workflow.dto';
 import { CreditService } from '../credit/credit.service';
 import { ceil } from 'lodash';
 import { SkillInvokerService } from '../skill/skill-invoker.service';
-import { WORKFLOW_EXECUTION_CONSTANTS } from '../schedule/schedule.constants';
+import { WORKFLOW_EXECUTION_CONSTANTS } from './workflow.constants';
 
 @Injectable()
 export class WorkflowService {
