@@ -69,16 +69,6 @@ export const RoutesList: RouteObject[] = [
   },
   // TODO: deprecated and navigate to /workspace
   {
-    path: '/artifact-gallery',
-    element: <WorkspaceRedirect />,
-  },
-  // TODO: deprecated and navigate to /workspace
-  {
-    path: '/use-cases-gallery',
-    element: <WorkspaceRedirect />,
-  },
-  // TODO: deprecated and navigate to /workspace
-  {
     path: '/preview/canvas/:shareId',
     element: <WorkspaceRedirect />,
   },
