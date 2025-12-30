@@ -40,7 +40,7 @@ export interface SchedulePopoverContentProps {
   onUpgradeClick?: () => void;
 }
 
-const WEEKDAYS = [
+export const WEEKDAYS = [
   { value: 1, label: 'Mon' },
   { value: 2, label: 'Tue' },
   { value: 3, label: 'Wed' },
@@ -50,7 +50,7 @@ const WEEKDAYS = [
   { value: 0, label: 'Sun' },
 ];
 
-const MONTH_DAYS = Array.from({ length: 31 }, (_, i) => ({
+export const MONTH_DAYS = Array.from({ length: 31 }, (_, i) => ({
   value: i + 1,
   label: `${i + 1}`,
 }));
@@ -179,7 +179,7 @@ export const SchedulePopoverContent = memo(
         </div>
 
         {/* Time picker and selection container */}
-        <div className="flex items-center gap-3 border border-gray-200 dark:border-gray-700 rounded-lg p-3">
+        <div className="flex items-center gap-3 border border-gray-200 dark:border-gray-700 rounded-lg">
           {/* Weekly selection */}
           {frequency === 'weekly' && (
             <div className="flex-1">
@@ -191,12 +191,14 @@ export const SchedulePopoverContent = memo(
                   ...d,
                   label: t(`schedule.weekday.${d.label.toLowerCase()}`) || d.label,
                 }))}
-                placeholder={`Select ${weekdays.length} day${weekdays.length !== 1 ? 's' : ''}`}
+                placeholder="Select Date"
                 className="w-full h-full schedule-select"
                 size="large"
                 maxTagCount={0}
                 maxTagPlaceholder={() =>
-                  `Select ${weekdays.length} day${weekdays.length !== 1 ? 's' : ''}`
+                  weekdays.length === 0
+                    ? 'Select Date'
+                    : `Select ${weekdays.length} day${weekdays.length !== 1 ? 's' : ''}`
                 }
                 dropdownClassName="schedule-dropdown"
               />
@@ -211,35 +213,47 @@ export const SchedulePopoverContent = memo(
                 value={monthDays}
                 onChange={onMonthDaysChange}
                 options={MONTH_DAYS}
-                placeholder={`Select ${monthDays.length} day${monthDays.length !== 1 ? 's' : ''}`}
-                className="w-full h-full"
+                placeholder="Select Date"
+                className="w-full h-full schedule-monthly-select"
                 size="large"
                 maxTagCount={0}
                 maxTagPlaceholder={() =>
-                  `Select ${monthDays.length} day${monthDays.length !== 1 ? 's' : ''}`
+                  monthDays.length === 0
+                    ? 'Select Date'
+                    : `Select ${monthDays.length} day${monthDays.length !== 1 ? 's' : ''}`
                 }
               />
             </div>
           )}
 
-          {/* Daily selection placeholder */}
+          {/* Daily selection - time picker only, left aligned */}
           {frequency === 'daily' && (
-            <div className="flex-1 h-10">
-              <div className="h-full flex items-center text-gray-500 text-sm">
-                {t('schedule.daily') || 'Daily'}
-              </div>
-            </div>
+            <TimePicker
+              value={timeValue}
+              onChange={(val) => val && onTimeChange(val)}
+              format="HH:mm"
+              className="h-10 w-[180px]"
+              size="large"
+              allowClear={false}
+              popupClassName="schedule-timepicker-popup"
+            />
           )}
-          <Divider type="vertical" className="m-0 h-5 bg-refly-Card-Border" />
-          <TimePicker
-            value={timeValue}
-            onChange={(val) => val && onTimeChange(val)}
-            format="HH:mm"
-            className="flex-1 h-10 w-[188px]"
-            size="large"
-            allowClear={false}
-            popupClassName="schedule-timepicker-popup"
-          />
+
+          {/* Weekly and Monthly - with divider and time picker */}
+          {(frequency === 'weekly' || frequency === 'monthly') && (
+            <>
+              <Divider type="vertical" className="m-0 h-5 bg-refly-Card-Border" />
+              <TimePicker
+                value={timeValue}
+                onChange={(val) => val && onTimeChange(val)}
+                format="HH:mm"
+                className="flex-1 h-10 w-[188px]"
+                size="large"
+                allowClear={false}
+                popupClassName="schedule-timepicker-popup"
+              />
+            </>
+          )}
         </div>
 
         {/* Cost info */}
@@ -256,7 +270,7 @@ export const SchedulePopoverContent = memo(
                 e.stopPropagation();
                 onUpgradeClick?.();
               }}
-              className="!text-refly-primary-default hover:!text-refly-primary-hover flex-shrink-0 text-xs md:text-sm !p-1 !h-auto"
+              className="flex-shrink-0 text-xs md:text-sm !p-1 !h-auto text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-gray-100"
             >
               {t('common.upgrade') || 'Upgrade'} &gt;
             </Button>

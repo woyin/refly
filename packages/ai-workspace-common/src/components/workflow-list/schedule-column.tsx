@@ -327,7 +327,12 @@ export const ScheduleColumn = memo(
               creditCost={creditUsageData?.data?.total}
               isCreditLoading={isCreditUsageLoading}
               showUpgrade={planType === 'free'}
-              onUpgradeClick={() => setCreditInsufficientModalVisible(true)}
+              onUpgradeClick={() => {
+                setOpen(false); // Hide popover first
+                setTimeout(() => {
+                  setCreditInsufficientModalVisible(true, undefined, 'schedule');
+                }, 100);
+              }}
             />
           }
           trigger="click"
