@@ -560,16 +560,7 @@ const ScheduleButton = memo(({ canvasId }: ScheduleButtonProps) => {
               setOpen(false); // Hide popover when opening modal
               setCreditInsufficientModalVisible(true, undefined, 'schedule');
             }}
-            className="flex-shrink-0 text-xs md:text-sm !p-1 !h-auto"
-            style={{
-              color: '#1C1F23CC !important',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.color = '#1C1F23CC';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.color = '#1C1F23CC';
-            }}
+            className="flex-shrink-0 text-xs md:text-sm !p-1 !h-auto text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-gray-100"
           >
             {t('common.upgrade') || 'Upgrade'} &gt;
           </Button>
