@@ -1383,7 +1383,7 @@ const translations = {
         valuePlaceholder: 'e.g., John Doe',
         descriptionPlaceholder: 'e.g., User name for the workflow',
         nameRequired: 'Name is required',
-        valueRequired: 'Content is required',
+        valueRequired: 'Please complete this required input before running',
         namePattern: 'Invalid name format',
         duplicateName: 'Name already exists',
         loadError: 'Failed to load user inputs',

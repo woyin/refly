@@ -730,6 +730,7 @@ const ToolsDependencyContent = React.memo(
             onCancel={handleCloseVariableModal}
             defaultValue={selectedVariable}
             mode="edit"
+            fromToolsDependency={true}
           />
         )}
       </div>

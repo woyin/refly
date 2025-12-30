@@ -1532,7 +1532,7 @@ const translations = {
         valuePlaceholder: '例如：张三',
         descriptionPlaceholder: '例如：工作流中的用户姓名',
         nameRequired: '名称是必填项',
-        valueRequired: '内容是必填项',
+        valueRequired: '请在运行前将该必填输入项补充完整',
         namePattern: '无效的名称格式',
         duplicateName: '名称已存在',
         loadError: '加载输入项失败',
