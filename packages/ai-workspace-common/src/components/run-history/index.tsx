@@ -3,7 +3,7 @@ import { time } from '@refly-packages/ai-workspace-common/utils/time';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useSearchParams } from '@refly-packages/ai-workspace-common/utils/router';
 
-import { Empty, Typography, Table } from 'antd';
+import { Empty, Typography, Table, Tooltip } from 'antd';
 import { EndMessage } from '@refly-packages/ai-workspace-common/components/workspace/scroll-loading';
 import { Spin } from '@refly-packages/ai-workspace-common/components/common/spin';
 import { SettingItem } from '@refly-packages/ai-workspace-common/components/canvas/front-page';
@@ -16,6 +16,7 @@ import { useFetchDataList } from '@refly-packages/ai-workspace-common/hooks/use-
 import { useState } from 'react';
 import {
   getFailureActionConfig,
+  getFailureReasonText,
   FailureActionType,
 } from '@refly-packages/ai-workspace-common/hooks/use-schedule-failure-action';
 import { useSubscriptionStoreShallow } from '@refly/stores';
@@ -94,40 +95,30 @@ const ActionCell = memo(
 
     if (record.status === 'success') {
       return (
-        <Typography.Link
-          className="!text-teal-600 hover:!text-teal-700 text-sm"
+        <div
+          className="w-full h-full flex items-center cursor-pointer"
           onClick={(e) => {
             e.stopPropagation();
             onViewDetail();
           }}
         >
-          {t('runHistory.viewDetail')}
-        </Typography.Link>
+          <span className="text-teal-600 hover:text-teal-700 text-sm">
+            {t('runHistory.runDetail')}
+          </span>
+        </div>
       );
     }
 
-    // Failed status - show action based on failure reason
-    return (
-      <div className="flex items-center gap-2">
-        {actionConfig && (
-          <Typography.Link
-            className="!text-teal-600 hover:!text-teal-700 text-sm"
-            onClick={handleActionClick}
-          >
-            {actionConfig.label}
-          </Typography.Link>
-        )}
-        <Typography.Link
-          className="!text-teal-600 hover:!text-teal-700 text-sm"
-          onClick={(e) => {
-            e.stopPropagation();
-            onViewDetail();
-          }}
-        >
-          {t('runHistory.viewDetail')}
-        </Typography.Link>
-      </div>
-    );
+    // Failed status - only show action based on failure reason (no Run Detail link)
+    if (actionConfig) {
+      return (
+        <div className="w-full h-full flex items-center cursor-pointer" onClick={handleActionClick}>
+          <span className="text-teal-600 hover:text-teal-700 text-sm">{actionConfig.label}</span>
+        </div>
+      );
+    }
+
+    return null;
   },
 );
 
@@ -333,9 +324,34 @@ const RunHistoryList = memo(() => {
         dataIndex: 'status',
         key: 'status',
         width: 120,
-        render: (status: ScheduleRecordStatus) => {
+        render: (status: ScheduleRecordStatus, record: ScheduleRecordItem) => {
           const config = getStatusConfig(status);
-          return <span className={`text-sm font-medium ${config.textClass}`}>{config.label}</span>;
+          const statusElement = (
+            <span className={`text-sm font-medium ${config.textClass}`}>{config.label}</span>
+          );
+
+          // Show tooltip with failure reason for failed status
+          if (status === 'failed' && record.failureReason) {
+            const reasonText = getFailureReasonText(record.failureReason, t);
+            return (
+              <Tooltip
+                title={reasonText}
+                placement="bottom"
+                autoAdjustOverflow
+                arrow={false}
+                overlayClassName="failure-reason-tooltip"
+                overlayStyle={{
+                  maxWidth: 300,
+                }}
+              >
+                <span className={`text-sm font-medium ${config.textClass} cursor-pointer`}>
+                  {config.label}
+                </span>
+              </Tooltip>
+            );
+          }
+
+          return statusElement;
         },
       },
       {
@@ -432,7 +448,10 @@ const RunHistoryList = memo(() => {
               className="run-history-table flex-1"
               size="middle"
               loading={isRequesting}
-              onRow={(_record: ScheduleRecordItem) => ({})}
+              onRow={(record: ScheduleRecordItem) => ({
+                onClick: () => handleViewDetail(record),
+                className: 'cursor-pointer hover:!bg-refly-tertiary-hover transition-colors',
+              })}
             />
             <EndMessage />
           </div>

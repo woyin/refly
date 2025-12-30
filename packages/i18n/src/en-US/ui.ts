@@ -4329,6 +4329,7 @@ const translations = {
     noSearchResults: 'No search results',
     credit: 'Credits',
     viewDetail: 'View Detail',
+    runDetail: 'Run Detail',
     tableTitle: {
       title: 'Title',
       type: 'Type',

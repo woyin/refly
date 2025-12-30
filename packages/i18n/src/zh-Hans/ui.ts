@@ -4362,6 +4362,7 @@ const translations = {
     noSearchResults: '未找到相关记录',
     credit: '积分',
     viewDetail: '查看详情',
+    runDetail: '运行详情',
     tableTitle: {
       title: '标题',
       type: '类型',
