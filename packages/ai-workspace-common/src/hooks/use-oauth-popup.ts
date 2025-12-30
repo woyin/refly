@@ -147,6 +147,16 @@ export const useOAuthPopup = (options: UseOAuthPopupOptions = {}) => {
 
           // Emit the toolset installed event for canvas updates
           toolsetEmitter.emit('toolsetInstalled', { toolset: toolsetInstance });
+
+          // Also emit updateNodeToolset event to update ts-id in canvas nodes
+          if (toolsetInstance.id && toolsetInstance.toolset?.key) {
+            toolsetEmitter.emit('updateNodeToolset', {
+              nodeId: '', // Not used in current implementation
+              toolsetKey: toolsetInstance.toolset.key,
+              newToolsetId: toolsetInstance.id,
+            });
+          }
+        } else {
         }
       } catch (error) {
         console.warn('Failed to emit toolset installed event:', error);

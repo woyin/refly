@@ -471,9 +471,8 @@ const ToolsDependencyContent = React.memo(
 
     // OAuth popup for direct tool authorization (like mentionList)
     const { openOAuthPopup, isPolling, isOpening } = useOAuthPopup({
-      onSuccess: (toolsetKey) => {
+      onSuccess: (_toolsetKey) => {
         // OAuth success is handled by the event system, no additional action needed
-        console.log(`Tool ${toolsetKey} authorized successfully`);
       },
     });
 
@@ -514,7 +513,6 @@ const ToolsDependencyContent = React.memo(
 
     const handleInstallTool = useCallback(
       async (toolset: GenericToolset) => {
-        console.log('handleInstallTool', toolset);
         if (toolset.type === 'mcp') {
           // MCP tools still use the install modal
           openInstallMcp(toolset.mcpServer);
@@ -1038,17 +1036,21 @@ export const ToolsDependency = ({
 
   // Listen for toolset installation events and refetch user tools
   useEffect(() => {
-    const handleToolsetInstalled = () => {
+    const handleToolsetInstalled = (_event) => {
       // Refetch user tools when a toolset is installed
       refetchUserTools();
     };
 
+    const handleUpdateNodeToolset = (_event) => {};
+
     toolsetEmitter.on('toolsetInstalled', handleToolsetInstalled);
+    toolsetEmitter.on('updateNodeToolset', handleUpdateNodeToolset);
 
     return () => {
       toolsetEmitter.off('toolsetInstalled', handleToolsetInstalled);
+      toolsetEmitter.off('updateNodeToolset', handleUpdateNodeToolset);
     };
-  }, [refetchUserTools]);
+  }, [refetchUserTools, canvasId]);
 
   const handlePopoverOpenChange = useCallback(
     (nextOpen: boolean) => {
