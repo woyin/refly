@@ -81,7 +81,7 @@ export const ScheduleColumn = memo(
           // If schedule is disabled and user already reached quota, show modal instead
           if (!schedule?.isEnabled && totalEnabledSchedules >= scheduleQuota) {
             if (planType === 'free') {
-              setCreditInsufficientModalVisible(true);
+              setCreditInsufficientModalVisible(true, undefined, 'schedule');
             } else {
               setScheduleLimitModalVisible(true);
             }
