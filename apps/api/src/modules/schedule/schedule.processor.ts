@@ -6,8 +6,16 @@ import { RedisService } from '../common/redis.service';
 import { MiscService } from '../misc/misc.service';
 import { CanvasService } from '../canvas/canvas.service';
 import { WorkflowAppService } from '../workflow-app/workflow-app.service';
-import { QUEUE_SCHEDULE_EXECUTION, SCHEDULE_RATE_LIMITS } from './schedule.constants';
+import { CreditService } from '../credit/credit.service';
+import {
+  QUEUE_SCHEDULE_EXECUTION,
+  SCHEDULE_RATE_LIMITS,
+  ScheduleFailureReason,
+  classifyScheduleError,
+} from './schedule.constants';
+import { ScheduleMetrics } from './schedule.metrics';
 import { genScheduleRecordId, safeParseJSON } from '@refly/utils';
+import { extractToolsetsWithNodes } from '@refly/canvas-common';
 import type { RawCanvasData } from '@refly/openapi-schema';
 
 /**
@@ -44,6 +52,8 @@ export class ScheduleProcessor extends WorkerHost {
     private readonly redisService: RedisService,
     private readonly miscService: MiscService,
     private readonly canvasService: CanvasService,
+    private readonly metrics: ScheduleMetrics,
+    private readonly creditService: CreditService,
     @Inject(forwardRef(() => WorkflowAppService))
     private readonly workflowAppService: WorkflowAppService,
   ) {
@@ -67,35 +77,95 @@ export class ScheduleProcessor extends WorkerHost {
     const userConcurrentKey = `${SCHEDULE_RATE_LIMITS.REDIS_PREFIX_USER_CONCURRENT}${uid}`;
 
     try {
-      // 1. User-level concurrency check
-      // If this user has too many concurrent executions, delay the job
-      const userConcurrent = await this.redisService.incrementWithExpire(userConcurrentKey, 3600);
+      // 1. User-level concurrency check with Redis degradation
+      // If Redis fails, we allow the job to proceed (graceful degradation)
+      let userConcurrent = 0;
+      let redisSucceeded = false; // Track if Redis increment was successful
+      try {
+        userConcurrent = await this.redisService.incrementWithExpire(
+          userConcurrentKey,
+          SCHEDULE_RATE_LIMITS.COUNTER_TTL_SECONDS, // Use longer TTL for long-running workflows
+        );
+        redisSucceeded = true; // Redis increment succeeded
+      } catch (redisError) {
+        // Redis connection failed - graceful degradation: allow execution
+        this.logger.warn(
+          `Redis error during concurrency check for user ${uid}, allowing execution (degraded mode): ${redisError}`,
+        );
+        // Don't set redisSucceeded, so we won't try to decrement in finally
+        userConcurrent = 1; // Assume 1 for rate limit check (will pass since limit is 3)
+      }
 
       if (userConcurrent > SCHEDULE_RATE_LIMITS.USER_MAX_CONCURRENT) {
         // Decrement counter since we're not processing this job now
-        await this.decrementCounter(userConcurrentKey);
+        // Only decrement if Redis succeeded (otherwise there's nothing to decrement)
+        if (redisSucceeded) {
+          await this.decrementCounter(userConcurrentKey).catch((err) => {
+            this.logger.warn(`Failed to decrement counter after rate limit: ${err}`);
+          });
+        }
 
-        // Delay the job by 10 seconds and retry
+        // Delay the job and retry later
         // BullMQ will automatically re-queue the job after the delay
         this.logger.warn(
           `User ${uid} has ${userConcurrent - 1} concurrent executions, delaying job ${job.id}`,
         );
-        await job.moveToDelayed(Date.now() + 10000, job.token);
+        await job.moveToDelayed(
+          Date.now() + SCHEDULE_RATE_LIMITS.USER_RATE_LIMIT_DELAY_MS,
+          job.token,
+        );
         throw new DelayedError();
       }
 
       // Mark that we've committed to processing and should decrement counter in finally
-      shouldDecrementCounter = true;
+      // Only if Redis succeeded (otherwise there's no counter to decrement)
+      shouldDecrementCounter = redisSucceeded;
 
-      // 2. Create simple user object (only uid needed, avoid BigInt serialization issues)
+      // 2. Check if schedule still exists and is enabled
+      // This prevents execution of tasks for deleted/disabled schedules
+      const schedule = await this.prisma.workflowSchedule.findUnique({
+        where: { scheduleId },
+      });
+
+      if (!schedule || schedule.deletedAt || !schedule.isEnabled) {
+        this.logger.warn(
+          `Schedule ${scheduleId} is deleted/disabled, skipping execution for job ${job.id}`,
+        );
+        // Record skipped metric
+        const failureReason = schedule?.deletedAt
+          ? ScheduleFailureReason.SCHEDULE_DELETED
+          : ScheduleFailureReason.SCHEDULE_DISABLED;
+        this.metrics.execution.skipped(
+          schedule?.deletedAt ? 'schedule_deleted' : 'schedule_disabled',
+        );
+        // Update WorkflowScheduleRecord to 'skipped' if exists
+        if (existingRecordId) {
+          await this.prisma.workflowScheduleRecord.update({
+            where: { scheduleRecordId: existingRecordId },
+            data: {
+              status: 'skipped',
+              failureReason,
+              errorDetails: JSON.stringify({
+                reason: schedule?.deletedAt
+                  ? 'Schedule was deleted before execution'
+                  : 'Schedule was disabled before execution',
+              }),
+              completedAt: new Date(),
+            },
+          });
+        }
+        return null; // Exit gracefully without error
+      }
+
+      // 3. Create simple user object (only uid needed, avoid BigInt serialization issues)
       // Note: We don't query the full user object to avoid passing BigInt fields to queues
       const user = { uid };
 
-      // 3. Find or verify the ScheduleRecord for this execution
+      // 3. Find or verify the WorkflowScheduleRecord for this execution
       // The record should already exist with 'pending' status (set by CronService when job was queued)
       let existingRecord = null;
       if (existingRecordId) {
-        existingRecord = await this.prisma.scheduleRecord.findUnique({
+        existingRecord = await this.prisma.workflowScheduleRecord.findUnique({
           where: { scheduleRecordId: existingRecordId },
         });
         if (existingRecord?.snapshotStorageKey) {
@@ -109,7 +179,7 @@ export class ScheduleProcessor extends WorkerHost {
 
       // If no record ID was passed, try to find a pending record for this schedule
       if (!scheduleRecordId) {
-        existingRecord = await this.prisma.scheduleRecord.findFirst({
+        existingRecord = await this.prisma.workflowScheduleRecord.findFirst({
           where: {
             scheduleId,
             status: { in: ['pending', 'scheduled'] }, // Could be pending (queued) or scheduled (waiting)
@@ -123,16 +193,17 @@ export class ScheduleProcessor extends WorkerHost {
         }
       }
 
-      // 4. Create new ScheduleRecord only if no existing record was found
+      // 4. Create new WorkflowScheduleRecord only if no existing record was found
       // This is a fallback for edge cases (e.g., manual trigger without scheduled record)
       if (!scheduleRecordId) {
         scheduleRecordId = genScheduleRecordId();
-        await this.prisma.scheduleRecord.create({
+        await this.prisma.workflowScheduleRecord.create({
           data: {
             scheduleRecordId,
             scheduleId,
             uid,
-            canvasId,
+            sourceCanvasId: canvasId, // Source canvas (template)
+            canvasId: '', // Will be updated after execution with actual execution canvas
             workflowTitle: '',
             scheduledAt: new Date(scheduledAt),
             status: 'processing', // Skip pending since we're already in processor
@@ -143,7 +214,7 @@ export class ScheduleProcessor extends WorkerHost {
         this.logger.log(`Created new schedule record ${scheduleRecordId}`);
       } else if (isRetry) {
         // Update status for retry
-        await this.prisma.scheduleRecord.update({
+        await this.prisma.workflowScheduleRecord.update({
           where: { scheduleRecordId },
           data: {
             status: 'processing',
@@ -155,7 +226,7 @@ export class ScheduleProcessor extends WorkerHost {
       } else {
         // 4.1 Update status to 'processing' - job has been dequeued from BullMQ
         // This indicates the job is now actively being handled by the processor
-        await this.prisma.scheduleRecord.update({
+        await this.prisma.workflowScheduleRecord.update({
           where: { scheduleRecordId },
           data: {
             status: 'processing', // Processor is handling the job (creating snapshot, etc.)
@@ -187,62 +258,108 @@ export class ScheduleProcessor extends WorkerHost {
         this.logger.log(`Created new snapshot at: ${snapshotStorageKey}`);
       }
 
-      // 6. Update status to 'running' before executing workflow
+      // 6. Check credit balance before execution
+      // This prevents wasting resources on execution that will fail due to insufficient credits
+      const fullUser = await this.prisma.user.findUnique({ where: { uid } });
+      if (fullUser) {
+        const creditBalance = await this.creditService.getCreditBalance(fullUser);
+        if (creditBalance.creditBalance <= 0) {
+          this.logger.warn(
+            `User ${uid} has insufficient credits (${creditBalance.creditBalance}), failing schedule ${scheduleId}`,
+          );
+          await this.prisma.workflowScheduleRecord.update({
+            where: { scheduleRecordId },
+            data: {
+              status: 'failed',
+              failureReason: ScheduleFailureReason.INSUFFICIENT_CREDITS,
+              errorDetails: JSON.stringify({
+                message: 'Insufficient credits to execute scheduled workflow',
+                creditBalance: creditBalance.creditBalance,
+              }),
+              snapshotStorageKey,
+              completedAt: new Date(),
+            },
+          });
+          this.metrics.execution.fail('cron', 'insufficient_credits');
+          return null;
+        }
+      }
+
+      // 7. Update status to 'running' before executing workflow
       // This indicates the workflow is actually being executed
-      await this.prisma.scheduleRecord.update({
+      // Extract used tools from canvas nodes
+      const toolsetsWithNodes = extractToolsetsWithNodes(canvasData?.nodes ?? []);
+      const usedToolIds = toolsetsWithNodes.map((t) => t.toolset?.id).filter(Boolean);
+
+      await this.prisma.workflowScheduleRecord.update({
         where: { scheduleRecordId },
         data: {
           status: 'running', // Workflow is actually executing
+          snapshotStorageKey,
+          workflowTitle: canvasData?.title || 'Untitled',
+          usedTools: JSON.stringify(usedToolIds),
         },
       });
 
       // 7. Execute workflow using WorkflowAppService
       // Note: user is a simple object { uid } to avoid BigInt serialization issues
       // The methods called inside executeFromCanvasData only need user.uid
-      const executionId = await this.workflowAppService.executeFromCanvasData(
-        user,
-        canvasData,
-        canvasData.variables || [],
-        {
-          scheduleId,
-          scheduleRecordId,
-          triggerType: 'scheduled',
-        },
-      );
+      const { executionId, canvasId: newCanvasId } =
+        await this.workflowAppService.executeFromCanvasData(
+          user,
+          canvasData,
+          canvasData.variables || [],
+          {
+            scheduleId,
+            scheduleRecordId,
+            triggerType: 'scheduled',
+          },
+        );
 
-      // 8. Update ScheduleRecord with success
-      const canvas = await this.prisma.canvas.findUnique({
-        where: { canvasId },
-        select: { title: true },
-      });
-
-      await this.prisma.scheduleRecord.update({
+      // 8. Update WorkflowScheduleRecord with execution canvas ID and workflow execution ID
+      // Final status (success/failed) will be updated by pollWorkflow when execution completes
+      await this.prisma.workflowScheduleRecord.update({
         where: { scheduleRecordId },
         data: {
+          canvasId: newCanvasId, // Actual execution canvas (newly created)
           workflowExecutionId: executionId,
-          status: 'success',
-          workflowTitle: canvas?.title || 'Untitled',
-          snapshotStorageKey,
-          completedAt: new Date(),
+          // Note: completedAt will be set by pollWorkflow when workflow finishes
         },
       });
 
-      this.logger.log(`Successfully executed schedule ${scheduleId}, executionId: ${executionId}`);
+      this.logger.log(
+        `Successfully started workflow for schedule ${scheduleId}, executionId: ${executionId}`,
+      );
+      // Record started metric (not success - that will be recorded by pollWorkflow)
+      this.metrics.execution.success('cron');
       return executionId;
     } catch (error) {
       // Don't log or update record for DelayedError (rate limiting)
       if (error instanceof DelayedError) {
+        this.metrics.queue.delayed();
         throw error;
       }
 
       this.logger.error(`Failed to process schedule ${scheduleId}`, error);
+
+      // Classify error and get standardized failure reason
+      const failureReason = classifyScheduleError(error);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+
+      // Record failure metric
+      this.metrics.execution.fail('cron', failureReason);
+
       if (scheduleRecordId) {
-        await this.prisma.scheduleRecord.update({
+        await this.prisma.workflowScheduleRecord.update({
           where: { scheduleRecordId },
           data: {
             status: 'failed',
-            failureReason: error instanceof Error ? error.message : String(error),
-            errorDetails: JSON.stringify(error),
+            failureReason,
+            errorDetails: JSON.stringify({
+              message: errorMessage,
+              name: error instanceof Error ? error.name : 'Error',
+              stack: error instanceof Error ? error.stack : undefined,
+            }),
             completedAt: new Date(),
           },
         });
@@ -380,4 +497,6 @@ export class ScheduleProcessor extends WorkerHost {
       resources: resources as any,
     } as RawCanvasData;
   }
+
+  // classifyError moved to schedule.constants.ts as classifyScheduleError
 }

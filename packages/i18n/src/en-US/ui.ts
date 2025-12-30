@@ -4253,9 +4253,7 @@ const translations = {
       actions: 'Actions',
     },
     filters: {
-      scheduleAll: 'All Schedules',
-      scheduleActive: 'Scheduled',
-      scheduleInactive: 'Not Scheduled',
+      hasSchedule: 'Schedule',
     },
   },
   schedule: {
@@ -4271,6 +4269,10 @@ const translations = {
     daily: 'Daily',
     weekly: 'Weekly',
     monthly: 'Monthly',
+    status: {
+      on: 'ON',
+      off: 'OFF',
+    },
     weekdays: 'Weekdays',
     selectWeekdays: 'Select weekdays',
     weekdaysRequired: 'Select at least one day',
@@ -4306,6 +4308,10 @@ const translations = {
       sat: 'Sat',
       sun: 'Sun',
     },
+    runNow: 'Run Now',
+    triggerSuccess: 'Schedule triggered successfully',
+    triggerFailed: 'Failed to trigger schedule',
+    noSchedule: 'Please save the schedule first',
     deactivate: {
       title: 'Deactivate Schedule',
       message:
@@ -4323,6 +4329,7 @@ const translations = {
     noSearchResults: 'No search results',
     credit: 'Credits',
     viewDetail: 'View Detail',
+    runDetail: 'Run Detail',
     tableTitle: {
       title: 'Title',
       type: 'Type',
@@ -4362,6 +4369,7 @@ const translations = {
       noTools: 'No tools available',
       clearAllTools: 'Clear All Selections',
       tool: 'Tool',
+      title: 'Title',
     },
     triggerNow: 'Trigger Now',
     triggerSuccess: 'Schedule triggered successfully',
@@ -4378,22 +4386,39 @@ const translations = {
   },
   runDetail: {
     pageTitle: 'Run Detail',
+    title: 'Run Detail',
     backToHistory: 'Back to Run History',
     loading: 'Loading run details...',
     notFound: 'Run record not found',
+    time: 'Time',
+    cost: 'Cost',
+    creditUnit: 'Credit',
     status: 'Status',
     triggeredAt: 'Triggered At',
     completedAt: 'Completed At',
     creditUsed: 'Credits Used',
     failureReason: 'Failure Reason',
-    actions: {
-      copy: 'Copy',
-      remix: 'Remix',
+    statusDisplay: {
+      succeeded: 'Succeeded',
+      failed: 'Failed',
+      running: 'Running',
     },
-    copySuccess: 'Workflow copied successfully',
-    copyFailed: 'Failed to copy workflow',
-    remixSuccess: 'Workflow remixed successfully',
-    remixFailed: 'Failed to remix workflow',
+    failureReasons: {
+      scheduleLimited: 'Schedule Limited',
+      insufficientCredits: 'Insufficient Credits',
+      runFailed: 'Run Failed',
+    },
+    failureActions: {
+      upgrade: 'Upgrade',
+      viewSchedule: 'View Schedule',
+      buyCredits: 'Buy Credits',
+      fixWorkflow: 'Fix Original Workflow',
+    },
+    actions: {
+      duplicate: 'Create a Copy from This Run',
+    },
+    duplicateSuccess: 'Workflow duplicated successfully',
+    duplicateFailed: 'Failed to duplicate workflow',
     noSnapshot: 'No snapshot available',
   },
   appManager: {

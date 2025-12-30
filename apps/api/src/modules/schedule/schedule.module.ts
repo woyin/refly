@@ -6,6 +6,7 @@ import { ScheduleController } from './schedule.controller';
 import { ScheduleCronService } from './schedule-cron.service';
 import { SchedulePriorityService } from './schedule-priority.service';
 import { ScheduleProcessor } from './schedule.processor';
+import { ScheduleMetrics } from './schedule.metrics';
 import { QUEUE_SCHEDULE_EXECUTION } from './schedule.constants';
 import { CommonModule } from '../common/common.module';
 import { WorkflowModule } from '../workflow/workflow.module';
@@ -26,7 +27,6 @@ import { WorkflowAppModule } from '../workflow-app/workflow-app.module';
       // - BullMQ handles this transparently: jobs wait until rate limit allows
       defaultJobOptions: {
         attempts: 1, // No automatic retry on failure, user must manually retry
-        backoff: { type: 'exponential', delay: 1000 },
         removeOnComplete: true,
         removeOnFail: false, // Keep failed jobs for debugging/retry
       },
@@ -39,7 +39,13 @@ import { WorkflowAppModule } from '../workflow-app/workflow-app.module';
     forwardRef(() => WorkflowAppModule), // For executeFromCanvasData
   ],
   controllers: [ScheduleController],
-  providers: [ScheduleService, ScheduleCronService, SchedulePriorityService, ScheduleProcessor],
+  providers: [
+    ScheduleService,
+    ScheduleCronService,
+    SchedulePriorityService,
+    ScheduleProcessor,
+    ScheduleMetrics,
+  ],
   exports: [ScheduleService],
 })
 export class ScheduleModule {}

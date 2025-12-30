@@ -5,9 +5,10 @@ import { SchedulePriorityService } from './schedule-priority.service';
 import { ScheduleService } from './schedule.service';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
-import { QUEUE_SCHEDULE_EXECUTION } from './schedule.constants';
+import { QUEUE_SCHEDULE_EXECUTION, SCHEDULE_JOB_OPTIONS } from './schedule.constants';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { CronExpressionParser } from 'cron-parser';
+import { genScheduleRecordId } from '@refly/utils';
 
 @Injectable()
 export class ScheduleCronService implements OnModuleInit {
@@ -30,7 +31,8 @@ export class ScheduleCronService implements OnModuleInit {
   @Cron(CronExpression.EVERY_MINUTE)
   async scanAndTriggerSchedules() {
     const lockKey = 'lock:schedule:scan';
-    const releaseLock = await this.redisService.acquireLock(lockKey, 30); // 30s lock
+    // Lock for 2 minutes to handle large batches of due schedules
+    const releaseLock = await this.redisService.acquireLock(lockKey, 120);
 
     if (!releaseLock) {
       this.logger.debug('Schedule scan lock not acquired, skipping');
@@ -57,6 +59,7 @@ export class ScheduleCronService implements OnModuleInit {
         deletedAt: null,
         nextRunAt: { lte: now },
       },
+      orderBy: { nextRunAt: 'asc' },
     });
 
     if (schedules.length === 0) {
@@ -85,7 +88,33 @@ export class ScheduleCronService implements OnModuleInit {
       nextRunAt = interval.next().toDate();
     } catch (e) {
       this.logger.error(`Invalid cron for schedule ${schedule.scheduleId}`, e);
-      // Disable invalid schedule?
+      // Auto-disable invalid schedule to prevent repeated failures
+      const disabledReason = `Invalid cron expression: ${e instanceof Error ? e.message : String(e)}`;
+      // Parse existing config if it's a JSON string, merge with disabled info
+      let existingConfig = {};
+      try {
+        existingConfig = schedule.scheduleConfig
+          ? JSON.parse(schedule.scheduleConfig as string)
+          : {};
+      } catch {
+        // If parsing fails, start fresh
+      }
+      await this.prisma.workflowSchedule.update({
+        where: { scheduleId: schedule.scheduleId },
+        data: {
+          isEnabled: false,
+          nextRunAt: null,
+          // Store the reason in scheduleConfig for transparency
+          scheduleConfig: JSON.stringify({
+            ...existingConfig,
+            _disabledReason: disabledReason,
+            _disabledAt: new Date().toISOString(),
+          }),
+        },
+      });
+      this.logger.warn(
+        `Auto-disabled schedule ${schedule.scheduleId} due to invalid cron expression`,
+      );
       return;
     }
 
@@ -99,9 +128,9 @@ export class ScheduleCronService implements OnModuleInit {
       },
     });
 
-    // 3.3 Find or create the ScheduleRecord for this execution
+    // 3.3 Find or create the WorkflowScheduleRecord for this execution
     // First, check if there's a 'scheduled' record that should be converted
-    const scheduleRecord = await this.prisma.scheduleRecord.findFirst({
+    const scheduleRecord = await this.prisma.workflowScheduleRecord.findFirst({
       where: {
         scheduleId: schedule.scheduleId,
         status: 'scheduled',
@@ -110,17 +139,43 @@ export class ScheduleCronService implements OnModuleInit {
       orderBy: { scheduledAt: 'asc' },
     });
 
+    let currentRecordId = scheduleRecord?.scheduleRecordId;
+
     if (scheduleRecord) {
       // Update existing scheduled record to 'pending' (queued in BullMQ)
-      await this.prisma.scheduleRecord.update({
+      await this.prisma.workflowScheduleRecord.update({
         where: { scheduleRecordId: scheduleRecord.scheduleRecordId },
         data: {
           status: 'pending', // Job is now in the BullMQ queue, waiting to be processed
           triggeredAt: new Date(),
         },
       });
+    } else {
+      // No existing record - create a new 'pending' record now
+      // This ensures frontend can always see the job is queued
+      currentRecordId = genScheduleRecordId();
+      const canvas = await this.prisma.canvas.findUnique({
+        where: { canvasId: schedule.canvasId },
+        select: { title: true },
+      });
+      await this.prisma.workflowScheduleRecord.create({
+        data: {
+          scheduleRecordId: currentRecordId,
+          scheduleId: schedule.scheduleId,
+          uid: schedule.uid,
+          sourceCanvasId: schedule.canvasId, // Source canvas (template)
+          canvasId: '', // Will be updated after execution with actual execution canvas
+          workflowTitle: canvas?.title || 'Untitled',
+          scheduledAt: schedule.nextRunAt,
+          status: 'pending', // Job is queued in BullMQ
+          triggeredAt: new Date(),
+          priority: 5, // Default, will be updated by processor
+        },
+      });
+      this.logger.log(
+        `Created pending record ${currentRecordId} for schedule ${schedule.scheduleId}`,
+      );
     }
-    // Note: If no scheduled record exists, Processor will create one with 'pending' status
 
     // 3.4 Create or update scheduled record for the NEXT execution (future)
     if (nextRunAt) {
@@ -133,7 +188,7 @@ export class ScheduleCronService implements OnModuleInit {
     }
 
     // 3.5 Calculate user execution priority
-    // Priority range: 1-10 (higher number = higher priority, aligned with BullMQ)
+    // Priority range: 1-10 (lower number = higher priority, matching BullMQ convention)
     const priority = await this.priorityService.calculateExecutionPriority(schedule.uid);
 
     // 3.6 Push to execution queue with priority
@@ -146,19 +201,14 @@ export class ScheduleCronService implements OnModuleInit {
         scheduleId: schedule.scheduleId,
         canvasId: schedule.canvasId,
         uid: schedule.uid,
-        scheduledAt: schedule.nextRunAt!.toISOString(), // The time it was supposed to run
-        priority, // Include priority in job data
-        scheduleRecordId: scheduleRecord?.scheduleRecordId, // Pass record ID if exists
+        scheduledAt: schedule.nextRunAt!.toISOString(),
+        priority,
+        scheduleRecordId: currentRecordId,
       },
       {
-        jobId: `schedule:${schedule.scheduleId}:${timestamp}`, // Deduplication ID
-        // Priority is already aligned with BullMQ (higher number = higher priority)
-        priority: Math.floor(priority),
-        attempts: 1,
-        backoff: {
-          type: 'exponential',
-          delay: 1000,
-        },
+        jobId: `schedule:${schedule.scheduleId}:${timestamp}`,
+        priority,
+        ...SCHEDULE_JOB_OPTIONS,
       },
     );
 

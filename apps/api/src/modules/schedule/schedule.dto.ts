@@ -33,6 +33,7 @@ export interface ListAllScheduleRecordsDto {
   status?: 'scheduled' | 'pending' | 'processing' | 'running' | 'success' | 'failed';
   keyword?: string;
   tools?: string[];
+  canvasId?: string;
 }
 
 export interface GetScheduleRecordDetailDto {

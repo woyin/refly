@@ -7,7 +7,11 @@ import { ObjectStorageService } from '../common/object-storage';
 import { OSS_INTERNAL } from '../common/object-storage/tokens';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
-import { QUEUE_SCHEDULE_EXECUTION } from './schedule.constants';
+import {
+  QUEUE_SCHEDULE_EXECUTION,
+  SCHEDULE_QUOTA,
+  SCHEDULE_JOB_OPTIONS,
+} from './schedule.constants';
 import { SchedulePriorityService } from './schedule-priority.service';
 
 @Injectable()
@@ -60,8 +64,7 @@ export class ScheduleService {
       where: { uid, status: 'active' },
     });
     // Simplified quota check (future: fetch actual limit from plan)
-    const maxSchedules = 10; // Default limit
-    if (activeSchedulesCount >= maxSchedules) {
+    if (activeSchedulesCount >= SCHEDULE_QUOTA.MAX_ACTIVE_SCHEDULES) {
       throw new BadRequestException('Schedule quota exceeded');
     }
 
@@ -228,8 +231,8 @@ export class ScheduleService {
     };
 
     const [total, items] = await Promise.all([
-      this.prisma.scheduleRecord.count({ where }),
-      this.prisma.scheduleRecord.findMany({
+      this.prisma.workflowScheduleRecord.count({ where }),
+      this.prisma.workflowScheduleRecord.findMany({
         where,
         orderBy: { scheduledAt: 'desc' },
         skip: (page - 1) * pageSize,
@@ -247,12 +250,21 @@ export class ScheduleService {
     status?: 'scheduled' | 'pending' | 'processing' | 'running' | 'success' | 'failed',
     keyword?: string,
     tools?: string[],
+    canvasId?: string,
   ) {
     const where: any = { uid };
 
-    // Filter by status
+    // Filter by sourceCanvasId (the original canvas, not the cloned execution canvas)
+    if (canvasId) {
+      where.sourceCanvasId = canvasId;
+    }
+
+    // Filter by status - only show completed records (success/failed) by default
     if (status) {
       where.status = status;
+    } else {
+      // Default: only show success or failed records
+      where.status = { in: ['success', 'failed'] };
     }
 
     // Filter by keyword (search in workflowTitle)
@@ -273,8 +285,8 @@ export class ScheduleService {
     }
 
     const [total, items] = await Promise.all([
-      this.prisma.scheduleRecord.count({ where }),
-      this.prisma.scheduleRecord.findMany({
+      this.prisma.workflowScheduleRecord.count({ where }),
+      this.prisma.workflowScheduleRecord.findMany({
         where,
         orderBy: { scheduledAt: 'desc' },
         skip: (page - 1) * pageSize,
@@ -305,7 +317,7 @@ export class ScheduleService {
 
   async getAvailableTools(uid: string) {
     // Get all unique tools used across all schedule records for this user
-    const records = await this.prisma.scheduleRecord.findMany({
+    const records = await this.prisma.workflowScheduleRecord.findMany({
       where: { uid },
       select: { usedTools: true },
     });
@@ -331,7 +343,7 @@ export class ScheduleService {
   }
 
   async getScheduleRecordDetail(uid: string, scheduleRecordId: string) {
-    const record = await this.prisma.scheduleRecord.findUnique({
+    const record = await this.prisma.workflowScheduleRecord.findUnique({
       where: { scheduleRecordId },
     });
 
@@ -353,7 +365,7 @@ export class ScheduleService {
   }
 
   async getRecordSnapshot(uid: string, scheduleRecordId: string) {
-    const record = await this.prisma.scheduleRecord.findUnique({
+    const record = await this.prisma.workflowScheduleRecord.findUnique({
       where: { scheduleRecordId },
     });
 
@@ -403,18 +415,19 @@ export class ScheduleService {
       select: { title: true },
     });
 
-    // 4. Create ScheduleRecord with 'pending' status immediately
+    // 4. Create WorkflowScheduleRecord with 'pending' status immediately
     // This ensures frontend can see the task is queued
     const timestamp = Date.now();
     const scheduledAt = new Date(); // Manual trigger uses current time
     const scheduleRecordId = genScheduleRecordId();
 
-    await this.prisma.scheduleRecord.create({
+    await this.prisma.workflowScheduleRecord.create({
       data: {
         scheduleRecordId,
         scheduleId: schedule.scheduleId,
         uid,
-        canvasId: schedule.canvasId,
+        sourceCanvasId: schedule.canvasId, // Source canvas (template)
+        canvasId: '', // Will be updated after execution with actual execution canvas
         workflowTitle: canvas?.title || 'Untitled',
         status: 'pending', // Job is queued, waiting to be processed
         scheduledAt,
@@ -424,25 +437,17 @@ export class ScheduleService {
     });
 
     // 5. Push to execution queue with priority
-    await this.scheduleQueue.add(
-      'execute-scheduled-workflow',
+    await this.addToExecutionQueue(
       {
         scheduleId: schedule.scheduleId,
         canvasId: schedule.canvasId,
         uid: schedule.uid,
         scheduledAt: scheduledAt.toISOString(),
         priority,
-        scheduleRecordId, // Pass the record ID so processor doesn't create a new one
+        scheduleRecordId,
       },
-      {
-        jobId: `schedule:${schedule.scheduleId}:manual:${timestamp}`, // Deduplication ID for manual trigger
-        priority: Math.floor(priority), // BullMQ priority (higher number = higher priority)
-        attempts: 1, // No automatic retry, user must manually retry on failure
-        backoff: {
-          type: 'exponential',
-          delay: 1000,
-        },
-      },
+      `schedule:${schedule.scheduleId}:manual:${timestamp}`,
+      priority,
     );
 
     this.logger.log(`Manually triggered schedule ${schedule.scheduleId} with priority ${priority}`);
@@ -463,7 +468,7 @@ export class ScheduleService {
    */
   async retryScheduleRecord(uid: string, scheduleRecordId: string) {
     // 1. Verify schedule record exists and belongs to user
-    const record = await this.prisma.scheduleRecord.findUnique({
+    const record = await this.prisma.workflowScheduleRecord.findUnique({
       where: { scheduleRecordId },
     });
 
@@ -471,7 +476,14 @@ export class ScheduleService {
       throw new NotFoundException('Schedule record not found');
     }
 
-    // 2. Check if snapshot exists for retry
+    // 2. Check if record is in a retryable state
+    if (record.status !== 'failed') {
+      throw new BadRequestException(
+        `Cannot retry record with status '${record.status}'. Only 'failed' records can be retried.`,
+      );
+    }
+
+    // 3. Check if snapshot exists for retry
     if (!record.snapshotStorageKey) {
       throw new BadRequestException('No snapshot available for retry. Cannot retry this record.');
     }
@@ -489,7 +501,7 @@ export class ScheduleService {
     const priority = await this.priorityService.calculateExecutionPriority(uid);
 
     // 5. Update ScheduleRecord status to 'pending' immediately for frontend feedback
-    await this.prisma.scheduleRecord.update({
+    await this.prisma.workflowScheduleRecord.update({
       where: { scheduleRecordId },
       data: {
         status: 'pending',
@@ -502,25 +514,17 @@ export class ScheduleService {
     // 6. Push to execution queue with the existing scheduleRecordId to reuse snapshot
     const timestamp = Date.now();
 
-    await this.scheduleQueue.add(
-      'execute-scheduled-workflow',
+    await this.addToExecutionQueue(
       {
         scheduleId: record.scheduleId,
         canvasId: record.canvasId,
         uid: record.uid,
         scheduledAt: new Date().toISOString(),
-        scheduleRecordId: record.scheduleRecordId, // Pass existing record ID to reuse snapshot
+        scheduleRecordId: record.scheduleRecordId,
         priority,
       },
-      {
-        jobId: `schedule:${record.scheduleId}:retry:${scheduleRecordId}:${timestamp}`,
-        priority: Math.floor(priority),
-        attempts: 1, // No automatic retry, user must manually retry on failure
-        backoff: {
-          type: 'exponential',
-          delay: 1000,
-        },
-      },
+      `schedule:${record.scheduleId}:retry:${scheduleRecordId}:${timestamp}`,
+      priority,
     );
 
     this.logger.log(
@@ -552,7 +556,7 @@ export class ScheduleService {
     });
 
     // Check if a scheduled record already exists for this schedule
-    const existingScheduledRecord = await this.prisma.scheduleRecord.findFirst({
+    const existingScheduledRecord = await this.prisma.workflowScheduleRecord.findFirst({
       where: {
         scheduleId,
         status: 'scheduled',
@@ -562,7 +566,7 @@ export class ScheduleService {
 
     if (existingScheduledRecord) {
       // Update existing scheduled record
-      await this.prisma.scheduleRecord.update({
+      await this.prisma.workflowScheduleRecord.update({
         where: { scheduleRecordId: existingScheduledRecord.scheduleRecordId },
         data: {
           scheduledAt,
@@ -572,7 +576,7 @@ export class ScheduleService {
     } else {
       // Create new scheduled record
       const scheduleRecordId = genScheduleRecordId();
-      await this.prisma.scheduleRecord.create({
+      await this.prisma.workflowScheduleRecord.create({
         data: {
           scheduleRecordId,
           scheduleId,
@@ -591,12 +595,34 @@ export class ScheduleService {
    * Delete scheduled record for a schedule
    */
   async deleteScheduledRecord(scheduleId: string): Promise<void> {
-    await this.prisma.scheduleRecord.deleteMany({
+    await this.prisma.workflowScheduleRecord.deleteMany({
       where: {
         scheduleId,
         status: 'scheduled',
         workflowExecutionId: null,
       },
+    });
+  }
+
+  /**
+   * Helper to add a job to the execution queue with standard options
+   */
+  private async addToExecutionQueue(
+    data: {
+      scheduleId: string;
+      canvasId: string;
+      uid: string;
+      scheduledAt: string;
+      priority: number;
+      scheduleRecordId: string;
+    },
+    jobId: string,
+    priority: number,
+  ): Promise<void> {
+    await this.scheduleQueue.add('execute-scheduled-workflow', data, {
+      jobId,
+      priority,
+      ...SCHEDULE_JOB_OPTIONS,
     });
   }
 }

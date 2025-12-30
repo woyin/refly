@@ -1,28 +1,28 @@
 import { useCallback, useMemo, memo, useEffect } from 'react';
 import { time } from '@refly-packages/ai-workspace-common/utils/time';
 import { useTranslation } from 'react-i18next';
-import { useNavigate } from '@refly-packages/ai-workspace-common/utils/router';
+import { useNavigate, useSearchParams } from '@refly-packages/ai-workspace-common/utils/router';
 
-import { Empty, Typography, Table, Button, message } from 'antd';
+import { Empty, Typography, Table, Tooltip } from 'antd';
 import { EndMessage } from '@refly-packages/ai-workspace-common/components/workspace/scroll-loading';
 import { Spin } from '@refly-packages/ai-workspace-common/components/common/spin';
+import { SettingItem } from '@refly-packages/ai-workspace-common/components/canvas/front-page';
 import { LOCALE } from '@refly/common-types';
 import EmptyImage from '@refly-packages/ai-workspace-common/assets/noResource.svg';
 import { RunHistoryFilters, RunStatusFilter, RunTypeFilter } from './run-history-filters';
 import { UsedTools } from './used-tools';
 import { client } from '@refly/openapi-schema';
 import { useFetchDataList } from '@refly-packages/ai-workspace-common/hooks/use-fetch-data-list';
-import { useDebouncedCallback } from 'use-debounce';
 import { useState } from 'react';
+import {
+  getFailureActionConfig,
+  getFailureReasonText,
+  FailureActionType,
+} from '@refly-packages/ai-workspace-common/hooks/use-schedule-failure-action';
+import { useSubscriptionStoreShallow } from '@refly/stores';
 import './index.scss';
 
-type ScheduleRecordStatus =
-  | 'scheduled'
-  | 'pending'
-  | 'processing'
-  | 'running'
-  | 'success'
-  | 'failed';
+type ScheduleRecordStatus = 'success' | 'failed';
 
 interface ScheduleRecordItem {
   scheduleRecordId: string;
@@ -36,6 +36,7 @@ interface ScheduleRecordItem {
   creditUsed: number;
   failureReason?: string;
   usedTools?: string;
+  canvasId?: string;
 }
 
 interface AvailableTool {
@@ -43,18 +44,154 @@ interface AvailableTool {
   name: string;
 }
 
+// Action cell component for table - handles failure actions per row
+const ActionCell = memo(
+  ({ record, onViewDetail }: { record: ScheduleRecordItem; onViewDetail: () => void }) => {
+    const { t } = useTranslation();
+    const navigate = useNavigate();
+
+    const { planType, setSubscribeModalVisible, setCreditInsufficientModalVisible } =
+      useSubscriptionStoreShallow((state) => ({
+        planType: state.planType,
+        setSubscribeModalVisible: state.setSubscribeModalVisible,
+        setCreditInsufficientModalVisible: state.setCreditInsufficientModalVisible,
+      }));
+
+    const actionConfig = useMemo(
+      () => getFailureActionConfig(record.failureReason, planType, t),
+      [record.failureReason, planType, t],
+    );
+
+    const handleActionClick = useCallback(
+      (e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (!actionConfig) return;
+
+        switch (actionConfig.actionType as FailureActionType) {
+          case 'upgrade':
+            setSubscribeModalVisible(true);
+            break;
+          case 'buyCredits':
+            setCreditInsufficientModalVisible(true);
+            break;
+          case 'viewSchedule':
+            navigate('/workflow');
+            break;
+          case 'fixWorkflow':
+            if (record.canvasId) {
+              navigate(`/canvas/${record.canvasId}`);
+            }
+            break;
+        }
+      },
+      [
+        actionConfig,
+        setSubscribeModalVisible,
+        setCreditInsufficientModalVisible,
+        navigate,
+        record.canvasId,
+      ],
+    );
+
+    if (record.status === 'success') {
+      return (
+        <div
+          className="w-full h-full flex items-center cursor-pointer"
+          onClick={(e) => {
+            e.stopPropagation();
+            onViewDetail();
+          }}
+        >
+          <span className="text-teal-600 hover:text-teal-700 text-sm">
+            {t('runHistory.runDetail')}
+          </span>
+        </div>
+      );
+    }
+
+    // Failed status - only show action based on failure reason (no Run Detail link)
+    if (actionConfig) {
+      return (
+        <div className="w-full h-full flex items-center cursor-pointer" onClick={handleActionClick}>
+          <span className="text-teal-600 hover:text-teal-700 text-sm">{actionConfig.label}</span>
+        </div>
+      );
+    }
+
+    return null;
+  },
+);
+
+ActionCell.displayName = 'ActionCell';
+
 const RunHistoryList = memo(() => {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const language = i18n.languages?.[0];
 
-  // Filter states
-  const [searchValue, setSearchValue] = useState('');
-  const [debouncedSearchValue, setDebouncedSearchValue] = useState('');
-  const [typeFilter, setTypeFilter] = useState<RunTypeFilter>('all');
-  const [statusFilter, setStatusFilter] = useState<RunStatusFilter>('all');
-  const [selectedTools, setSelectedTools] = useState<string[]>([]);
+  // Get filter values from URL params
+  const titleFilter = searchParams.get('title') || '';
+  const canvasIdFilter = searchParams.get('canvasId') || '';
+  const typeFilter = (searchParams.get('type') as RunTypeFilter) || 'all';
+  const statusFilter = (searchParams.get('status') as RunStatusFilter) || 'all';
+  const toolsParam = searchParams.get('tools') || '';
+  const selectedTools = useMemo(() => toolsParam.split(',').filter(Boolean), [toolsParam]);
+
+  // Available tools state
   const [availableTools, setAvailableTools] = useState<AvailableTool[]>([]);
+
+  // Update URL params helper
+  const updateSearchParams = useCallback(
+    (updates: Record<string, string | undefined>) => {
+      const newParams = new URLSearchParams(searchParams);
+      for (const [key, value] of Object.entries(updates)) {
+        if (value) {
+          newParams.set(key, value);
+        } else {
+          newParams.delete(key);
+        }
+      }
+      setSearchParams(newParams, { replace: true });
+    },
+    [searchParams, setSearchParams],
+  );
+
+  // Filter change handlers
+  const handleTitleChange = useCallback(
+    (value: string) => {
+      updateSearchParams({ title: value || undefined });
+    },
+    [updateSearchParams],
+  );
+
+  const handleCanvasIdChange = useCallback(
+    (value: string) => {
+      updateSearchParams({ canvasId: value || undefined });
+    },
+    [updateSearchParams],
+  );
+
+  const handleTypeChange = useCallback(
+    (value: RunTypeFilter) => {
+      updateSearchParams({ type: value === 'all' ? undefined : value });
+    },
+    [updateSearchParams],
+  );
+
+  const handleStatusChange = useCallback(
+    (value: RunStatusFilter) => {
+      updateSearchParams({ status: value === 'all' ? undefined : value });
+    },
+    [updateSearchParams],
+  );
+
+  const handleToolsChange = useCallback(
+    (tools: string[]) => {
+      updateSearchParams({ tools: tools.length > 0 ? tools.join(',') : undefined });
+    },
+    [updateSearchParams],
+  );
 
   // Fetch available tools
   useEffect(() => {
@@ -75,19 +212,6 @@ const RunHistoryList = memo(() => {
     fetchTools();
   }, []);
 
-  // Debounced search
-  const debouncedSearch = useDebouncedCallback((value: string) => {
-    setDebouncedSearchValue(value);
-  }, 300);
-
-  const handleSearchChange = useCallback(
-    (value: string) => {
-      setSearchValue(value);
-      debouncedSearch(value);
-    },
-    [debouncedSearch],
-  );
-
   // Fetch data using useFetchDataList hook
   const fetchScheduleRecords = useCallback(
     async ({ page, pageSize }: { page: number; pageSize: number }) => {
@@ -98,7 +222,8 @@ const RunHistoryList = memo(() => {
             page,
             pageSize,
             status: statusFilter !== 'all' ? statusFilter : undefined,
-            keyword: debouncedSearchValue || undefined,
+            keyword: titleFilter || undefined,
+            canvasId: canvasIdFilter || undefined,
             tools: selectedTools.length > 0 ? selectedTools : undefined,
           },
         });
@@ -116,13 +241,13 @@ const RunHistoryList = memo(() => {
         return { success: false, data: [] };
       }
     },
-    [statusFilter, debouncedSearchValue, selectedTools],
+    [statusFilter, titleFilter, canvasIdFilter, selectedTools],
   );
 
   const { dataList, isRequesting, reload } = useFetchDataList<ScheduleRecordItem>({
     fetchData: fetchScheduleRecords,
     pageSize: 20,
-    dependencies: [statusFilter, debouncedSearchValue, selectedTools],
+    dependencies: [statusFilter, titleFilter, canvasIdFilter, selectedTools],
   });
 
   // Initial load
@@ -137,66 +262,14 @@ const RunHistoryList = memo(() => {
     [navigate],
   );
 
-  const [retryingScheduleRecordId, setRetryingScheduleRecordId] = useState<string | null>(null);
-
-  const handleRetryScheduleRecord = useCallback(
-    async (record: ScheduleRecordItem) => {
-      if (!record.scheduleRecordId) {
-        message.error(t('runHistory.retryError.noScheduleRecordId'));
-        return;
-      }
-
-      setRetryingScheduleRecordId(record.scheduleRecordId);
-      try {
-        await client.post({
-          url: '/schedule/record/retry',
-          body: {
-            scheduleRecordId: record.scheduleRecordId,
-          },
-        });
-        message.success(t('runHistory.retrySuccess'));
-        // Reload data after a short delay to show the updated record
-        setTimeout(() => {
-          reload();
-        }, 1000);
-      } catch (error) {
-        console.error('Failed to retry schedule record:', error);
-        message.error(t('runHistory.retryError.failed'));
-      } finally {
-        setRetryingScheduleRecordId(null);
-      }
-    },
-    [t, reload],
-  );
-
   // Get status display config
   const getStatusConfig = useCallback(
     (status: ScheduleRecordStatus) => {
       const configs = {
-        scheduled: {
-          label: t('runHistory.status.scheduled'),
-          color: 'default' as const,
-          textClass: 'text-gray-600',
-        },
-        pending: {
-          label: t('runHistory.status.queued'),
-          color: 'default' as const,
-          textClass: 'text-gray-500',
-        },
-        processing: {
-          label: t('runHistory.status.processing'),
-          color: 'processing' as const,
-          textClass: 'text-blue-400',
-        },
-        running: {
-          label: t('runHistory.status.running'),
-          color: 'processing' as const,
-          textClass: 'text-blue-500',
-        },
         success: {
           label: t('runHistory.status.succeeded'),
           color: 'success' as const,
-          textClass: 'text-green-600',
+          textClass: 'text-refly-text-2',
         },
         failed: {
           label: t('runHistory.status.failed'),
@@ -204,7 +277,7 @@ const RunHistoryList = memo(() => {
           textClass: 'text-red-600',
         },
       };
-      return configs[status] || configs.pending;
+      return configs[status] || configs.success;
     },
     [t],
   );
@@ -218,12 +291,13 @@ const RunHistoryList = memo(() => {
         key: 'scheduleName',
         width: 300,
         fixed: 'left' as const,
-        render: (text: string, record: ScheduleRecordItem) => (
+        render: (_: string, record: ScheduleRecordItem) => (
           <Typography.Text
             className="text-sm text-refly-text-0 cursor-pointer hover:text-refly-text-1"
+            onClick={() => handleViewDetail(record)}
             ellipsis={{ tooltip: true }}
           >
-            {text || record.workflowTitle || t('common.untitled')}
+            {record.workflowTitle || record.scheduleName || t('common.untitled')}
           </Typography.Text>
         ),
       },
@@ -250,9 +324,34 @@ const RunHistoryList = memo(() => {
         dataIndex: 'status',
         key: 'status',
         width: 120,
-        render: (status: ScheduleRecordStatus) => {
+        render: (status: ScheduleRecordStatus, record: ScheduleRecordItem) => {
           const config = getStatusConfig(status);
-          return <span className={`text-sm font-medium ${config.textClass}`}>{config.label}</span>;
+          const statusElement = (
+            <span className={`text-sm font-medium ${config.textClass}`}>{config.label}</span>
+          );
+
+          // Show tooltip with failure reason for failed status
+          if (status === 'failed' && record.failureReason) {
+            const reasonText = getFailureReasonText(record.failureReason, t);
+            return (
+              <Tooltip
+                title={reasonText}
+                placement="bottom"
+                autoAdjustOverflow
+                arrow={false}
+                overlayClassName="failure-reason-tooltip"
+                overlayStyle={{
+                  maxWidth: 300,
+                }}
+              >
+                <span className={`text-sm font-medium ${config.textClass} cursor-pointer`}>
+                  {config.label}
+                </span>
+              </Tooltip>
+            );
+          }
+
+          return statusElement;
         },
       },
       {
@@ -261,7 +360,9 @@ const RunHistoryList = memo(() => {
         key: 'creditUsed',
         width: 100,
         render: (creditUsed: number) => (
-          <span className="text-sm text-gray-500">{creditUsed ?? 0} Credit</span>
+          <span className="text-sm text-gray-500">
+            {creditUsed ?? 0} {t('runDetail.creditUnit')}
+          </span>
         ),
       },
       {
@@ -271,49 +372,20 @@ const RunHistoryList = memo(() => {
         align: 'left' as const,
         fixed: 'right' as const,
         render: (_: unknown, record: ScheduleRecordItem) => (
-          <div className="flex items-center gap-2">
-            {/* Only show retry button for failed records, not for scheduled or pending records */}
-            {record.scheduleRecordId && record.status === 'failed' && (
-              <Button
-                type="link"
-                size="small"
-                loading={retryingScheduleRecordId === record.scheduleRecordId}
-                disabled={!!retryingScheduleRecordId}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleRetryScheduleRecord(record);
-                }}
-                className="!text-blue-600 hover:!text-blue-700 text-sm p-0"
-              >
-                {t('runHistory.retry')}
-              </Button>
-            )}
-            <Typography.Link
-              className="!text-teal-600 hover:!text-teal-700 text-sm"
-              onClick={(e) => {
-                e.stopPropagation();
-                handleViewDetail(record);
-              }}
-            >
-              {t('runHistory.viewDetail')}
-            </Typography.Link>
-          </div>
+          <ActionCell record={record} onViewDetail={() => handleViewDetail(record)} />
         ),
       },
     ],
-    [
-      t,
-      language,
-      getStatusConfig,
-      handleViewDetail,
-      retryingScheduleRecordId,
-      handleRetryScheduleRecord,
-    ],
+    [t, language, getStatusConfig, handleViewDetail],
   );
 
   // Check if any filters are active
   const hasActiveFilters =
-    searchValue || typeFilter !== 'all' || statusFilter !== 'all' || selectedTools.length > 0;
+    !!titleFilter ||
+    !!canvasIdFilter ||
+    typeFilter !== 'all' ||
+    statusFilter !== 'all' ||
+    selectedTools.length > 0;
 
   const emptyState = (
     <div className="h-full flex items-center justify-center">
@@ -330,55 +402,63 @@ const RunHistoryList = memo(() => {
   );
 
   return (
-    <div className="run-history-list w-full h-full flex flex-col overflow-hidden bg-white dark:bg-gray-900">
-      {/* Main content area */}
-      <main className="flex-1 overflow-auto p-6">
-        {/* Search and filters section */}
-        <div className="mb-6">
-          <RunHistoryFilters
-            searchValue={searchValue}
-            onSearchChange={handleSearchChange}
-            typeFilter={typeFilter}
-            onTypeChange={setTypeFilter}
-            statusFilter={statusFilter}
-            onStatusChange={setStatusFilter}
-            selectedTools={selectedTools}
-            onToolsChange={setSelectedTools}
-            availableTools={availableTools}
-          />
-        </div>
+    <div className="run-history-list w-full h-full flex flex-col overflow-hidden rounded-xl border border-solid border-refly-Card-Border bg-refly-bg-main-z1">
+      {/* Header */}
+      <div className="flex items-center justify-between p-4 gap-2">
+        <div className="text-[16px] font-semibold">{t('runHistory.title')}</div>
 
-        {/* Data table */}
-        <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
-          {isRequesting && dataList.length === 0 ? (
-            <div className="h-[400px] w-full flex items-center justify-center">
-              <Spin />
-            </div>
-          ) : dataList.length > 0 ? (
-            <div className="flex flex-col">
-              <Table
-                columns={columns}
-                dataSource={dataList}
-                rowKey="scheduleRecordId"
-                pagination={false}
-                scroll={{ y: 'calc(var(--screen-height) - 280px)' }}
-                className="run-history-table"
-                size="middle"
-                loading={isRequesting}
-                onRow={(record: ScheduleRecordItem) => ({
-                  className: 'cursor-pointer hover:!bg-gray-50 dark:hover:!bg-gray-800',
-                  onClick: () => {
-                    handleViewDetail(record);
-                  },
-                })}
-              />
-              <EndMessage />
-            </div>
-          ) : (
-            emptyState
-          )}
+        <div className="flex items-center gap-2">
+          <div className="group relative">
+            <SettingItem showName={false} avatarAlign={'right'} />
+          </div>
         </div>
-      </main>
+      </div>
+
+      {/* Search and Filters Bar */}
+      <div className={`px-4 ${hasActiveFilters ? 'pb-6' : 'pb-5'}`}>
+        <RunHistoryFilters
+          titleFilter={titleFilter}
+          onTitleChange={handleTitleChange}
+          canvasIdFilter={canvasIdFilter}
+          onCanvasIdChange={handleCanvasIdChange}
+          typeFilter={typeFilter}
+          onTypeChange={handleTypeChange}
+          statusFilter={statusFilter}
+          onStatusChange={handleStatusChange}
+          selectedTools={selectedTools}
+          onToolsChange={handleToolsChange}
+          availableTools={availableTools}
+        />
+      </div>
+
+      {/* Content */}
+      <div className="flex-1 overflow-hidden pb-6">
+        {isRequesting && dataList.length === 0 ? (
+          <div className="h-[400px] w-full flex items-center justify-center">
+            <Spin />
+          </div>
+        ) : dataList.length > 0 ? (
+          <div className="h-full flex flex-col px-4">
+            <Table
+              columns={columns}
+              dataSource={dataList}
+              rowKey="scheduleRecordId"
+              pagination={false}
+              scroll={{ y: 'calc(var(--screen-height) - 240px)' }}
+              className="run-history-table flex-1"
+              size="middle"
+              loading={isRequesting}
+              onRow={(record: ScheduleRecordItem) => ({
+                onClick: () => handleViewDetail(record),
+                className: 'cursor-pointer hover:!bg-refly-tertiary-hover transition-colors',
+              })}
+            />
+            <EndMessage />
+          </div>
+        ) : (
+          emptyState
+        )}
+      </div>
     </div>
   );
 });
