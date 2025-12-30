@@ -10,6 +10,7 @@ import { useSubscriptionStoreShallow } from '@refly/stores';
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 import timezone from 'dayjs/plugin/timezone';
+import { useDebouncedCallback } from 'use-debounce';
 import {
   SchedulePopoverContent,
   parseScheduleConfig,
@@ -179,6 +180,80 @@ export const ScheduleColumn = memo(
       setOpen(false);
     }, []);
 
+    // Debounced auto-save for config changes (frequency, time, weekdays, monthDays)
+    const debouncedSaveConfig = useDebouncedCallback(
+      async (
+        currentFrequency: ScheduleFrequency,
+        currentTimeValue: dayjs.Dayjs,
+        currentWeekdays: number[],
+        currentMonthDays: number[],
+      ) => {
+        if (!schedule?.scheduleId || !currentTimeValue) return;
+
+        try {
+          const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+          const timeStr = currentTimeValue.format('HH:mm');
+          const scheduleConfig: ScheduleConfig = {
+            type: currentFrequency,
+            time: timeStr,
+            ...(currentFrequency === 'weekly' && { weekdays: currentWeekdays }),
+            ...(currentFrequency === 'monthly' && { monthDays: currentMonthDays }),
+          };
+
+          const cronExpression = generateCronExpression(scheduleConfig);
+
+          await updateScheduleMutation.mutateAsync({
+            body: {
+              scheduleId: schedule.scheduleId,
+              cronExpression,
+              scheduleConfig: JSON.stringify(scheduleConfig),
+              timezone: userTimezone,
+              isEnabled,
+            },
+          });
+
+          onScheduleChange?.();
+        } catch (error) {
+          console.error('Failed to auto-save schedule config:', error);
+          message.error(t('schedule.saveFailed') || 'Failed to save schedule');
+        }
+      },
+      800, // 800ms debounce delay
+    );
+
+    // Wrapper handlers that trigger auto-save on user changes
+    const handleFrequencyChange = useCallback(
+      (newFrequency: ScheduleFrequency) => {
+        setFrequency(newFrequency);
+        debouncedSaveConfig(newFrequency, timeValue, weekdays, monthDays);
+      },
+      [weekdays, monthDays, timeValue, debouncedSaveConfig],
+    );
+
+    const handleTimeChange = useCallback(
+      (newTime: dayjs.Dayjs) => {
+        setTimeValue(newTime);
+        debouncedSaveConfig(frequency, newTime, weekdays, monthDays);
+      },
+      [frequency, weekdays, monthDays, debouncedSaveConfig],
+    );
+
+    const handleWeekdaysChange = useCallback(
+      (newWeekdays: number[]) => {
+        setWeekdays(newWeekdays);
+        debouncedSaveConfig(frequency, timeValue, newWeekdays, monthDays);
+      },
+      [frequency, timeValue, monthDays, debouncedSaveConfig],
+    );
+
+    const handleMonthDaysChange = useCallback(
+      (newMonthDays: number[]) => {
+        setMonthDays(newMonthDays);
+        debouncedSaveConfig(frequency, timeValue, weekdays, newMonthDays);
+      },
+      [frequency, timeValue, weekdays, debouncedSaveConfig],
+    );
+
     // Schedule display for badge
     const scheduleDisplay = useMemo(() => {
       if (!schedule?.scheduleId) {
@@ -244,13 +319,15 @@ export const ScheduleColumn = memo(
               weekdays={weekdays}
               monthDays={monthDays}
               onEnabledChange={handleEnabledChange}
-              onFrequencyChange={setFrequency}
-              onTimeChange={setTimeValue}
-              onWeekdaysChange={setWeekdays}
-              onMonthDaysChange={setMonthDays}
+              onFrequencyChange={handleFrequencyChange}
+              onTimeChange={handleTimeChange}
+              onWeekdaysChange={handleWeekdaysChange}
+              onMonthDaysChange={handleMonthDaysChange}
               onClose={handleClose}
               creditCost={creditUsageData?.data?.total}
               isCreditLoading={isCreditUsageLoading}
+              showUpgrade={planType === 'free'}
+              onUpgradeClick={() => setCreditInsufficientModalVisible(true)}
             />
           }
           trigger="click"
