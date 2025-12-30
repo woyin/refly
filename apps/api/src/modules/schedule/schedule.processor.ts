@@ -206,6 +206,28 @@ export class ScheduleProcessor extends WorkerHost {
       } else {
         // 4.1 Update status to 'processing' - job has been dequeued from BullMQ
         // This indicates the job is now actively being handled by the processor
+
+        // 4.2 Re-check concurrency limit before updating status (race condition protection)
+        // Multiple jobs might have passed the initial check simultaneously
+        const currentRunningCount = await this.prisma.workflowScheduleRecord.count({
+          where: {
+            uid,
+            status: { in: ['processing', 'running'] },
+          },
+        });
+
+        if (currentRunningCount >= SCHEDULE_RATE_LIMITS.USER_MAX_CONCURRENT) {
+          // Another job started in the meantime, delay this one
+          this.logger.warn(
+            `Race condition detected: User ${uid} now has ${currentRunningCount} concurrent executions, delaying job ${job.id}`,
+          );
+          await job.moveToDelayed(
+            Date.now() + SCHEDULE_RATE_LIMITS.USER_RATE_LIMIT_DELAY_MS,
+            job.token,
+          );
+          throw new DelayedError();
+        }
+
         await this.prisma.workflowScheduleRecord.update({
           where: { scheduleRecordId },
           data: {
