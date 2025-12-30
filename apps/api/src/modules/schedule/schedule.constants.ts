@@ -11,11 +11,19 @@ export const SCHEDULE_RATE_LIMITS = {
   RATE_LIMIT_DURATION_MS: 60 * 1000, // 60 seconds
 
   // Per-user max concurrent executions (to prevent one user from monopolizing)
-  // Concurrency is controlled by querying database for 'processing' and 'running' status records
+  // Concurrency is controlled by Redis atomic operations (INCR/DECR) with database fallback
   USER_MAX_CONCURRENT: 3,
 
   // Delay time in ms when user is rate limited
   USER_RATE_LIMIT_DELAY_MS: 10 * 1000, // 10 seconds
+} as const;
+
+// Redis key configuration for schedule concurrency control
+export const SCHEDULE_REDIS_KEYS = {
+  // Prefix for user concurrency counter: schedule:concurrent:user:{uid}
+  USER_CONCURRENT_PREFIX: 'schedule:concurrent:user:',
+  // TTL for concurrency counter (2 hours) - prevents counter leakage
+  USER_CONCURRENT_TTL: 2 * 60 * 60, // 2 hours in seconds
 } as const;
 
 // Schedule quota per user based on subscription plan

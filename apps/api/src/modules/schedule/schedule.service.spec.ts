@@ -64,7 +64,9 @@ describe('ScheduleService', () => {
     it('should create a schedule successfully', async () => {
       prismaService.workflowSchedule.findFirst = jest.fn().mockResolvedValue(null);
       prismaService.workflowSchedule.count = jest.fn().mockResolvedValue(0);
-      prismaService.canvas.findUnique = jest.fn().mockResolvedValue({ title: 'Test Canvas' });
+      prismaService.canvas.findUnique = jest
+        .fn()
+        .mockResolvedValue({ title: 'Test Canvas', uid: mockUser.uid });
       prismaService.workflowSchedule.create = jest.fn().mockResolvedValue({
         scheduleId: mockScheduleId,
         ...validDto,
@@ -98,7 +100,11 @@ describe('ScheduleService', () => {
         deletedAt: null,
       };
 
+      prismaService.canvas.findUnique = jest
+        .fn()
+        .mockResolvedValue({ title: 'Test Canvas', uid: mockUser.uid });
       prismaService.workflowSchedule.findFirst = jest.fn().mockResolvedValue(existingSchedule);
+      prismaService.workflowSchedule.count = jest.fn().mockResolvedValue(0); // Add count mock
       prismaService.workflowSchedule.findUnique = jest.fn().mockResolvedValue(existingSchedule);
       prismaService.workflowSchedule.update = jest.fn().mockResolvedValue({
         ...existingSchedule,
@@ -115,6 +121,9 @@ describe('ScheduleService', () => {
     });
 
     it('should throw BadRequestException when quota exceeded for free user', async () => {
+      prismaService.canvas.findUnique = jest
+        .fn()
+        .mockResolvedValue({ title: 'Test Canvas', uid: mockUser.uid });
       prismaService.workflowSchedule.findFirst = jest.fn().mockResolvedValue(null);
       // Free user (no subscription) has quota of 1
       prismaService.workflowSchedule.count = jest
@@ -123,11 +132,14 @@ describe('ScheduleService', () => {
       prismaService.subscription.findFirst = jest.fn().mockResolvedValue(null);
 
       await expect(service.createSchedule(mockUser.uid, validDto)).rejects.toThrow(
-        'Schedule quota exceeded',
+        'schedule_limit_exceeded',
       );
     });
 
     it('should throw BadRequestException when quota exceeded for paid user', async () => {
+      prismaService.canvas.findUnique = jest
+        .fn()
+        .mockResolvedValue({ title: 'Test Canvas', uid: mockUser.uid });
       prismaService.workflowSchedule.findFirst = jest.fn().mockResolvedValue(null);
       // Paid user has quota of 20
       prismaService.workflowSchedule.count = jest
@@ -139,7 +151,7 @@ describe('ScheduleService', () => {
       });
 
       await expect(service.createSchedule(mockUser.uid, validDto)).rejects.toThrow(
-        'Schedule quota exceeded',
+        'schedule_limit_exceeded',
       );
     });
 
@@ -151,7 +163,9 @@ describe('ScheduleService', () => {
         lookupKey: 'refly_plus_monthly_stable_v2',
         status: 'active',
       });
-      prismaService.canvas.findUnique = jest.fn().mockResolvedValue({ title: 'Test Canvas' });
+      prismaService.canvas.findUnique = jest
+        .fn()
+        .mockResolvedValue({ title: 'Test Canvas', uid: mockUser.uid });
       prismaService.workflowSchedule.create = jest.fn().mockResolvedValue({
         scheduleId: mockScheduleId,
         ...validDto,
@@ -169,7 +183,9 @@ describe('ScheduleService', () => {
       const dtoWithoutName = { ...validDto, name: undefined };
       prismaService.workflowSchedule.findFirst = jest.fn().mockResolvedValue(null);
       prismaService.workflowSchedule.count = jest.fn().mockResolvedValue(0);
-      prismaService.canvas.findUnique = jest.fn().mockResolvedValue({ title: 'Canvas Title' });
+      prismaService.canvas.findUnique = jest
+        .fn()
+        .mockResolvedValue({ title: 'Canvas Title', uid: mockUser.uid });
       prismaService.workflowSchedule.create = jest.fn().mockImplementation((args) => {
         return Promise.resolve({
           scheduleId: mockScheduleId,
@@ -194,7 +210,9 @@ describe('ScheduleService', () => {
       const disabledDto = { ...validDto, isEnabled: false };
       prismaService.workflowSchedule.findFirst = jest.fn().mockResolvedValue(null);
       prismaService.workflowSchedule.count = jest.fn().mockResolvedValue(0);
-      prismaService.canvas.findUnique = jest.fn().mockResolvedValue({ title: 'Test Canvas' });
+      prismaService.canvas.findUnique = jest
+        .fn()
+        .mockResolvedValue({ title: 'Test Canvas', uid: mockUser.uid });
       prismaService.workflowSchedule.create = jest.fn().mockImplementation((args) => {
         return Promise.resolve({
           scheduleId: mockScheduleId,
