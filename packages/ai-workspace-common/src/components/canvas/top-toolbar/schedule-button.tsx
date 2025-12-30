@@ -1,4 +1,4 @@
-import { memo, useState, useCallback, useEffect, useMemo } from 'react';
+import { memo, useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import {
   Button,
   Tooltip,
@@ -191,19 +191,32 @@ const ScheduleButton = memo(({ canvasId }: ScheduleButtonProps) => {
       if (currentSchedule) {
         const config = parseScheduleConfig(currentSchedule.scheduleConfig);
         const serverTime = config?.time ? dayjs(config.time, 'HH:mm') : dayjs('08:00', 'HH:mm');
-        const currentTime = timeValue?.format('HH:mm');
-        const serverTimeFormatted = serverTime.format('HH:mm');
+        const currentTimeStr = timeValue?.format('HH:mm') ?? '';
+        const serverTimeStr = serverTime.format('HH:mm');
 
         setIsEnabled(currentSchedule.isEnabled ?? false);
         setFrequency(config?.type || 'daily');
 
         // Only update timeValue if it's actually different to prevent infinite loop
-        if (currentTime !== serverTimeFormatted) {
+        // Compare as strings to avoid dayjs object reference issues
+        if (currentTimeStr !== serverTimeStr) {
           setTimeValue(serverTime);
         }
 
-        setWeekdays(config?.weekdays || [1]);
-        setMonthDays(config?.monthDays || [1]);
+        // Only update weekdays/monthDays if they're actually different
+        const serverWeekdays = config?.weekdays || [1];
+        const serverMonthDays = config?.monthDays || [1];
+        const currentWeekdaysStr = JSON.stringify(weekdays.sort());
+        const currentMonthDaysStr = JSON.stringify(monthDays.sort());
+        const serverWeekdaysStr = JSON.stringify(serverWeekdays.sort());
+        const serverMonthDaysStr = JSON.stringify(serverMonthDays.sort());
+
+        if (currentWeekdaysStr !== serverWeekdaysStr) {
+          setWeekdays(serverWeekdays);
+        }
+        if (currentMonthDaysStr !== serverMonthDaysStr) {
+          setMonthDays(serverMonthDays);
+        }
       }
     } catch (error) {
       console.error('Failed to fetch schedule:', error);
@@ -262,16 +275,18 @@ const ScheduleButton = memo(({ canvasId }: ScheduleButtonProps) => {
         };
 
         const cronExpression = generateCronExpression(scheduleConfig);
+        const scheduleConfigStr = JSON.stringify(scheduleConfig);
 
         const requestData = {
           canvasId,
           name: `Schedule for ${canvasId}`,
           cronExpression,
-          scheduleConfig: JSON.stringify(scheduleConfig),
+          scheduleConfig: scheduleConfigStr,
           timezone: userTimezone,
           isEnabled: enabled,
         };
 
+        let newScheduleId = schedule?.scheduleId;
         if (schedule?.scheduleId) {
           await updateScheduleMutation.mutateAsync({
             body: {
@@ -280,13 +295,27 @@ const ScheduleButton = memo(({ canvasId }: ScheduleButtonProps) => {
             },
           });
         } else {
-          await createScheduleMutation.mutateAsync({
+          const result = await createScheduleMutation.mutateAsync({
             body: requestData,
           });
+          // Extract new scheduleId from create response
+          const responseData = (result as { data?: { scheduleId?: string } })?.data;
+          newScheduleId = responseData?.scheduleId;
         }
 
-        // Skip fetchSchedule after autoSave to prevent infinite loop
-        // The data is already up-to-date since we just saved it
+        // Update local schedule state to keep it in sync
+        // This ensures the popover shows correct data when reopened
+        if (newScheduleId) {
+          setSchedule((prev) => ({
+            ...prev,
+            scheduleId: newScheduleId,
+            scheduleConfig: scheduleConfigStr,
+            cronExpression,
+            timezone: userTimezone,
+            isEnabled: enabled,
+          }));
+        }
+
         await fetchAllEnabledSchedulesCount();
       } catch (error) {
         console.error('Failed to auto save schedule:', error);
@@ -295,14 +324,13 @@ const ScheduleButton = memo(({ canvasId }: ScheduleButtonProps) => {
     },
     [
       canvasId,
-      schedule,
+      schedule?.scheduleId,
       frequency,
       timeValue,
       weekdays,
       monthDays,
       createScheduleMutation,
       updateScheduleMutation,
-      fetchSchedule,
       fetchAllEnabledSchedulesCount,
       t,
     ],
@@ -338,11 +366,22 @@ const ScheduleButton = memo(({ canvasId }: ScheduleButtonProps) => {
   }, [autoSave, fetchSchedule, t]);
 
   // Handle auto save when other settings change (if enabled)
+  // Use ref to track if we're currently saving to prevent infinite loops
+  const isSavingRef = useRef(false);
+
   useEffect(() => {
-    if (isEnabled && schedule?.scheduleId) {
-      // Only auto save if schedule is enabled and exists
-      const timer = setTimeout(() => {
-        autoSave(true);
+    if (isEnabled && schedule?.scheduleId && !isSavingRef.current) {
+      // Only auto save if schedule is enabled and exists, and we're not already saving
+      const timer = setTimeout(async () => {
+        isSavingRef.current = true;
+        try {
+          await autoSave(true);
+        } finally {
+          // Reset flag after a short delay to allow state updates to settle
+          setTimeout(() => {
+            isSavingRef.current = false;
+          }, 100);
+        }
       }, 500); // Debounce auto save
       return () => clearTimeout(timer);
     }
