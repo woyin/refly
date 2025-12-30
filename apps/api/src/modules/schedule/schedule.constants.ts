@@ -1,50 +1,13 @@
+import type { ConfigService } from '@nestjs/config';
+
 // Queue name for schedule execution
 export const QUEUE_SCHEDULE_EXECUTION = 'scheduleExecution';
 
-// Global concurrency limits for schedule execution
-export const SCHEDULE_RATE_LIMITS = {
-  // Maximum number of concurrent jobs processed globally across all workers
-  GLOBAL_MAX_CONCURRENT: 50,
-
-  // Rate limiter: max jobs per duration
-  RATE_LIMIT_MAX: 100,
-  RATE_LIMIT_DURATION_MS: 60 * 1000, // 60 seconds
-
-  // Per-user max concurrent executions (to prevent one user from monopolizing)
-  // Concurrency is controlled by Redis atomic operations (INCR/DECR) with database fallback
-  USER_MAX_CONCURRENT: 20,
-
-  // Delay time in ms when user is rate limited
-  USER_RATE_LIMIT_DELAY_MS: 10 * 1000, // 10 seconds
-} as const;
-
-// Redis key configuration for schedule concurrency control
+// Redis key prefix (code constant, not configurable)
 export const SCHEDULE_REDIS_KEYS = {
   // Prefix for user concurrency counter: schedule:concurrent:user:{uid}
   USER_CONCURRENT_PREFIX: 'schedule:concurrent:user:',
-  // TTL for concurrency counter (2 hours) - prevents counter leakage
-  USER_CONCURRENT_TTL: 2 * 60 * 60, // 2 hours in seconds
 } as const;
-
-// Schedule quota per user based on subscription plan
-export const SCHEDULE_QUOTA = {
-  FREE_MAX_ACTIVE_SCHEDULES: 1, // Free tier: max 1 active schedule
-  PAID_MAX_ACTIVE_SCHEDULES: 20, // Paid tiers: max 20 active schedules
-} as const;
-
-/**
- * Get maximum active schedules quota for a given plan
- * @param planType - The subscription plan lookup key (e.g., 'free', 'refly_plus_monthly_stable_v2')
- * @returns Maximum number of active schedules allowed
- */
-export function getScheduleQuota(planType: string | null | undefined): number {
-  // Free tier or no plan
-  if (!planType || planType === 'free') {
-    return SCHEDULE_QUOTA.FREE_MAX_ACTIVE_SCHEDULES;
-  }
-  // All paid plans get the same quota
-  return SCHEDULE_QUOTA.PAID_MAX_ACTIVE_SCHEDULES;
-}
 
 // Default job options for BullMQ schedule execution queue
 export const SCHEDULE_JOB_OPTIONS = {
@@ -54,6 +17,98 @@ export const SCHEDULE_JOB_OPTIONS = {
     delay: 1000,
   },
 } as const;
+
+/**
+ * Schedule configuration interface (matches app.config.ts schedule section)
+ */
+export interface ScheduleConfig {
+  globalMaxConcurrent: number;
+  rateLimitMax: number;
+  rateLimitDurationMs: number;
+  userMaxConcurrent: number;
+  userRateLimitDelayMs: number;
+  userConcurrentTtl: number;
+  freeMaxActiveSchedules: number;
+  paidMaxActiveSchedules: number;
+  defaultPriority: number;
+  highLoadThreshold: number;
+  maxPriority: number;
+}
+
+/**
+ * Default schedule configuration values (used as fallback)
+ */
+export const DEFAULT_SCHEDULE_CONFIG: ScheduleConfig = {
+  globalMaxConcurrent: 50,
+  rateLimitMax: 100,
+  rateLimitDurationMs: 60 * 1000,
+  userMaxConcurrent: 20,
+  userRateLimitDelayMs: 10 * 1000,
+  userConcurrentTtl: 2 * 60 * 60,
+  freeMaxActiveSchedules: 1,
+  paidMaxActiveSchedules: 20,
+  defaultPriority: 10,
+  highLoadThreshold: 5,
+  maxPriority: 10,
+};
+
+/**
+ * Get schedule configuration from ConfigService
+ * Falls back to defaults if config is not available
+ */
+export function getScheduleConfig(configService: ConfigService): ScheduleConfig {
+  return {
+    globalMaxConcurrent:
+      configService.get<number>('schedule.globalMaxConcurrent') ??
+      DEFAULT_SCHEDULE_CONFIG.globalMaxConcurrent,
+    rateLimitMax:
+      configService.get<number>('schedule.rateLimitMax') ?? DEFAULT_SCHEDULE_CONFIG.rateLimitMax,
+    rateLimitDurationMs:
+      configService.get<number>('schedule.rateLimitDurationMs') ??
+      DEFAULT_SCHEDULE_CONFIG.rateLimitDurationMs,
+    userMaxConcurrent:
+      configService.get<number>('schedule.userMaxConcurrent') ??
+      DEFAULT_SCHEDULE_CONFIG.userMaxConcurrent,
+    userRateLimitDelayMs:
+      configService.get<number>('schedule.userRateLimitDelayMs') ??
+      DEFAULT_SCHEDULE_CONFIG.userRateLimitDelayMs,
+    userConcurrentTtl:
+      configService.get<number>('schedule.userConcurrentTtl') ??
+      DEFAULT_SCHEDULE_CONFIG.userConcurrentTtl,
+    freeMaxActiveSchedules:
+      configService.get<number>('schedule.freeMaxActiveSchedules') ??
+      DEFAULT_SCHEDULE_CONFIG.freeMaxActiveSchedules,
+    paidMaxActiveSchedules:
+      configService.get<number>('schedule.paidMaxActiveSchedules') ??
+      DEFAULT_SCHEDULE_CONFIG.paidMaxActiveSchedules,
+    defaultPriority:
+      configService.get<number>('schedule.defaultPriority') ??
+      DEFAULT_SCHEDULE_CONFIG.defaultPriority,
+    highLoadThreshold:
+      configService.get<number>('schedule.highLoadThreshold') ??
+      DEFAULT_SCHEDULE_CONFIG.highLoadThreshold,
+    maxPriority:
+      configService.get<number>('schedule.maxPriority') ?? DEFAULT_SCHEDULE_CONFIG.maxPriority,
+  };
+}
+
+/**
+ * Get maximum active schedules quota for a given plan
+ * @param planType - The subscription plan lookup key (e.g., 'free', 'refly_plus_monthly_stable_v2')
+ * @param config - Schedule configuration (from getScheduleConfig)
+ * @returns Maximum number of active schedules allowed
+ */
+export function getScheduleQuota(
+  planType: string | null | undefined,
+  config: ScheduleConfig = DEFAULT_SCHEDULE_CONFIG,
+): number {
+  // Free tier or no plan
+  if (!planType || planType === 'free') {
+    return config.freeMaxActiveSchedules;
+  }
+  // All paid plans get the same quota
+  return config.paidMaxActiveSchedules;
+}
 
 /**
  * Priority range: 1-10 (lower number = higher priority, matching BullMQ convention)
@@ -85,16 +140,12 @@ export const PLAN_PRIORITY_MAP: Record<string, number> = {
   free: 10,
 } as const;
 
-// Default priority for free tier users (lowest priority)
-export const DEFAULT_PRIORITY = 10;
-
 // Priority adjustment factors (penalties increase priority number = lower priority)
+// Note: HIGH_LOAD_THRESHOLD and MAX_PRIORITY are now in ScheduleConfig
 export const PRIORITY_ADJUSTMENTS = {
   FAILURE_PENALTY: 1, // Per consecutive failure (added to priority)
-  HIGH_LOAD_PENALTY: 1, // When user has > 5 active schedules (added to priority)
+  HIGH_LOAD_PENALTY: 1, // When user has > highLoadThreshold active schedules (added to priority)
   MAX_FAILURE_LEVELS: 3, // Max penalty levels for failures
-  HIGH_LOAD_THRESHOLD: 5, // Threshold for high load penalty
-  MAX_PRIORITY: 10, // Maximum priority value (lowest priority)
 } as const;
 
 /**

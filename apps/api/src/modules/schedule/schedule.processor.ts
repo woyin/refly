@@ -10,10 +10,12 @@ import { WorkflowAppService } from '../workflow-app/workflow-app.service';
 import { CreditService } from '../credit/credit.service';
 import {
   QUEUE_SCHEDULE_EXECUTION,
-  SCHEDULE_RATE_LIMITS,
   SCHEDULE_REDIS_KEYS,
   ScheduleFailureReason,
   classifyScheduleError,
+  getScheduleConfig,
+  type ScheduleConfig,
+  DEFAULT_SCHEDULE_CONFIG,
 } from './schedule.constants';
 import { generateInsufficientCreditsEmail } from './schedule-email-templates';
 import { NotificationService } from '../notification/notification.service';
@@ -39,18 +41,20 @@ interface ScheduleExecutionJobData {
 @Processor(QUEUE_SCHEDULE_EXECUTION, {
   // Worker concurrency: max concurrent jobs this worker can process
   // Jobs beyond this limit stay in queue and wait for available slots
-  concurrency: SCHEDULE_RATE_LIMITS.GLOBAL_MAX_CONCURRENT,
+  // Note: This uses default value; actual value is configured via module factory
+  concurrency: DEFAULT_SCHEDULE_CONFIG.globalMaxConcurrent,
   // Rate limiter: limit jobs processed per duration
   // - max: maximum number of jobs to process
   // - duration: time window in milliseconds
   // Jobs exceeding this rate are automatically delayed, NOT rejected
   limiter: {
-    max: SCHEDULE_RATE_LIMITS.RATE_LIMIT_MAX,
-    duration: SCHEDULE_RATE_LIMITS.RATE_LIMIT_DURATION_MS,
+    max: DEFAULT_SCHEDULE_CONFIG.rateLimitMax,
+    duration: DEFAULT_SCHEDULE_CONFIG.rateLimitDurationMs,
   },
 })
 export class ScheduleProcessor extends WorkerHost {
   private readonly logger = new Logger(ScheduleProcessor.name);
+  private readonly scheduleConfig: ScheduleConfig;
 
   constructor(
     private readonly prisma: PrismaService,
@@ -65,6 +69,7 @@ export class ScheduleProcessor extends WorkerHost {
     private readonly config: ConfigService,
   ) {
     super();
+    this.scheduleConfig = getScheduleConfig(config);
   }
 
   async process(job: Job<ScheduleExecutionJobData, any, string>): Promise<any> {
@@ -98,19 +103,16 @@ export class ScheduleProcessor extends WorkerHost {
         incrSucceeded = true;
 
         // Set TTL to prevent counter leakage (only if key is new or expired)
-        await this.redisService.expire(redisKey, SCHEDULE_REDIS_KEYS.USER_CONCURRENT_TTL);
+        await this.redisService.expire(redisKey, this.scheduleConfig.userConcurrentTtl);
 
-        if (currentCount > SCHEDULE_RATE_LIMITS.USER_MAX_CONCURRENT) {
+        if (currentCount > this.scheduleConfig.userMaxConcurrent) {
           // Exceeded limit, rollback and delay
           await this.redisService.decr(redisKey);
           incrSucceeded = false;
           this.logger.warn(
             `User ${uid} has ${currentCount} concurrent executions (Redis), delaying job ${job.id}`,
           );
-          await job.moveToDelayed(
-            Date.now() + SCHEDULE_RATE_LIMITS.USER_RATE_LIMIT_DELAY_MS,
-            job.token,
-          );
+          await job.moveToDelayed(Date.now() + this.scheduleConfig.userRateLimitDelayMs, job.token);
           throw new DelayedError();
         }
 
@@ -146,21 +148,18 @@ export class ScheduleProcessor extends WorkerHost {
           },
         });
 
-        if (runningCount >= SCHEDULE_RATE_LIMITS.USER_MAX_CONCURRENT) {
+        if (runningCount >= this.scheduleConfig.userMaxConcurrent) {
           this.logger.warn(
             `User ${uid} has ${runningCount} concurrent executions (DB fallback), delaying job ${job.id}`,
           );
-          await job.moveToDelayed(
-            Date.now() + SCHEDULE_RATE_LIMITS.USER_RATE_LIMIT_DELAY_MS,
-            job.token,
-          );
+          await job.moveToDelayed(Date.now() + this.scheduleConfig.userRateLimitDelayMs, job.token);
           throw new DelayedError();
         }
 
         // DB check passed, try to increment Redis for tracking (best-effort)
         try {
           await this.redisService.incr(redisKey);
-          await this.redisService.expire(redisKey, SCHEDULE_REDIS_KEYS.USER_CONCURRENT_TTL);
+          await this.redisService.expire(redisKey, this.scheduleConfig.userConcurrentTtl);
           redisCounterActive = true;
           this.logger.debug(`Redis recovered, counter incremented for user ${uid}`);
         } catch {
@@ -301,7 +300,7 @@ export class ScheduleProcessor extends WorkerHost {
           },
         });
 
-        if (currentRunningCount >= SCHEDULE_RATE_LIMITS.USER_MAX_CONCURRENT) {
+        if (currentRunningCount >= this.scheduleConfig.userMaxConcurrent) {
           // Database shows we're at limit, but Redis already incremented.
           // This indicates Redis counter might be ahead of actual state.
           // Rollback Redis counter and delay.
@@ -316,10 +315,7 @@ export class ScheduleProcessor extends WorkerHost {
               this.logger.warn(`Failed to rollback Redis counter for user ${uid}`, redisError);
             }
           }
-          await job.moveToDelayed(
-            Date.now() + SCHEDULE_RATE_LIMITS.USER_RATE_LIMIT_DELAY_MS,
-            job.token,
-          );
+          await job.moveToDelayed(Date.now() + this.scheduleConfig.userRateLimitDelayMs, job.token);
           throw new DelayedError();
         }
 

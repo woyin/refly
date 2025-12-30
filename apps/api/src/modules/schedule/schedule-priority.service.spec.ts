@@ -1,8 +1,13 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { createMock } from '@golevelup/ts-jest';
+import { ConfigService } from '@nestjs/config';
 import { SchedulePriorityService } from './schedule-priority.service';
 import { PrismaService } from '../common/prisma.service';
-import { PLAN_PRIORITY_MAP, DEFAULT_PRIORITY, PRIORITY_ADJUSTMENTS } from './schedule.constants';
+import {
+  PLAN_PRIORITY_MAP,
+  PRIORITY_ADJUSTMENTS,
+  DEFAULT_SCHEDULE_CONFIG,
+} from './schedule.constants';
 
 describe('SchedulePriorityService', () => {
   let service: SchedulePriorityService;
@@ -12,6 +17,9 @@ describe('SchedulePriorityService', () => {
     jest.clearAllMocks();
 
     const mockPrisma = createMock<PrismaService>();
+    const mockConfigService = createMock<ConfigService>();
+    // Return undefined for all config.get calls to use defaults
+    mockConfigService.get.mockReturnValue(undefined);
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -19,6 +27,10 @@ describe('SchedulePriorityService', () => {
         {
           provide: PrismaService,
           useValue: mockPrisma,
+        },
+        {
+          provide: ConfigService,
+          useValue: mockConfigService,
         },
       ],
     }).compile();
@@ -87,7 +99,7 @@ describe('SchedulePriorityService', () => {
         prismaService.workflowSchedule.count = jest.fn().mockResolvedValue(0);
 
         const priority = await service.calculateExecutionPriority('test-uid');
-        expect(priority).toBe(DEFAULT_PRIORITY);
+        expect(priority).toBe(DEFAULT_SCHEDULE_CONFIG.defaultPriority);
       });
 
       it('should return priority 10 for unknown subscription lookupKey', async () => {
@@ -99,7 +111,7 @@ describe('SchedulePriorityService', () => {
         prismaService.workflowSchedule.count = jest.fn().mockResolvedValue(0);
 
         const priority = await service.calculateExecutionPriority('test-uid');
-        expect(priority).toBe(DEFAULT_PRIORITY);
+        expect(priority).toBe(DEFAULT_SCHEDULE_CONFIG.defaultPriority);
       });
 
       it('should return priority 8 for test/trial plans', async () => {
@@ -215,7 +227,7 @@ describe('SchedulePriorityService', () => {
         prismaService.workflowScheduleRecord.findMany = jest.fn().mockResolvedValue([]);
         prismaService.workflowSchedule.count = jest
           .fn()
-          .mockResolvedValue(PRIORITY_ADJUSTMENTS.HIGH_LOAD_THRESHOLD);
+          .mockResolvedValue(DEFAULT_SCHEDULE_CONFIG.highLoadThreshold);
 
         const priority = await service.calculateExecutionPriority('test-uid');
         expect(priority).toBe(3); // No penalty, still at threshold
@@ -229,7 +241,7 @@ describe('SchedulePriorityService', () => {
         prismaService.workflowScheduleRecord.findMany = jest.fn().mockResolvedValue([]);
         prismaService.workflowSchedule.count = jest
           .fn()
-          .mockResolvedValue(PRIORITY_ADJUSTMENTS.HIGH_LOAD_THRESHOLD + 1);
+          .mockResolvedValue(DEFAULT_SCHEDULE_CONFIG.highLoadThreshold + 1);
 
         const priority = await service.calculateExecutionPriority('test-uid');
         // Base 3 + high load penalty
@@ -248,7 +260,7 @@ describe('SchedulePriorityService', () => {
           .mockResolvedValue([{ status: 'failed' }, { status: 'failed' }]);
         prismaService.workflowSchedule.count = jest
           .fn()
-          .mockResolvedValue(PRIORITY_ADJUSTMENTS.HIGH_LOAD_THRESHOLD + 1);
+          .mockResolvedValue(DEFAULT_SCHEDULE_CONFIG.highLoadThreshold + 1);
 
         const priority = await service.calculateExecutionPriority('test-uid');
         // Base 3 + 2 failure + 1 high load = 6
@@ -287,7 +299,7 @@ describe('SchedulePriorityService', () => {
         prismaService.workflowSchedule.count = jest.fn().mockResolvedValue(100);
 
         const priority = await service.calculateExecutionPriority('test-uid');
-        expect(priority).toBeLessThanOrEqual(PRIORITY_ADJUSTMENTS.MAX_PRIORITY);
+        expect(priority).toBeLessThanOrEqual(DEFAULT_SCHEDULE_CONFIG.maxPriority);
       });
 
       it('should return integer priority values', async () => {
@@ -309,7 +321,7 @@ describe('SchedulePriorityService', () => {
     it('should have valid priority values for all plans', () => {
       for (const [_planKey, priority] of Object.entries(PLAN_PRIORITY_MAP)) {
         expect(priority).toBeGreaterThanOrEqual(1);
-        expect(priority).toBeLessThanOrEqual(PRIORITY_ADJUSTMENTS.MAX_PRIORITY);
+        expect(priority).toBeLessThanOrEqual(DEFAULT_SCHEDULE_CONFIG.maxPriority);
         expect(Number.isInteger(priority)).toBe(true);
       }
     });

@@ -15,6 +15,8 @@ import {
   ScheduleAnalyticsEvents,
   SchedulePeriodType,
   getScheduleQuota,
+  getScheduleConfig,
+  type ScheduleConfig,
 } from './schedule.constants';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { CronExpressionParser } from 'cron-parser';
@@ -43,6 +45,7 @@ function getScheduleType(scheduleConfig: string | null | undefined): string {
 @Injectable()
 export class ScheduleCronService implements OnModuleInit {
   private readonly logger = new Logger(ScheduleCronService.name);
+  private readonly scheduleConfig: ScheduleConfig;
 
   constructor(
     private readonly prisma: PrismaService,
@@ -53,7 +56,9 @@ export class ScheduleCronService implements OnModuleInit {
     @InjectQueue(QUEUE_SCHEDULE_EXECUTION) private readonly scheduleQueue: Queue,
     private readonly notificationService: NotificationService,
     private readonly config: ConfigService,
-  ) {}
+  ) {
+    this.scheduleConfig = getScheduleConfig(config);
+  }
 
   onModuleInit() {
     this.logger.log('ScheduleCronService initialized');
@@ -156,7 +161,7 @@ export class ScheduleCronService implements OnModuleInit {
       where: { uid: schedule.uid, status: 'active' },
     });
     // Simple logic: if has active subscription -> 20, else 1
-    const limit = getScheduleQuota(userSubscription?.lookupKey);
+    const limit = getScheduleQuota(userSubscription?.lookupKey, this.scheduleConfig);
 
     const activeSchedulesCount = await this.prisma.workflowSchedule.count({
       where: { uid: schedule.uid, isEnabled: true, deletedAt: null },

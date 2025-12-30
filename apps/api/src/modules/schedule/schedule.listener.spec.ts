@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ScheduleEventListener } from './schedule.listener';
 import { PrismaService } from '../common/prisma.service';
+import { RedisService } from '../common/redis.service';
 import { NotificationService } from '../notification/notification.service';
 import { ConfigService } from '@nestjs/config';
 import { WorkflowCompletedEvent, WorkflowFailedEvent } from '../workflow/workflow.events';
@@ -43,6 +44,12 @@ describe('ScheduleEventListener', () => {
             workflowSchedule: {
               findUnique: jest.fn(),
             },
+          },
+        },
+        {
+          provide: RedisService,
+          useValue: {
+            decr: jest.fn().mockResolvedValue(0),
           },
         },
         {

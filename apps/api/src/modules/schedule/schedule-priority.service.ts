@@ -1,6 +1,12 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../common/prisma.service';
-import { PLAN_PRIORITY_MAP, DEFAULT_PRIORITY, PRIORITY_ADJUSTMENTS } from './schedule.constants';
+import {
+  PLAN_PRIORITY_MAP,
+  PRIORITY_ADJUSTMENTS,
+  getScheduleConfig,
+  type ScheduleConfig,
+} from './schedule.constants';
 
 interface PriorityFactors {
   consecutiveFailures: number;
@@ -10,8 +16,14 @@ interface PriorityFactors {
 @Injectable()
 export class SchedulePriorityService {
   private readonly logger = new Logger(SchedulePriorityService.name);
+  private readonly scheduleConfig: ScheduleConfig;
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    configService: ConfigService,
+  ) {
+    this.scheduleConfig = getScheduleConfig(configService);
+  }
 
   /**
    * Calculate execution priority for a user
@@ -31,7 +43,7 @@ export class SchedulePriorityService {
 
     // 2. Get base priority from plan type
     const planType = subscription?.lookupKey ?? 'free';
-    const basePriority = PLAN_PRIORITY_MAP[planType] ?? DEFAULT_PRIORITY;
+    const basePriority = PLAN_PRIORITY_MAP[planType] ?? this.scheduleConfig.defaultPriority;
 
     // 3. Get priority adjustment factors
     const factors = await this.getPriorityFactors(uid);
@@ -40,10 +52,7 @@ export class SchedulePriorityService {
     const adjustedPriority = this.applyPriorityAdjustments(basePriority, factors);
 
     // 5. Ensure priority is within valid range (1-10, where 1 is highest priority)
-    const finalPriority = Math.max(
-      1,
-      Math.min(PRIORITY_ADJUSTMENTS.MAX_PRIORITY, adjustedPriority),
-    );
+    const finalPriority = Math.max(1, Math.min(this.scheduleConfig.maxPriority, adjustedPriority));
 
     this.logger.debug(
       `Priority calculated for user ${uid}: base=${basePriority}, adjusted=${finalPriority}, factors=${JSON.stringify(factors)}`,
@@ -98,7 +107,7 @@ export class SchedulePriorityService {
     }
 
     // Penalty for high load (many active schedules) - increase priority number = lower priority
-    if (factors.activeScheduleCount > PRIORITY_ADJUSTMENTS.HIGH_LOAD_THRESHOLD) {
+    if (factors.activeScheduleCount > this.scheduleConfig.highLoadThreshold) {
       priority += PRIORITY_ADJUSTMENTS.HIGH_LOAD_PENALTY;
     }
 

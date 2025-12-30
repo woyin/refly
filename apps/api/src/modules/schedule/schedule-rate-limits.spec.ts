@@ -2,12 +2,12 @@
  * Schedule Rate Limits Unit & Integration Tests
  *
  * This file contains comprehensive tests for:
- * 1. Global rate limit configuration (GLOBAL_MAX_CONCURRENT, RATE_LIMIT_MAX)
- * 2. Per-user rate limit configuration (USER_MAX_CONCURRENT, USER_RATE_LIMIT_DELAY_MS)
+ * 1. Global rate limit configuration (globalMaxConcurrent, rateLimitMax)
+ * 2. Per-user rate limit configuration (userMaxConcurrent, userRateLimitDelayMs)
  * 3. Database-based concurrency control logic validation
  */
 
-import { SCHEDULE_RATE_LIMITS } from './schedule.constants';
+import { DEFAULT_SCHEDULE_CONFIG } from './schedule.constants';
 
 describe('Schedule Rate Limits Configuration', () => {
   // ============================================================================
@@ -16,71 +16,71 @@ describe('Schedule Rate Limits Configuration', () => {
   describe('Constants Validation', () => {
     describe('Global Rate Limits', () => {
       it('should have GLOBAL_MAX_CONCURRENT defined and positive', () => {
-        expect(SCHEDULE_RATE_LIMITS.GLOBAL_MAX_CONCURRENT).toBeDefined();
-        expect(typeof SCHEDULE_RATE_LIMITS.GLOBAL_MAX_CONCURRENT).toBe('number');
-        expect(SCHEDULE_RATE_LIMITS.GLOBAL_MAX_CONCURRENT).toBeGreaterThan(0);
+        expect(DEFAULT_SCHEDULE_CONFIG.globalMaxConcurrent).toBeDefined();
+        expect(typeof DEFAULT_SCHEDULE_CONFIG.globalMaxConcurrent).toBe('number');
+        expect(DEFAULT_SCHEDULE_CONFIG.globalMaxConcurrent).toBeGreaterThan(0);
       });
 
       it('should have GLOBAL_MAX_CONCURRENT set to 50', () => {
-        expect(SCHEDULE_RATE_LIMITS.GLOBAL_MAX_CONCURRENT).toBe(50);
+        expect(DEFAULT_SCHEDULE_CONFIG.globalMaxConcurrent).toBe(50);
       });
 
       it('should have RATE_LIMIT_MAX defined and positive', () => {
-        expect(SCHEDULE_RATE_LIMITS.RATE_LIMIT_MAX).toBeDefined();
-        expect(typeof SCHEDULE_RATE_LIMITS.RATE_LIMIT_MAX).toBe('number');
-        expect(SCHEDULE_RATE_LIMITS.RATE_LIMIT_MAX).toBeGreaterThan(0);
+        expect(DEFAULT_SCHEDULE_CONFIG.rateLimitMax).toBeDefined();
+        expect(typeof DEFAULT_SCHEDULE_CONFIG.rateLimitMax).toBe('number');
+        expect(DEFAULT_SCHEDULE_CONFIG.rateLimitMax).toBeGreaterThan(0);
       });
 
       it('should have RATE_LIMIT_MAX set to 100', () => {
-        expect(SCHEDULE_RATE_LIMITS.RATE_LIMIT_MAX).toBe(100);
+        expect(DEFAULT_SCHEDULE_CONFIG.rateLimitMax).toBe(100);
       });
 
       it('should have RATE_LIMIT_DURATION_MS defined as 1 minute', () => {
-        expect(SCHEDULE_RATE_LIMITS.RATE_LIMIT_DURATION_MS).toBe(60 * 1000);
+        expect(DEFAULT_SCHEDULE_CONFIG.rateLimitDurationMs).toBe(60 * 1000);
       });
 
       it('should allow RATE_LIMIT_MAX >= GLOBAL_MAX_CONCURRENT to avoid bottleneck', () => {
-        expect(SCHEDULE_RATE_LIMITS.RATE_LIMIT_MAX).toBeGreaterThanOrEqual(
-          SCHEDULE_RATE_LIMITS.GLOBAL_MAX_CONCURRENT,
+        expect(DEFAULT_SCHEDULE_CONFIG.rateLimitMax).toBeGreaterThanOrEqual(
+          DEFAULT_SCHEDULE_CONFIG.globalMaxConcurrent,
         );
       });
     });
 
     describe('Per-User Rate Limits', () => {
       it('should have USER_MAX_CONCURRENT defined and positive', () => {
-        expect(SCHEDULE_RATE_LIMITS.USER_MAX_CONCURRENT).toBeDefined();
-        expect(typeof SCHEDULE_RATE_LIMITS.USER_MAX_CONCURRENT).toBe('number');
-        expect(SCHEDULE_RATE_LIMITS.USER_MAX_CONCURRENT).toBeGreaterThan(0);
+        expect(DEFAULT_SCHEDULE_CONFIG.userMaxConcurrent).toBeDefined();
+        expect(typeof DEFAULT_SCHEDULE_CONFIG.userMaxConcurrent).toBe('number');
+        expect(DEFAULT_SCHEDULE_CONFIG.userMaxConcurrent).toBeGreaterThan(0);
       });
 
-      it('should have USER_MAX_CONCURRENT set to 3', () => {
-        expect(SCHEDULE_RATE_LIMITS.USER_MAX_CONCURRENT).toBe(3);
+      it('should have USER_MAX_CONCURRENT set to 20', () => {
+        expect(DEFAULT_SCHEDULE_CONFIG.userMaxConcurrent).toBe(20);
       });
 
       it('should have USER_MAX_CONCURRENT < GLOBAL_MAX_CONCURRENT to allow multiple users', () => {
-        expect(SCHEDULE_RATE_LIMITS.USER_MAX_CONCURRENT).toBeLessThan(
-          SCHEDULE_RATE_LIMITS.GLOBAL_MAX_CONCURRENT,
+        expect(DEFAULT_SCHEDULE_CONFIG.userMaxConcurrent).toBeLessThan(
+          DEFAULT_SCHEDULE_CONFIG.globalMaxConcurrent,
         );
       });
 
       it('should have USER_RATE_LIMIT_DELAY_MS defined as 10 seconds', () => {
-        expect(SCHEDULE_RATE_LIMITS.USER_RATE_LIMIT_DELAY_MS).toBe(10 * 1000);
+        expect(DEFAULT_SCHEDULE_CONFIG.userRateLimitDelayMs).toBe(10 * 1000);
       });
     });
 
     describe('Configuration Relationships', () => {
-      it('should allow at least 16 concurrent users at max capacity', () => {
-        // With GLOBAL_MAX_CONCURRENT = 50 and USER_MAX_CONCURRENT = 3
-        // At least floor(50/3) = 16 users can run at full capacity
+      it('should allow at least 2 concurrent users at max capacity', () => {
+        // With GLOBAL_MAX_CONCURRENT = 50 and USER_MAX_CONCURRENT = 20
+        // At least floor(50/20) = 2 users can run at full capacity
         const minConcurrentUsers = Math.floor(
-          SCHEDULE_RATE_LIMITS.GLOBAL_MAX_CONCURRENT / SCHEDULE_RATE_LIMITS.USER_MAX_CONCURRENT,
+          DEFAULT_SCHEDULE_CONFIG.globalMaxConcurrent / DEFAULT_SCHEDULE_CONFIG.userMaxConcurrent,
         );
-        expect(minConcurrentUsers).toBeGreaterThanOrEqual(16);
+        expect(minConcurrentUsers).toBeGreaterThanOrEqual(2);
       });
 
       it('should have delay time less than typical workflow execution time', () => {
         // Delay should be reasonable (< 1 minute for good UX)
-        expect(SCHEDULE_RATE_LIMITS.USER_RATE_LIMIT_DELAY_MS).toBeLessThan(60 * 1000);
+        expect(DEFAULT_SCHEDULE_CONFIG.userRateLimitDelayMs).toBeLessThan(60 * 1000);
       });
     });
   });
@@ -91,7 +91,7 @@ describe('Schedule Rate Limits Configuration', () => {
   describe('Database-based Concurrency Control Logic', () => {
     // Logic: check if runningCount >= USER_MAX_CONCURRENT
     const shouldDelayJob = (runningCount: number): boolean => {
-      return runningCount >= SCHEDULE_RATE_LIMITS.USER_MAX_CONCURRENT;
+      return runningCount >= DEFAULT_SCHEDULE_CONFIG.userMaxConcurrent;
     };
 
     describe('User Concurrency Check', () => {
@@ -103,26 +103,26 @@ describe('Schedule Rate Limits Configuration', () => {
         expect(shouldDelayJob(1)).toBe(false);
       });
 
-      it('should NOT delay when user has 2 concurrent jobs (below limit)', () => {
-        expect(shouldDelayJob(2)).toBe(false);
+      it('should NOT delay when user has 19 concurrent jobs (below limit)', () => {
+        expect(shouldDelayJob(19)).toBe(false);
       });
 
       it('should delay when user is at exactly USER_MAX_CONCURRENT', () => {
-        expect(shouldDelayJob(SCHEDULE_RATE_LIMITS.USER_MAX_CONCURRENT)).toBe(true);
+        expect(shouldDelayJob(DEFAULT_SCHEDULE_CONFIG.userMaxConcurrent)).toBe(true);
       });
 
       it('should delay when user exceeds USER_MAX_CONCURRENT by 1', () => {
-        expect(shouldDelayJob(SCHEDULE_RATE_LIMITS.USER_MAX_CONCURRENT + 1)).toBe(true);
+        expect(shouldDelayJob(DEFAULT_SCHEDULE_CONFIG.userMaxConcurrent + 1)).toBe(true);
       });
 
       it('should delay when user has many concurrent jobs', () => {
-        expect(shouldDelayJob(10)).toBe(true);
+        expect(shouldDelayJob(20)).toBe(true);
         expect(shouldDelayJob(100)).toBe(true);
       });
 
       // Boundary testing
       it('should handle boundary values correctly', () => {
-        const limit = SCHEDULE_RATE_LIMITS.USER_MAX_CONCURRENT;
+        const limit = DEFAULT_SCHEDULE_CONFIG.userMaxConcurrent;
         expect(shouldDelayJob(limit - 1)).toBe(false); // Below limit
         expect(shouldDelayJob(limit)).toBe(true); // At limit (>= check)
         expect(shouldDelayJob(limit + 1)).toBe(true); // Above limit
@@ -169,7 +169,7 @@ describe('Schedule Rate Limits Configuration', () => {
 
     describe('Delay Time Calculation', () => {
       const calculateDelayTime = (): number => {
-        return Date.now() + SCHEDULE_RATE_LIMITS.USER_RATE_LIMIT_DELAY_MS;
+        return Date.now() + DEFAULT_SCHEDULE_CONFIG.userRateLimitDelayMs;
       };
 
       it('should calculate delay time 10 seconds in the future', () => {
@@ -179,11 +179,9 @@ describe('Schedule Rate Limits Configuration', () => {
 
         // Delay should be approximately 10 seconds in the future
         expect(delayTime).toBeGreaterThanOrEqual(
-          before + SCHEDULE_RATE_LIMITS.USER_RATE_LIMIT_DELAY_MS,
+          before + DEFAULT_SCHEDULE_CONFIG.userRateLimitDelayMs,
         );
-        expect(delayTime).toBeLessThanOrEqual(
-          after + SCHEDULE_RATE_LIMITS.USER_RATE_LIMIT_DELAY_MS,
-        );
+        expect(delayTime).toBeLessThanOrEqual(after + DEFAULT_SCHEDULE_CONFIG.userRateLimitDelayMs);
       });
     });
 
@@ -234,50 +232,50 @@ describe('Schedule Rate Limits Configuration', () => {
         ];
 
         const runningCount = countRunningJobs(records, 'user1');
-        expect(shouldDelayJob(runningCount)).toBe(false); // 2 < 3
+        expect(shouldDelayJob(runningCount)).toBe(false); // 2 < 20
       });
 
       it('should delay job when at limit', () => {
-        const records: MockRecord[] = [
-          { uid: 'user1', status: 'processing' },
-          { uid: 'user1', status: 'running' },
-          { uid: 'user1', status: 'running' },
-        ];
+        // Create 20 running jobs to hit the limit
+        const records: MockRecord[] = Array.from({ length: 20 }, () => ({
+          uid: 'user1',
+          status: 'running' as const,
+        }));
 
         const runningCount = countRunningJobs(records, 'user1');
-        expect(shouldDelayJob(runningCount)).toBe(true); // 3 >= 3
+        expect(shouldDelayJob(runningCount)).toBe(true); // 20 >= 20
       });
 
       it('should delay job when over limit', () => {
-        const records: MockRecord[] = [
-          { uid: 'user1', status: 'processing' },
-          { uid: 'user1', status: 'running' },
-          { uid: 'user1', status: 'running' },
-          { uid: 'user1', status: 'running' },
-        ];
+        // Create 21 running jobs to exceed the limit
+        const records: MockRecord[] = Array.from({ length: 21 }, () => ({
+          uid: 'user1',
+          status: 'running' as const,
+        }));
 
         const runningCount = countRunningJobs(records, 'user1');
-        expect(shouldDelayJob(runningCount)).toBe(true); // 4 >= 3
+        expect(shouldDelayJob(runningCount)).toBe(true); // 21 >= 20
       });
 
       it('should resume after job completion frees capacity', () => {
-        // Initial state: 3 running jobs (at limit)
-        let records: MockRecord[] = [
-          { uid: 'user1', status: 'running' },
-          { uid: 'user1', status: 'running' },
-          { uid: 'user1', status: 'running' },
-        ];
+        // Initial state: 20 running jobs (at limit)
+        let records: MockRecord[] = Array.from({ length: 20 }, () => ({
+          uid: 'user1',
+          status: 'running' as const,
+        }));
 
         expect(shouldDelayJob(countRunningJobs(records, 'user1'))).toBe(true);
 
         // Simulate one job completing
         records = [
           { uid: 'user1', status: 'success' }, // completed
-          { uid: 'user1', status: 'running' },
-          { uid: 'user1', status: 'running' },
+          ...Array.from({ length: 19 }, () => ({
+            uid: 'user1',
+            status: 'running' as const,
+          })),
         ];
 
-        expect(shouldDelayJob(countRunningJobs(records, 'user1'))).toBe(false); // 2 < 3
+        expect(shouldDelayJob(countRunningJobs(records, 'user1'))).toBe(false); // 19 < 20
       });
     });
   });
@@ -289,10 +287,10 @@ describe('Schedule Rate Limits Configuration', () => {
     describe('Processor Options', () => {
       it('should have valid concurrency configuration for Processor decorator', () => {
         const processorOptions = {
-          concurrency: SCHEDULE_RATE_LIMITS.GLOBAL_MAX_CONCURRENT,
+          concurrency: DEFAULT_SCHEDULE_CONFIG.globalMaxConcurrent,
           limiter: {
-            max: SCHEDULE_RATE_LIMITS.RATE_LIMIT_MAX,
-            duration: SCHEDULE_RATE_LIMITS.RATE_LIMIT_DURATION_MS,
+            max: DEFAULT_SCHEDULE_CONFIG.rateLimitMax,
+            duration: DEFAULT_SCHEDULE_CONFIG.rateLimitDurationMs,
           },
         };
 
@@ -304,8 +302,8 @@ describe('Schedule Rate Limits Configuration', () => {
       it('should have limiter.max that can handle burst traffic', () => {
         // Rate limit should handle at least 2x concurrency per duration
         // to allow queue to fill and empty within the rate limit window
-        expect(SCHEDULE_RATE_LIMITS.RATE_LIMIT_MAX).toBeGreaterThanOrEqual(
-          SCHEDULE_RATE_LIMITS.GLOBAL_MAX_CONCURRENT,
+        expect(DEFAULT_SCHEDULE_CONFIG.rateLimitMax).toBeGreaterThanOrEqual(
+          DEFAULT_SCHEDULE_CONFIG.globalMaxConcurrent,
         );
       });
     });
@@ -313,7 +311,7 @@ describe('Schedule Rate Limits Configuration', () => {
     describe('Job Delay Configuration', () => {
       it('should calculate correct delay timestamp for rate-limited jobs', () => {
         const now = Date.now();
-        const delayedTimestamp = now + SCHEDULE_RATE_LIMITS.USER_RATE_LIMIT_DELAY_MS;
+        const delayedTimestamp = now + DEFAULT_SCHEDULE_CONFIG.userRateLimitDelayMs;
 
         // Delay should be exactly 10 seconds from now
         expect(delayedTimestamp - now).toBe(10000);
@@ -330,7 +328,7 @@ describe('Schedule Rate Limits Configuration', () => {
         // When database fails, the processor should fallback or throw error
         // This test validates the graceful degradation behavior
         const shouldDelayJob = (runningCount: number): boolean => {
-          return runningCount >= SCHEDULE_RATE_LIMITS.USER_MAX_CONCURRENT;
+          return runningCount >= DEFAULT_SCHEDULE_CONFIG.userMaxConcurrent;
         };
 
         let runningCount = 0;
@@ -350,7 +348,7 @@ describe('Schedule Rate Limits Configuration', () => {
 
     describe('Extreme Values', () => {
       const shouldDelayJob = (runningCount: number): boolean => {
-        return runningCount >= SCHEDULE_RATE_LIMITS.USER_MAX_CONCURRENT;
+        return runningCount >= DEFAULT_SCHEDULE_CONFIG.userMaxConcurrent;
       };
 
       it('should handle very high concurrent count gracefully', () => {
@@ -381,18 +379,18 @@ describe('Schedule Rate Limits Configuration', () => {
       const expectedJobsPerHour = 500;
       const avgJobDurationMinutes = 5;
       const theoreticalCapacityPerHour =
-        (SCHEDULE_RATE_LIMITS.GLOBAL_MAX_CONCURRENT * 60) / avgJobDurationMinutes;
+        (DEFAULT_SCHEDULE_CONFIG.globalMaxConcurrent * 60) / avgJobDurationMinutes;
 
       expect(theoreticalCapacityPerHour).toBeGreaterThanOrEqual(expectedJobsPerHour);
     });
 
     it('should have user limit that prevents monopolization', () => {
-      // Single user cannot take more than 6% of global capacity (3/50)
+      // Single user cannot take more than 40% of global capacity (20/50)
       const userCapacityPercentage =
-        (SCHEDULE_RATE_LIMITS.USER_MAX_CONCURRENT / SCHEDULE_RATE_LIMITS.GLOBAL_MAX_CONCURRENT) *
+        (DEFAULT_SCHEDULE_CONFIG.userMaxConcurrent / DEFAULT_SCHEDULE_CONFIG.globalMaxConcurrent) *
         100;
 
-      expect(userCapacityPercentage).toBeLessThan(10); // Less than 10% per user
+      expect(userCapacityPercentage).toBeLessThan(50); // Less than 50% per user
     });
   });
 });

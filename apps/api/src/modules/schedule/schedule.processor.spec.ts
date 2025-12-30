@@ -12,7 +12,7 @@ import { DelayedError } from 'bullmq';
 import { PrismaService } from '../common/prisma.service';
 import { MiscService } from '../misc/misc.service';
 import { ScheduleMetrics } from './schedule.metrics';
-import { SCHEDULE_RATE_LIMITS } from './schedule.constants';
+import { DEFAULT_SCHEDULE_CONFIG, ScheduleFailureReason } from './schedule.constants';
 
 // Mock the entire ScheduleProcessor module to avoid ESM import issues
 // The actual ScheduleProcessor imports CanvasService which has deep ESM dependencies
@@ -71,21 +71,21 @@ describe('ScheduleProcessor Logic Tests', () => {
     it('should enforce user max concurrent limit when runningCount exceeds limit', () => {
       // Database-based concurrency: query returns count of 'processing' and 'running' status records
       // If runningCount >= USER_MAX_CONCURRENT, job should be delayed
-      const runningCount = SCHEDULE_RATE_LIMITS.USER_MAX_CONCURRENT;
-      const shouldDelay = runningCount >= SCHEDULE_RATE_LIMITS.USER_MAX_CONCURRENT;
+      const runningCount = DEFAULT_SCHEDULE_CONFIG.userMaxConcurrent;
+      const shouldDelay = runningCount >= DEFAULT_SCHEDULE_CONFIG.userMaxConcurrent;
       expect(shouldDelay).toBe(true);
     });
 
     it('should allow when runningCount is below max concurrent limit', () => {
-      const runningCount = SCHEDULE_RATE_LIMITS.USER_MAX_CONCURRENT - 1;
-      const shouldDelay = runningCount >= SCHEDULE_RATE_LIMITS.USER_MAX_CONCURRENT;
+      const runningCount = DEFAULT_SCHEDULE_CONFIG.userMaxConcurrent - 1;
+      const shouldDelay = runningCount >= DEFAULT_SCHEDULE_CONFIG.userMaxConcurrent;
       expect(shouldDelay).toBe(false);
     });
 
     it('should have correct rate limit constants', () => {
       // Note: COUNTER_TTL_SECONDS and REDIS_PREFIX removed - concurrency is now database-based
-      expect(typeof SCHEDULE_RATE_LIMITS.USER_MAX_CONCURRENT).toBe('number');
-      expect(typeof SCHEDULE_RATE_LIMITS.USER_RATE_LIMIT_DELAY_MS).toBe('number');
+      expect(typeof DEFAULT_SCHEDULE_CONFIG.userMaxConcurrent).toBe('number');
+      expect(typeof DEFAULT_SCHEDULE_CONFIG.userRateLimitDelayMs).toBe('number');
     });
 
     it('should consider both processing and running status as active', () => {
@@ -257,7 +257,6 @@ describe('ScheduleProcessor Logic Tests', () => {
 });
 
 // Separate test suite for ScheduleFailureReason that doesn't require mocking
-import { ScheduleFailureReason } from './schedule.constants';
 
 describe('ScheduleFailureReason Enum', () => {
   describe('Enum Values', () => {

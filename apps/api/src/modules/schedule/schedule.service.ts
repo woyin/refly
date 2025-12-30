@@ -1,4 +1,5 @@
 import { Injectable, Logger, NotFoundException, BadRequestException, Inject } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../common/prisma.service';
 import { Prisma } from '@prisma/client';
 import { CreateScheduleDto, UpdateScheduleDto } from './schedule.dto';
@@ -12,6 +13,8 @@ import {
   QUEUE_SCHEDULE_EXECUTION,
   SCHEDULE_JOB_OPTIONS,
   getScheduleQuota,
+  getScheduleConfig,
+  type ScheduleConfig,
   ScheduleFailureReason,
 } from './schedule.constants';
 import { SchedulePriorityService } from './schedule-priority.service';
@@ -19,13 +22,17 @@ import { SchedulePriorityService } from './schedule-priority.service';
 @Injectable()
 export class ScheduleService {
   private readonly logger = new Logger(ScheduleService.name);
+  private readonly scheduleConfig: ScheduleConfig;
 
   constructor(
     private readonly prisma: PrismaService,
     @Inject(OSS_INTERNAL) private readonly oss: ObjectStorageService,
     @InjectQueue(QUEUE_SCHEDULE_EXECUTION) private readonly scheduleQueue: Queue,
     private readonly priorityService: SchedulePriorityService,
-  ) {}
+    configService: ConfigService,
+  ) {
+    this.scheduleConfig = getScheduleConfig(configService);
+  }
 
   // Helper to remove BigInt pk field from schedule objects
   private excludePk<T extends { pk?: bigint }>(obj: T): Omit<T, 'pk'> {
@@ -93,7 +100,7 @@ export class ScheduleService {
       where: { uid, status: 'active' },
     });
 
-    const maxSchedules = getScheduleQuota(subscription?.lookupKey);
+    const maxSchedules = getScheduleQuota(subscription?.lookupKey, this.scheduleConfig);
 
     if (activeSchedulesCount >= maxSchedules) {
       throw new BadRequestException(ScheduleFailureReason.SCHEDULE_LIMIT_EXCEEDED);

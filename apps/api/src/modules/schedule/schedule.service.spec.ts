@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { createMock } from '@golevelup/ts-jest';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { Queue } from 'bullmq';
 import { getQueueToken } from '@nestjs/bullmq';
 import { ScheduleService } from './schedule.service';
@@ -8,7 +9,7 @@ import { PrismaService } from '../common/prisma.service';
 import { ObjectStorageService } from '../common/object-storage';
 import { OSS_INTERNAL } from '../common/object-storage/tokens';
 import { SchedulePriorityService } from './schedule-priority.service';
-import { QUEUE_SCHEDULE_EXECUTION, SCHEDULE_QUOTA } from './schedule.constants';
+import { QUEUE_SCHEDULE_EXECUTION, DEFAULT_SCHEDULE_CONFIG } from './schedule.constants';
 
 describe('ScheduleService', () => {
   let service: ScheduleService;
@@ -27,6 +28,9 @@ describe('ScheduleService', () => {
     const mockPrisma = createMock<PrismaService>();
     const mockOss = createMock<ObjectStorageService>();
     const mockPriority = createMock<SchedulePriorityService>();
+    const mockConfigService = createMock<ConfigService>();
+    // Return undefined for all config.get calls to use defaults
+    mockConfigService.get.mockReturnValue(undefined);
     mockQueue = {
       add: jest.fn().mockResolvedValue({ id: 'job-123' }),
     } as unknown as jest.Mocked<Queue>;
@@ -38,6 +42,7 @@ describe('ScheduleService', () => {
         { provide: OSS_INTERNAL, useValue: mockOss },
         { provide: getQueueToken(QUEUE_SCHEDULE_EXECUTION), useValue: mockQueue },
         { provide: SchedulePriorityService, useValue: mockPriority },
+        { provide: ConfigService, useValue: mockConfigService },
       ],
     }).compile();
 
@@ -128,7 +133,7 @@ describe('ScheduleService', () => {
       // Free user (no subscription) has quota of 1
       prismaService.workflowSchedule.count = jest
         .fn()
-        .mockResolvedValue(SCHEDULE_QUOTA.FREE_MAX_ACTIVE_SCHEDULES);
+        .mockResolvedValue(DEFAULT_SCHEDULE_CONFIG.freeMaxActiveSchedules);
       prismaService.subscription.findFirst = jest.fn().mockResolvedValue(null);
 
       await expect(service.createSchedule(mockUser.uid, validDto)).rejects.toThrow(
@@ -144,7 +149,7 @@ describe('ScheduleService', () => {
       // Paid user has quota of 20
       prismaService.workflowSchedule.count = jest
         .fn()
-        .mockResolvedValue(SCHEDULE_QUOTA.PAID_MAX_ACTIVE_SCHEDULES);
+        .mockResolvedValue(DEFAULT_SCHEDULE_CONFIG.paidMaxActiveSchedules);
       prismaService.subscription.findFirst = jest.fn().mockResolvedValue({
         lookupKey: 'refly_plus_monthly_stable_v2',
         status: 'active',
@@ -246,6 +251,10 @@ describe('ScheduleService', () => {
 
     it('should update schedule successfully', async () => {
       prismaService.workflowSchedule.findUnique = jest.fn().mockResolvedValue(existingSchedule);
+      prismaService.canvas.findUnique = jest
+        .fn()
+        .mockResolvedValue({ title: 'Test Canvas', uid: mockUser.uid });
+      prismaService.workflowSchedule.count = jest.fn().mockResolvedValue(0);
       prismaService.workflowSchedule.update = jest.fn().mockResolvedValue({
         ...existingSchedule,
         cronExpression: '0 0 * * *',
@@ -300,6 +309,10 @@ describe('ScheduleService', () => {
 
     it('should set nextRunAt to null when disabling', async () => {
       prismaService.workflowSchedule.findUnique = jest.fn().mockResolvedValue(existingSchedule);
+      prismaService.canvas.findUnique = jest
+        .fn()
+        .mockResolvedValue({ title: 'Test Canvas', uid: mockUser.uid });
+      prismaService.workflowSchedule.count = jest.fn().mockResolvedValue(0);
       prismaService.workflowSchedule.update = jest.fn().mockImplementation((args) => {
         return Promise.resolve({ ...existingSchedule, ...args.data });
       });
@@ -318,6 +331,10 @@ describe('ScheduleService', () => {
 
     it('should recalculate nextRunAt when changing cron expression', async () => {
       prismaService.workflowSchedule.findUnique = jest.fn().mockResolvedValue(existingSchedule);
+      prismaService.canvas.findUnique = jest
+        .fn()
+        .mockResolvedValue({ title: 'Test Canvas', uid: mockUser.uid });
+      prismaService.workflowSchedule.count = jest.fn().mockResolvedValue(0);
       prismaService.workflowSchedule.update = jest.fn().mockImplementation((args) => {
         return Promise.resolve({ ...existingSchedule, ...args.data });
       });
