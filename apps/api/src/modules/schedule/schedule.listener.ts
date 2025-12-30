@@ -166,76 +166,94 @@ export class ScheduleEventListener {
     event: WorkflowCompletedEvent | WorkflowFailedEvent,
     status: 'success' | 'failed',
   ) {
-    const fullUser = await this.prisma.user.findUnique({ where: { uid: event.userId } });
-    if (!fullUser || !fullUser.email) return;
+    try {
+      const fullUser = await this.prisma.user.findUnique({ where: { uid: event.userId } });
+      if (!fullUser) {
+        this.logger.warn(
+          `Cannot send ${status} email: user ${event.userId} not found for schedule record ${event.scheduleId}`,
+        );
+        return;
+      }
+      if (!fullUser.email) {
+        this.logger.warn(
+          `Cannot send ${status} email: user ${event.userId} has no email address for schedule record ${event.scheduleId}`,
+        );
+        return;
+      }
 
-    const scheduleRecord = await this.prisma.workflowScheduleRecord.findUnique({
-      where: { scheduleRecordId: event.scheduleId },
-    });
-    // Fallback to schedule name or Generic
-    const scheduleName = scheduleRecord?.workflowTitle || 'Scheduled Workflow';
-
-    let nextRunTime = 'Check Dashboard';
-    if (scheduleRecord?.scheduleId) {
-      const schedule = await this.prisma.workflowSchedule.findUnique({
-        where: { scheduleId: scheduleRecord.scheduleId },
+      const scheduleRecord = await this.prisma.workflowScheduleRecord.findUnique({
+        where: { scheduleRecordId: event.scheduleId },
       });
+      // Fallback to schedule name or Generic
+      const scheduleName = scheduleRecord?.workflowTitle || 'Scheduled Workflow';
 
-      if (schedule?.cronExpression) {
-        try {
-          const interval = CronExpressionParser.parse(schedule.cronExpression, {
-            tz: schedule.timezone || 'Asia/Shanghai',
-          });
-          nextRunTime = interval.next().toDate().toLocaleString();
-        } catch (err) {
-          this.logger.warn(
-            `Failed to calculate next run time for schedule ${schedule.scheduleId}: ${err.message}`,
-          );
+      let nextRunTime = 'Check Dashboard';
+      if (scheduleRecord?.scheduleId) {
+        const schedule = await this.prisma.workflowSchedule.findUnique({
+          where: { scheduleId: scheduleRecord.scheduleId },
+        });
+
+        if (schedule?.cronExpression) {
+          try {
+            const interval = CronExpressionParser.parse(schedule.cronExpression, {
+              tz: schedule.timezone || 'Asia/Shanghai',
+            });
+            nextRunTime = interval.next().toDate().toLocaleString();
+          } catch (err) {
+            this.logger.warn(
+              `Failed to calculate next run time for schedule ${schedule.scheduleId}: ${err.message}`,
+            );
+          }
         }
       }
-    }
 
-    if (status === 'success') {
-      // Get the execution canvas ID for the run-history link
-      const scheduleRecordId = scheduleRecord?.scheduleRecordId || '';
-      const origin = this.config.get<string>('origin');
+      if (status === 'success') {
+        // Get the execution canvas ID for the run-history link
+        const scheduleRecordId = scheduleRecord?.scheduleRecordId || '';
+        const origin = this.config.get<string>('origin');
 
-      const { subject, html } = generateScheduleSuccessEmail({
-        userName: fullUser.nickname || 'User',
-        scheduleName: scheduleName,
-        runTime: new Date().toLocaleString(),
-        nextRunTime: nextRunTime,
-        schedulesLink: `${origin}/run-history/${scheduleRecordId}`,
-        runDetailsLink: `${origin}/run-history/${scheduleRecordId}`,
-      });
-      await this.notificationService.sendEmail(
-        {
-          to: fullUser.email,
-          subject,
-          html,
-        },
-        fullUser,
-      );
-    } else {
-      // Get the execution canvas ID for the run-history link
-      const scheduleRecordId = scheduleRecord?.scheduleRecordId || '';
-      const origin = this.config.get<string>('origin');
+        const { subject, html } = generateScheduleSuccessEmail({
+          userName: fullUser.nickname || 'User',
+          scheduleName: scheduleName,
+          runTime: new Date().toLocaleString(),
+          nextRunTime: nextRunTime,
+          schedulesLink: `${origin}/run-history/${scheduleRecordId}`,
+          runDetailsLink: `${origin}/run-history/${scheduleRecordId}`,
+        });
+        await this.notificationService.sendEmail(
+          {
+            to: fullUser.email,
+            subject,
+            html,
+          },
+          fullUser,
+        );
+      } else {
+        // Get the execution canvas ID for the run-history link
+        const scheduleRecordId = scheduleRecord?.scheduleRecordId || '';
+        const origin = this.config.get<string>('origin');
 
-      const { subject, html } = generateScheduleFailedEmail({
-        userName: fullUser.nickname || 'User',
-        scheduleName: scheduleName,
-        runTime: new Date().toLocaleString(),
-        nextRunTime: nextRunTime,
-        schedulesLink: `${origin}/run-history/${scheduleRecordId}`,
-        runDetailsLink: `${origin}/run-history/${scheduleRecordId}`,
-      });
-      await this.notificationService.sendEmail(
-        {
-          to: fullUser.email,
-          subject,
-          html,
-        },
-        fullUser,
+        const { subject, html } = generateScheduleFailedEmail({
+          userName: fullUser.nickname || 'User',
+          scheduleName: scheduleName,
+          runTime: new Date().toLocaleString(),
+          nextRunTime: nextRunTime,
+          schedulesLink: `${origin}/run-history/${scheduleRecordId}`,
+          runDetailsLink: `${origin}/run-history/${scheduleRecordId}`,
+        });
+        await this.notificationService.sendEmail(
+          {
+            to: fullUser.email,
+            subject,
+            html,
+          },
+          fullUser,
+        );
+      }
+    } catch (error: any) {
+      // Log email sending failure but don't throw - email is non-critical
+      this.logger.error(
+        `Failed to send ${status} email for schedule record ${event.scheduleId}: ${error?.message}`,
       );
     }
   }

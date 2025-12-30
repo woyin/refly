@@ -605,6 +605,25 @@ export class WorkflowService {
         });
 
         this.logger.error(`[pollWorkflow] Workflow ${executionId} marked as failed due to timeout`);
+
+        // Emit failure event so listener can send email
+        if (workflowExecution.scheduleRecordId) {
+          this.eventEmitter.emit(
+            'workflow.failed',
+            new WorkflowFailedEvent(
+              executionId,
+              workflowExecution.canvasId,
+              workflowExecution.uid,
+              workflowExecution.triggerType,
+              {
+                message: `Workflow execution timeout exceeded (${Math.floor(executionAge / 1000)}s)`,
+              },
+              executionAge,
+              workflowExecution.scheduleRecordId,
+            ),
+          );
+        }
+
         return;
       }
 

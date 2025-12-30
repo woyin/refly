@@ -17,7 +17,10 @@ import {
   type ScheduleConfig,
   DEFAULT_SCHEDULE_CONFIG,
 } from './schedule.constants';
-import { generateInsufficientCreditsEmail } from './schedule-email-templates';
+import {
+  generateInsufficientCreditsEmail,
+  generateScheduleFailedEmail,
+} from './schedule-email-templates';
 import { NotificationService } from '../notification/notification.service';
 import { ScheduleMetrics } from './schedule.metrics';
 import { genScheduleRecordId, safeParseJSON } from '@refly/utils';
@@ -518,6 +521,58 @@ export class ScheduleProcessor extends WorkerHost {
             completedAt: new Date(),
           },
         });
+
+        // Send failure email (safe catch)
+        try {
+          // 1. Get user details
+          const fullUser = await this.prisma.user.findUnique({ where: { uid } });
+          if (!fullUser) {
+            this.logger.warn(
+              `Cannot send failure email: user ${uid} not found for schedule ${scheduleId}`,
+            );
+          } else if (!fullUser.email) {
+            this.logger.warn(
+              `Cannot send failure email: user ${uid} has no email address for schedule ${scheduleId}`,
+            );
+          } else {
+            // 2. Get schedule details for context
+            const schedule = await this.prisma.workflowSchedule.findUnique({
+              where: { scheduleId },
+            });
+
+            // 3. Calculate next run
+            let nextRunTime = 'Check Dashboard';
+            if (schedule?.cronExpression) {
+              try {
+                const interval = CronExpressionParser.parse(schedule.cronExpression, {
+                  tz: schedule.timezone || 'Asia/Shanghai',
+                });
+                nextRunTime = interval.next().toDate().toLocaleString();
+              } catch (_) {
+                // Ignore cron parse error
+              }
+            }
+
+            // 4. Send email
+            const { subject, html } = generateScheduleFailedEmail({
+              userName: fullUser.nickname || 'User',
+              scheduleName: schedule?.name || 'Scheduled Workflow',
+              runTime: new Date().toLocaleString(),
+              nextRunTime,
+              schedulesLink: `${this.config.get<string>('origin')}/run-history/${scheduleRecordId}`,
+              runDetailsLink: `${this.config.get<string>('origin')}/run-history/${scheduleRecordId}`,
+            });
+            await this.notificationService.sendEmail(
+              { to: fullUser.email, subject, html },
+              fullUser,
+            );
+          }
+        } catch (emailError: any) {
+          this.logger.error(
+            `Failed to send failure email for schedule ${scheduleId}: ${emailError?.message}`,
+            emailError,
+          );
+        }
       }
       throw error;
     }
