@@ -62,7 +62,7 @@ const StatusDisplay = memo(
     }, [actionConfig, handleAction]);
 
     return (
-      <div className="bg-[#FBFBFB] rounded-lg px-2 py-2 flex flex-col justify-center">
+      <div className="bg-refly-bg-canvas rounded-lg px-2 py-2 flex flex-col justify-center">
         {isSuccess ? (
           <div className="flex items-center gap-2">
             <CheckCircle size={18} className="text-refly-primary-default" />
@@ -91,7 +91,7 @@ const StatusDisplay = memo(
                 onClick={handleActionClick}
                 className={`w-fit flex items-center gap-1 bg-none text-xs font-normal leading-[18px] ${
                   actionConfig.isDark
-                    ? '!bg-black !text-white !border-black hover:!bg-gray-800'
+                    ? '!bg-refly-text-0 !text-refly-bg-body !border-refly-text-0 '
                     : '!border-[refly-Control-Border] hover:!bg-none'
                 }`}
               >

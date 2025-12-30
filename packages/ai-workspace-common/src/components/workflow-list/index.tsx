@@ -22,7 +22,7 @@ import { ScheduleColumn } from '@refly-packages/ai-workspace-common/components/w
 import { WorkflowFilters } from '@refly-packages/ai-workspace-common/components/workflow-list/workflow-filters';
 import defaultAvatar from '@refly-packages/ai-workspace-common/assets/refly_default_avatar.png';
 import { useDebouncedCallback } from 'use-debounce';
-import { useSiderStoreShallow } from '@refly/stores';
+import { useSiderStoreShallow, useSubscriptionStoreShallow } from '@refly/stores';
 import { SettingItem } from '@refly-packages/ai-workspace-common/components/canvas/front-page';
 
 const WorkflowList = memo(() => {
@@ -41,6 +41,11 @@ const WorkflowList = memo(() => {
 
   const { setIsManualCollapse } = useSiderStoreShallow((state) => ({
     setIsManualCollapse: state.setIsManualCollapse,
+  }));
+
+  // Get subscription plan type for schedule quota calculation
+  const { planType } = useSubscriptionStoreShallow((state) => ({
+    planType: state.planType,
   }));
 
   const { setDataList, loadMore, reload, dataList, hasMore, isRequesting } = useFetchDataList({
@@ -86,6 +91,15 @@ const WorkflowList = memo(() => {
   const handleSearch = useCallback((value: string) => {
     setSearchValue(value);
   }, []);
+
+  // Calculate total enabled schedules and quota for schedule limit checking
+  const totalEnabledSchedules = useMemo(() => {
+    return dataList.filter((canvas) => canvas.schedule?.isEnabled).length;
+  }, [dataList]);
+
+  const scheduleQuota = useMemo(() => {
+    return planType === 'free' ? 1 : 20;
+  }, [planType]);
 
   const handleEdit = useCallback(
     (canvas: Canvas) => {
@@ -177,6 +191,8 @@ const WorkflowList = memo(() => {
               schedule={schedule}
               canvasId={record.canvasId}
               onScheduleChange={handleScheduleChange}
+              totalEnabledSchedules={totalEnabledSchedules}
+              scheduleQuota={scheduleQuota}
             />
           );
         },

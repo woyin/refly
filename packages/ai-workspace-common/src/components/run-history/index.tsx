@@ -14,6 +14,7 @@ import { UsedTools } from './used-tools';
 import { client } from '@refly/openapi-schema';
 import { useFetchDataList } from '@refly-packages/ai-workspace-common/hooks/use-fetch-data-list';
 import { useState } from 'react';
+import { logEvent } from '@refly/telemetry-web';
 import {
   getFailureActionConfig,
   getFailureReasonText,
@@ -50,12 +51,12 @@ const ActionCell = memo(
     const { t } = useTranslation();
     const navigate = useNavigate();
 
-    const { planType, setSubscribeModalVisible, setCreditInsufficientModalVisible } =
-      useSubscriptionStoreShallow((state) => ({
+    const { planType, setCreditInsufficientModalVisible } = useSubscriptionStoreShallow(
+      (state) => ({
         planType: state.planType,
-        setSubscribeModalVisible: state.setSubscribeModalVisible,
         setCreditInsufficientModalVisible: state.setCreditInsufficientModalVisible,
-      }));
+      }),
+    );
 
     const actionConfig = useMemo(
       () => getFailureActionConfig(record.failureReason, planType, t),
@@ -69,8 +70,6 @@ const ActionCell = memo(
 
         switch (actionConfig.actionType as FailureActionType) {
           case 'upgrade':
-            setSubscribeModalVisible(true);
-            break;
           case 'buyCredits':
             setCreditInsufficientModalVisible(true);
             break;
@@ -84,13 +83,7 @@ const ActionCell = memo(
             break;
         }
       },
-      [
-        actionConfig,
-        setSubscribeModalVisible,
-        setCreditInsufficientModalVisible,
-        navigate,
-        record.canvasId,
-      ],
+      [actionConfig, setCreditInsufficientModalVisible, navigate, record.canvasId],
     );
 
     if (record.status === 'success') {
@@ -257,6 +250,13 @@ const RunHistoryList = memo(() => {
 
   const handleViewDetail = useCallback(
     (record: ScheduleRecordItem) => {
+      // Log run_detail_view event
+      logEvent('run_detail_view', Date.now(), {
+        type: 'schedule',
+        recordId: record.scheduleRecordId,
+        canvasId: record.canvasId,
+        status: record.status,
+      });
       navigate(`/run-history/${record.scheduleRecordId}`);
     },
     [navigate],
