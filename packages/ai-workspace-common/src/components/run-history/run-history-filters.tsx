@@ -275,11 +275,7 @@ export const RunHistoryFilters = memo(
         <div className="flex items-center gap-3 mt-4">
           {/* Type filter */}
           <Dropdown menu={{ items: typeMenuItems }} trigger={['click']}>
-            <Button
-              color="default"
-              variant="outlined"
-              className="flex items-center justify-between min-w-[150px] !h-[42px]"
-            >
+            <Button className="flex items-center justify-between min-w-[150px] !h-[42px] !bg-transparent hover:!bg-transparent !border-[var(--ant-color-border)] hover:!border-[var(--ant-color-primary)]">
               <span className=" text-xs mr-2">{t('runHistory.filters.type')}</span>
               <span className="flex-1 text-left">{getTypeLabel()}</span>
               <ChevronDown size={14} className="ml-2 " />
@@ -289,10 +285,7 @@ export const RunHistoryFilters = memo(
           {/* Tools filter */}
           {availableTools.length > 0 && (
             <Dropdown dropdownRender={() => toolsDropdownContent} trigger={['click']}>
-              <Button
-                variant="outlined"
-                className="flex items-center justify-between min-w-[180px] !h-[42px]"
-              >
+              <Button className="flex items-center justify-between min-w-[180px] !h-[42px] !bg-transparent hover:!bg-transparent !border-[var(--ant-color-border)] hover:!border-[var(--ant-color-primary)]">
                 <span className=" text-xs mr-2">{t('runHistory.filters.tools')}</span>
                 <span className="flex-1 text-left truncate">{getToolsLabel()}</span>
                 <ChevronDown size={14} className="ml-2 " />
@@ -302,10 +295,7 @@ export const RunHistoryFilters = memo(
 
           {/* State filter */}
           <Dropdown menu={{ items: statusMenuItems }} trigger={['click']}>
-            <Button
-              variant="outlined"
-              className="flex items-center justify-between min-w-[150px] !h-[42px]"
-            >
+            <Button className="flex items-center justify-between min-w-[150px] !h-[42px] !bg-transparent hover:!bg-transparent !border-[var(--ant-color-border)] hover:!border-[var(--ant-color-primary)]">
               <span className=" text-xs mr-2">{t('runHistory.filters.state')}</span>
               <span className="flex-1 text-left">{getStatusLabel()}</span>
               <ChevronDown size={14} className="ml-2 " />

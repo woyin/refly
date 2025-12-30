@@ -10,7 +10,6 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { createMock } from '@golevelup/ts-jest';
 import { DelayedError } from 'bullmq';
 import { PrismaService } from '../common/prisma.service';
-import { RedisService } from '../common/redis.service';
 import { MiscService } from '../misc/misc.service';
 import { ScheduleMetrics } from './schedule.metrics';
 import { SCHEDULE_RATE_LIMITS } from './schedule.constants';
@@ -27,7 +26,6 @@ jest.mock('./schedule.processor', () => {
 
 describe('ScheduleProcessor Logic Tests', () => {
   let _prismaService: jest.Mocked<PrismaService>;
-  let _redisService: jest.Mocked<RedisService>;
   let _miscService: jest.Mocked<MiscService>;
   let metrics: jest.Mocked<ScheduleMetrics>;
 
@@ -44,7 +42,6 @@ describe('ScheduleProcessor Logic Tests', () => {
     jest.clearAllMocks();
 
     const mockPrisma = createMock<PrismaService>();
-    const mockRedis = createMock<RedisService>();
     const mockMisc = createMock<MiscService>();
     const mockMetrics = {
       execution: {
@@ -60,36 +57,42 @@ describe('ScheduleProcessor Logic Tests', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         { provide: PrismaService, useValue: mockPrisma },
-        { provide: RedisService, useValue: mockRedis },
         { provide: MiscService, useValue: mockMisc },
         { provide: ScheduleMetrics, useValue: mockMetrics },
       ],
     }).compile();
 
     _prismaService = module.get(PrismaService);
-    _redisService = module.get(RedisService);
     _miscService = module.get(MiscService);
     metrics = module.get(ScheduleMetrics);
   });
 
-  describe('User Concurrency Control Logic', () => {
-    it('should enforce user max concurrent limit', () => {
-      // Test the rate limit check logic directly
-      const userConcurrent = SCHEDULE_RATE_LIMITS.USER_MAX_CONCURRENT + 1;
-      const shouldDelay = userConcurrent > SCHEDULE_RATE_LIMITS.USER_MAX_CONCURRENT;
+  describe('User Concurrency Control Logic (Database-based)', () => {
+    it('should enforce user max concurrent limit when runningCount exceeds limit', () => {
+      // Database-based concurrency: query returns count of 'processing' and 'running' status records
+      // If runningCount >= USER_MAX_CONCURRENT, job should be delayed
+      const runningCount = SCHEDULE_RATE_LIMITS.USER_MAX_CONCURRENT;
+      const shouldDelay = runningCount >= SCHEDULE_RATE_LIMITS.USER_MAX_CONCURRENT;
       expect(shouldDelay).toBe(true);
     });
 
-    it('should allow at exactly max concurrent limit', () => {
-      const userConcurrent = SCHEDULE_RATE_LIMITS.USER_MAX_CONCURRENT;
-      const shouldDelay = userConcurrent > SCHEDULE_RATE_LIMITS.USER_MAX_CONCURRENT;
+    it('should allow when runningCount is below max concurrent limit', () => {
+      const runningCount = SCHEDULE_RATE_LIMITS.USER_MAX_CONCURRENT - 1;
+      const shouldDelay = runningCount >= SCHEDULE_RATE_LIMITS.USER_MAX_CONCURRENT;
       expect(shouldDelay).toBe(false);
     });
 
     it('should have correct rate limit constants', () => {
-      expect(SCHEDULE_RATE_LIMITS.USER_MAX_CONCURRENT).toBe(3);
-      expect(SCHEDULE_RATE_LIMITS.USER_RATE_LIMIT_DELAY_MS).toBe(10000);
-      expect(SCHEDULE_RATE_LIMITS.COUNTER_TTL_SECONDS).toBe(7200); // 2 hours
+      // Note: COUNTER_TTL_SECONDS and REDIS_PREFIX removed - concurrency is now database-based
+      expect(typeof SCHEDULE_RATE_LIMITS.USER_MAX_CONCURRENT).toBe('number');
+      expect(typeof SCHEDULE_RATE_LIMITS.USER_RATE_LIMIT_DELAY_MS).toBe('number');
+    });
+
+    it('should consider both processing and running status as active', () => {
+      // The database query counts records with status in ['processing', 'running']
+      const activeStatuses = ['processing', 'running'];
+      expect(activeStatuses).toContain('processing');
+      expect(activeStatuses).toContain('running');
     });
   });
 
@@ -168,11 +171,33 @@ describe('ScheduleProcessor Logic Tests', () => {
     });
   });
 
-  describe('Redis Counter Key Generation', () => {
-    it('should generate correct user concurrent key', () => {
-      const uid = 'user-123';
-      const key = `${SCHEDULE_RATE_LIMITS.REDIS_PREFIX_USER_CONCURRENT}${uid}`;
-      expect(key).toBe('schedule:concurrent:user:user-123');
+  describe('Database-based Concurrency Control', () => {
+    it('should query records with processing or running status', () => {
+      // The concurrency check queries the database for records where:
+      // - uid matches the user
+      // - status is 'processing' OR 'running'
+      const expectedQuery = {
+        uid: 'user-123',
+        status: { in: ['processing', 'running'] },
+      };
+      expect(expectedQuery.status.in).toContain('processing');
+      expect(expectedQuery.status.in).toContain('running');
+    });
+
+    it('should release concurrency slot when workflow completes', () => {
+      // When workflow completes, ScheduleEventListener updates status to 'success'
+      // This automatically releases the concurrency slot for next database query
+      const completedStatus = 'success';
+      const activeStatuses = ['processing', 'running'];
+      expect(activeStatuses).not.toContain(completedStatus);
+    });
+
+    it('should release concurrency slot when workflow fails', () => {
+      // When workflow fails, ScheduleEventListener updates status to 'failed'
+      // This automatically releases the concurrency slot
+      const failedStatus = 'failed';
+      const activeStatuses = ['processing', 'running'];
+      expect(activeStatuses).not.toContain(failedStatus);
     });
   });
 

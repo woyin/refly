@@ -1,6 +1,7 @@
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { DelayedError, Job } from 'bullmq';
 import { Inject, Logger, forwardRef } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../common/prisma.service';
 import { RedisService } from '../common/redis.service';
 import { MiscService } from '../misc/misc.service';
@@ -10,13 +11,17 @@ import { CreditService } from '../credit/credit.service';
 import {
   QUEUE_SCHEDULE_EXECUTION,
   SCHEDULE_RATE_LIMITS,
+  SCHEDULE_REDIS_KEYS,
   ScheduleFailureReason,
   classifyScheduleError,
 } from './schedule.constants';
+import { generateInsufficientCreditsEmail } from './schedule-email-templates';
+import { NotificationService } from '../notification/notification.service';
 import { ScheduleMetrics } from './schedule.metrics';
 import { genScheduleRecordId, safeParseJSON } from '@refly/utils';
 import { extractToolsetsWithNodes } from '@refly/canvas-common';
 import type { RawCanvasData } from '@refly/openapi-schema';
+import { CronExpressionParser } from 'cron-parser';
 
 /**
  * Job data structure for schedule execution
@@ -54,8 +59,10 @@ export class ScheduleProcessor extends WorkerHost {
     private readonly canvasService: CanvasService,
     private readonly metrics: ScheduleMetrics,
     private readonly creditService: CreditService,
+    private readonly notificationService: NotificationService,
     @Inject(forwardRef(() => WorkflowAppService))
     private readonly workflowAppService: WorkflowAppService,
+    private readonly config: ConfigService,
   ) {
     super();
   }
@@ -73,53 +80,96 @@ export class ScheduleProcessor extends WorkerHost {
 
     let scheduleRecordId = existingRecordId || '';
     let isRetry = false;
-    let shouldDecrementCounter = false; // Track if we need to decrement counter in finally
-    const userConcurrentKey = `${SCHEDULE_RATE_LIMITS.REDIS_PREFIX_USER_CONCURRENT}${uid}`;
+
+    // Track if Redis counter was successfully incremented and not rolled back
+    // This is critical for proper cleanup in listener
+    let redisCounterActive = false;
 
     try {
-      // 1. User-level concurrency check with Redis degradation
-      // If Redis fails, we allow the job to proceed (graceful degradation)
-      let userConcurrent = 0;
-      let redisSucceeded = false; // Track if Redis increment was successful
-      try {
-        userConcurrent = await this.redisService.incrementWithExpire(
-          userConcurrentKey,
-          SCHEDULE_RATE_LIMITS.COUNTER_TTL_SECONDS, // Use longer TTL for long-running workflows
-        );
-        redisSucceeded = true; // Redis increment succeeded
-      } catch (redisError) {
-        // Redis connection failed - graceful degradation: allow execution
-        this.logger.warn(
-          `Redis error during concurrency check for user ${uid}, allowing execution (degraded mode): ${redisError}`,
-        );
-        // Don't set redisSucceeded, so we won't try to decrement in finally
-        userConcurrent = 1; // Assume 1 for rate limit check (will pass since limit is 3)
-      }
+      // 1. User-level concurrency check using Redis atomic operations
+      // Use Redis INCR for atomic concurrency control, with database fallback
+      const redisKey = `${SCHEDULE_REDIS_KEYS.USER_CONCURRENT_PREFIX}${uid}`;
 
-      if (userConcurrent > SCHEDULE_RATE_LIMITS.USER_MAX_CONCURRENT) {
-        // Decrement counter since we're not processing this job now
-        // Only decrement if Redis succeeded (otherwise there's nothing to decrement)
-        if (redisSucceeded) {
-          await this.decrementCounter(userConcurrentKey).catch((err) => {
-            this.logger.warn(`Failed to decrement counter after rate limit: ${err}`);
-          });
+      let incrSucceeded = false;
+
+      try {
+        // Atomically increment counter
+        const currentCount = await this.redisService.incr(redisKey);
+        incrSucceeded = true;
+
+        // Set TTL to prevent counter leakage (only if key is new or expired)
+        await this.redisService.expire(redisKey, SCHEDULE_REDIS_KEYS.USER_CONCURRENT_TTL);
+
+        if (currentCount > SCHEDULE_RATE_LIMITS.USER_MAX_CONCURRENT) {
+          // Exceeded limit, rollback and delay
+          await this.redisService.decr(redisKey);
+          incrSucceeded = false;
+          this.logger.warn(
+            `User ${uid} has ${currentCount} concurrent executions (Redis), delaying job ${job.id}`,
+          );
+          await job.moveToDelayed(
+            Date.now() + SCHEDULE_RATE_LIMITS.USER_RATE_LIMIT_DELAY_MS,
+            job.token,
+          );
+          throw new DelayedError();
         }
 
-        // Delay the job and retry later
-        // BullMQ will automatically re-queue the job after the delay
-        this.logger.warn(
-          `User ${uid} has ${userConcurrent - 1} concurrent executions, delaying job ${job.id}`,
-        );
-        await job.moveToDelayed(
-          Date.now() + SCHEDULE_RATE_LIMITS.USER_RATE_LIMIT_DELAY_MS,
-          job.token,
-        );
-        throw new DelayedError();
-      }
+        // Redis check passed, counter is active
+        redisCounterActive = true;
+      } catch (redisError) {
+        // If it's a DelayedError from above, just rethrow
+        if (redisError instanceof DelayedError) {
+          throw redisError;
+        }
 
-      // Mark that we've committed to processing and should decrement counter in finally
-      // Only if Redis succeeded (otherwise there's no counter to decrement)
-      shouldDecrementCounter = redisSucceeded;
+        // If incr succeeded but subsequent operation failed, try to rollback
+        if (incrSucceeded) {
+          try {
+            await this.redisService.decr(redisKey);
+            this.logger.debug(`Rolled back Redis counter for user ${uid} after partial failure`);
+          } catch {
+            // Rollback failed, but we'll continue with DB fallback
+            this.logger.warn(
+              `Failed to rollback Redis counter for user ${uid} after partial failure`,
+            );
+          }
+          incrSucceeded = false;
+        }
+
+        // Redis failed, use database fallback
+        this.logger.warn(`Redis unavailable for user ${uid}, using database-only mode`, redisError);
+
+        const runningCount = await this.prisma.workflowScheduleRecord.count({
+          where: {
+            uid,
+            status: { in: ['processing', 'running'] },
+          },
+        });
+
+        if (runningCount >= SCHEDULE_RATE_LIMITS.USER_MAX_CONCURRENT) {
+          this.logger.warn(
+            `User ${uid} has ${runningCount} concurrent executions (DB fallback), delaying job ${job.id}`,
+          );
+          await job.moveToDelayed(
+            Date.now() + SCHEDULE_RATE_LIMITS.USER_RATE_LIMIT_DELAY_MS,
+            job.token,
+          );
+          throw new DelayedError();
+        }
+
+        // DB check passed, try to increment Redis for tracking (best-effort)
+        try {
+          await this.redisService.incr(redisKey);
+          await this.redisService.expire(redisKey, SCHEDULE_REDIS_KEYS.USER_CONCURRENT_TTL);
+          redisCounterActive = true;
+          this.logger.debug(`Redis recovered, counter incremented for user ${uid}`);
+        } catch {
+          // Redis still unavailable, continue without Redis tracking
+          this.logger.warn(
+            `Redis still unavailable for user ${uid}, continuing without Redis tracking`,
+          );
+        }
+      }
 
       // 2. Check if schedule still exists and is enabled
       // This prevents execution of tasks for deleted/disabled schedules
@@ -131,6 +181,18 @@ export class ScheduleProcessor extends WorkerHost {
         this.logger.warn(
           `Schedule ${scheduleId} is deleted/disabled, skipping execution for job ${job.id}`,
         );
+
+        // Rollback Redis counter since we're not proceeding with execution
+        if (redisCounterActive) {
+          try {
+            const redisKey = `${SCHEDULE_REDIS_KEYS.USER_CONCURRENT_PREFIX}${uid}`;
+            await this.redisService.decr(redisKey);
+            this.logger.debug(`Rolled back Redis counter for user ${uid} (schedule skipped)`);
+          } catch (redisError) {
+            this.logger.warn(`Failed to rollback Redis counter for user ${uid}`, redisError);
+          }
+        }
+
         // Record skipped metric
         const failureReason = schedule?.deletedAt
           ? ScheduleFailureReason.SCHEDULE_DELETED
@@ -226,6 +288,41 @@ export class ScheduleProcessor extends WorkerHost {
       } else {
         // 4.1 Update status to 'processing' - job has been dequeued from BullMQ
         // This indicates the job is now actively being handled by the processor
+
+        // 4.2 Re-check concurrency using database query (as fallback validation)
+        // Note: The first Redis INCR already reserved the slot atomically.
+        // This database check is a secondary validation to catch edge cases where
+        // Redis state might be inconsistent with actual database state.
+        // DO NOT use INCR here again - the slot was already reserved in step 1.
+        const currentRunningCount = await this.prisma.workflowScheduleRecord.count({
+          where: {
+            uid,
+            status: { in: ['processing', 'running'] },
+          },
+        });
+
+        if (currentRunningCount >= SCHEDULE_RATE_LIMITS.USER_MAX_CONCURRENT) {
+          // Database shows we're at limit, but Redis already incremented.
+          // This indicates Redis counter might be ahead of actual state.
+          // Rollback Redis counter and delay.
+          this.logger.warn(
+            `Secondary check failed: User ${uid} has ${currentRunningCount} concurrent executions (DB), delaying job ${job.id}`,
+          );
+          if (redisCounterActive) {
+            try {
+              const redisKey = `${SCHEDULE_REDIS_KEYS.USER_CONCURRENT_PREFIX}${uid}`;
+              await this.redisService.decr(redisKey);
+            } catch (redisError) {
+              this.logger.warn(`Failed to rollback Redis counter for user ${uid}`, redisError);
+            }
+          }
+          await job.moveToDelayed(
+            Date.now() + SCHEDULE_RATE_LIMITS.USER_RATE_LIMIT_DELAY_MS,
+            job.token,
+          );
+          throw new DelayedError();
+        }
+
         await this.prisma.workflowScheduleRecord.update({
           where: { scheduleRecordId },
           data: {
@@ -267,6 +364,18 @@ export class ScheduleProcessor extends WorkerHost {
           this.logger.warn(
             `User ${uid} has insufficient credits (${creditBalance.creditBalance}), failing schedule ${scheduleId}`,
           );
+
+          // Rollback Redis counter since we're not proceeding with execution
+          if (redisCounterActive) {
+            try {
+              const redisKey = `${SCHEDULE_REDIS_KEYS.USER_CONCURRENT_PREFIX}${uid}`;
+              await this.redisService.decr(redisKey);
+              this.logger.debug(`Rolled back Redis counter for user ${uid} (insufficient credits)`);
+            } catch (redisError) {
+              this.logger.warn(`Failed to rollback Redis counter for user ${uid}`, redisError);
+            }
+          }
+
           await this.prisma.workflowScheduleRecord.update({
             where: { scheduleRecordId },
             data: {
@@ -281,6 +390,39 @@ export class ScheduleProcessor extends WorkerHost {
             },
           });
           this.metrics.execution.fail('cron', 'insufficient_credits');
+
+          // Send Email
+          if (fullUser.email) {
+            // Calculate next run time from cron expression
+            let nextRunTime: string | undefined;
+            if (schedule.cronExpression) {
+              try {
+                const interval = CronExpressionParser.parse(schedule.cronExpression, {
+                  tz: schedule.timezone || 'Asia/Shanghai',
+                });
+                nextRunTime = interval.next().toDate().toLocaleString();
+              } catch (err) {
+                this.logger.warn(`Failed to calculate next run time for email: ${err}`);
+              }
+            }
+
+            const { subject, html } = generateInsufficientCreditsEmail({
+              userName: fullUser.nickname || 'User',
+              scheduleName: schedule.name || 'Scheduled Workflow',
+              currentBalance: creditBalance.creditBalance,
+              schedulesLink: `${this.config.get<string>('origin')}/workflow/${canvasId}`,
+              nextRunTime,
+            });
+            await this.notificationService.sendEmail(
+              {
+                to: fullUser.email,
+                subject,
+                html,
+              },
+              fullUser,
+            );
+          }
+
           return null;
         }
       }
@@ -335,12 +477,29 @@ export class ScheduleProcessor extends WorkerHost {
       return executionId;
     } catch (error) {
       // Don't log or update record for DelayedError (rate limiting)
+      // Count was already rolled back in the check logic
       if (error instanceof DelayedError) {
         this.metrics.queue.delayed();
         throw error;
       }
 
       this.logger.error(`Failed to process schedule ${scheduleId}`, error);
+
+      // If Redis counter was incremented, we need to decrement it
+      // This handles cases where task fails after passing checks but before workflow starts
+      if (redisCounterActive) {
+        try {
+          const redisKey = `${SCHEDULE_REDIS_KEYS.USER_CONCURRENT_PREFIX}${uid}`;
+          await this.redisService.decr(redisKey);
+          this.logger.debug(`Decremented Redis counter for user ${uid} due to task failure`);
+        } catch (redisError) {
+          // Redis failure is not critical here, just log
+          this.logger.warn(
+            `Failed to decrement Redis counter for user ${uid} in error handler`,
+            redisError,
+          );
+        }
+      }
 
       // Classify error and get standardized failure reason
       const failureReason = classifyScheduleError(error);
@@ -365,36 +524,9 @@ export class ScheduleProcessor extends WorkerHost {
         });
       }
       throw error;
-    } finally {
-      // Only decrement counter if we actually started processing
-      // (not if we were delayed due to rate limiting)
-      if (shouldDecrementCounter) {
-        await this.decrementCounter(userConcurrentKey).catch((err) => {
-          this.logger.warn(`Failed to decrement user concurrent counter: ${err}`);
-        });
-      }
     }
-  }
-
-  /**
-   * Decrement a Redis counter (used for rate limiting cleanup)
-   * Uses DECR command which is atomic and handles edge cases
-   */
-  private async decrementCounter(key: string): Promise<number> {
-    const client = this.redisService.getClient();
-    if (!client) {
-      return 0;
-    }
-
-    // Use DECR to atomically decrement, and prevent going below 0
-    const script = `
-      local count = redis.call('GET', KEYS[1])
-      if count and tonumber(count) > 0 then
-        return redis.call('DECR', KEYS[1])
-      end
-      return 0
-    `;
-    return client.eval(script, 1, key) as unknown as number;
+    // Note: Redis counter will be decremented by ScheduleEventListener when workflow completes/fails
+    // This ensures accurate concurrency tracking based on actual workflow execution status
   }
 
   /**

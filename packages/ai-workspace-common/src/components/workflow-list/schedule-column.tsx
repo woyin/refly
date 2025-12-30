@@ -1,11 +1,12 @@
 import { memo, useMemo, useState, useCallback } from 'react';
-import { Popover, message } from 'antd';
+import { Popover, Modal, message } from 'antd';
 import { WorkflowSchedule } from '@refly/openapi-schema';
 import {
   useUpdateSchedule,
   useGetCreditUsageByCanvasId,
 } from '@refly-packages/ai-workspace-common/queries';
 import { useTranslation } from 'react-i18next';
+import { useSubscriptionStoreShallow } from '@refly/stores';
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 import timezone from 'dayjs/plugin/timezone';
@@ -24,12 +25,29 @@ export interface ScheduleColumnProps {
   schedule?: WorkflowSchedule;
   canvasId: string;
   onScheduleChange?: () => void;
+  totalEnabledSchedules?: number;
+  scheduleQuota?: number;
 }
 
 export const ScheduleColumn = memo(
-  ({ schedule, canvasId, onScheduleChange }: ScheduleColumnProps) => {
+  ({
+    schedule,
+    canvasId,
+    onScheduleChange,
+    totalEnabledSchedules = 0,
+    scheduleQuota = 1,
+  }: ScheduleColumnProps) => {
     const { t } = useTranslation();
     const [open, setOpen] = useState(false);
+    const [scheduleLimitModalVisible, setScheduleLimitModalVisible] = useState(false);
+
+    // Get subscription plan type and credit insufficient modal setter
+    const { planType, setCreditInsufficientModalVisible } = useSubscriptionStoreShallow(
+      (state) => ({
+        planType: state.planType,
+        setCreditInsufficientModalVisible: state.setCreditInsufficientModalVisible,
+      }),
+    );
 
     // Local state for popover form
     const existingConfig = parseScheduleConfig(schedule?.scheduleConfig);
@@ -59,6 +77,17 @@ export const ScheduleColumn = memo(
     const handleOpenChange = useCallback(
       (newOpen: boolean) => {
         if (newOpen) {
+          // Check quota before opening for disabled schedules
+          // If schedule is disabled and user already reached quota, show modal instead
+          if (!schedule?.isEnabled && totalEnabledSchedules >= scheduleQuota) {
+            if (planType === 'free') {
+              setCreditInsufficientModalVisible(true, undefined, 'schedule');
+            } else {
+              setScheduleLimitModalVisible(true);
+            }
+            return; // Don't open popover
+          }
+
           const config = parseScheduleConfig(schedule?.scheduleConfig);
           setIsEnabled(schedule?.isEnabled ?? false);
           setFrequency(config?.type || 'daily');
@@ -68,13 +97,28 @@ export const ScheduleColumn = memo(
         }
         setOpen(newOpen);
       },
-      [schedule],
+      [schedule, totalEnabledSchedules, scheduleQuota, planType, setCreditInsufficientModalVisible],
     );
 
     // Handle enabled change - auto save
     const handleEnabledChange = useCallback(
       async (enabled: boolean) => {
         if (!schedule?.scheduleId || !timeValue) return;
+
+        // Check quota when trying to enable
+        if (enabled && !schedule?.isEnabled) {
+          // This schedule is not currently enabled, check if quota allows enabling
+          if (totalEnabledSchedules >= scheduleQuota) {
+            if (planType === 'free') {
+              // Free user: show credit insufficient modal
+              setCreditInsufficientModalVisible(true, undefined, 'schedule');
+            } else {
+              // Paid user: show schedule limit reached modal
+              setScheduleLimitModalVisible(true);
+            }
+            return;
+          }
+        }
 
         setIsEnabled(enabled);
 
@@ -123,6 +167,10 @@ export const ScheduleColumn = memo(
         updateScheduleMutation,
         onScheduleChange,
         t,
+        totalEnabledSchedules,
+        scheduleQuota,
+        planType,
+        setCreditInsufficientModalVisible,
       ],
     );
 
@@ -163,13 +211,13 @@ export const ScheduleColumn = memo(
       const { label, isEnabled: enabled } = scheduleDisplay;
 
       return (
-        <div className="flex items-center gap-1 bg-[#F6F6F6] rounded-[6px] px-2 h-[26px]">
+        <div className="flex items-center gap-1 bg-refly-bg-control-z0 rounded-[6px] px-2 h-[26px]">
           <span className="text-xs font-normal leading-[18px] text-refly-text-0">{label}</span>
           <span
             className={`px-1 py-0.5 flex items-center text-[9px] font-bold leading-[11px] rounded-sm ${
               enabled
                 ? 'bg-refly-primary-default text-refly-bg-body-z0'
-                : 'bg-[#E6E8EA] text-refly-text-3'
+                : 'bg-refly-fill-hover text-refly-text-3'
             }`}
           >
             {enabled ? t('schedule.status.on') : t('schedule.status.off')}
@@ -184,39 +232,57 @@ export const ScheduleColumn = memo(
     }
 
     return (
-      <Popover
-        content={
-          <SchedulePopoverContent
-            canvasId={canvasId}
-            schedule={schedule}
-            isEnabled={isEnabled}
-            frequency={frequency}
-            timeValue={timeValue}
-            weekdays={weekdays}
-            monthDays={monthDays}
-            onEnabledChange={handleEnabledChange}
-            onFrequencyChange={setFrequency}
-            onTimeChange={setTimeValue}
-            onWeekdaysChange={setWeekdays}
-            onMonthDaysChange={setMonthDays}
-            onClose={handleClose}
-            creditCost={creditUsageData?.data?.total}
-            isCreditLoading={isCreditUsageLoading}
-          />
-        }
-        trigger="click"
-        open={open}
-        onOpenChange={handleOpenChange}
-        placement="bottomLeft"
-        overlayClassName="schedule-popover"
-      >
-        <div
-          className="flex items-center gap-1 cursor-pointer hover:opacity-70 transition-opacity select-none"
-          onClick={(e) => e.stopPropagation()}
+      <>
+        <Popover
+          content={
+            <SchedulePopoverContent
+              canvasId={canvasId}
+              schedule={schedule}
+              isEnabled={isEnabled}
+              frequency={frequency}
+              timeValue={timeValue}
+              weekdays={weekdays}
+              monthDays={monthDays}
+              onEnabledChange={handleEnabledChange}
+              onFrequencyChange={setFrequency}
+              onTimeChange={setTimeValue}
+              onWeekdaysChange={setWeekdays}
+              onMonthDaysChange={setMonthDays}
+              onClose={handleClose}
+              creditCost={creditUsageData?.data?.total}
+              isCreditLoading={isCreditUsageLoading}
+            />
+          }
+          trigger="click"
+          open={open}
+          onOpenChange={handleOpenChange}
+          placement="bottomLeft"
+          overlayClassName="schedule-popover"
         >
-          {renderBadge()}
-        </div>
-      </Popover>
+          <div
+            className="flex items-center justify-center gap-1 cursor-pointer hover:opacity-70 transition-opacity select-none"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {renderBadge()}
+          </div>
+        </Popover>
+
+        {/* Schedule Limit Modal for paid users */}
+        <Modal
+          open={scheduleLimitModalVisible}
+          onCancel={() => setScheduleLimitModalVisible(false)}
+          footer={null}
+          centered
+          width={400}
+        >
+          <div className="flex flex-col items-center gap-4 py-4">
+            <div className="text-lg font-semibold">{t('schedule.limitReached.title')}</div>
+            <div className="text-sm text-gray-500 text-center">
+              {t('schedule.limitReached.description', { limit: scheduleQuota })}
+            </div>
+          </div>
+        </Modal>
+      </>
     );
   },
 );

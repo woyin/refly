@@ -118,12 +118,10 @@ export const useScheduleFailureAction = (canvasId: string) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
 
-  const { planType, setSubscribeModalVisible, setCreditInsufficientModalVisible } =
-    useSubscriptionStoreShallow((state) => ({
-      planType: state.planType,
-      setSubscribeModalVisible: state.setSubscribeModalVisible,
-      setCreditInsufficientModalVisible: state.setCreditInsufficientModalVisible,
-    }));
+  const { planType, setCreditInsufficientModalVisible } = useSubscriptionStoreShallow((state) => ({
+    planType: state.planType,
+    setCreditInsufficientModalVisible: state.setCreditInsufficientModalVisible,
+  }));
 
   const getActionConfig = useCallback(
     (failureReason: string | undefined) => {
@@ -143,8 +141,6 @@ export const useScheduleFailureAction = (canvasId: string) => {
     (actionType: FailureActionType) => {
       switch (actionType) {
         case 'upgrade':
-          setSubscribeModalVisible(true);
-          break;
         case 'buyCredits':
           setCreditInsufficientModalVisible(true);
           break;
@@ -156,7 +152,7 @@ export const useScheduleFailureAction = (canvasId: string) => {
           break;
       }
     },
-    [setSubscribeModalVisible, setCreditInsufficientModalVisible, navigate, canvasId],
+    [setCreditInsufficientModalVisible, navigate, canvasId],
   );
 
   return {

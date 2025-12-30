@@ -14,6 +14,7 @@ import { UsedTools } from './used-tools';
 import { client } from '@refly/openapi-schema';
 import { useFetchDataList } from '@refly-packages/ai-workspace-common/hooks/use-fetch-data-list';
 import { useState } from 'react';
+import { logEvent } from '@refly/telemetry-web';
 import {
   getFailureActionConfig,
   getFailureReasonText,
@@ -50,12 +51,12 @@ const ActionCell = memo(
     const { t } = useTranslation();
     const navigate = useNavigate();
 
-    const { planType, setSubscribeModalVisible, setCreditInsufficientModalVisible } =
-      useSubscriptionStoreShallow((state) => ({
+    const { planType, setCreditInsufficientModalVisible } = useSubscriptionStoreShallow(
+      (state) => ({
         planType: state.planType,
-        setSubscribeModalVisible: state.setSubscribeModalVisible,
         setCreditInsufficientModalVisible: state.setCreditInsufficientModalVisible,
-      }));
+      }),
+    );
 
     const actionConfig = useMemo(
       () => getFailureActionConfig(record.failureReason, planType, t),
@@ -69,8 +70,6 @@ const ActionCell = memo(
 
         switch (actionConfig.actionType as FailureActionType) {
           case 'upgrade':
-            setSubscribeModalVisible(true);
-            break;
           case 'buyCredits':
             setCreditInsufficientModalVisible(true);
             break;
@@ -84,19 +83,13 @@ const ActionCell = memo(
             break;
         }
       },
-      [
-        actionConfig,
-        setSubscribeModalVisible,
-        setCreditInsufficientModalVisible,
-        navigate,
-        record.canvasId,
-      ],
+      [actionConfig, setCreditInsufficientModalVisible, navigate, record.canvasId],
     );
 
     if (record.status === 'success') {
       return (
         <div
-          className="w-full h-full flex items-center cursor-pointer"
+          className="w-full h-full flex items-center justify-center cursor-pointer"
           onClick={(e) => {
             e.stopPropagation();
             onViewDetail();
@@ -112,7 +105,10 @@ const ActionCell = memo(
     // Failed status - only show action based on failure reason (no Run Detail link)
     if (actionConfig) {
       return (
-        <div className="w-full h-full flex items-center cursor-pointer" onClick={handleActionClick}>
+        <div
+          className="w-full h-full flex items-center justify-center cursor-pointer"
+          onClick={handleActionClick}
+        >
           <span className="text-teal-600 hover:text-teal-700 text-sm">{actionConfig.label}</span>
         </div>
       );
@@ -257,6 +253,13 @@ const RunHistoryList = memo(() => {
 
   const handleViewDetail = useCallback(
     (record: ScheduleRecordItem) => {
+      // Log run_detail_view event
+      logEvent('run_detail_view', Date.now(), {
+        type: 'schedule',
+        recordId: record.scheduleRecordId,
+        canvasId: record.canvasId,
+        status: record.status,
+      });
       navigate(`/run-history/${record.scheduleRecordId}`);
     },
     [navigate],
@@ -306,6 +309,7 @@ const RunHistoryList = memo(() => {
         dataIndex: 'scheduledAt',
         key: 'scheduledAt',
         width: 180,
+        align: 'center' as const,
         render: (scheduledAt: string) => (
           <span className="text-sm text-gray-500">
             {time(scheduledAt, language as LOCALE).format('YYYY/MM/DD, hh:mm:ss A')}
@@ -324,6 +328,7 @@ const RunHistoryList = memo(() => {
         dataIndex: 'status',
         key: 'status',
         width: 120,
+        align: 'center' as const,
         render: (status: ScheduleRecordStatus, record: ScheduleRecordItem) => {
           const config = getStatusConfig(status);
           const statusElement = (
@@ -359,6 +364,7 @@ const RunHistoryList = memo(() => {
         dataIndex: 'creditUsed',
         key: 'creditUsed',
         width: 100,
+        align: 'center' as const,
         render: (creditUsed: number) => (
           <span className="text-sm text-gray-500">
             {creditUsed ?? 0} {t('runDetail.creditUnit')}
@@ -369,7 +375,7 @@ const RunHistoryList = memo(() => {
         title: t('runHistory.tableTitle.actions'),
         key: 'actions',
         width: 180,
-        align: 'left' as const,
+        align: 'center' as const,
         fixed: 'right' as const,
         render: (_: unknown, record: ScheduleRecordItem) => (
           <ActionCell record={record} onViewDetail={() => handleViewDetail(record)} />

@@ -48,19 +48,6 @@ const RunDetail = memo(({ recordId, type = 'schedule' }: RunDetailProps) => {
 
   const { duplicateCanvas, loading: duplicateLoading } = useDuplicateCanvas();
 
-  // Log run_detail_view event when record is loaded
-  useEffect(() => {
-    if (record) {
-      logEvent('run_detail_view', Date.now(), {
-        type,
-        recordId,
-        canvasId: record.canvasId,
-        sourceCanvasId: record.sourceCanvasId,
-        status: record.status,
-      });
-    }
-  }, [record, type, recordId]);
-
   // Fetch record detail
   useEffect(() => {
     const fetchRecordDetail = async () => {

@@ -53,21 +53,25 @@ export class SchedulePriorityService {
   }
 
   private async getPriorityFactors(uid: string): Promise<PriorityFactors> {
-    // 1. Check recent failures (last 5 records)
+    // 1. Check recent failures (last 20 completed records)
+    // Only query completed records (success/failed) to avoid interference from pending/processing/running
     const recentRecords = await this.prisma.workflowScheduleRecord.findMany({
-      where: { uid },
-      orderBy: { scheduledAt: 'desc' },
-      take: 5,
+      where: {
+        uid,
+        status: { in: ['success', 'failed'] }, // Only completed records
+      },
+      orderBy: { completedAt: 'desc' }, // Use completedAt for accurate ordering of finished records
+      take: 20, // Increased from 5 to get more accurate picture
       select: { status: true },
     });
 
-    // Count consecutive failures from the latest record
+    // Count consecutive failures from the latest completed record
     let consecutiveFailures = 0;
     for (const record of recentRecords) {
       if (record.status === 'failed') {
         consecutiveFailures++;
       } else {
-        break;
+        break; // Stop at first non-failed record
       }
     }
 
