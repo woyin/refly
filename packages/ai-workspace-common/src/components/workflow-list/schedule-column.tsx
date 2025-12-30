@@ -260,7 +260,7 @@ export const ScheduleColumn = memo(
           overlayClassName="schedule-popover"
         >
           <div
-            className="flex items-center gap-1 cursor-pointer hover:opacity-70 transition-opacity select-none"
+            className="flex items-center justify-center gap-1 cursor-pointer hover:opacity-70 transition-opacity select-none"
             onClick={(e) => e.stopPropagation()}
           >
             {renderBadge()}

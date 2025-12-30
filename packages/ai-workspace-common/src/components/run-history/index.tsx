@@ -89,7 +89,7 @@ const ActionCell = memo(
     if (record.status === 'success') {
       return (
         <div
-          className="w-full h-full flex items-center cursor-pointer"
+          className="w-full h-full flex items-center justify-center cursor-pointer"
           onClick={(e) => {
             e.stopPropagation();
             onViewDetail();
@@ -105,7 +105,10 @@ const ActionCell = memo(
     // Failed status - only show action based on failure reason (no Run Detail link)
     if (actionConfig) {
       return (
-        <div className="w-full h-full flex items-center cursor-pointer" onClick={handleActionClick}>
+        <div
+          className="w-full h-full flex items-center justify-center cursor-pointer"
+          onClick={handleActionClick}
+        >
           <span className="text-teal-600 hover:text-teal-700 text-sm">{actionConfig.label}</span>
         </div>
       );
@@ -306,6 +309,7 @@ const RunHistoryList = memo(() => {
         dataIndex: 'scheduledAt',
         key: 'scheduledAt',
         width: 180,
+        align: 'center' as const,
         render: (scheduledAt: string) => (
           <span className="text-sm text-gray-500">
             {time(scheduledAt, language as LOCALE).format('YYYY/MM/DD, hh:mm:ss A')}
@@ -324,6 +328,7 @@ const RunHistoryList = memo(() => {
         dataIndex: 'status',
         key: 'status',
         width: 120,
+        align: 'center' as const,
         render: (status: ScheduleRecordStatus, record: ScheduleRecordItem) => {
           const config = getStatusConfig(status);
           const statusElement = (
@@ -359,6 +364,7 @@ const RunHistoryList = memo(() => {
         dataIndex: 'creditUsed',
         key: 'creditUsed',
         width: 100,
+        align: 'center' as const,
         render: (creditUsed: number) => (
           <span className="text-sm text-gray-500">
             {creditUsed ?? 0} {t('runDetail.creditUnit')}
@@ -369,7 +375,7 @@ const RunHistoryList = memo(() => {
         title: t('runHistory.tableTitle.actions'),
         key: 'actions',
         width: 180,
-        align: 'left' as const,
+        align: 'center' as const,
         fixed: 'right' as const,
         render: (_: unknown, record: ScheduleRecordItem) => (
           <ActionCell record={record} onViewDetail={() => handleViewDetail(record)} />

@@ -185,6 +185,7 @@ const WorkflowList = memo(() => {
         dataIndex: 'schedule',
         key: 'schedule',
         width: 140,
+        align: 'center' as const,
         render: (schedule: WorkflowSchedule, record: Canvas) => {
           return (
             <ScheduleColumn
@@ -202,6 +203,7 @@ const WorkflowList = memo(() => {
         dataIndex: 'owner',
         key: 'owner',
         width: 150,
+        align: 'center' as const,
         render: (owner: ShareUser) => {
           const ownerName = owner?.name || t('common.untitled');
           const ownerNickname = owner?.nickname;
@@ -225,6 +227,7 @@ const WorkflowList = memo(() => {
         dataIndex: 'updatedAt',
         key: 'updatedAt',
         width: 120,
+        align: 'center' as const,
         render: (updatedAt: string) => (
           <span className="text-sm text-gray-500 dark:text-gray-400">
             {time(updatedAt, language as LOCALE)
