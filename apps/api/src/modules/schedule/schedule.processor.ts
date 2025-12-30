@@ -80,16 +80,21 @@ export class ScheduleProcessor extends WorkerHost {
     let scheduleRecordId = existingRecordId || '';
     let isRetry = false;
 
+    // Track if Redis counter was successfully incremented and not rolled back
+    // This is critical for proper cleanup in listener
+    let redisCounterActive = false;
+
     try {
       // 1. User-level concurrency check using Redis atomic operations
       // Use Redis INCR for atomic concurrency control, with database fallback
       const redisKey = `${SCHEDULE_REDIS_KEYS.USER_CONCURRENT_PREFIX}${uid}`;
-      let countIncreased = false;
+
+      let incrSucceeded = false;
 
       try {
         // Atomically increment counter
         const currentCount = await this.redisService.incr(redisKey);
-        countIncreased = true;
+        incrSucceeded = true;
 
         // Set TTL to prevent counter leakage (only if key is new or expired)
         await this.redisService.expire(redisKey, SCHEDULE_REDIS_KEYS.USER_CONCURRENT_TTL);
@@ -97,7 +102,7 @@ export class ScheduleProcessor extends WorkerHost {
         if (currentCount > SCHEDULE_RATE_LIMITS.USER_MAX_CONCURRENT) {
           // Exceeded limit, rollback and delay
           await this.redisService.decr(redisKey);
-          countIncreased = false;
+          incrSucceeded = false;
           this.logger.warn(
             `User ${uid} has ${currentCount} concurrent executions (Redis), delaying job ${job.id}`,
           );
@@ -107,21 +112,32 @@ export class ScheduleProcessor extends WorkerHost {
           );
           throw new DelayedError();
         }
+
+        // Redis check passed, counter is active
+        redisCounterActive = true;
       } catch (redisError) {
-        // Redis failed, rollback if count was increased
-        if (countIncreased) {
-          try {
-            await this.redisService.decr(redisKey);
-          } catch (rollbackError) {
-            this.logger.warn(`Failed to rollback Redis counter for user ${uid}`, rollbackError);
-          }
+        // If it's a DelayedError from above, just rethrow
+        if (redisError instanceof DelayedError) {
+          throw redisError;
         }
 
-        // Fallback to database query
-        this.logger.warn(
-          `Redis unavailable for user ${uid}, falling back to database query`,
-          redisError,
-        );
+        // If incr succeeded but subsequent operation failed, try to rollback
+        if (incrSucceeded) {
+          try {
+            await this.redisService.decr(redisKey);
+            this.logger.debug(`Rolled back Redis counter for user ${uid} after partial failure`);
+          } catch {
+            // Rollback failed, but we'll continue with DB fallback
+            this.logger.warn(
+              `Failed to rollback Redis counter for user ${uid} after partial failure`,
+            );
+          }
+          incrSucceeded = false;
+        }
+
+        // Redis failed, use database fallback
+        this.logger.warn(`Redis unavailable for user ${uid}, using database-only mode`, redisError);
+
         const runningCount = await this.prisma.workflowScheduleRecord.count({
           where: {
             uid,
@@ -139,6 +155,19 @@ export class ScheduleProcessor extends WorkerHost {
           );
           throw new DelayedError();
         }
+
+        // DB check passed, try to increment Redis for tracking (best-effort)
+        try {
+          await this.redisService.incr(redisKey);
+          await this.redisService.expire(redisKey, SCHEDULE_REDIS_KEYS.USER_CONCURRENT_TTL);
+          redisCounterActive = true;
+          this.logger.debug(`Redis recovered, counter incremented for user ${uid}`);
+        } catch {
+          // Redis still unavailable, continue without Redis tracking
+          this.logger.warn(
+            `Redis still unavailable for user ${uid}, continuing without Redis tracking`,
+          );
+        }
       }
 
       // 2. Check if schedule still exists and is enabled
@@ -153,12 +182,14 @@ export class ScheduleProcessor extends WorkerHost {
         );
 
         // Rollback Redis counter since we're not proceeding with execution
-        try {
-          const redisKey = `${SCHEDULE_REDIS_KEYS.USER_CONCURRENT_PREFIX}${uid}`;
-          await this.redisService.decr(redisKey);
-          this.logger.debug(`Rolled back Redis counter for user ${uid} (schedule skipped)`);
-        } catch (redisError) {
-          this.logger.warn(`Failed to rollback Redis counter for user ${uid}`, redisError);
+        if (redisCounterActive) {
+          try {
+            const redisKey = `${SCHEDULE_REDIS_KEYS.USER_CONCURRENT_PREFIX}${uid}`;
+            await this.redisService.decr(redisKey);
+            this.logger.debug(`Rolled back Redis counter for user ${uid} (schedule skipped)`);
+          } catch (redisError) {
+            this.logger.warn(`Failed to rollback Redis counter for user ${uid}`, redisError);
+          }
         }
 
         // Record skipped metric
@@ -276,11 +307,13 @@ export class ScheduleProcessor extends WorkerHost {
           this.logger.warn(
             `Secondary check failed: User ${uid} has ${currentRunningCount} concurrent executions (DB), delaying job ${job.id}`,
           );
-          try {
-            const redisKey = `${SCHEDULE_REDIS_KEYS.USER_CONCURRENT_PREFIX}${uid}`;
-            await this.redisService.decr(redisKey);
-          } catch (redisError) {
-            this.logger.warn(`Failed to rollback Redis counter for user ${uid}`, redisError);
+          if (redisCounterActive) {
+            try {
+              const redisKey = `${SCHEDULE_REDIS_KEYS.USER_CONCURRENT_PREFIX}${uid}`;
+              await this.redisService.decr(redisKey);
+            } catch (redisError) {
+              this.logger.warn(`Failed to rollback Redis counter for user ${uid}`, redisError);
+            }
           }
           await job.moveToDelayed(
             Date.now() + SCHEDULE_RATE_LIMITS.USER_RATE_LIMIT_DELAY_MS,
@@ -330,6 +363,18 @@ export class ScheduleProcessor extends WorkerHost {
           this.logger.warn(
             `User ${uid} has insufficient credits (${creditBalance.creditBalance}), failing schedule ${scheduleId}`,
           );
+
+          // Rollback Redis counter since we're not proceeding with execution
+          if (redisCounterActive) {
+            try {
+              const redisKey = `${SCHEDULE_REDIS_KEYS.USER_CONCURRENT_PREFIX}${uid}`;
+              await this.redisService.decr(redisKey);
+              this.logger.debug(`Rolled back Redis counter for user ${uid} (insufficient credits)`);
+            } catch (redisError) {
+              this.logger.warn(`Failed to rollback Redis counter for user ${uid}`, redisError);
+            }
+          }
+
           await this.prisma.workflowScheduleRecord.update({
             where: { scheduleRecordId },
             data: {
@@ -434,9 +479,9 @@ export class ScheduleProcessor extends WorkerHost {
 
       this.logger.error(`Failed to process schedule ${scheduleId}`, error);
 
-      // If record was created, we passed the concurrency checks, so decrement Redis counter
+      // If Redis counter was incremented, we need to decrement it
       // This handles cases where task fails after passing checks but before workflow starts
-      if (scheduleRecordId) {
+      if (redisCounterActive) {
         try {
           const redisKey = `${SCHEDULE_REDIS_KEYS.USER_CONCURRENT_PREFIX}${uid}`;
           await this.redisService.decr(redisKey);

@@ -585,7 +585,7 @@ export class ScheduleService {
     await this.addToExecutionQueue(
       {
         scheduleId: record.scheduleId,
-        canvasId: record.canvasId,
+        canvasId: record.sourceCanvasId, // Use sourceCanvasId which always has the original canvas ID (canvasId may be empty for failed records)
         uid: record.uid,
         scheduledAt: new Date().toISOString(),
         scheduleRecordId: record.scheduleRecordId,
