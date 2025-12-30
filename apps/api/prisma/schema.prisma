@@ -1271,12 +1271,6 @@ model SubscriptionPlan {
   /// File upload limit (in MB)
   fileUploadLimit      Int     @default(-1) @map("file_upload_limit")
 
-  // ========== Schedule Limits ==========
-  // Maximum number of active schedules allowed
-  maxSchedules    Int @default(1) @map("max_schedules")
-  // Default priority for scheduled tasks (1=High, 5=Low)
-  defaultPriority Int @default(5) @map("default_priority")
-
   /// Create timestamp
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz()
   /// Update timestamp
