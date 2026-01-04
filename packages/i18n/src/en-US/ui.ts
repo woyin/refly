@@ -1933,7 +1933,7 @@ const translations = {
       oauthTimeout: 'Authorization timeout, please try again',
       authorizing: 'Authorizing...',
     },
-    workflowDepencency: {
+    workflowDependency: {
       title: 'Workflow readiness check',
       subtitle: 'Fix the following issues before running',
       description: 'Tool dependencies will be displayed here',
@@ -1951,7 +1951,8 @@ const translations = {
       notAuthorized: 'Tool not authorized',
       mcpUnavailable: 'Tool is unavailable',
       notEnoughCredits: 'Not enough credits to run',
-      requiredInputNotFilled: 'Required input not filled: {{input_name}}',
+      requiredInputNotFilled: 'Required input not filled',
+      inputName: '{{input_name}}',
       youAreAwesome: 'You are awesome!',
       everythingIsSet: 'Everything is set for a smooth run',
     },
@@ -4249,6 +4250,7 @@ const translations = {
     status: {
       on: 'ON',
       off: 'OFF',
+      error: 'ERR',
     },
     weekdays: 'Weekdays',
     selectWeekdays: 'Select weekdays',
@@ -4269,6 +4271,7 @@ const translations = {
     updateSuccess: 'Schedule updated successfully',
     deleteSuccess: 'Schedule deleted successfully',
     deactivateSuccess: 'Schedule deactivated successfully',
+    deactivateError: 'Failed to deactivate schedule',
     saveFailed: 'Failed to save schedule',
     deleteFailed: 'Failed to delete schedule',
     viewSchedules: 'View Schedules',
@@ -4286,6 +4289,7 @@ const translations = {
       sat: 'Sat',
       sun: 'Sun',
     },
+    selectDate: 'Select Date',
     runNow: 'Run Now',
     triggerSuccess: 'Schedule triggered successfully',
     triggerFailed: 'Failed to trigger schedule',
