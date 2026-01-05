@@ -136,15 +136,15 @@ describe('ScheduleEventListener', () => {
       };
 
       // Mock getScheduleRecord (first call - returns uid only)
-      jest.spyOn(prismaService.workflowScheduleRecord, 'findUnique').mockResolvedValueOnce({
-        uid: 'user-1',
-      } as any);
+      // First call: getScheduleRecord - returns uid only (has select field)
+      // Second call: sendEmail - returns full schedule record (no select)
+      jest
+        .spyOn(prismaService.workflowScheduleRecord, 'findUnique')
+        .mockResolvedValueOnce({ uid: 'user-1' } as any)
+        .mockResolvedValueOnce(mockScheduleRecord as any);
 
       // Mock sendEmail calls
       jest.spyOn(prismaService.user, 'findUnique').mockResolvedValue(mockUser as any);
-      jest.spyOn(prismaService.workflowScheduleRecord, 'findUnique').mockResolvedValueOnce({
-        ...mockScheduleRecord,
-      } as any);
       jest.spyOn(prismaService.workflowSchedule, 'findUnique').mockResolvedValue({
         scheduleId: 'schedule-1',
         cronExpression: '0 8 * * *',
@@ -221,9 +221,6 @@ describe('ScheduleEventListener', () => {
         'schedule-record-1',
       );
 
-      jest.spyOn(prismaService.workflowScheduleRecord, 'findUnique').mockResolvedValueOnce({
-        uid: 'user-1',
-      } as any);
       jest
         .spyOn(creditService, 'countExecutionCreditUsageByExecutionId')
         .mockRejectedValueOnce(new Error('Credit calculation failed'));
@@ -235,10 +232,14 @@ describe('ScheduleEventListener', () => {
         nickname: 'Test User',
       };
       jest.spyOn(prismaService.user, 'findUnique').mockResolvedValue(mockUser as any);
-      jest.spyOn(prismaService.workflowScheduleRecord, 'findUnique').mockResolvedValueOnce({
-        scheduleRecordId: 'schedule-record-1',
-        workflowTitle: 'My Workflow',
-      } as any);
+      // Mock findUnique calls: first for getScheduleRecord, second for sendEmail
+      jest
+        .spyOn(prismaService.workflowScheduleRecord, 'findUnique')
+        .mockResolvedValueOnce({ uid: 'user-1' } as any)
+        .mockResolvedValueOnce({
+          scheduleRecordId: 'schedule-record-1',
+          workflowTitle: 'My Workflow',
+        } as any);
       jest.spyOn(prismaService.workflowSchedule, 'findUnique').mockResolvedValue({
         scheduleId: 'schedule-1',
         cronExpression: '0 8 * * *',
@@ -298,15 +299,15 @@ describe('ScheduleEventListener', () => {
       };
 
       // Mock getScheduleRecord (first call - returns uid only)
-      jest.spyOn(prismaService.workflowScheduleRecord, 'findUnique').mockResolvedValueOnce({
-        uid: 'user-1',
-      } as any);
+      // First call: getScheduleRecord - returns uid only (has select field)
+      // Second call: sendEmail - returns full schedule record (no select)
+      jest
+        .spyOn(prismaService.workflowScheduleRecord, 'findUnique')
+        .mockResolvedValueOnce({ uid: 'user-1' } as any)
+        .mockResolvedValueOnce(mockScheduleRecord as any);
 
       // Mock sendEmail calls
       jest.spyOn(prismaService.user, 'findUnique').mockResolvedValue(mockUser as any);
-      jest.spyOn(prismaService.workflowScheduleRecord, 'findUnique').mockResolvedValueOnce({
-        ...mockScheduleRecord,
-      } as any);
       jest.spyOn(prismaService.workflowSchedule, 'findUnique').mockResolvedValue({
         scheduleId: 'schedule-1',
         cronExpression: '0 8 * * *',
@@ -365,9 +366,6 @@ describe('ScheduleEventListener', () => {
         'schedule-record-1',
       );
 
-      jest.spyOn(prismaService.workflowScheduleRecord, 'findUnique').mockResolvedValueOnce({
-        uid: 'user-1',
-      } as any);
       jest.spyOn(redisService, 'decr').mockRejectedValueOnce(new Error('Redis error'));
 
       // Mock sendEmail calls
@@ -377,10 +375,14 @@ describe('ScheduleEventListener', () => {
         nickname: 'Test User',
       };
       jest.spyOn(prismaService.user, 'findUnique').mockResolvedValue(mockUser as any);
-      jest.spyOn(prismaService.workflowScheduleRecord, 'findUnique').mockResolvedValueOnce({
-        scheduleRecordId: 'schedule-record-1',
-        workflowTitle: 'My Workflow',
-      } as any);
+      // Mock findUnique calls: first for getScheduleRecord, second for sendEmail
+      jest
+        .spyOn(prismaService.workflowScheduleRecord, 'findUnique')
+        .mockResolvedValueOnce({ uid: 'user-1' } as any)
+        .mockResolvedValueOnce({
+          scheduleRecordId: 'schedule-record-1',
+          workflowTitle: 'My Workflow',
+        } as any);
       jest.spyOn(prismaService.workflowSchedule, 'findUnique').mockResolvedValue({
         scheduleId: 'schedule-1',
         cronExpression: '0 8 * * *',

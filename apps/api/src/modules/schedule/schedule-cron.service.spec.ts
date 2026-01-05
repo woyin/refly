@@ -188,10 +188,8 @@ describe('ScheduleCronService', () => {
       };
       prismaService.workflowSchedule.findMany = jest.fn().mockResolvedValue([mockSchedule]);
       prismaService.workflowSchedule.update = jest.fn().mockResolvedValue(mockSchedule);
-      prismaService.workflowScheduleRecord.findFirst = jest
-        .fn()
-        .mockResolvedValueOnce(null) // First call: check for running records
-        .mockResolvedValueOnce(existingRecord); // Second call: find scheduled record
+      // Only one call to findFirst - to find scheduled record
+      prismaService.workflowScheduleRecord.findFirst = jest.fn().mockResolvedValue(existingRecord);
       prismaService.workflowScheduleRecord.update = jest.fn().mockResolvedValue({});
       prismaService.subscription.findFirst = jest.fn().mockResolvedValue({ uid: 'user-789' });
       prismaService.workflowSchedule.count = jest.fn().mockResolvedValue(1);
@@ -208,6 +206,13 @@ describe('ScheduleCronService', () => {
             triggeredAt: expect.any(Date),
           }),
         }),
+      );
+      // Verify createOrUpdateScheduledRecord is called for next execution
+      expect(scheduleService.createOrUpdateScheduledRecord).toHaveBeenCalledWith(
+        mockSchedule.uid,
+        mockSchedule.scheduleId,
+        mockSchedule.canvasId,
+        expect.any(Date),
       );
     });
 
@@ -302,29 +307,31 @@ describe('ScheduleCronService', () => {
       );
     });
 
-    it('should skip execution if same schedule has running task', async () => {
-      const runningRecord = {
-        scheduleRecordId: 'running-record',
-        status: 'processing',
-      };
+    it('should create pending record and add to queue even if schedule has running task', async () => {
+      // Note: The cron service doesn't check for running tasks - it just triggers schedules
+      // Concurrency control is handled in the processor, not here
       prismaService.workflowSchedule.findMany = jest.fn().mockResolvedValue([mockSchedule]);
-      prismaService.workflowScheduleRecord.findFirst = jest.fn().mockResolvedValue(runningRecord);
+      prismaService.workflowScheduleRecord.findFirst = jest.fn().mockResolvedValue(null);
       prismaService.workflowScheduleRecord.create = jest.fn().mockResolvedValue({});
       prismaService.subscription.findFirst = jest.fn().mockResolvedValue({ uid: 'user-789' });
       prismaService.workflowSchedule.count = jest.fn().mockResolvedValue(1);
       prismaService.canvas.findUnique = jest.fn().mockResolvedValue({ title: 'Test Canvas' });
+      priorityService.calculateExecutionPriority = jest.fn().mockResolvedValue(5);
+      scheduleService.createOrUpdateScheduledRecord = jest.fn().mockResolvedValue(undefined);
 
       await service.scanAndTriggerSchedules();
 
+      // The implementation creates a pending record and adds to queue
+      // The processor will handle the concurrency check later
       expect(prismaService.workflowScheduleRecord.create).toHaveBeenCalledWith(
         expect.objectContaining({
           data: expect.objectContaining({
-            status: 'failed',
+            status: 'pending',
             workflowTitle: 'Test Canvas',
           }),
         }),
       );
-      expect(mockQueue.add).not.toHaveBeenCalled();
+      expect(mockQueue.add).toHaveBeenCalled();
     });
 
     it('should auto-disable excess schedules when quota exceeded', async () => {
