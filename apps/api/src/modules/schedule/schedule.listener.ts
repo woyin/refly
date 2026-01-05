@@ -194,7 +194,7 @@ export class ScheduleEventListener {
         where: { scheduleRecordId: event.scheduleId },
       });
       const scheduleName = scheduleRecord?.workflowTitle || 'Scheduled Workflow';
-      const nextRunTime = await this.calculateNextRunTime(scheduleRecord?.scheduleId);
+      const { nextRunTime, timezone } = await this.calculateNextRunTime(scheduleRecord?.scheduleId);
 
       const scheduleRecordId = scheduleRecord?.scheduleRecordId || '';
       const origin = this.config.get<string>('origin');
@@ -203,7 +203,7 @@ export class ScheduleEventListener {
       const emailData = {
         userName: fullUser.nickname || 'User',
         scheduleName,
-        runTime: formatDateTime(new Date()),
+        runTime: formatDateTime(new Date(), timezone),
         nextRunTime,
         schedulesLink: runDetailsLink,
         runDetailsLink,
@@ -232,30 +232,37 @@ export class ScheduleEventListener {
 
   /**
    * Calculate next run time from schedule cron expression
+   * Returns both the formatted time string and the timezone for consistent formatting
    */
-  private async calculateNextRunTime(scheduleId: string | undefined): Promise<string> {
+  private async calculateNextRunTime(
+    scheduleId: string | undefined,
+  ): Promise<{ nextRunTime: string; timezone: string }> {
+    const defaultTimezone = 'Asia/Shanghai';
+
     if (!scheduleId) {
-      return 'Check Dashboard';
+      return { nextRunTime: 'Check Dashboard', timezone: defaultTimezone };
     }
 
     const schedule = await this.prisma.workflowSchedule.findUnique({
       where: { scheduleId },
     });
 
+    const timezone = schedule?.timezone || defaultTimezone;
+
     if (!schedule?.cronExpression) {
-      return 'Check Dashboard';
+      return { nextRunTime: 'Check Dashboard', timezone };
     }
 
     try {
       const interval = CronExpressionParser.parse(schedule.cronExpression, {
-        tz: schedule.timezone || 'Asia/Shanghai',
+        tz: timezone,
       });
-      return formatDateTime(interval.next().toDate());
+      return { nextRunTime: formatDateTime(interval.next().toDate(), timezone), timezone };
     } catch (err: any) {
       this.logger.warn(
         `Failed to calculate next run time for schedule ${scheduleId}: ${err?.message}`,
       );
-      return 'Check Dashboard';
+      return { nextRunTime: 'Check Dashboard', timezone };
     }
   }
 
@@ -264,7 +271,7 @@ export class ScheduleEventListener {
    *
    * When a canvas is deleted, we need to:
    * 1. Soft-delete and disable all associated WorkflowSchedule records
-   * 2. Update pending/scheduled records to 'skipped' status
+   * 2. Update pending/scheduled records to 'failed' status
    * 3. Leave processing/running records as-is (they will complete normally, but won't be rescheduled)
    *
    * Note: We don't interrupt processing/running tasks because:
@@ -303,7 +310,7 @@ export class ScheduleEventListener {
         },
       });
 
-      // 3. Update pending/scheduled records to 'skipped' status
+      // 3. Update pending/scheduled records to 'failed' status
       // Note: We do NOT update 'processing' or 'running' records because:
       // - They are currently executing and should complete their execution
       // - The workflow.completed/workflow.failed events will handle their final status
@@ -314,7 +321,7 @@ export class ScheduleEventListener {
           status: { in: ['pending', 'scheduled'] },
         },
         data: {
-          status: 'skipped',
+          status: 'failed',
           failureReason: ScheduleFailureReason.CANVAS_DELETED,
           errorDetails: JSON.stringify({
             reason: 'Canvas was deleted, schedule has been released',
@@ -339,7 +346,7 @@ export class ScheduleEventListener {
       }
 
       this.logger.log(
-        `Successfully released schedules for canvas ${canvasId}: ${updateResult.count} pending records skipped`,
+        `Successfully released schedules for canvas ${canvasId}: ${updateResult.count} pending records failed`,
       );
     } catch (error: any) {
       this.logger.error(`Failed to release schedules for canvas ${canvasId}: ${error?.message}`);

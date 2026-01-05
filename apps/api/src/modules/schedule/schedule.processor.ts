@@ -190,25 +190,28 @@ export class ScheduleProcessor extends WorkerHost {
           try {
             const redisKey = `${SCHEDULE_REDIS_KEYS.USER_CONCURRENT_PREFIX}${uid}`;
             await this.redisService.decr(redisKey);
-            this.logger.debug(`Rolled back Redis counter for user ${uid} (schedule skipped)`);
+            this.logger.debug(
+              `Rolled back Redis counter for user ${uid} (schedule deleted/disabled)`,
+            );
           } catch (redisError) {
             this.logger.warn(`Failed to rollback Redis counter for user ${uid}`, redisError);
           }
         }
 
-        // Record skipped metric
+        // Record failed metric (schedule deleted/disabled)
         const failureReason = schedule?.deletedAt
           ? ScheduleFailureReason.SCHEDULE_DELETED
           : ScheduleFailureReason.SCHEDULE_DISABLED;
-        this.metrics.execution.skipped(
+        this.metrics.execution.fail(
+          'cron',
           schedule?.deletedAt ? 'schedule_deleted' : 'schedule_disabled',
         );
-        // Update WorkflowScheduleRecord to 'skipped' if exists
+        // Update WorkflowScheduleRecord to 'failed' if exists
         if (existingRecordId) {
           await this.prisma.workflowScheduleRecord.update({
             where: { scheduleRecordId: existingRecordId },
             data: {
-              status: 'skipped',
+              status: 'failed',
               failureReason,
               errorDetails: JSON.stringify({
                 reason: schedule?.deletedAt
@@ -394,13 +397,14 @@ export class ScheduleProcessor extends WorkerHost {
           // Send Email
           if (fullUser.email) {
             // Calculate next run time from cron expression
+            const timezone = schedule.timezone || 'Asia/Shanghai';
             let nextRunTime: string | undefined;
             if (schedule.cronExpression) {
               try {
                 const interval = CronExpressionParser.parse(schedule.cronExpression, {
-                  tz: schedule.timezone || 'Asia/Shanghai',
+                  tz: timezone,
                 });
-                nextRunTime = formatDateTime(interval.next().toDate());
+                nextRunTime = formatDateTime(interval.next().toDate(), timezone);
               } catch (err) {
                 this.logger.warn(`Failed to calculate next run time for email: ${err}`);
               }
@@ -541,14 +545,15 @@ export class ScheduleProcessor extends WorkerHost {
               where: { scheduleId },
             });
 
-            // 3. Calculate next run
+            // 3. Calculate next run with timezone
+            const timezone = schedule?.timezone || 'Asia/Shanghai';
             let nextRunTime = 'Check Dashboard';
             if (schedule?.cronExpression) {
               try {
                 const interval = CronExpressionParser.parse(schedule.cronExpression, {
-                  tz: schedule.timezone || 'Asia/Shanghai',
+                  tz: timezone,
                 });
-                nextRunTime = formatDateTime(interval.next().toDate());
+                nextRunTime = formatDateTime(interval.next().toDate(), timezone);
               } catch (_) {
                 // Ignore cron parse error
               }
@@ -558,7 +563,7 @@ export class ScheduleProcessor extends WorkerHost {
             const { subject, html } = generateScheduleFailedEmail({
               userName: fullUser.nickname || 'User',
               scheduleName: schedule?.name || 'Scheduled Workflow',
-              runTime: formatDateTime(new Date()),
+              runTime: formatDateTime(new Date(), timezone),
               nextRunTime,
               schedulesLink: `${this.config.get<string>('origin')}/run-history/${scheduleRecordId}`,
               runDetailsLink: `${this.config.get<string>('origin')}/run-history/${scheduleRecordId}`,
