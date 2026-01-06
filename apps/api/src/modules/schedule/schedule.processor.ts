@@ -102,6 +102,29 @@ export class ScheduleProcessor extends WorkerHost {
       let incrSucceeded = false;
 
       try {
+        // Check if Redis counter exists, if not recover from database
+        const counterExists = await this.redisService.existsBoolean(redisKey);
+        if (!counterExists) {
+          // Redis counter doesn't exist (e.g., after Redis restart)
+          // Recover from database: count actual running records
+          const actualRunningCount = await this.prisma.workflowScheduleRecord.count({
+            where: {
+              uid,
+              status: { in: ['processing', 'running'] },
+            },
+          });
+
+          // Initialize Redis counter with actual database count
+          await this.redisService.setex(
+            redisKey,
+            this.scheduleConfig.userConcurrentTtl,
+            String(actualRunningCount),
+          );
+          this.logger.debug(
+            `Redis counter recovered from DB for user ${uid}: ${actualRunningCount} running records`,
+          );
+        }
+
         // Atomically increment counter
         const currentCount = await this.redisService.incr(redisKey);
         incrSucceeded = true;
@@ -160,16 +183,26 @@ export class ScheduleProcessor extends WorkerHost {
           throw new DelayedError();
         }
 
-        // DB check passed, try to increment Redis for tracking (best-effort)
+        // DB check passed, try to recover Redis counter from database
+        // Note: runningCount already calculated above, reuse it to avoid duplicate query
         try {
+          // Set Redis counter to match database state (recovery from Redis restart)
+          // Then increment for this job
+          await this.redisService.setex(
+            redisKey,
+            this.scheduleConfig.userConcurrentTtl,
+            String(runningCount),
+          );
           await this.redisService.incr(redisKey);
-          await this.redisService.expire(redisKey, this.scheduleConfig.userConcurrentTtl);
           redisCounterActive = true;
-          this.logger.debug(`Redis recovered, counter incremented for user ${uid}`);
-        } catch {
+          this.logger.debug(
+            `Redis recovered, counter restored from DB (${runningCount}) and incremented for user ${uid}`,
+          );
+        } catch (recoverError) {
           // Redis still unavailable, continue without Redis tracking
           this.logger.warn(
             `Redis still unavailable for user ${uid}, continuing without Redis tracking`,
+            recoverError,
           );
         }
       }
@@ -259,6 +292,30 @@ export class ScheduleProcessor extends WorkerHost {
           scheduleRecordId = existingRecord.scheduleRecordId;
           this.logger.log(`Found existing record ${scheduleRecordId} for execution`);
         }
+      }
+
+      // 3.1 Check if the current record has already failed
+      // This prevents re-execution of already failed records
+      if (existingRecord && existingRecord.status === 'failed') {
+        this.logger.warn(
+          `Schedule record ${scheduleRecordId} has already failed with reason ${existingRecord.failureReason}, skipping execution for job ${job.id}`,
+        );
+
+        // Rollback Redis counter since we're not proceeding with execution
+        if (redisCounterActive) {
+          try {
+            const redisKey = `${SCHEDULE_REDIS_KEYS.USER_CONCURRENT_PREFIX}${uid}`;
+            await this.redisService.decr(redisKey);
+            this.logger.debug(`Rolled back Redis counter for user ${uid} (record already failed)`);
+          } catch (redisError) {
+            this.logger.warn(`Failed to rollback Redis counter for user ${uid}`, redisError);
+          }
+        }
+
+        // Record metric based on failure reason
+        const failureReason = existingRecord.failureReason || 'unknown_error';
+        this.metrics.execution.fail('cron', failureReason);
+        return null; // Exit gracefully without error
       }
 
       // 4. Create new WorkflowScheduleRecord only if no existing record was found
