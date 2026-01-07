@@ -34,7 +34,11 @@ import {
   GenericToolset,
 } from '@refly/openapi-schema';
 import { BaseSkill } from '@refly/skill-template';
-import { purgeContextForActionResult, purgeToolsets } from '@refly/canvas-common';
+import {
+  purgeContextForActionResult,
+  purgeToolsets,
+  purgeHistoryForActionResult,
+} from '@refly/canvas-common';
 import {
   genActionResultID,
   genSkillID,
@@ -47,6 +51,7 @@ import {
   getModelSceneFromMode,
 } from '@refly/utils';
 import { PrismaService } from '../common/prisma.service';
+import { RedisService, LockReleaseFn } from '../common/redis.service';
 import { QUEUE_SKILL, pick, QUEUE_CHECK_STUCK_ACTIONS } from '../../utils';
 import { InvokeSkillJobData, ModelConfigMap } from './skill.dto';
 import { CreditService } from '../credit/credit.service';
@@ -104,6 +109,7 @@ export class SkillService implements OnModuleInit {
 
   constructor(
     private readonly prisma: PrismaService,
+    private readonly redis: RedisService,
     private readonly config: ConfigService,
     private readonly credit: CreditService,
     private readonly providerService: ProviderService,
@@ -854,110 +860,134 @@ export class SkillService implements OnModuleInit {
     const isAutoModelRouted =
       !!actualProviderItemId && !!param.modelItemId && actualProviderItemId !== param.modelItemId;
 
-    const purgeResultHistory = (resultHistory: ActionResult[] = []) => {
-      // remove extra unnecessary fields from result history to save storage
-      if (!Array.isArray(resultHistory)) {
-        // Handle case where resultHistory might be a stringified array due to double stringify bug
-        if (typeof resultHistory === 'string') {
-          try {
-            const parsed = JSON.parse(resultHistory);
-            return Array.isArray(parsed) ? parsed.map((r) => pick(r, ['resultId', 'title'])) : [];
-          } catch {
-            return [];
-          }
-        }
-        return [];
-      }
-      return resultHistory?.map((r) => pick(r, ['resultId', 'title']));
-    };
+    // Acquire distributed lock to prevent concurrent actionResult creation with same resultId+version
+    // This prevents unique constraint violation on (result_id, version)
+    const lockKey = `skill:precheck:${resultId}`;
+    let releaseLock: LockReleaseFn | null = null;
 
-    if (existingResult) {
-      if (existingResult.pilotStepId) {
-        const result = await this.prisma.actionResult.update({
-          where: { pk: existingResult.pk },
+    try {
+      releaseLock = await this.redis.waitLock(lockKey, {
+        maxRetries: 10,
+        initialDelay: 50,
+        ttlSeconds: 30,
+        noThrow: true,
+      });
+
+      if (!releaseLock) {
+        this.logger.warn(`Failed to acquire lock for skillInvokePreCheck: resultId=${resultId}`);
+        // If we can't acquire the lock, we should still try to proceed
+        // but re-fetch the latest version to minimize conflict risk
+      }
+
+      // Re-fetch the latest version under lock to ensure we have the most recent state
+      const latestResult = await this.prisma.actionResult.findFirst({
+        where: { resultId },
+        orderBy: { version: 'desc' },
+      });
+
+      // Use the latest version from DB if available, otherwise use existingResult
+      const effectiveExistingResult = latestResult || existingResult;
+
+      if (effectiveExistingResult) {
+        if (effectiveExistingResult.pilotStepId) {
+          const result = await this.prisma.actionResult.update({
+            where: { pk: effectiveExistingResult.pk },
+            data: {
+              status: 'executing',
+            },
+          });
+          data.result = actionResultPO2DTO(result);
+          if (data.workflowExecutionId && data.workflowNodeExecutionId) {
+            data.result.workflowExecutionId = data.workflowExecutionId;
+            data.result.workflowNodeExecutionId = data.workflowNodeExecutionId;
+          }
+        } else {
+          const [result] = await this.prisma.$transaction([
+            this.prisma.actionResult.create({
+              data: {
+                resultId,
+                uid,
+                version: (effectiveExistingResult.version ?? 0) + 1,
+                type: 'skill',
+                tier: providerItem?.tier ?? '',
+                status: 'executing',
+                title: data.title || data.input?.query,
+                targetId: data.target?.entityId,
+                targetType: data.target?.entityType,
+                modelName,
+                actualProviderItemId,
+                isAutoModelRouted,
+                projectId: data.projectId ?? null,
+                errors: JSON.stringify([]),
+                input: JSON.stringify(data.input),
+                context: JSON.stringify(purgeContextForActionResult(data.context)),
+                tplConfig: JSON.stringify(data.tplConfig),
+                runtimeConfig: JSON.stringify(data.runtimeConfig),
+                history: JSON.stringify(purgeHistoryForActionResult(data.resultHistory)),
+                toolsets: JSON.stringify(purgeToolsets(data.toolsets)),
+                providerItemId: param.modelItemId,
+                copilotSessionId: data.copilotSessionId,
+                workflowExecutionId: data.workflowExecutionId,
+                workflowNodeExecutionId: data.workflowNodeExecutionId,
+              },
+            }),
+            // Delete existing step data
+            this.prisma.actionStep.updateMany({
+              where: { resultId },
+              data: { deletedAt: new Date() },
+            }),
+          ]);
+          data.result = actionResultPO2DTO(result);
+        }
+      } else {
+        const result = await this.prisma.actionResult.create({
           data: {
+            resultId,
+            uid,
+            version: 0,
+            tier: providerItem?.tier ?? '',
+            targetId: data.target?.entityId,
+            targetType: data.target?.entityType,
+            title: data.title || data.input?.query,
+            modelName,
+            actualProviderItemId,
+            isAutoModelRouted,
+            type: 'skill',
             status: 'executing',
+            projectId: data.projectId,
+            input: JSON.stringify(data.input),
+            context: JSON.stringify(purgeContextForActionResult(data.context)),
+            tplConfig: JSON.stringify(data.tplConfig),
+            runtimeConfig: JSON.stringify(data.runtimeConfig),
+            history: JSON.stringify(purgeHistoryForActionResult(data.resultHistory)),
+            toolsets: JSON.stringify(purgeToolsets(data.toolsets)),
+            providerItemId: param.modelItemId,
+            copilotSessionId: data.copilotSessionId,
+            workflowExecutionId: data.workflowExecutionId,
+            workflowNodeExecutionId: data.workflowNodeExecutionId,
           },
         });
         data.result = actionResultPO2DTO(result);
-        if (data.workflowExecutionId && data.workflowNodeExecutionId) {
-          data.result.workflowExecutionId = data.workflowExecutionId;
-          data.result.workflowNodeExecutionId = data.workflowNodeExecutionId;
-        }
-      } else {
-        const [result] = await this.prisma.$transaction([
-          this.prisma.actionResult.create({
-            data: {
-              resultId,
-              uid,
-              version: (existingResult.version ?? 0) + 1,
-              type: 'skill',
-              tier: providerItem?.tier ?? '',
-              status: 'executing',
-              title: data.title || data.input?.query,
-              targetId: data.target?.entityId,
-              targetType: data.target?.entityType,
-              modelName,
-              actualProviderItemId,
-              isAutoModelRouted,
-              projectId: data.projectId ?? null,
-              errors: JSON.stringify([]),
-              input: JSON.stringify(data.input),
-              context: JSON.stringify(purgeContextForActionResult(data.context)),
-              tplConfig: JSON.stringify(data.tplConfig),
-              runtimeConfig: JSON.stringify(data.runtimeConfig),
-              history: JSON.stringify(purgeResultHistory(data.resultHistory)),
-              toolsets: JSON.stringify(purgeToolsets(data.toolsets)),
-              providerItemId: param.modelItemId,
-              copilotSessionId: data.copilotSessionId,
-              workflowExecutionId: data.workflowExecutionId,
-              workflowNodeExecutionId: data.workflowNodeExecutionId,
-            },
-          }),
-          // Delete existing step data
-          this.prisma.actionStep.updateMany({
-            where: { resultId },
-            data: { deletedAt: new Date() },
-          }),
-        ]);
-        data.result = actionResultPO2DTO(result);
       }
-    } else {
-      const result = await this.prisma.actionResult.create({
-        data: {
-          resultId,
-          uid,
-          version: 0,
-          tier: providerItem?.tier ?? '',
-          targetId: data.target?.entityId,
-          targetType: data.target?.entityType,
-          title: data.title || data.input?.query,
-          modelName,
-          actualProviderItemId,
-          isAutoModelRouted,
-          type: 'skill',
-          status: 'executing',
-          projectId: data.projectId,
-          input: JSON.stringify(data.input),
-          context: JSON.stringify(purgeContextForActionResult(data.context)),
-          tplConfig: JSON.stringify(data.tplConfig),
-          runtimeConfig: JSON.stringify(data.runtimeConfig),
-          history: JSON.stringify(purgeResultHistory(data.resultHistory)),
-          toolsets: JSON.stringify(purgeToolsets(data.toolsets)),
-          providerItemId: param.modelItemId,
-          copilotSessionId: data.copilotSessionId,
-          workflowExecutionId: data.workflowExecutionId,
-          workflowNodeExecutionId: data.workflowNodeExecutionId,
-        },
-      });
-      data.result = actionResultPO2DTO(result);
-    }
 
-    return data;
+      return data;
+    } finally {
+      // Always release the lock
+      if (releaseLock) {
+        try {
+          await releaseLock();
+        } catch (lockError) {
+          this.logger.warn(
+            `Error releasing lock for skillInvokePreCheck: resultId=${resultId}, error=${lockError}`,
+          );
+        }
+      }
+    }
   }
 
   /**
    * Create a failed action result record for pre-check failures
+   * Uses distributed lock to prevent concurrent creation with same resultId+version
    */
   private async createFailedActionResult(
     resultId: string,
@@ -966,8 +996,14 @@ export class SkillService implements OnModuleInit {
     param: InvokeSkillRequest,
     routing?: { actualProviderItemId?: string | null; isAutoModelRouted?: boolean },
   ): Promise<void> {
+    // Acquire distributed lock to prevent concurrent actionResult creation
+    const lockKey = `skill:failed-result:${resultId}`;
+    let releaseLock: LockReleaseFn | null = null;
+
     try {
-      // Find the latest version for this resultId
+      releaseLock = await this.redis.acquireLock(lockKey, 10);
+
+      // Find the latest version for this resultId under lock
       const latestResult = await this.prisma.actionResult.findFirst({
         where: {
           resultId,
@@ -1014,11 +1050,11 @@ export class SkillService implements OnModuleInit {
           projectId: param.projectId,
           errors: JSON.stringify([errorMessage]),
           input: JSON.stringify(param.input ?? {}),
-          context: JSON.stringify(param.context ?? {}),
+          context: JSON.stringify(purgeContextForActionResult(param.context as SkillContext)),
           tplConfig: JSON.stringify(param.tplConfig ?? {}),
-          toolsets: JSON.stringify(param.toolsets ?? {}),
+          toolsets: JSON.stringify(purgeToolsets(param.toolsets ?? [])),
           runtimeConfig: JSON.stringify(param.runtimeConfig ?? {}),
-          history: JSON.stringify(Array.isArray(param.resultHistory) ? param.resultHistory : []),
+          history: JSON.stringify(purgeHistoryForActionResult(param.resultHistory ?? [])),
           providerItemId: param.modelItemId,
         },
       });
@@ -1031,6 +1067,17 @@ export class SkillService implements OnModuleInit {
         `Failed to create failed action result for resultId ${resultId}: ${error?.message}`,
       );
       // Don't throw error here to avoid masking the original error
+    } finally {
+      // Always release the lock
+      if (releaseLock) {
+        try {
+          await releaseLock();
+        } catch (lockError) {
+          this.logger.warn(
+            `Error releasing lock for createFailedActionResult: resultId=${resultId}, error=${lockError}`,
+          );
+        }
+      }
     }
   }
 
