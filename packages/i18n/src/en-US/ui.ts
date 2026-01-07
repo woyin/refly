@@ -4273,6 +4273,7 @@ const translations = {
     perRun: 'run',
     viewHistory: 'View History',
     saveSuccess: 'Schedule saved successfully',
+    dependencyError: 'Scheduled task saved, but the workflow still requires fixes',
     createSuccess: 'Schedule created successfully',
     updateSuccess: 'Schedule updated successfully',
     deleteSuccess: 'Schedule deleted successfully',
