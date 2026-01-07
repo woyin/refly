@@ -207,57 +207,6 @@ export class ScheduleProcessor extends WorkerHost {
         }
       }
 
-      // 2. Check if schedule still exists and is enabled
-      // This prevents execution of tasks for deleted/disabled schedules
-      const schedule = await this.prisma.workflowSchedule.findUnique({
-        where: { scheduleId },
-      });
-
-      if (!schedule || schedule.deletedAt || !schedule.isEnabled) {
-        this.logger.warn(
-          `Schedule ${scheduleId} is deleted/disabled, skipping execution for job ${job.id}`,
-        );
-
-        // Rollback Redis counter since we're not proceeding with execution
-        if (redisCounterActive) {
-          try {
-            const redisKey = `${SCHEDULE_REDIS_KEYS.USER_CONCURRENT_PREFIX}${uid}`;
-            await this.redisService.decr(redisKey);
-            this.logger.debug(
-              `Rolled back Redis counter for user ${uid} (schedule deleted/disabled)`,
-            );
-          } catch (redisError) {
-            this.logger.warn(`Failed to rollback Redis counter for user ${uid}`, redisError);
-          }
-        }
-
-        // Record failed metric (schedule deleted/disabled)
-        const failureReason = schedule?.deletedAt
-          ? ScheduleFailureReason.SCHEDULE_DELETED
-          : ScheduleFailureReason.SCHEDULE_DISABLED;
-        this.metrics.execution.fail(
-          'cron',
-          schedule?.deletedAt ? 'schedule_deleted' : 'schedule_disabled',
-        );
-        // Update WorkflowScheduleRecord to 'failed' if exists
-        if (existingRecordId) {
-          await this.prisma.workflowScheduleRecord.update({
-            where: { scheduleRecordId: existingRecordId },
-            data: {
-              status: 'failed',
-              failureReason,
-              errorDetails: JSON.stringify({
-                reason: schedule?.deletedAt
-                  ? 'Schedule was deleted before execution'
-                  : 'Schedule was disabled before execution',
-              }),
-              completedAt: new Date(),
-            },
-          });
-        }
-        return null; // Exit gracefully without error
-      }
-
       // 3. Create simple user object (only uid needed, avoid BigInt serialization issues)
       // Note: We don't query the full user object to avoid passing BigInt fields to queues
       const user = { uid };
@@ -315,6 +264,32 @@ export class ScheduleProcessor extends WorkerHost {
         // Record metric based on failure reason
         const failureReason = existingRecord.failureReason || 'unknown_error';
         this.metrics.execution.fail('cron', failureReason);
+        return null; // Exit gracefully without error
+      }
+
+      const schedule = await this.prisma.workflowSchedule.findUnique({
+        where: { scheduleId },
+      });
+
+      // Check if schedule exists (may have been deleted while job was queued)
+      if (!schedule) {
+        this.logger.warn(
+          `Schedule ${scheduleId} not found, likely deleted while job was queued. Skipping execution for job ${job.id}`,
+        );
+
+        // Rollback Redis counter since we're not proceeding with execution
+        if (redisCounterActive) {
+          try {
+            const redisKey = `${SCHEDULE_REDIS_KEYS.USER_CONCURRENT_PREFIX}${uid}`;
+            await this.redisService.decr(redisKey);
+            this.logger.debug(`Rolled back Redis counter for user ${uid} (schedule not found)`);
+          } catch (redisError) {
+            this.logger.warn(`Failed to rollback Redis counter for user ${uid}`, redisError);
+          }
+        }
+
+        // Record metric
+        this.metrics.execution.fail('cron', 'schedule_not_found');
         return null; // Exit gracefully without error
       }
 
@@ -621,15 +596,14 @@ export class ScheduleProcessor extends WorkerHost {
               }
             }
 
-            // 4. Use triggeredAt as runTime (when the workflow was triggered), fallback to scheduledAt or current time
-            const runTimeDate =
-              scheduleRecord?.triggeredAt || scheduleRecord?.scheduledAt || new Date();
+            // 4. Use scheduledAt as the run time
+            const scheduledAtDate = scheduleRecord?.scheduledAt || new Date();
 
             // 5. Send email
             const { subject, html } = generateScheduleFailedEmail({
               userName: fullUser.nickname || 'User',
               scheduleName: schedule?.name || 'Scheduled Workflow',
-              runTime: formatDateTime(runTimeDate, timezone),
+              scheduledAt: formatDateTime(scheduledAtDate, timezone),
               nextRunTime,
               schedulesLink: `${this.config.get<string>('origin')}/run-history/${scheduleRecordId}`,
               runDetailsLink: `${this.config.get<string>('origin')}/run-history/${scheduleRecordId}`,

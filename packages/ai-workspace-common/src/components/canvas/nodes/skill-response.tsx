@@ -16,7 +16,7 @@ import { useActionResultStore, useActionResultStoreShallow } from '@refly/stores
 import { genNodeEntityId } from '@refly/utils/id';
 import { Position, useReactFlow } from '@xyflow/react';
 import { message, Typography } from 'antd';
-import { memo, useCallback, useEffect, useMemo, useState } from 'react';
+import { memo, useCallback, useEffect, useMemo, useState, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { CustomHandle } from './shared/custom-handle';
 import { getNodeCommonStyles } from './shared/styles';
@@ -30,6 +30,7 @@ import {
 import { useActionPolling } from '@refly-packages/ai-workspace-common/hooks/canvas/use-action-polling';
 import { useGetNodeConnectFromDragCreateInfo } from '@refly-packages/ai-workspace-common/hooks/canvas/use-get-node-connect';
 import { usePilotRecovery } from '@refly-packages/ai-workspace-common/hooks/pilot/use-pilot-recovery';
+import { useFetchActionResult } from '@refly-packages/ai-workspace-common/hooks/canvas/use-fetch-action-result';
 import {
   useGetCreditBalance,
   useGetCreditUsageByResultId,
@@ -79,12 +80,20 @@ const NodeStatusBar = memo(
     error?: string;
     version?: number;
   }) => {
+    // Get result version from store as fallback to ensure we use the latest version
+    const { result } = useActionResultStoreShallow((state) => ({
+      result: state.resultMap[resultId],
+    }));
+
+    // Prefer result.version over prop version to ensure we use the latest version
+    const effectiveVersion = result?.version ?? version;
+
     // Query credit usage when skill is completed
     const { data: creditUsage } = useGetCreditUsageByResultId(
       {
         query: {
           resultId: resultId ?? '',
-          version: version?.toString(),
+          version: effectiveVersion?.toString(),
         },
       },
       undefined,
@@ -305,6 +314,7 @@ export const SkillResponseNode = memo(
     const currentSkill = actionMeta || selectedSkill;
 
     const { startPolling, resetFailedState } = useActionPolling();
+    const { fetchActionResult } = useFetchActionResult();
     const { result, isStreaming, removeStreamResult, removeActionResult } =
       useActionResultStoreShallow((state) => ({
         result: state.resultMap[entityId],
@@ -407,6 +417,41 @@ export const SkillResponseNode = memo(
       removeStreamResult,
       readonly,
     ]);
+
+    // In readonly mode, fetch latest result once on mount to ensure node state is up-to-date
+    // Use ref to track if we've already fetched for this entityId to prevent duplicate requests
+    const fetchedEntityIdRef = useRef<string | null>(null);
+    useEffect(() => {
+      // Only fetch in readonly mode, when entityId exists, no shareId, and we haven't fetched for this entityId
+      if (!readonly || !entityId || shareId || fetchedEntityIdRef.current === entityId) {
+        return;
+      }
+
+      // Check if result already exists and is up-to-date
+      const nodeVersion = data?.metadata?.version;
+      const resultVersion = result?.version;
+
+      // Only fetch if:
+      // 1. No result exists (need to fetch to get the latest state), OR
+      // 2. Both versions are defined but don't match (node might have newer version, need to verify)
+      // Skip fetch if result exists and versions match (already up-to-date)
+      // Skip fetch if nodeVersion is undefined but result exists (let sync useEffect handle it)
+      const shouldFetch =
+        !result ||
+        (nodeVersion !== undefined && resultVersion !== undefined && resultVersion !== nodeVersion);
+
+      if (shouldFetch) {
+        fetchedEntityIdRef.current = entityId;
+        // Fetch once when component mounts in readonly mode
+        fetchActionResult(entityId, {
+          silent: true,
+          nodeToUpdate: { id, data } as any,
+        });
+      } else {
+        // Mark as fetched even if we skipped, to avoid unnecessary checks
+        fetchedEntityIdRef.current = entityId;
+      }
+    }, [readonly, entityId, shareId, fetchActionResult, id, result, data?.metadata?.version]);
 
     // Listen to pilot step status changes and sync with node status
     useEffect(() => {

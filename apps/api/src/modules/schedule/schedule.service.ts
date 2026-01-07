@@ -23,9 +23,11 @@ import {
   getScheduleConfig,
   type ScheduleConfig,
   ScheduleFailureReason,
+  ScheduleAnalyticsEvents,
 } from './schedule.constants';
 import { SchedulePriorityService } from './schedule-priority.service';
 import { ScheduleCronService } from './schedule-cron.service';
+import { logEvent } from '@refly/telemetry-node';
 
 @Injectable()
 export class ScheduleService {
@@ -118,32 +120,31 @@ export class ScheduleService {
   }
 
   /**
-   * Check if schedule should be immediately triggered after creation/update
-   * If nextRunAt is in the past (already due), trigger immediately
-   * to avoid waiting for the next cron scan
-   * @param scheduleId Schedule ID to check
-   * @param nextRunAt Next run time to check
+   * Track analytics event using telemetry service
+   * @param eventName - Event name from ScheduleAnalyticsEvents
+   * @param uid - User ID
+   * @param metadata - Event metadata
    */
-  private async checkAndTriggerIfNeeded(scheduleId: string, nextRunAt: Date | null): Promise<void> {
-    if (!nextRunAt) {
-      return;
-    }
-
-    const now = new Date();
-    const timeUntilNextRun = nextRunAt.getTime() - now.getTime();
-
-    // Only trigger immediately if nextRunAt is already in the past (already due)
-    // Future schedules will be handled by the regular cron scan (runs every minute)
-    // This avoids unnecessary DB queries for schedules that haven't reached their execution time
-    if (timeUntilNextRun <= 0) {
-      // Trigger asynchronously to avoid blocking the API response
-      // Use setImmediate to ensure it runs after the current operation completes
-      setImmediate(() => {
-        this.cronService.checkAndTriggerSchedule(scheduleId).catch((error) => {
-          // Log error but don't fail the create/update operation
-          this.logger.error(`Failed to immediately trigger schedule ${scheduleId}`, error);
-        });
+  private async trackScheduleEvent(
+    eventName: string,
+    uid: string,
+    metadata?: Record<string, any>,
+  ): Promise<void> {
+    try {
+      const user = await this.prisma.user.findUnique({
+        where: { uid },
+        select: { uid: true, email: true },
       });
+
+      if (user) {
+        logEvent(user, eventName, undefined, metadata);
+        this.logger.debug(`Analytics event: ${eventName}`, { uid, ...metadata });
+      } else {
+        this.logger.warn(`User not found for analytics event ${eventName}, uid: ${uid}`);
+      }
+    } catch (error) {
+      // Don't fail the operation if analytics fails
+      this.logger.error(`Failed to track analytics event ${eventName}:`, error);
     }
   }
 
@@ -171,6 +172,13 @@ export class ScheduleService {
       // Check quota if enabling
       if (isEnabled) {
         await this.checkScheduleQuota(uid, existingSchedule.scheduleId);
+        // Track schedule enable event
+        await this.trackScheduleEvent(ScheduleAnalyticsEvents.SCHEDULE_ENABLE, uid, {
+          scheduleId: existingSchedule.scheduleId,
+          canvasId: dto.canvasId,
+          cronExpression: dto.cronExpression,
+          timezone: dto.timezone || existingSchedule.timezone || 'Asia/Shanghai',
+        });
       }
 
       // Calculate next run time
@@ -221,22 +229,28 @@ export class ScheduleService {
         );
       }
 
-      // Check if schedule should be immediately triggered (if nextRunAt is very soon)
-      if (isEnabled && nextRunAt) {
-        await this.checkAndTriggerIfNeeded(existingSchedule.scheduleId, nextRunAt);
-      }
-
       return this.excludePk(restored);
     }
 
     // 5. Determine if schedule should be enabled
     const isEnabled = dto.isEnabled ?? existingSchedule?.isEnabled ?? false;
+    const wasEnabled = existingSchedule?.isEnabled ?? false;
 
-    // 6. Check Plan Quota (only if enabling the schedule from disabled state)
-    if (existingSchedule?.isEnabled === false && isEnabled === true) {
-      await this.checkScheduleQuota(uid, existingSchedule.scheduleId);
-    } else if (!existingSchedule && isEnabled) {
-      await this.checkScheduleQuota(uid);
+    // 6. Check Plan Quota (always check when enabling, regardless of previous state)
+    if (isEnabled === true) {
+      // Only pass scheduleId if existingSchedule exists
+      const scheduleIdToExclude = existingSchedule?.scheduleId;
+      await this.checkScheduleQuota(uid, scheduleIdToExclude);
+      // Track schedule enable event only when transitioning from disabled to enabled
+      if (!wasEnabled) {
+        const timezone = dto.timezone || existingSchedule?.timezone || 'Asia/Shanghai';
+        await this.trackScheduleEvent(ScheduleAnalyticsEvents.SCHEDULE_ENABLE, uid, {
+          scheduleId: existingSchedule?.scheduleId,
+          canvasId: dto.canvasId,
+          cronExpression: dto.cronExpression,
+          timezone,
+        });
+      }
     }
 
     // 7. Calculate next run time
@@ -299,23 +313,12 @@ export class ScheduleService {
         },
       });
 
-      // Update canvas updatedAt to reflect schedule modification
-      await this.prisma.canvas.update({
-        where: { canvasId: dto.canvasId },
-        data: { updatedAt: new Date() },
-      });
-
       // Update or create scheduled record if enabled and has nextRunAt
       if (isEnabled && nextRunAt) {
         await this.createOrUpdateScheduledRecord(uid, scheduleId, dto.canvasId, nextRunAt);
       } else {
         // Delete scheduled record if disabled or no nextRunAt
         await this.deleteScheduledRecord(scheduleId);
-      }
-
-      // Check if schedule should be immediately triggered (if nextRunAt is very soon)
-      if (isEnabled && nextRunAt) {
-        await this.checkAndTriggerIfNeeded(scheduleId, nextRunAt);
       }
 
       return this.excludePk(updated);
@@ -336,20 +339,9 @@ export class ScheduleService {
           },
         });
 
-        // Update canvas updatedAt to reflect schedule creation
-        await this.prisma.canvas.update({
-          where: { canvasId: dto.canvasId },
-          data: { updatedAt: new Date() },
-        });
-
         // Create scheduled record if enabled and has nextRunAt
         if (isEnabled && nextRunAt) {
           await this.createOrUpdateScheduledRecord(uid, scheduleId, dto.canvasId, nextRunAt);
-        }
-
-        // Check if schedule should be immediately triggered (if nextRunAt is very soon)
-        if (isEnabled && nextRunAt) {
-          await this.checkAndTriggerIfNeeded(scheduleId, nextRunAt);
         }
 
         return this.excludePk(schedule);
