@@ -1980,6 +1980,8 @@ model DriveFileParseCache {
   parseStatus       String   @map("parse_status")
   /// Parse error (JSON)
   parseError        String?  @map("parse_error")
+  /// Metadata (JSON) - stores lambdaJobId, etc.
+  metadata          String?  @map("metadata")
   /// Create timestamp
   createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz()
   /// Update timestamp
@@ -2411,4 +2413,52 @@ model WorkflowScheduleRecord {
   @@index([uid, status, completedAt(sort: Desc)]) // Priority calculation optimization (replaced createdAt)
   @@index([uid, status, scheduledAt(sort: Desc)]) // List query optimization
   @@map("workflow_schedule_records")
+}
+
+/// Lambda job execution record for tracking async file processing tasks
+model LambdaJob {
+  /// Primary key
+  pk          BigInt   @id @default(autoincrement())
+  /// Unique job identifier
+  jobId       String   @unique @map("job_id")
+  /// Job type: document-ingest, image-transform, document-render, video-analyze, file-upload
+  type        String   @map("type")
+  /// User ID
+  uid         String   @map("uid")
+  /// Job status: pending, processing, success, failed
+  status      String   @default("pending") @map("status")
+  /// Original file name
+  name        String?  @map("name")
+  /// MIME type
+  mimeType    String?  @map("mime_type")
+  /// S3 storage key for result
+  storageKey  String?  @map("storage_key")
+  /// Storage type: temporary (lambda-output/) or permanent (drive/)
+  storageType String   @default("temporary") @map("storage_type")
+  /// Related resource ID
+  resourceId  String?  @map("resource_id")
+  /// Related drive file ID
+  fileId      String?  @map("file_id")
+  /// Canvas ID for context
+  canvasId    String?  @map("canvas_id")
+  /// Tool name (e.g., GMAIL_FETCH_ATTACHMENT)
+  toolName    String?  @map("tool_name")
+  /// Error message if failed
+  error       String?  @map("error")
+  /// Processing duration in milliseconds
+  durationMs  Int?     @map("duration_ms")
+  /// Metadata (JSON)
+  metadata    String?  @map("metadata")
+  /// Create timestamp
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  /// Update timestamp
+  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz()
+
+  @@index([uid, createdAt])
+  @@index([status, createdAt])
+  @@index([resourceId])
+  @@index([fileId])
+  @@index([toolName, createdAt])
+  @@index([type, status])
+  @@map("lambda_jobs")
 }
