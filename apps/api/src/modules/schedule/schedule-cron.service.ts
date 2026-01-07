@@ -115,7 +115,64 @@ export class ScheduleCronService implements OnModuleInit {
     }
   }
 
+  /**
+   * Check and trigger a specific schedule if it's due
+   * This is used to immediately check schedules that were just created/updated
+   * with a near-future nextRunAt to avoid missing the first execution
+   * @param scheduleId - Schedule ID to check
+   * @returns true if schedule was triggered, false otherwise
+   */
+  async checkAndTriggerSchedule(scheduleId: string): Promise<boolean> {
+    const now = new Date();
+
+    // Find the specific schedule
+    const schedule = await this.prisma.workflowSchedule.findFirst({
+      where: {
+        scheduleId,
+        isEnabled: true,
+        deletedAt: null,
+        nextRunAt: { lte: now },
+      },
+    });
+
+    if (!schedule) {
+      return false;
+    }
+
+    try {
+      await this.triggerSchedule(schedule);
+      this.logger.log(`Immediately triggered schedule ${scheduleId} after creation/update`);
+      return true;
+    } catch (error) {
+      this.logger.error(`Failed to immediately trigger schedule ${scheduleId}`, error);
+      return false;
+    }
+  }
+
   private async triggerSchedule(schedule: any) {
+    // Re-check schedule status from database in case it was disabled by another schedule's
+    // quota check in the same batch (the in-memory schedule object may be stale)
+    const freshSchedule = await this.prisma.workflowSchedule.findUnique({
+      where: { scheduleId: schedule.scheduleId },
+      select: { isEnabled: true, deletedAt: true, nextRunAt: true },
+    });
+
+    if (!freshSchedule || !freshSchedule.isEnabled || freshSchedule.deletedAt) {
+      this.logger.debug(
+        `Schedule ${schedule.scheduleId} was disabled/deleted during batch processing, skipping`,
+      );
+      return;
+    }
+
+    // Race condition guard: Check if schedule was already processed by another instance/request
+    // If nextRunAt is in the future, it means another process already triggered it and updated the time
+    if (freshSchedule.nextRunAt && freshSchedule.nextRunAt > new Date()) {
+      this.logger.debug(
+        `Schedule ${schedule.scheduleId} was passed to trigger but nextRunAt is in future (${freshSchedule.nextRunAt.toISOString()}). Skipping to prevent double execution.`,
+      );
+      return;
+    }
+
     // 3.1 Calculate next run time
     let nextRunAt: Date | null = null;
     try {
@@ -219,6 +276,28 @@ export class ScheduleCronService implements OnModuleInit {
             completedAt: now,
           },
         });
+
+        // Remove pending jobs from BullMQ queue to prevent duplicate failures
+        // This ensures jobs don't run and overwrite the SCHEDULE_LIMIT_EXCEEDED status with SCHEDULE_DISABLED
+        try {
+          const waitingJobs = await this.scheduleQueue.getJobs(['waiting', 'delayed']);
+          let removedJobsCount = 0;
+          for (const job of waitingJobs) {
+            if (job.data?.scheduleId && scheduleIdsToDisable.includes(job.data.scheduleId)) {
+              await job.remove();
+              removedJobsCount++;
+              this.logger.debug(
+                `Removed job ${job.id} for disabled schedule ${job.data.scheduleId}`,
+              );
+            }
+          }
+          if (removedJobsCount > 0) {
+            this.logger.log(`Removed ${removedJobsCount} pending jobs for disabled schedules`);
+          }
+        } catch (queueError) {
+          // Queue operation failure is not critical, jobs will be skipped by processor anyway
+          this.logger.warn('Failed to remove pending jobs for disabled schedules', queueError);
+        }
 
         this.logger.log(
           `Auto-disabled ${schedulesToDisable.length} schedules for user ${schedule.uid} due to quota exceeded, updated ${count} schedule records to failed`,
