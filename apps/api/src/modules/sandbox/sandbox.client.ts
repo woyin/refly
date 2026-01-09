@@ -130,13 +130,14 @@ export class SandboxClient implements OnModuleInit, OnModuleDestroy {
 
     // Enqueue request via BullMQ
     const queuePushStart = performance.now();
+    this.logger.info({ requestId }, 'Enqueue request start');
     await this.queue.add('execute', request, {
       jobId: requestId,
       removeOnComplete: true,
       removeOnFail: true,
     });
     const queuePushTime = performance.now() - queuePushStart;
-    this.logger.debug(`Request enqueued: requestId=${requestId}`);
+    this.logger.debug({ requestId }, 'Enqueue request success');
 
     // Wait for response
     const waitStart = performance.now();
@@ -175,12 +176,15 @@ export class SandboxClient implements OnModuleInit, OnModuleDestroy {
     requestId: string,
     timeoutMs: number,
   ): Promise<WorkerExecuteResponse> {
+    this.logger.info({ channel, requestId }, 'Start waiting for response');
+
     return new Promise((resolve, reject) => {
       const timer = setTimeout(() => {
         reject(SandboxExecutionTimeoutError.create(requestId, timeoutMs));
       }, timeoutMs);
 
       const messageHandler = (ch: string, message: string) => {
+        this.logger.info({ ch, channel, requestId }, 'Resolving message');
         if (ch === channel) {
           clearTimeout(timer);
           // Remove listener after receiving response
@@ -190,7 +194,7 @@ export class SandboxClient implements OnModuleInit, OnModuleDestroy {
             (error) => SandboxResponseParseError.create(requestId, error),
           );
 
-          this.logger.debug(`Response received: requestId=${response.requestId}`);
+          this.logger.info(`Response received: requestId=${response.requestId}`);
           resolve(response);
         }
       };
