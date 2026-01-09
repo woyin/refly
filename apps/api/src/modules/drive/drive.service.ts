@@ -1058,8 +1058,11 @@ export class DriveService implements OnModuleInit {
     const storageKey = driveFile.storageKey ?? this.generateStorageKey(user, driveFile);
     // Step 2: No cache found, perform parsing
     getCurrentSpan()?.setAttribute('cache.hit', false);
-    // Use Lambda parsing if content type is supported
-    const useLambda = this.isLambdaParsableContentType(contentType);
+
+    // Check if Lambda is enabled and service is available
+    const lambdaEnabled = this.config.get<boolean>('lambda.enabled') !== false;
+    const useLambda =
+      lambdaEnabled && this.lambdaService && this.isLambdaParsableContentType(contentType);
 
     if (useLambda) {
       getCurrentSpan()?.setAttribute('parse.method', 'lambda');
@@ -1296,8 +1299,9 @@ export class DriveService implements OnModuleInit {
     user: User,
     driveFile: { fileId: string; type: string; storageKey: string; name: string },
   ): Promise<void> {
-    // Check if Lambda service is available
-    if (!this.lambdaService) {
+    // Check if Lambda is enabled and service is available
+    const lambdaEnabled = this.config.get<boolean>('lambda.enabled') !== false;
+    if (!lambdaEnabled || !this.lambdaService) {
       return;
     }
 
