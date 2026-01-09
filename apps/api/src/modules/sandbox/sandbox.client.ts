@@ -137,7 +137,7 @@ export class SandboxClient implements OnModuleInit, OnModuleDestroy {
       removeOnFail: true,
     });
     const queuePushTime = performance.now() - queuePushStart;
-    this.logger.debug({ requestId }, 'Enqueue request success');
+    this.logger.info({ requestId }, 'Enqueue request success');
 
     // Wait for response
     const waitStart = performance.now();
