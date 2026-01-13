@@ -271,15 +271,6 @@ const CliAuthPage = () => {
 
   // Check login status and update page state
   useEffect(() => {
-    // Debug logging
-    console.log('[CLI Auth] State check:', {
-      isCheckingLoginStatus,
-      isLoggedIn,
-      deviceLoading,
-      pageState,
-      userProfile: userProfile?.email,
-    });
-
     // Wait for login check to complete
     if (isCheckingLoginStatus) {
       console.log('[CLI Auth] Still checking login status...');
