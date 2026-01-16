@@ -1580,6 +1580,7 @@ const translations = {
         startRunning: '工作流开始运行',
         executing: '运行中',
         remix: '再创作',
+        runTooltip: '完成首次体验，解锁Plus会员折扣',
         copyWorkflow: '再创作工作流',
         copyShareLink: '复制分享链接',
         shareLinkCopied: '分享链接已复制到剪贴板',
@@ -1591,6 +1592,7 @@ const translations = {
         error: 'Workflow 运行状态时出错',
         validationError: '请填写所有必填字段后再运行工作流',
         installToolsBeforeRunning: '请先安装所需工具后再运行工作流',
+        emptyPromptsError: '部分 Agent 尚未填写提示词，无法运行',
         requiredFileInputsMissing: '此智能体包含必填的文件输入项，请先上传所需文件后再运行。',
         requiredFileInputsMissingForChain:
           '当前步骤或后续步骤存在必填的文件输入项未填写，请先上传所需文件后再运行。',
@@ -1650,7 +1652,9 @@ const translations = {
       rerunSingle: '仅运行此节点',
       runSingle: '仅运行此节点',
       stopSingle: '终止',
+      promptRequired: '请先填写提示词',
       rerunFromHere: '从此节点开始运行',
+      downstreamAgentsMissingPrompts: '后续节点中存在未填写提示词的 Agent',
       stopConfirmModal: {
         title: '停止 Agent 任务？',
         main: '确认停止此 Agent 任务吗？',
@@ -3372,6 +3376,8 @@ const translations = {
     assistant: '助手',
     placeholder: '描述你想生成的工作流...',
     loadingWorkflow: '加载工作流中...',
+    pureCopilotPlaceholder: '嗨，今天你想创建什么工作流？',
+    samplePrompt: '示例提示词',
     header: {
       history: '历史会话',
       newConversation: '新建会话',

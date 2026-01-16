@@ -1431,6 +1431,7 @@ const translations = {
         startRunning: 'Your workflow starts running',
         executing: 'Running',
         remix: 'Remix',
+        runTooltip: 'Unlock a Plus Plan discount after first run',
         copyWorkflow: 'Remix Workflow',
         copyShareLink: 'Copy Share Link',
         shareLinkCopied: 'Share link copied to clipboard',
@@ -1442,6 +1443,7 @@ const translations = {
         error: 'Error monitoring workflow execution',
         validationError: 'Please fill in all required fields before running the workflow',
         installToolsBeforeRunning: 'Please install the required tools before running.',
+        emptyPromptsError: 'Some agents are missing prompts and cannot be run',
         requiredFileInputsMissing:
           'This agent has required file inputs. Please upload the missing files before running.',
         requiredFileInputsMissingForChain:
@@ -1506,7 +1508,9 @@ const translations = {
       rerunSingle: 'Rerun This Node',
       runSingle: 'Run This Node',
       stopSingle: 'Stop',
+      promptRequired: 'Please add a prompt first',
       rerunFromHere: 'Run From Here',
+      downstreamAgentsMissingPrompts: 'Some downstream agents are missing prompts',
       stopConfirmModal: {
         title: 'Stop Agent Task?',
         main: 'Are you sure you want to stop this agent task?',
@@ -3232,6 +3236,8 @@ const translations = {
     assistant: 'Copilot',
     placeholder: 'Describe the workflow you want to generate...',
     loadingWorkflow: 'Loading workflow...',
+    pureCopilotPlaceholder: 'Hi, what workflow do you want to create today?',
+    samplePrompt: 'Sample Prompt',
     header: {
       history: 'Chat History',
       newConversation: 'New Chat',
