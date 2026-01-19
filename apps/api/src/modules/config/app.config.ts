@@ -245,6 +245,8 @@ export default () => ({
     // Expiration time in minutes (default: 7 days = 10080 minutes)
     // For testing, use smaller values like 7 (7 minutes)
     expirationMinutes: Number(process.env.VOUCHER_EXPIRATION_MINUTES) || 10080,
+    // Default discount percentage for vouchers (default: 80% off)
+    defaultDiscountPercent: Number(process.env.VOUCHER_DEFAULT_DISCOUNT_PERCENT) || 80,
   },
   schedule: {
     // Rate limiting - controls global and per-user concurrency
