@@ -4555,6 +4555,23 @@ const translations = {
     verificationCodeHint: '请输入终端显示的 6 位数字验证码',
     copied: '已复制!',
   },
+  toolInstall: {
+    title: '安装所需工具',
+    description: '安装并授权此工作流所需的工具。',
+    noUnauthorizedTools: '已安装所有必需工具。',
+    invalidWorkflow: '无效的工作流 ID。',
+    referencedNodes: '相关节点',
+    authorizeTitle: '授权工具',
+    authorizeSubtitle: '要运行此技能，您需要连接 {{count}} 个工具',
+    workflowToolsTitle: '授权工具',
+    workflowToolsSubtitle: '此工作流使用了 {{count}} 个工具，请安装所需工具。',
+    allToolsNeedInstall: '要运行此技能，你需要连接 {{count}} 个工具',
+    partialToolsInstalled: '连接 {{installed}}/{{total}} 个工具以运行技能',
+    allToolsInstalled: '全部设置完成！返回终端运行此技能',
+    noTools: '此工作流中未找到工具。',
+    connect: '连接',
+    connected: '已连接',
+  },
 };
 
 export default translations;
