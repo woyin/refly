@@ -248,6 +248,12 @@ export default () => ({
     // Default discount percentage for vouchers (default: 80% off)
     defaultDiscountPercent: Number(process.env.VOUCHER_DEFAULT_DISCOUNT_PERCENT) || 80,
   },
+  ptc: {
+    mode: process.env.PTC_MODE || 'off',
+    userAllowlist: process.env.PTC_USER_ALLOWLIST || '',
+    toolsetAllowlist: process.env.PTC_TOOLSET_ALLOWLIST || '',
+    toolsetBlocklist: process.env.PTC_TOOLSET_BLOCKLIST || '',
+  },
   schedule: {
     // Rate limiting - controls global and per-user concurrency
     globalMaxConcurrent: Number.parseInt(process.env.SCHEDULE_GLOBAL_MAX_CONCURRENT) || 50,
