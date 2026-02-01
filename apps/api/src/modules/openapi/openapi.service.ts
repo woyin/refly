@@ -1,10 +1,11 @@
-import { Injectable, Logger, Inject, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, Inject, NotFoundException, forwardRef } from '@nestjs/common';
 import { PrismaService } from '../common/prisma.service';
 import { WorkflowAppService } from '../workflow-app/workflow-app.service';
 import { CanvasService } from '../canvas/canvas.service';
 import { ObjectStorageService, OSS_INTERNAL } from '../common/object-storage';
 import { createId } from '@paralleldrive/cuid2';
 import { genScheduleRecordId, safeStringifyJSON } from '@refly/utils';
+import pLimit from 'p-limit';
 import { extractToolsetsWithNodes, sortNodeExecutionsByExecutionOrder } from '@refly/canvas-common';
 import type {
   CanvasEdge,
@@ -27,6 +28,7 @@ import { ConfigService } from '@nestjs/config';
 import { normalizeOpenapiStorageKey } from '../../utils/openapi-file-key';
 import { mergeVariablesWithCanvas } from '../../utils/workflow-variables';
 import { WorkflowService } from '../workflow/workflow.service';
+import { DriveService } from '../drive/drive.service';
 import { redactApiCallRecord } from '../../utils/data-redaction';
 
 enum ApiCallStatus {
@@ -51,6 +53,7 @@ export class OpenapiService {
     private readonly workflowService: WorkflowService,
     @Inject(OSS_INTERNAL) private readonly objectStorage: ObjectStorageService,
     private readonly config: ConfigService,
+    @Inject(forwardRef(() => DriveService)) private readonly driveService: DriveService,
   ) {}
 
   /**
@@ -241,27 +244,34 @@ export class OpenapiService {
     let resultNodeIds: string[] | null = null;
     let sourceCanvasId = workflowExecution.canvasId;
 
-    if (workflowExecution.scheduleRecordId) {
-      const scheduleRecord = await this.prisma.workflowScheduleRecord.findUnique({
-        where: { scheduleRecordId: workflowExecution.scheduleRecordId },
-        select: { sourceCanvasId: true },
-      });
-      if (scheduleRecord?.sourceCanvasId) {
-        sourceCanvasId = scheduleRecord.sourceCanvasId;
-      }
-    }
+    // Parallel fetch: scheduleRecord and openapiConfig
+    const [scheduleRecord, openapiConfigResult] = await Promise.all([
+      workflowExecution.scheduleRecordId
+        ? this.prisma.workflowScheduleRecord.findUnique({
+            where: { scheduleRecordId: workflowExecution.scheduleRecordId },
+            select: { sourceCanvasId: true },
+          })
+        : Promise.resolve(null),
+      (async () => {
+        try {
+          const config = await this.prisma.workflowOpenapiConfig.findFirst({
+            where: { canvasId: sourceCanvasId, uid: user.uid },
+            select: { resultNodeIds: true },
+          });
+          return config?.resultNodeIds ? JSON.parse(config.resultNodeIds) : null;
+        } catch (error) {
+          this.logger.warn(
+            `Failed to parse resultNodeIds for execution ${executionId}: ${error?.message}`,
+          );
+          return null;
+        }
+      })(),
+    ]);
 
-    try {
-      const openapiConfig = await this.prisma.workflowOpenapiConfig.findFirst({
-        where: { canvasId: sourceCanvasId, uid: user.uid },
-        select: { resultNodeIds: true },
-      });
-      resultNodeIds = openapiConfig?.resultNodeIds ? JSON.parse(openapiConfig.resultNodeIds) : null;
-    } catch (error) {
-      this.logger.warn(
-        `Failed to parse resultNodeIds for execution ${executionId}: ${error?.message}`,
-      );
+    if (scheduleRecord?.sourceCanvasId) {
+      sourceCanvasId = scheduleRecord.sourceCanvasId;
     }
+    resultNodeIds = openapiConfigResult;
 
     let allowedNodeIds: Set<string> | null = null;
     let forceEmptyOutput = false;
@@ -293,20 +303,21 @@ export class OpenapiService {
     const actionDetailsMap = new Map<string, any>();
 
     if (skillResultIds.length > 0) {
-      const actionResults = await this.prisma.actionResult.findMany({
-        where: {
-          resultId: { in: skillResultIds },
-          uid: user.uid,
-        },
-      });
-
-      // Fetch Messages
-      const messages = await this.prisma.actionMessage.findMany({
-        where: {
-          resultId: { in: skillResultIds },
-        },
-        orderBy: { createdAt: 'asc' },
-      });
+      // Parallel fetch: actionResults and actionMessages
+      const [actionResults, messages] = await Promise.all([
+        this.prisma.actionResult.findMany({
+          where: {
+            resultId: { in: skillResultIds },
+            uid: user.uid,
+          },
+        }),
+        this.prisma.actionMessage.findMany({
+          where: {
+            resultId: { in: skillResultIds },
+          },
+          orderBy: { createdAt: 'asc' },
+        }),
+      ]);
 
       const latestMessageVersion = new Map<string, number>();
       for (const message of messages) {
@@ -379,7 +390,31 @@ export class OpenapiService {
           source: 'agent',
         },
       });
-      files = dbDriveFiles.map((file) => driveFilePO2DTO(file, this.endpoint));
+
+      // Publish files to external bucket for public access
+      // This ensures API users can access the files without authentication
+      // Use p-limit to control concurrency and avoid overwhelming the storage service
+      const limit = pLimit(10); // Limit to 10 concurrent file publishes
+      await Promise.allSettled(
+        dbDriveFiles.map((file) =>
+          limit(async () => {
+            try {
+              await this.driveService.publishDriveFile(file.storageKey, file.fileId);
+            } catch (error) {
+              this.logger.warn(
+                `Failed to publish file ${file.fileId} for workflow output: ${error?.message}`,
+              );
+            }
+          }),
+        ),
+      );
+
+      // Return public URLs for the files
+      files = dbDriveFiles.map((file) => ({
+        ...driveFilePO2DTO(file, this.endpoint),
+        // Override URL to use public endpoint
+        url: this.endpoint ? `${this.endpoint}/v1/drive/file/public/${file.fileId}` : undefined,
+      }));
     }
 
     return {
