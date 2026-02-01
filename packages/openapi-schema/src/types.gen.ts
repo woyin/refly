@@ -2863,6 +2863,10 @@ export type AuthConfigResponse = BaseResponse & {
    * Auth providers
    */
   data?: Array<AuthConfigItem>;
+  /**
+   * Whether Cloudflare Turnstile is enabled
+   */
+  turnstileEnabled?: boolean;
 };
 
 /**
@@ -2877,6 +2881,10 @@ export type EmailSignupRequest = {
    * Password
    */
   password: string;
+  /**
+   * Cloudflare Turnstile token
+   */
+  turnstileToken?: string;
 };
 
 export type EmailSignupData = {
@@ -2972,6 +2980,10 @@ export type EmailLoginRequest = {
    * Password
    */
   password: string;
+  /**
+   * Cloudflare Turnstile token
+   */
+  turnstileToken?: string;
 };
 
 export type EmailLoginData = {

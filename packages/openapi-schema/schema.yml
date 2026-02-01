@@ -7002,6 +7002,9 @@ components:
               description: Auth providers
               items:
                 $ref: "#/components/schemas/AuthConfigItem"
+            turnstileEnabled:
+              type: boolean
+              description: Whether Cloudflare Turnstile is enabled
     EmailSignupRequest:
       type: object
       description: Email signup request
@@ -7015,6 +7018,9 @@ components:
         password:
           type: string
           description: Password
+        turnstileToken:
+          type: string
+          description: Cloudflare Turnstile token
     EmailSignupData:
       type: object
       properties:
@@ -7102,6 +7108,9 @@ components:
         password:
           type: string
           description: Password
+        turnstileToken:
+          type: string
+          description: Cloudflare Turnstile token
     EmailLoginData:
       type: object
       properties:

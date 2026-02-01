@@ -3,7 +3,7 @@
   "tags": ["-lintignore"],
   "ignore": [
     "postcss.config.*",
-    "*.config.ts",
+    "**/*.config.ts",
     "**/scripts/**",
     "apps/web/src/service-worker-sw.ts",
     "apps/api/load-tests/**",
@@ -11,6 +11,7 @@
     "packages/cli/**",
     "packages/openapi-schema/openapi-ts.config.ts"
   ],
+  "ignoreDependencies": ["pino-pretty"],
   "workspaces": {
     ".": {},
     "apps/api": {
@@ -64,6 +65,9 @@
         "@refly-packages/ai-workspace-common": ["./src/index.ts"],
         "@refly-packages/ai-workspace-common/*": ["./src/*"]
       }
+    },
+    "packages/openapi-schema": {
+      "entry": ["openapi-ts.config.ts"]
     }
   }
 }
