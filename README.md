@@ -15,7 +15,7 @@
   </a>
 </p>
 
-[APIs for Lovable](#api-integration) · [Webhooks for Slack/Lark](#webhook-setup) · [Skills for Claude Code](#export-skills)
+[APIs for Lovable](#use-case-1-api-integration) · [Webhooks for Slack/Lark](#use-case-2-webhook-for-Lark) · [Skills for Claude Code](#use-case-3-skills-for-claude-code)
 
 Skills are not prompts. They are durable infrastructure.
 
@@ -43,9 +43,9 @@ After deployment, choose your path based on your use case:
 |-------------|-----------|------|
 | 🔧 **Build my first workflow** | [Create a Workflow](#create-your-first-workflow) | 5 mins |
 | 🔌 **Call workflows via API** | [API Integration](#use-case-1-api-integration) | 10 mins |
-| 💬 **Connect to Lark** | [Webhook Setup](#use-case-2-webhook-for-feishu) | 15 mins |
+| 💬 **Connect to Lark** | [Webhook Setup](#use-case-2-webhook-for-Lark) | 15 mins |
 | 🤖 **Export for Claude Code** | [Export Skills](#use-case-3-skills-for-claude-code) | 15mins |
-| 🦞  **Build a ClawdBot** | [Build ClawdBot](#build-a-clawdbot) | 20 mins |
+| 🦞  **Build a ClawdBot** | [Build Clawdbot](#use-case-4-build-clawdbot) | 20 mins |
 ---
 
 ## Create Your First Workflow
@@ -201,7 +201,7 @@ Claude: [Uses product_research skill] → Returns detailed analysis
 
 ---
 
-### Use Case 4: Create Clawdbot
+### Use Case 4: Build Clawdbot
 
 📖 **Tutorial**: (https://powerformer.feishu.cn/wiki/YxMRwsQFriAMNukKr5Yc9OjMnnf)
 
