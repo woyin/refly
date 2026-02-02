@@ -2,7 +2,7 @@ import type { ApiDocsData } from '../types';
 
 export const apiDocsData: ApiDocsData = {
   version: '0.2.0',
-  generatedAt: '2026-02-01T09:42:05.915Z',
+  generatedAt: '2026-02-02T02:52:37.991Z',
   baseUrl: '/v1',
   endpoints: [
     {
@@ -193,8 +193,37 @@ export const apiDocsData: ApiDocsData = {
           },
         },
         '400': {
-          description: 'Invalid request parameters',
+          description: 'Request failed or invalid parameters (response may include modelResponse)',
           descriptionKey: 'integration.api.openapi.copilotGenerate.response400',
+          schema: {
+            type: 'object',
+            description: 'Error response when workflow generation fails.',
+            descriptionKey: 'integration.api.openapi.copilotGenerate.errorResponseDescription',
+            required: ['statusCode', 'message', 'error'],
+            properties: {
+              statusCode: {
+                type: 'number',
+                description: 'HTTP status code',
+                descriptionKey: 'integration.api.openapi.copilotGenerate.errorResponseStatusCode',
+              },
+              message: {
+                type: 'string',
+                description: 'Readable error message',
+                descriptionKey: 'integration.api.openapi.copilotGenerate.errorResponseMessage',
+              },
+              error: {
+                type: 'string',
+                description: 'Error type',
+                descriptionKey: 'integration.api.openapi.copilotGenerate.errorResponseError',
+              },
+              modelResponse: {
+                type: 'string',
+                description: 'Original AI response (may be empty, length-limited)',
+                descriptionKey:
+                  'integration.api.openapi.copilotGenerate.errorResponseModelResponse',
+              },
+            },
+          },
         },
         '401': {
           description: 'Unauthorized - invalid or missing API key',
@@ -752,6 +781,11 @@ export const apiDocsData: ApiDocsData = {
                           type: 'number',
                           description: 'Drive file size',
                           descriptionKey: 'integration.api.schema.fileSize',
+                        },
+                        nodeId: {
+                          type: 'string',
+                          description: 'Node ID that produced the file',
+                          descriptionKey: 'integration.api.schema.fileNodeId',
                         },
                         url: {
                           type: 'string',

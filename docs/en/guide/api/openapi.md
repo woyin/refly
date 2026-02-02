@@ -155,6 +155,7 @@ Get workflow execution output (output nodes and drive files) via authenticated A
 | data.files[].name | string | Yes | File name |
 | data.files[].type | string | Yes | File type |
 | data.files[].size | number | No | File size |
+| data.files[].nodeId | string | No | Node ID that produced the file |
 | data.files[].url | string | No | File access URL |
 
 <a id="api-endpoint-getWorkflowStatusViaApi"></a>
@@ -363,7 +364,7 @@ Copilot workflow generation request.
 | Status | Description |
 | --- | --- |
 | 200 | Workflow generated successfully |
-| 400 | Invalid request parameters |
+| 400 | Request failed or invalid parameters (response may include modelResponse) |
 | 401 | Unauthorized - invalid or missing API key |
 | 404 | Canvas not found |
 
@@ -391,6 +392,15 @@ Copilot workflow generation request.
 | data.workflowPlan.variables[].variableType | enum(string \| option \| resource) | No | Variable type |
 | data.workflowPlan.variables[].required | boolean | No | Whether the variable is required |
 | data.workflowPlan.variables[].options | string[] | No | Variable options (only for option type) |
+
+**Response Fields (400)**
+
+| Name | Type | Required | Description |
+| --- | --- | --- | --- |
+| statusCode | number | Yes | HTTP status code |
+| message | string | Yes | Readable error message |
+| error | string | Yes | Error type |
+| modelResponse | string | No | Original AI response (may be empty, length-limited) |
 
 ## Error Codes
 Common error codes for webhook and API integrations.
