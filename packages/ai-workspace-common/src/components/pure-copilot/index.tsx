@@ -15,8 +15,16 @@ import { useFileUpload } from '../../hooks/use-file-upload';
 import { FileList } from '../canvas/copilot/file-list';
 import { useNavigate } from 'react-router-dom';
 
-const ACCEPT_FILE_EXTENSIONS =
-  '.jpg,.jpeg,.png,.gif,.bmp,.webp,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.md,.csv';
+const ACCEPT_FILE_EXTENSIONS = [
+  // 文档类
+  '.pdf,.docx,.doc,.txt,.md,.pptx',
+  // 数据/代码类
+  '.csv,.xlsx,.xls,.json,.xml,.py,.js,.html,.css',
+  // 图片类
+  '.png,.jpg,.jpeg,.webp,.gif',
+  // 音视频类
+  '.mp3,.wav,.m4a,.mp4,.mov,.avi',
+].join(',');
 
 export const defaultPromt: PromptSuggestion = {
   prompt: {
@@ -94,6 +102,7 @@ export const PureCopilot = memo(({ source, classnames, onFloatingChange }: PureC
     completedFileItems,
     relevantUploads,
     handleFileUpload,
+    handleBatchFileUpload,
     handleRetryFile,
     handleRemoveFile,
     clearFiles,
@@ -116,7 +125,7 @@ export const PureCopilot = memo(({ source, classnames, onFloatingChange }: PureC
       canvasCreationInProgress.current = true;
 
       try {
-        const newCanvasId = await createCanvas(t('copilot.untitledCanvas'));
+        const newCanvasId = await createCanvas(t('common.untitled'));
 
         if (!newCanvasId) {
           throw new Error('Canvas creation failed');
@@ -198,13 +207,13 @@ export const PureCopilot = memo(({ source, classnames, onFloatingChange }: PureC
     async (e: React.ChangeEvent<HTMLInputElement>) => {
       const files = Array.from(e.target.files || []);
       if (files.length > 0) {
-        await Promise.all(files.map((file) => handleFileUpload(file)));
+        await handleBatchFileUpload(files);
       }
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
     },
-    [handleFileUpload],
+    [handleBatchFileUpload],
   );
 
   const isUploadDisabled = fileCount >= 10;
@@ -249,11 +258,10 @@ export const PureCopilot = memo(({ source, classnames, onFloatingChange }: PureC
       const files = Array.from(e.dataTransfer?.files ?? []);
       if (files.length === 0) return;
 
-      const remainingSlots = 10 - fileCount;
-      const filesToUpload = files.slice(0, remainingSlots);
-      await Promise.all(filesToUpload.map((file) => handleFileUpload(file)));
+      // handleBatchFileUpload will handle the slot limiting internally
+      await handleBatchFileUpload(files);
     },
-    [handleFileUpload, fileCount, isUploadDisabled],
+    [handleBatchFileUpload, isUploadDisabled],
   );
 
   const handlePromptClick = useCallback((prompt: string) => {
@@ -399,9 +407,7 @@ export const PureCopilot = memo(({ source, classnames, onFloatingChange }: PureC
                 setTimeout(() => setIsFocused(false), 200);
               }}
               onUploadImage={handleFileUpload}
-              onUploadMultipleImages={async (files) => {
-                await Promise.all(files.map((file) => handleFileUpload(file)));
-              }}
+              onUploadMultipleImages={handleBatchFileUpload}
             />
           </div>
           <div className="flex items-center justify-between">

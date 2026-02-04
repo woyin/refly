@@ -42,6 +42,7 @@ export const ChatBox = memo(
       completedFileItems,
       relevantUploads,
       handleFileUpload,
+      handleBatchFileUpload,
       handleRetryFile,
       handleRemoveFile,
       clearFiles,
@@ -120,12 +121,9 @@ export const ChatBox = memo(
     // Register file upload handler for drag-and-drop from parent
     useEffect(() => {
       if (onRegisterFileUploadHandler) {
-        onRegisterFileUploadHandler(async (files: File[]) => {
-          // Upload files in parallel
-          await Promise.all(files.map((file) => handleFileUpload(file)));
-        });
+        onRegisterFileUploadHandler(handleBatchFileUpload);
       }
-    }, [onRegisterFileUploadHandler, handleFileUpload]);
+    }, [onRegisterFileUploadHandler, handleBatchFileUpload]);
 
     const handleSendMessage = useCallback(
       async (type: 'input_enter_send' | 'button_click_send', customQuery?: string) => {
@@ -205,7 +203,9 @@ export const ChatBox = memo(
     );
 
     useEffect(() => {
-      if (pendingPrompt && !initialPromptProcessed.current) {
+      // Allow sending if there's a prompt OR pending files
+      const hasPendingContent = pendingPrompt !== null || (pendingFiles?.length ?? 0) > 0;
+      if (hasPendingContent && !initialPromptProcessed.current) {
         initialPromptProcessed.current = true;
 
         // Merge pending files with current context items
@@ -227,7 +227,7 @@ export const ChatBox = memo(
         // Send message with pending prompt and files
         invokeAction(
           {
-            query: pendingPrompt,
+            query: pendingPrompt || '',
             resultId,
             modelInfo: null,
             agentMode: 'copilot_agent',
@@ -322,10 +322,7 @@ export const ChatBox = memo(
           handleSendMessage={() => handleSendMessage('input_enter_send')}
           placeholder={t('copilot.placeholder')}
           onUploadImage={handleFileUpload}
-          onUploadMultipleImages={async (files) => {
-            // Upload files in parallel
-            await Promise.all(files.map((file) => handleFileUpload(file)));
-          }}
+          onUploadMultipleImages={handleBatchFileUpload}
         />
 
         {/* Bottom action bar */}
@@ -334,7 +331,8 @@ export const ChatBox = memo(
           fileCount={fileCount}
           maxFileCount={MAX_FILE_COUNT}
           isExecuting={isExecuting}
-          onUploadFile={handleFileUpload}
+          isUploading={hasUploadingFiles}
+          onUploadFiles={handleBatchFileUpload}
           onSendMessage={() => handleSendMessage('button_click_send')}
           onAbort={handleAbort}
         />

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import { message } from 'antd';
 import { useTranslation } from 'react-i18next';
 import type { IContextItem } from '@refly/common-types';
@@ -32,7 +32,10 @@ export const useFileUpload = ({
   const { t } = useTranslation();
   const [contextItems, setContextItems] = useState<IContextItem[]>([]);
   const pendingFilesRef = useRef<Map<string, PendingFileData>>(new Map());
-  const fileCountRef = useRef(0);
+  // Track pending upload count separately from contextItems to avoid race conditions
+  // during batch uploads. This ref is incremented synchronously when upload starts
+  // and only reset via clearFiles or decremented via handleRemoveFile.
+  const pendingUploadCountRef = useRef(0);
   const { refetch: refetchFiles } = useFetchDriveFiles();
 
   const { uploads, startUpload, updateProgress, setUploadSuccess, setUploadError, removeUpload } =
@@ -47,10 +50,6 @@ export const useFileUpload = ({
     () => contextItems.filter((item) => item.type === 'file').length,
     [contextItems],
   );
-
-  useEffect(() => {
-    fileCountRef.current = fileCount;
-  }, [fileCount]);
 
   const hasUploadingFiles = useMemo(
     () => relevantUploads.some((u) => u.status === 'uploading'),
@@ -71,16 +70,16 @@ export const useFileUpload = ({
   const handleFileUpload = useCallback(
     async (file: File, existingUploadId?: string, existingEntityId?: string) => {
       if (!existingUploadId) {
-        if (fileCountRef.current >= maxFileCount) {
+        if (pendingUploadCountRef.current >= maxFileCount) {
           message.warning(t('copilot.fileLimit.reached'));
           return;
         }
-        fileCountRef.current += 1;
+        pendingUploadCountRef.current += 1;
       }
 
       if (file.size > maxFileSize) {
         if (!existingUploadId) {
-          fileCountRef.current -= 1;
+          pendingUploadCountRef.current -= 1;
         }
         message.error(t('copilot.fileSizeLimit'));
         return;
@@ -92,7 +91,7 @@ export const useFileUpload = ({
           currentCanvasId = await onCanvasRequired();
         } catch (_error) {
           if (!existingUploadId) {
-            fileCountRef.current -= 1;
+            pendingUploadCountRef.current -= 1;
           }
           message.error(t('copilot.canvasCreationFailed'));
           return;
@@ -101,7 +100,7 @@ export const useFileUpload = ({
 
       if (!currentCanvasId) {
         if (!existingUploadId) {
-          fileCountRef.current -= 1;
+          pendingUploadCountRef.current -= 1;
         }
         message.error(t('copilot.canvasRequired'));
         return;
@@ -315,6 +314,10 @@ export const useFileUpload = ({
       if (item?.metadata?.previewUrl) {
         URL.revokeObjectURL(item.metadata.previewUrl);
       }
+      // Decrement the pending upload count when a file is removed
+      if (item?.type === 'file' && pendingUploadCountRef.current > 0) {
+        pendingUploadCountRef.current -= 1;
+      }
       setContextItems((prev) => prev.filter((i) => i.entityId !== entityId));
     },
     [contextItems, removeUpload],
@@ -329,8 +332,250 @@ export const useFileUpload = ({
         pendingFilesRef.current.delete(item.metadata.uploadId);
       }
     }
+    // Reset the pending upload count when all files are cleared
+    pendingUploadCountRef.current = 0;
     setContextItems([]);
   }, [contextItems]);
+
+  // Batch upload method that handles multiple files atomically
+  // This ensures all files are added to contextItems in a single update
+  // before any async operations begin, avoiding race conditions
+  const handleBatchFileUpload = useCallback(
+    async (files: File[]) => {
+      if (files.length === 0) return;
+
+      // Calculate how many files we can accept
+      const availableSlots = maxFileCount - pendingUploadCountRef.current;
+      if (availableSlots <= 0) {
+        message.warning(t('copilot.fileLimit.reached'));
+        return;
+      }
+
+      // Filter and limit files
+      const filesToUpload: Array<{
+        file: File;
+        uploadId: string;
+        tempEntityId: string;
+        previewUrl?: string;
+      }> = [];
+
+      for (const file of files) {
+        if (filesToUpload.length >= availableSlots) {
+          message.warning(t('copilot.fileLimit.reached'));
+          break;
+        }
+
+        if (file.size > maxFileSize) {
+          message.error(t('copilot.fileSizeLimit'));
+          continue;
+        }
+
+        const uploadId = genUniqueId();
+        const tempEntityId = `pending_${uploadId}`;
+        const isImageFile = file.type.startsWith('image/');
+        const previewUrl = isImageFile ? URL.createObjectURL(file) : undefined;
+
+        filesToUpload.push({ file, uploadId, tempEntityId, previewUrl });
+      }
+
+      if (filesToUpload.length === 0) return;
+
+      // Atomically reserve slots for all files
+      pendingUploadCountRef.current += filesToUpload.length;
+
+      // Ensure canvas exists before adding files
+      let currentCanvasId = canvasId;
+      if (!currentCanvasId && onCanvasRequired) {
+        try {
+          currentCanvasId = await onCanvasRequired();
+        } catch (_error) {
+          // Release reserved slots on failure
+          pendingUploadCountRef.current -= filesToUpload.length;
+          // Clean up preview URLs
+          for (const { previewUrl } of filesToUpload) {
+            if (previewUrl) URL.revokeObjectURL(previewUrl);
+          }
+          message.error(t('copilot.canvasCreationFailed'));
+          return;
+        }
+      }
+
+      if (!currentCanvasId) {
+        // Release reserved slots
+        pendingUploadCountRef.current -= filesToUpload.length;
+        // Clean up preview URLs
+        for (const { previewUrl } of filesToUpload) {
+          if (previewUrl) URL.revokeObjectURL(previewUrl);
+        }
+        message.error(t('copilot.canvasRequired'));
+        return;
+      }
+
+      // Add all files to context items in a single update
+      const newContextItems: IContextItem[] = filesToUpload.map(
+        ({ file, uploadId, tempEntityId, previewUrl }) => ({
+          type: 'file' as const,
+          entityId: tempEntityId,
+          title: file.name,
+          metadata: { size: file.size, mimeType: file.type, uploadId, previewUrl },
+        }),
+      );
+
+      setContextItems((prev) => [...prev, ...newContextItems]);
+
+      // Store pending file data and start upload tracking
+      for (const { file, uploadId, previewUrl } of filesToUpload) {
+        pendingFilesRef.current.set(uploadId, { file, previewUrl });
+        startUpload([
+          {
+            id: uploadId,
+            fileName: file.name,
+            progress: 0,
+            status: 'uploading',
+          },
+        ]);
+      }
+
+      // Now upload all files in parallel
+      await Promise.all(
+        filesToUpload.map(async ({ file, uploadId, tempEntityId }) => {
+          try {
+            const uploadResult = await new Promise<{
+              data?: { data?: { storageKey: string }; success: boolean };
+            }>((resolve, reject) => {
+              const xhr = new XMLHttpRequest();
+              const formData = new FormData();
+              formData.append('file', file);
+              formData.append('entityId', currentCanvasId!);
+              formData.append('entityType', 'canvas');
+
+              xhr.upload.addEventListener('progress', (e) => {
+                if (e.lengthComputable) {
+                  const percent = Math.round((e.loaded * 100) / e.total);
+                  updateProgress(uploadId, Math.min(percent, 99));
+                }
+              });
+
+              xhr.onreadystatechange = () => {
+                if (xhr.readyState === 4) {
+                  if (xhr.status >= 200 && xhr.status < 300) {
+                    try {
+                      const res = JSON.parse(xhr.responseText);
+                      resolve({ data: res });
+                    } catch (e) {
+                      reject(e);
+                    }
+                  } else {
+                    reject(new Error(`Upload failed with status ${xhr.status}`));
+                  }
+                }
+              };
+
+              xhr.onerror = () => reject(new Error('Network error during upload'));
+
+              xhr.open('POST', `${serverOrigin}/v1/misc/upload`);
+              xhr.withCredentials = !isDesktop();
+              xhr.send(formData);
+            });
+
+            updateProgress(uploadId, 100);
+
+            const { data, success } = uploadResult?.data ?? {};
+
+            if (success && data) {
+              setContextItems((prev) =>
+                prev.map((item) =>
+                  item.entityId === tempEntityId
+                    ? {
+                        ...item,
+                        metadata: { ...item.metadata, storageKey: data.storageKey },
+                      }
+                    : item,
+                ),
+              );
+
+              try {
+                const { data: createResult } = await getClient().batchCreateDriveFiles({
+                  body: {
+                    canvasId: currentCanvasId!,
+                    files: [
+                      {
+                        name: file.name,
+                        canvasId: currentCanvasId!,
+                        storageKey: data.storageKey,
+                        type: file.type || 'application/octet-stream',
+                      },
+                    ],
+                  },
+                });
+
+                if (createResult?.success && createResult.data?.[0]) {
+                  const driveFile = createResult.data[0];
+                  setUploadSuccess(uploadId);
+
+                  setContextItems((prev) =>
+                    prev.map((item) =>
+                      item.entityId === tempEntityId
+                        ? {
+                            ...item,
+                            entityId: driveFile.fileId,
+                            title: driveFile.name,
+                            metadata: { ...item.metadata, uploadId, errorType: undefined },
+                          }
+                        : item,
+                    ),
+                  );
+
+                  pendingFilesRef.current.delete(uploadId);
+                  await refetchFiles();
+                } else {
+                  throw new Error('addToFile');
+                }
+              } catch {
+                setUploadError(uploadId, t('copilot.addToFileFailed'));
+                setContextItems((prev) =>
+                  prev.map((item) =>
+                    item.entityId === tempEntityId
+                      ? {
+                          ...item,
+                          metadata: { ...item.metadata, errorType: 'addToFile' },
+                        }
+                      : item,
+                  ),
+                );
+              }
+            } else {
+              throw new Error('upload');
+            }
+          } catch {
+            setUploadError(uploadId, t('copilot.uploadFailed'));
+            setContextItems((prev) =>
+              prev.map((item) =>
+                item.entityId === tempEntityId
+                  ? {
+                      ...item,
+                      metadata: { ...item.metadata, errorType: 'upload' },
+                    }
+                  : item,
+              ),
+            );
+          }
+        }),
+      );
+    },
+    [
+      canvasId,
+      maxFileCount,
+      maxFileSize,
+      onCanvasRequired,
+      t,
+      startUpload,
+      updateProgress,
+      setUploadSuccess,
+      setUploadError,
+      refetchFiles,
+    ],
+  );
 
   return {
     contextItems,
@@ -339,6 +584,7 @@ export const useFileUpload = ({
     completedFileItems,
     relevantUploads,
     handleFileUpload,
+    handleBatchFileUpload,
     handleRetryFile,
     handleRemoveFile,
     clearFiles,

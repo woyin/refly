@@ -10,7 +10,8 @@ interface CopilotActionsProps {
   fileCount: number;
   maxFileCount: number;
   isExecuting: boolean;
-  onUploadFile: (file: File) => Promise<void>;
+  isUploading: boolean;
+  onUploadFiles: (files: File[]) => Promise<void>;
   onSendMessage: () => void;
   onAbort?: () => void;
 }
@@ -21,7 +22,8 @@ export const CopilotActions = memo(
     fileCount,
     maxFileCount,
     isExecuting,
-    onUploadFile,
+    isUploading,
+    onUploadFiles,
     onSendMessage,
     onAbort,
   }: CopilotActionsProps) => {
@@ -29,7 +31,7 @@ export const CopilotActions = memo(
     const uploadRef = useRef<HTMLInputElement>(null);
 
     const uploadDisabled = fileCount >= maxFileCount;
-    const canSend = query?.trim() || fileCount > 0;
+    const canSend = (query?.trim() || fileCount > 0) && !isUploading;
     const acceptExtensions = ACCEPT_FILE_EXTENSIONS ?? [];
     const acceptValue =
       acceptExtensions?.length > 0 ? acceptExtensions.map((ext) => `.${ext}`).join(',') : undefined;
@@ -39,12 +41,12 @@ export const CopilotActions = memo(
         const files = e.target.files;
         if (!files?.length) return;
 
-        // Upload files in parallel
-        await Promise.all(Array.from(files).map((file) => onUploadFile(file)));
+        // Use batch upload to handle multiple files atomically
+        await onUploadFiles(Array.from(files));
         // Reset input
         e.target.value = '';
       },
-      [onUploadFile],
+      [onUploadFiles],
     );
 
     const handleAttachmentClick = useCallback(() => {
@@ -60,12 +62,14 @@ export const CopilotActions = memo(
           'w-7 h-7 rounded-lg flex items-center justify-center',
           'border-none outline-none focus:outline-none focus-visible:outline-none',
           '[&:focus]:ring-0 [&:focus]:ring-offset-0',
-          'cursor-pointer',
+          'cursor-pointer transition-colors',
+          '[&_path]:transition-[fill] [&_path]:duration-200',
+          '[&_path]:!fill-[#1C1F23] hover:[&_path]:!fill-[rgba(28,31,35,0.35)]',
           uploadDisabled && 'opacity-50',
         )}
         onClick={handleAttachmentClick}
       >
-        <Attachment size={18} color="#1C1F23" />
+        <Attachment size={18} />
       </button>
     );
 
