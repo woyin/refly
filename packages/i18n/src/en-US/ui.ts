@@ -4335,6 +4335,8 @@ const translations = {
       cancel: 'Cancel',
       deactivate: 'Deactivate',
     },
+    tooltipText: 'Schedulable timer count, cap rises to 20 after upgrading to Plus',
+    limited: 'Schedule Limited',
   },
   runHistory: {
     pageTitle: 'Run History',
@@ -4404,7 +4406,7 @@ const translations = {
     },
   },
   integration: {
-    title: 'Integration',
+    title: 'Integrations',
     navTitle: 'Integrations',
     navSkill: 'Skill',
     navApi: 'API',
