@@ -17,6 +17,7 @@ import {
   IconLanguage,
 } from '@refly-packages/ai-workspace-common/components/common/icon';
 import { UILocaleList } from '@refly-packages/ai-workspace-common/components/ui-locale-list';
+import { NexuGuestCard } from '@refly-packages/ai-workspace-common/components/nexu-promotion';
 import { DownOutlined } from '@ant-design/icons';
 
 export const SiderLoggedOut = (props: { source: 'sider' | 'popover' }) => {
@@ -82,6 +83,9 @@ export const SiderLoggedOut = (props: { source: 'sider' | 'popover' }) => {
           <Button type="primary" className="w-full mt-4" onClick={() => setLoginModalOpen(true)}>
             {t('landingPage.tryItNow')}
           </Button>
+
+          {/* Nexu promotion card for guest users */}
+          <NexuGuestCard className="w-full mt-4" />
         </div>
         <Divider className="my-2" />
         {/* Language Selector */}

@@ -4995,6 +4995,26 @@ const translations = {
     connect: '连接',
     connected: '已连接',
   },
+  nexuPromotion: {
+    stickyBar: {
+      text: '最简洁的 OpenClaw 桌面客户端——一键将 Agent 接入微信、飞书、Slack 和 Discord',
+    },
+    modal: {
+      title: '最简洁的 OpenClaw 桌面客户端',
+      subtitle: '一键将 Agent 接入微信、飞书、Slack 和 Discord。',
+      feature1: '连接微信 / 飞书 / Slack / Discord',
+      feature2: '本机运行，数据以本机为主',
+      feature3: 'MIT 开源，可 fork 与自托管',
+      downloadBtn: '去 nexu 下载',
+      neverShow: '我已知晓，不再弹出',
+    },
+    guest: {
+      title: '最简洁的 OpenClaw 桌面客户端——一键将 Agent 接入微信、飞书、Slack 和 Discord。',
+      feature1: '兼容 Claude Code、Codex 及任意 LLM。',
+      feature2: '自带密钥、本地优先，随时随地在手机上聊天。',
+      cta: '前往 nexu',
+    },
+  },
 };
 
 export default translations;

@@ -14,6 +14,7 @@ import { useGetPromptSuggestions } from '@refly-packages/ai-workspace-common/que
 import { useFileUpload } from '../../hooks/use-file-upload';
 import { FileList } from '../canvas/copilot/file-list';
 import { useNavigate } from 'react-router-dom';
+import { NexuStickyBar } from '../nexu-promotion';
 
 const ACCEPT_FILE_EXTENSIONS = [
   // 文档类
@@ -355,6 +356,9 @@ export const PureCopilot = memo(({ source, classnames, onFloatingChange }: PureC
         classnames,
       )}
     >
+      {/* Nexu promotion sticky bar */}
+      {source === 'frontPage' && <NexuStickyBar className="w-full mb-4" />}
+
       <div className="flex items-center gap-3 mb-6">
         <svg
           xmlns="http://www.w3.org/2000/svg"
